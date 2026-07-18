@@ -61,10 +61,16 @@ Visit http://localhost:8080/trust-support — should show the Trust & Support hu
   - `Uuid.php` — small helper; CodeIgniter's Model layer needs the UUID
     primary key supplied explicitly on insert (see note below)
 - **`app/Commands/`** — `php spark test:cascade`, `test:rating`,
-  `test:lifecycle` — real, runnable test suites (69 assertions total,
-  zero failures) that exercise the above against a real database. Kept in
-  the project as ongoing verification tooling, not just one-off scripts —
-  rerun anytime after a change to confirm nothing broke.
+  `test:lifecycle`, `test:auth` — real, runnable test suites (89 assertions
+  total, zero failures) that exercise the above against a real database.
+  Kept in the project as ongoing verification tooling, not just one-off
+  scripts — rerun anytime after a change to confirm nothing broke.
+- **`app/Controllers/AuthController.php` + `app/Views/auth/*`** — BR-02
+  auth flow, real browser-reachable pages: `/register` → OTP verify → mPIN
+  setup, and `/login` with the 3-strike lockout → OTP reset flow. Verified
+  via real HTTP requests, not just the service layer. ⚠️ OTP is shown
+  on-screen in dev mode since the SMS provider is still stubbed — must be
+  removed before production.
 
 ## Important convention for any NEW model you add
 
@@ -80,10 +86,13 @@ Follow this pattern for any new table/model — see any existing Model's
 
 ## Not yet built
 
-Auth (BR-02 mobile/OTP/mPIN), real HTTP API routes/controllers wiring the
-above services together, and the remaining sale formats beyond what the
-tests exercise (Buy-Now/Express/Tender specific flows — Easy Auction is the
-most thoroughly tested so far).
+Real HTTP routes for the sale-format flows (Easy Auction listing → bid →
+cascade → settlement is fully tested at the service layer via
+`test:cascade`/`test:lifecycle`, but has no browser-reachable pages yet —
+same gap auth had until this build). Also not started: Buy-Now/Express/
+Tender-specific route flows, Tenant Admin / Super Admin surfaces, and
+Super Admin's separate Auth0/TOTP login path (BR-04) — the auth built so
+far is the standard mobile/OTP/mPIN flow for regular users only.
 
 ## Production web server (Apache/Nginx)
 

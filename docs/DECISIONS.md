@@ -268,3 +268,52 @@ logic remains to be ported.
 `test:rating`, `test:lifecycle` are real CLI commands (not throwaway
 scripts), left in `app/Commands/` as ongoing verification tooling —
 rerunnable anytime to confirm a change hasn't broken existing behavior.
+---
+
+### D-13: Auth (BR-02) built and wired to real, browser-reachable HTTP routes
+
+**Decision:** BR-02's mobile + OTP + mPIN flow is implemented and verified
+— both as isolated service logic (`php spark test:auth`, 20 assertions)
+and as real HTTP routes a browser can actually click through
+(`/register`, `/login`, and the intermediate OTP/mPIN steps), tested via
+real HTTP requests against a running server, not just the service layer.
+
+**What's real:**
+- `app/Database/Migrations/2026-01-01-000010_CreateOtpVerification.php` —
+  OTP storage (not present in the original BR/PR schema design, added as
+  a necessary supporting table).
+- `app/Libraries/AuthService.php` — OTP generation/verification (BR-02),
+  Indian mobile format validation (BR-03), mPIN set/verify, and the exact
+  3-consecutive-failure lockout requiring OTP re-verification before reset
+  or re-authentication.
+- `app/Controllers/AuthController.php` + `app/Views/auth/*` — real,
+  session-based multi-step web flow (not a JSON API — consistent with D-10's
+  server-rendered-views decision).
+
+**SMS provider is still stubbed** (per the tech stack's open item) — in
+development, the OTP is shown directly on-screen with a clearly labeled
+"Dev mode" notice. This must be removed/disabled once a real SMS provider
+(MSG91/Twilio/Fast2SMS — still TBD) is selected and integrated; the
+on-screen OTP display is a development convenience only and would be a
+serious security issue in production if left in place.
+
+**Real bugs found and fixed during this build:**
+1. `PartyModel`'s `allowedFields` was missing `mobile_verified_at`,
+   causing CodeIgniter's mass-assignment protection to silently drop that
+   field on update — the write appeared to succeed (no exception) but
+   wrote nothing. Caught by a failing test assertion, not silently missed.
+2. Testing via `curl -d` with a literal `+` in the mobile number initially
+   produced a false failure — `application/x-www-form-urlencoded` treats
+   `+` as a space, so `+919876543210` arrived at the server as a
+   space-prefixed number missing its country code. This is a test-tooling
+   artifact (a real browser form correctly URL-encodes `+` as `%2B`), not
+   an application bug — noted here so it isn't mistaken for one if
+   encountered again during manual testing.
+
+**Testing note for this environment specifically:** background server
+processes (`php -S ... &`) do not persist across separate tool
+invocations in Claude's sandbox — full request-flow tests had to be run
+as a single atomic command (start server, run all curl requests, stop
+server) rather than split across turns. Not relevant to Arpit's real
+server, where the PHP-FPM/Apache-Nginx process runs continuously as a
+proper service.
