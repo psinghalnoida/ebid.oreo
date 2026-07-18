@@ -137,3 +137,91 @@ unexplained prior work.
 Google AI Studio scaffold referencing a Gemini API key) was also discovered
 during this process and confirmed **not** to be part of this project. It is
 not touched by any decision in this log.
+
+---
+
+### D-08: Rating engine — OPEN ITEM: Shadow Banning threshold unconfirmed
+
+**Status:** ⚠️ NOT CONFIRMED — placeholder value in use, needs Super Admin decision.
+
+**Context:** BR-38 states Shadow Banning applies at "a further threshold"
+below the Crawl-Back trigger (2.0★), without stating the number. Unlike
+Crawl-Back's clean-transaction ladder (3/5/8, settled in prior project
+work) and the ₹50k deposit-override floor (also settled), no specific
+Shadow Banning threshold has been confirmed with the Super Admin.
+
+**Current placeholder in code:** 1.5★ (`SHADOW_BAN_THRESHOLD` in
+`ratingService.js`) — chosen only to keep the engine testable, not as a
+business decision.
+
+**Action required:** Confirm the actual Shadow Banning threshold with the
+Super Admin before this is treated as final. Until confirmed, do not rely
+on 1.5★ in any downstream decision (UI copy, tenant communication, etc.).
+
+---
+
+### D-09: Trust & Support hub restyled to Modern Marketplace Minimal
+
+**Decision:** The Trust & Support hub (FAQ, Dos & Don'ts, Fee Schedule,
+Refund Policy, Dispute Resolution, ToS, Privacy, Grievance Redressal,
+Security & Trust, Contact Us — built in an earlier session with a different
+design system) is restyled into Modern Marketplace Minimal (off-white,
+near-black, emerald, Sora), matching the landing/auction pages.
+
+**Rationale:** The two designs conflicted; project owner confirmed this
+direction should apply site-wide rather than maintaining two visual
+languages.
+
+---
+
+### D-10: Stack pivot — Node.js/Express/React → CodeIgniter 4 (PHP), server-rendered views
+
+**Decision:** At Arpit's (the project owner's SSH/deployment contact)
+request, the backend and frontend stack changes from Node.js/Express with
+a separate React SPA to **CodeIgniter 4 (PHP)**, using **CodeIgniter's own
+server-rendered views** rather than a separate frontend application.
+
+**Rationale (as relayed):** Arpit's operational comfort is with a PHP/LAMP-
+style stack on i2k2 hosting, which runs natively via Apache/Nginx +
+PHP-FPM without a separate Node process to manage.
+
+**Cost, confirmed with project owner before proceeding:** the EMD engine
+and rating engine built and tested in Node.js (39 passing assertions
+across both, against real PostgreSQL data) do not run under PHP and must
+be fully rewritten. The 9 SQL migration files are reusable (standard
+PostgreSQL DDL), pending porting into CodeIgniter's own migration format.
+The Node/React skeleton itself (Docker Compose targeting a Node container,
+the Vite/React frontend) is superseded and not carried forward.
+
+**What is NOT changing:** the underlying BR/PR business rules, the
+database schema design (party/tenant/listing/sale_event/bid/emd_hold/
+rating_event), the i2k2/Ubuntu 22.04 deployment target, the GitHub
+handoff flow (D-05), and the no-AI-direct-server-writes boundary (D-04) —
+this is a stack change, not a re-opening of those decisions.
+
+---
+
+### D-11: Sandbox verification method for CodeIgniter (network-restricted environment)
+
+**Context (informational, not a project decision):** Claude's sandboxed
+dev environment blocks network access to Packagist (`repo.packagist.org`,
+`getcomposer.org`), so `composer install`/`composer create-project` cannot
+resolve CodeIgniter's dependencies inside that sandbox. This has no effect
+on the actual project — Arpit's real server has normal internet access and
+`composer install` will work there exactly as it would on any standard
+CodeIgniter deployment.
+
+**What was done to verify the delivered code anyway:** rather than deliver
+untested code, the framework source and its two runtime dependencies
+(laminas/laminas-escaper, psr/log) were pulled directly from their GitHub
+source repositories (allowed in the sandbox's network policy) and manually
+wired together with a hand-written autoloader, purely to prove the
+delivered controllers/views/routes actually execute correctly under a real
+CodeIgniter boot — confirmed via HTTP 200 responses and correct dynamic
+content rendering on both the landing page and Trust & Support hub. This
+verification scaffolding (`vendor/manual-autoload.php` and similar) is
+**not** included in the delivered project — the delivered `composer.json`
+is the standard, unmodified `codeigniter4/appstarter` manifest, intended to
+be installed normally via `composer install`.
+
+
