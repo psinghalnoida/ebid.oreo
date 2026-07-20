@@ -24,6 +24,13 @@ database.default.password = <real password>
 database.default.DBDriver = Postgre
 database.default.port = 5432
 database.default.charset = utf8
+
+# IMPORTANT: must match the actual domain this app is served from, or
+# redirects (login, listing creation, bidding, etc.) will point at the
+# wrong host. Empty string is NOT valid — CodeIgniter rejects it outright.
+app.baseURL = 'https://yourdomain.com/'
+# For local testing against `php spark serve` on the default port:
+# app.baseURL = 'http://localhost:8080/'
 ```
 
 ## Run locally
@@ -84,15 +91,23 @@ caused real failures during testing. Every model's create method instead:
 Follow this pattern for any new table/model — see any existing Model's
 `create*()` method for a working example.
 
+- **`app/Controllers/ListingController.php`, `SaleEventController.php`,
+  `BidController.php` + `app/Views/listing/*`** — the Easy Auction flow,
+  real browser-clickable pages: create a listing, submit/approve, attach
+  an Easy Auction, approve it, fund EMD, place bids. Verified end-to-end
+  over real HTTP down to the database (see D-14). ⚠️ Several endpoints
+  are explicitly dev-only stand-ins for pieces not yet built (Tenant Admin
+  authorization, the real 60-minute grace-window timer, a real payment
+  gateway) — each is clearly marked in the code and MUST be
+  removed/replaced before production use. See D-14 for the full list.
+
 ## Not yet built
 
-Real HTTP routes for the sale-format flows (Easy Auction listing → bid →
-cascade → settlement is fully tested at the service layer via
-`test:cascade`/`test:lifecycle`, but has no browser-reachable pages yet —
-same gap auth had until this build). Also not started: Buy-Now/Express/
-Tender-specific route flows, Tenant Admin / Super Admin surfaces, and
-Super Admin's separate Auth0/TOTP login path (BR-04) — the auth built so
-far is the standard mobile/OTP/mPIN flow for regular users only.
+Buy-Now/Express/Tender-specific route flows, Tenant Admin / Super Admin
+authorization and their management surfaces, Super Admin's separate
+Auth0/TOTP login path (BR-04), settlement/NOC/dual-rating flow (BR-33),
+and a real payment gateway integration to replace the current dev-only EMD
+funding stub.
 
 ## Production web server (Apache/Nginx)
 

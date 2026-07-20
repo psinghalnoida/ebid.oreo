@@ -317,3 +317,51 @@ as a single atomic command (start server, run all curl requests, stop
 server) rather than split across turns. Not relevant to Arpit's real
 server, where the PHP-FPM/Apache-Nginx process runs continuously as a
 proper service.
+---
+
+### D-14: Easy Auction wired to real, browser-clickable HTTP routes — full flow verified
+
+**Decision:** The Easy Auction flow (BR-11/12/13/14/25/27/28) now has real
+HTTP routes and views, not just tested service-layer logic. Verified with
+a complete end-to-end run over real HTTP: register seller + buyer → create
+listing → submit for approval → approve → attach Easy Auction (RV) →
+approve sale event → grace period → freeze to active → buyer funds EMD →
+buyer places bid → current price and H1 standing correctly reflected, down
+to the database level (not just the rendered page).
+
+**New controllers/views:** `ListingController`, `SaleEventController`,
+`BidController`, and `app/Views/listing/*`.
+
+**⚠️ Dev-only endpoints — NOT production-ready, clearly marked in code:**
+- `ListingController::devApprove` / `devReject` — no real Tenant Admin
+  authorization check exists yet (BR-09/21/22 role-based access isn't
+  built). Anyone logged in can currently approve/reject any listing.
+- `SaleEventController::devApprove` — same caveat.
+- `SaleEventController::devForceFreeze` — bypasses BR-14's real 60-minute
+  grace window, which can't be waited out in a live test/demo session. The
+  real transition is meant to be time-based via a scheduled job (not yet
+  built).
+- `BidController::devFundEmd` — simulates a cleared EMD payment. BR-26's
+  real payment gateway routing (VAN/credit card) is not integrated — the
+  gateway provider itself is still a tech-stack open item (TBD).
+
+**These four endpoints must be removed or properly gated before any real
+users touch this system.** They exist solely so the tested business logic
+could be demonstrated as an actual clickable flow rather than only proven
+via `spark` test commands.
+
+**Real bugs found and fixed during this build:**
+1. Route ordering/extraction wasn't the issue it first appeared to be —
+   the actual cause of an early 404 batch was environment timing (a stale
+   server process on a reused port), not a routing bug. Confirmed by
+   isolating individual route calls before re-running the full sequence.
+2. `Config\App::$baseURL` was hardcoded to `http://localhost:8080/`,
+   which only matters when CodeIgniter generates outgoing URLs (redirects,
+   `site_url()`) — it does NOT affect incoming route matching, which is
+   request-based regardless of this setting. **This still matters for a
+   real deployment**: `app.baseURL` must be set via `.env` to the actual
+   domain the app is served from, or redirects will point at the wrong
+   host. Documented in `SETUP.md`.
+3. Confirmed CodeIgniter 4.7.4 rejects an empty-string `baseURL` outright
+   (`Config\App::$baseURL "/" is not a valid URL`) — the per-environment
+   override must always be a real URL via `.env`, never left blank.
