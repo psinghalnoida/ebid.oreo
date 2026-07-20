@@ -34,11 +34,11 @@
     </div>
     <div class="card-grid">
       <?php foreach ($group['cards'] as $card): ?>
-      <div class="card">
+      <a href="<?= esc($card['url']) ?>" class="card" style="text-decoration:none; color:inherit; display:block;">
         <div class="card-icon"><?= esc($card['icon']) ?></div>
         <h3><?= esc($card['title']) ?></h3>
         <p><?= esc($card['description']) ?></p>
-      </div>
+      </a>
       <?php endforeach; ?>
     </div>
   </div>

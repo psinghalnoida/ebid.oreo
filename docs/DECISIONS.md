@@ -365,3 +365,67 @@ via `spark` test commands.
 3. Confirmed CodeIgniter 4.7.4 rejects an empty-string `baseURL` outright
    (`Config\App::$baseURL "/" is not a valid URL`) — the per-environment
    override must always be a real URL via `.env`, never left blank.
+---
+
+### D-15: Trust & Support content pages published — legal docs with confirmed-pending fields
+
+**Decision:** All Trust & Support hub cards now link to real, rendered
+pages instead of placeholder text: FAQ, Dos & Don'ts, Security & Trust,
+Fee & Charges Schedule (Track 1 — operational content), and Terms of
+Usage, Privacy Policy, Grievance Redressal, Refund & Cancellation, Dispute
+Resolution, Cookie Policy (Track 2 — legal documents).
+
+**Important context on Track 2:** the source documents in the project's
+knowledge base still contain their original "DRAFT — not for publication
+until reviewed by qualified counsel" notices and unfilled bracketed
+fields (entity name, effective date, Grievance Officer name/contact,
+jurisdiction/city, and — for the Cookie Policy — an unmade analytics
+tooling decision). This was flagged explicitly to the project owner
+before publishing. **The project owner's confirmed decision:** the
+structural/substantive content is approved as final; the draft warning
+banners should be removed; the still-unfilled fields should remain
+visible as clearly-labeled placeholders rather than be invented or
+silently hidden.
+
+**Implementation:** each unfilled field renders as a styled "Pending — to
+be published" note (`.legal-pending` CSS class) rather than raw
+`[to be inserted]` bracket text — same honesty, doesn't look like a
+rendering bug to a visitor. This was Claude's suggestion as a middle
+ground once the project owner's decision was given, not a unilateral
+softening of what "pending" means.
+
+**Action still needed before full legal completeness:** the entity name,
+effective date, Grievance Officer details, jurisdiction city, and (for
+Cookie Policy specifically) the actual analytics tooling decision all
+still need real values supplied and wired in to replace the pending notes.
+
+**Scope note:** the legal document content rendered reflects the
+substantial majority of each source document's sections, retrieved from
+the project's knowledge base across several searches. Some numbered
+sections in the middle of longer documents (e.g., ToS Sections 13-19)
+were not individually retrieved/transcribed in this pass — if the project
+owner notices a section is missing from a live page, that's why; ask
+Claude to pull the remaining sections in a follow-up rather than assuming
+they were deliberately omitted.
+
+**Not yet linked from the hub:** a Terminology glossary page
+(`/terminology`) was also built with real glossary content, but no card
+was added to point to it from the Trust & Support hub yet — accessible
+directly by URL only for now.
+---
+
+### D-16: D-15 follow-up fixes — Terminology linked from hub, ToS gap filled
+
+**Decision:** Two loose ends from D-15 closed out:
+1. Terminology glossary (`/terminology`) now has a card on the Trust &
+   Support hub — previously built but only reachable by direct URL.
+2. Terms of Usage previously-missing sections retrieved and added:
+   Section 4 (Account Security), 5 (Nature of the Platform), 6 (Tenants
+   & Shops), 13 (Star Ratings), 14 (Disputes), 15 (Prohibited Conduct),
+   16 (Shipping & Delivery), 17 (Content & IP), 18 (Data & Privacy),
+   19 (Limitation of Liability). The page now renders 23 total sections
+   (verified via HTTP), up from the partial version shipped in D-15.
+
+**Verified:** re-tested over real HTTP — `/terms` now includes "Prohibited
+Conduct" (Section 15), hub links to `/terminology`, and `/terminology`
+still resolves directly. No regressions to the other 11 pages from D-15.

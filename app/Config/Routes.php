@@ -29,3 +29,18 @@ $routes->post('/sale-events/(:segment)/dev-approve', 'SaleEventController::devAp
 $routes->post('/sale-events/(:segment)/dev-force-freeze', 'SaleEventController::devForceFreeze/$1');
 $routes->post('/sale-events/(:segment)/dev-fund-emd', 'BidController::devFundEmd/$1');
 $routes->post('/sale-events/(:segment)/bid', 'BidController::placeBid/$1');
+
+// Legal documents (BR-01/D-15: reviewed structural content, pending fields flagged)
+$routes->get('/terms', 'LegalController::termsOfUsage');
+$routes->get('/privacy', 'LegalController::privacyPolicy');
+$routes->get('/grievance-redressal', 'LegalController::grievanceRedressal');
+$routes->get('/refund-cancellation', 'LegalController::refundCancellation');
+$routes->get('/dispute-resolution', 'LegalController::disputeResolution');
+$routes->get('/cookie-policy', 'LegalController::cookiePolicy');
+
+// Info / support pages
+$routes->get('/faq', 'InfoController::faq');
+$routes->get('/dos-and-donts', 'InfoController::dosAndDonts');
+$routes->get('/security-trust', 'InfoController::securityTrust');
+$routes->get('/fees', 'InfoController::feeSchedule');
+$routes->get('/terminology', 'InfoController::terminology');
