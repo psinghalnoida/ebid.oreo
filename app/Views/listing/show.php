@@ -30,12 +30,12 @@
 
   <?php if ($listing['status'] === 'pending_approval'): ?>
     <div style="background:var(--line-soft); padding:16px; border-radius:12px; margin-top:16px;">
-      <p style="font-size:12px; color:var(--ink-3); margin:0 0 10px;">⚠️ Dev-only admin actions (no real Tenant Admin auth yet — see D-14)</p>
-      <form method="post" action="/listings/<?= esc($listing['id']) ?>/dev-approve" style="display:inline;">
-        <button type="submit" class="btn btn-emerald">Approve (dev)</button>
+      <p style="font-size:12px; color:var(--ink-3); margin:0 0 10px;">Tenant Admin actions — requires the tenant_admin role for this listing's tenant (BR-09)</p>
+      <form method="post" action="/listings/<?= esc($listing['id']) ?>/approve" style="display:inline;">
+        <button type="submit" class="btn btn-emerald">Approve</button>
       </form>
-      <form method="post" action="/listings/<?= esc($listing['id']) ?>/dev-reject" style="display:inline;">
-        <button type="submit" class="btn btn-ghost">Reject (dev)</button>
+      <form method="post" action="/listings/<?= esc($listing['id']) ?>/reject" style="display:inline;">
+        <button type="submit" class="btn btn-ghost">Reject</button>
       </form>
     </div>
   <?php endif; ?>
@@ -56,9 +56,9 @@
       <p style="font-size:12px; color:var(--ink-3);">Reserve: ₹<?= number_format((float) $saleEvent['reserve_value'], 2) ?> · EMD required: ₹<?= number_format((float) $saleEvent['reserve_value'] * 0.10, 2) ?></p>
 
       <?php if ($saleEvent['status'] === 'pending_approval'): ?>
-        <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/dev-approve" style="margin-top:14px;">
-          <p style="font-size:12px; color:var(--ink-3);">⚠️ Dev-only (see D-14)</p>
-          <button type="submit" class="btn btn-emerald">Approve Sale Event (dev)</button>
+        <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/approve" style="margin-top:14px;">
+          <p style="font-size:12px; color:var(--ink-3);">Tenant Admin action (BR-09)</p>
+          <button type="submit" class="btn btn-emerald">Approve Sale Event</button>
         </form>
       <?php endif; ?>
 

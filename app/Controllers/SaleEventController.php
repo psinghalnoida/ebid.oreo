@@ -56,8 +56,9 @@ class SaleEventController extends BaseController
         return redirect()->to("/listings/{$listingId}");
     }
 
-    // ⚠️ DEV-ONLY: same authorization caveat as ListingController::devApprove
-    public function devApprove(string $saleEventId)
+    // BR-09: Tenant Admin approval — access enforced by the tenantAdmin
+    // route filter (resource type 'saleEvent').
+    public function approve(string $saleEventId)
     {
         $this->lifecycle->approveSaleEvent($saleEventId);
         $saleEvent = $this->saleEventModel->find($saleEventId);
@@ -67,7 +68,9 @@ class SaleEventController extends BaseController
     // ⚠️ DEV-ONLY: BR-14's real 60-minute grace window can't be waited out
     // in a live demo/test session — this forces the freeze immediately.
     // Must not exist in a production build; the real transition is
-    // time-based via a scheduled job.
+    // time-based via a scheduled job. Now also gated behind the
+    // tenantAdmin filter, consistent with other administrative actions,
+    // though the underlying time-skip mechanism itself remains a stand-in.
     public function devForceFreeze(string $saleEventId)
     {
         $saleEvent = $this->saleEventModel->find($saleEventId);

@@ -429,3 +429,46 @@ directly by URL only for now.
 **Verified:** re-tested over real HTTP — `/terms` now includes "Prohibited
 Conduct" (Section 15), hub links to `/terminology`, and `/terminology`
 still resolves directly. No regressions to the other 11 pages from D-15.
+---
+
+### D-17: Real Tenant Admin authorization — replaces the listing/sale-event dev-only shortcuts from D-14
+
+**Decision:** BR-09's Tenant Admin authority is now genuinely enforced,
+not simulated. `ListingController::devApprove/devReject` and
+`SaleEventController::devApprove` are replaced with real `approve`/
+`reject` methods gated by a new `tenantAdmin` route filter
+(`app/Filters/TenantAdminFilter.php`), which checks the logged-in
+party actually holds an active `tenant_admin` role (`party_role` table,
+BR-19/BR-44) for the specific tenant that owns the target listing/sale
+event — not just "any logged-in user."
+
+**New pieces:**
+- `app/Models/PartyRoleModel.php` — the `party_role` table had a
+  migration since Phase 0 but no model until now.
+- `app/Libraries/AuthorizationService.php` — resolves a listing/sale
+  event to its tenant and checks the role.
+- `app/Filters/TenantAdminFilter.php` — CI4 route filter, returns 403
+  if the caller isn't the right tenant's admin.
+- `php spark grant:tenant-admin <mobile> <tenant_id>` — interim CLI
+  bootstrap tool. No Super Admin panel exists yet to grant this role
+  through a UI, so this exists purely so a Tenant Admin can be
+  provisioned at all. Should be retired once real Super Admin tooling
+  is built.
+
+**What's still a dev-only stand-in (from D-14), now partially addressed:**
+- `SaleEventController::devForceFreeze` — still skips BR-14's real
+  60-minute grace window (that's a time mechanic, not an authorization
+  gap), but is now ALSO gated behind the same `tenantAdmin` filter, so at
+  least only a real admin can trigger it.
+- `BidController::devFundEmd` — unchanged; this stands in for a missing
+  payment gateway integration, a different category of gap entirely, not
+  an authorization issue.
+
+**Verified:** real HTTP test — a registered non-admin party attempting
+`/listings/{id}/approve` on someone else's listing receives **403**,
+confirmed the listing status was unchanged in the database. After
+granting the `tenant_admin` role via the new spark command, the identical
+request from that party succeeds (303 redirect), confirmed via direct
+database read that `listing.status` actually transitioned to `upcoming`.
+Full regression: all 89 previously-passing assertions across
+cascade/rating/lifecycle/auth still pass — no regressions introduced.

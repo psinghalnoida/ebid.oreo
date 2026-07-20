@@ -95,17 +95,17 @@ class ListingController extends BaseController
         return redirect()->to("/listings/{$listingId}");
     }
 
-    // ⚠️ DEV-ONLY: no real Tenant Admin authorization check yet — role-based
-    // access (BR-09/BR-21/BR-22) is not built. This endpoint exists so the
-    // rest of the Easy Auction flow can be demonstrated end-to-end; it must
-    // be gated behind real Tenant Admin auth before this is production-usable.
-    public function devApprove(string $listingId)
+    // BR-09: Tenant Admin approval — access enforced by the tenantAdmin
+    // route filter, not by this method. If execution reaches here, the
+    // caller has already been confirmed as the Tenant Admin for this
+    // listing's tenant.
+    public function approve(string $listingId)
     {
         $this->lifecycle->approve($listingId);
         return redirect()->to("/listings/{$listingId}");
     }
 
-    public function devReject(string $listingId)
+    public function reject(string $listingId)
     {
         $reason = $this->request->getPost('reason') ?: 'insufficient photos';
         $this->lifecycle->reject($listingId, $reason);

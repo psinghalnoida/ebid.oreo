@@ -101,13 +101,25 @@ Follow this pattern for any new table/model — see any existing Model's
   gateway) — each is clearly marked in the code and MUST be
   removed/replaced before production use. See D-14 for the full list.
 
+- **`app/Filters/TenantAdminFilter.php` + `app/Libraries/AuthorizationService.php`
+  + `app/Models/PartyRoleModel.php`** — real BR-09 Tenant Admin
+  authorization, replacing the dev-only approve/reject shortcuts from
+  before. A logged-in party must actually hold the `tenant_admin` role
+  for a listing's specific tenant to approve/reject it — enforced with a
+  403 response otherwise, verified over real HTTP. Since there's no Super
+  Admin panel yet to grant this role through a UI, use:
+  ```
+  php spark grant:tenant-admin <mobile_number> <tenant_id>
+  ```
+
 ## Not yet built
 
-Buy-Now/Express/Tender-specific route flows, Tenant Admin / Super Admin
-authorization and their management surfaces, Super Admin's separate
-Auth0/TOTP login path (BR-04), settlement/NOC/dual-rating flow (BR-33),
-and a real payment gateway integration to replace the current dev-only EMD
-funding stub.
+Buy-Now/Express/Tender-specific route flows, a real Super Admin panel
+(the `grant:tenant-admin` spark command is a stand-in for this), Super
+Admin's separate Auth0/TOTP login path (BR-04), settlement/NOC/dual-rating
+flow (BR-33), and a real payment gateway integration to replace the
+current dev-only EMD funding stub (`BidController::devFundEmd` — still
+a stand-in, unrelated to the authorization work above).
 
 ## Production web server (Apache/Nginx)
 

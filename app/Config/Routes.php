@@ -21,12 +21,12 @@ $routes->get('/listings/create', 'ListingController::createForm');
 $routes->post('/listings', 'ListingController::createSubmit');
 $routes->get('/listings/(:segment)', 'ListingController::show/$1');
 $routes->post('/listings/(:segment)/submit-for-approval', 'ListingController::submitForApproval/$1');
-$routes->post('/listings/(:segment)/dev-approve', 'ListingController::devApprove/$1');
-$routes->post('/listings/(:segment)/dev-reject', 'ListingController::devReject/$1');
+$routes->post('/listings/(:segment)/approve', 'ListingController::approve/$1', ['filter' => 'tenantAdmin:listing']);
+$routes->post('/listings/(:segment)/reject', 'ListingController::reject/$1', ['filter' => 'tenantAdmin:listing']);
 $routes->post('/listings/(:segment)/sale-events', 'SaleEventController::createSubmit/$1');
 
-$routes->post('/sale-events/(:segment)/dev-approve', 'SaleEventController::devApprove/$1');
-$routes->post('/sale-events/(:segment)/dev-force-freeze', 'SaleEventController::devForceFreeze/$1');
+$routes->post('/sale-events/(:segment)/approve', 'SaleEventController::approve/$1', ['filter' => 'tenantAdmin:saleEvent']);
+$routes->post('/sale-events/(:segment)/dev-force-freeze', 'SaleEventController::devForceFreeze/$1', ['filter' => 'tenantAdmin:saleEvent']);
 $routes->post('/sale-events/(:segment)/dev-fund-emd', 'BidController::devFundEmd/$1');
 $routes->post('/sale-events/(:segment)/bid', 'BidController::placeBid/$1');
 
