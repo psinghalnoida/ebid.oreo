@@ -1094,3 +1094,74 @@ deployment is intended to remain internal/testing-only initially, with
 real payment gateway and SMS integration connected and tested against
 the live deployed site afterward — both remain deliberately stubbed, not
 overlooked.
+---
+
+### D-30: Pre-deployment repository audit — duplicate/residual/dead file sweep
+
+**Decision:** A full, systematic audit of the repository was run before
+deployment, per the project owner's explicit request to check for
+"duplicate and non-relevant or residual entries" and ensure the code
+"deploys effortlessly." This went beyond a visual scan — several checks
+were done programmatically.
+
+**Checks performed and results:**
+
+1. **Every route verified against real controller methods** (62 routes,
+   programmatically checked, not spot-checked) — all valid, none dangling.
+2. **Every controller confirmed reachable by at least one route** (16
+   controllers) — none orphaned.
+3. **No Node.js leftovers, no `.env` committed, no backup/temp/debug
+   files** (`var_dump`/`print_r`/`dd()` swept for and found clean).
+4. **Migration sequencing verified** — 17 migrations, sequential, no
+   gaps or duplicate numbers.
+5. **`composer.json` re-verified** — correct project metadata, valid JSON.
+
+**A systematic check for the exact `allowedFields` bug pattern found
+twice before (D-13, D-29) — run across every model, not just the two
+previously caught instances.** This surfaced several candidates; each was
+individually judged rather than blanket-fixed:
+
+- **False positives, correctly left alone:** `placed_at`, `held_at`,
+  `granted_at`, `whitelisted_at` are DB-default timestamps the
+  application never writes directly — no bug. `saas_fee_percent` and
+  `emd_percent` are CHECK-constrained to fixed values (0.50% and 10%
+  respectively) — deliberately not application-settable, matching
+  BR-08/BR-27. `dynamic_time_trigger_minutes`/`dynamic_time_extension_
+  minutes`/`intensity_mode_active` correspond to a Dynamic Time bidding
+  extension feature that was never actually built as application logic
+  (noted here as a genuine, separate unbuilt feature — not this audit's
+  scope to fix).
+- **Real fix applied:** `PartyModel` was missing `archived_at` — despite
+  a comment in the same file explicitly saying "archived_at handled
+  manually" — and all nine `org_*` organization/KYC fields (`org_cin`,
+  `org_gstin`, `org_pan`, etc.). Neither is exercised by any currently
+  built feature (no party-deactivation flow, no KYC data-entry flow
+  exist yet), so this was a **dormant** bug, not an active one — but the
+  exact same silent-failure pattern that has now bitten this project
+  three times (D-13's `mobile_verified_at`, D-29's `totp_secret`, and
+  this). Fixed preemptively before either feature gets built and
+  discovers it the hard way.
+
+**Genuine residual files removed:**
+- `app/Views/welcome_message.php` — CodeIgniter's stock starter view,
+  confirmed via grep to be referenced nowhere except its own displayed
+  content. This was believed removed back in D-16 but evidently never
+  actually landed on GitHub — found still present during this audit.
+- Five stale `.gitkeep` placeholder files sitting in directories that are
+  now genuinely populated (`Migrations`, `Models`, `Filters`,
+  `Libraries`) — harmless but pure clutter. `.gitkeep` files in
+  genuinely-still-empty directories (`Seeds`, `ThirdParty`, `Helpers`)
+  were correctly left in place.
+
+**Explicitly investigated and confirmed NOT a problem:** `app/Views/
+errors/html/*` and `app/Views/errors/cli/*` initially appeared orphaned
+(no explicit `view()` call references them in any controller) — verified
+these are CodeIgniter's own internal error-page templates, invoked
+automatically by the framework's exception handler, not through normal
+application `view()` calls. Correctly left untouched; removing them would
+have broken graceful error handling in production.
+
+**Verified nothing broke:** full regression (185 assertions across all
+ten test suites) plus a fresh real-HTTP smoke test (`/`, `/trust-support`,
+`/login` all returning 200) run after every change in this audit, not
+just at the end.
