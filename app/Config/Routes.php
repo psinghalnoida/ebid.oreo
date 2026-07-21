@@ -54,6 +54,15 @@ $routes->post('/settlements/(:segment)/rate-as-seller', 'SettlementController::r
 $routes->post('/settlements/dev-flag-stalled', 'SettlementController::devFlagStalled');
 $routes->post('/settlements/(:segment)/force-resolve', 'SettlementController::forceResolve/$1', ['filter' => 'tenantAdmin:settlement']);
 
+// Dispute Resolution Framework (BR-40)
+$routes->get('/sale-events/(:segment)/dispute', 'DisputeController::fileForm/$1');
+$routes->post('/sale-events/(:segment)/dispute', 'DisputeController::fileSubmit/$1');
+$routes->get('/disputes/(:segment)', 'DisputeController::show/$1');
+$routes->post('/disputes/(:segment)/evidence', 'DisputeController::submitEvidence/$1');
+$routes->post('/disputes/(:segment)/rule', 'DisputeController::rule/$1');
+$routes->post('/disputes/(:segment)/appeal', 'DisputeController::appeal/$1');
+$routes->post('/disputes/(:segment)/rule-appeal', 'DisputeController::ruleOnAppeal/$1', ['filter' => 'superAdmin']);
+
 // Legal documents (BR-01/D-15: reviewed structural content, pending fields flagged)
 $routes->get('/terms', 'LegalController::termsOfUsage');
 $routes->get('/privacy', 'LegalController::privacyPolicy');

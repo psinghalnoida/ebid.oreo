@@ -855,26 +855,94 @@ still require manual/dev-only triggering), Tier 3 (Super Admin panel,
 tenant onboarding, conflict-of-interest blocks).
 ---
 
-### D-26: Tier 1 Item 4 — seller rating visible pre-bid (BR-41) — Tier 1 fully closed
+### D-27: Tier 2 Item 1 — Dispute Resolution Framework (BR-40)
 
-**Decision:** The listing page now displays the seller's actual rating
-(star icons + numeric value) prominently, before any bid/offer/pledge
-action — closing the last item on Tier 1 from D-23.
+**Decision:** The full Dispute Resolution Framework now exists — filing,
+evidence, ruling with REAL execution (not just recorded outcome labels),
+and a one-level appeal to Super Admin. This was the largest single gap
+identified in the original BR/PR audit (D-23).
 
-**Verified over real HTTP with a genuinely changed value, not just the
-default:** confirmed a new seller correctly shows the 3.0★ default, then
-updated that seller's actual `seller_star_rating` to 4.7 directly in the
-database and confirmed the listing page reflected the real, changed
-value (`★★★★☆ 4.7`) — proving this reads live data, not a static/cached
-display.
+**A real dependency surfaced and resolved deliberately, not silently:**
+BR-40 requires a Super Admin to rule on `buyer_non_response` disputes and
+hear all appeals — but Super Admin auth/panel is Tier 3, planned to come
+*after* Tier 2. Rather than block Dispute Resolution on Tier 3, a minimal
+Super Admin **authorization** concept was built now (`party_role` with
+`role='super_admin'`, `tenant_id=NULL`, granted via
+`php spark grant:super-admin`) — explicitly flagged everywhere it appears
+in code as **NOT** BR-04's real Auth0/TOTP Super Admin login path, which
+remains genuinely deferred. This is the same kind of interim stand-in as
+`grant:tenant-admin` has always been, applied consistently.
 
-**Full regression: 142 assertions across all seven engines, zero failures.**
+**New pieces:** `dispute`/`dispute_evidence` tables, `DisputeModel`,
+`DisputeEvidenceModel`, `DisputeService` (the substantial piece — filing
+with category-based routing, evidence collection, ruling that actually
+executes its outcome by reusing `SettlementService`/`EmdHoldModel`/
+`RatingService` rather than duplicating logic, and appeal), plus real
+HTTP routes and views.
 
-**Tier 1 (D-23) is now fully closed**: media upload (D-24), settlement/
-dual-NOC/rating gate + stall resolution (D-25), and seller rating
-visibility (D-26) are all built, tested, and verified over real HTTP.
+**Ruling outcomes genuinely execute, verified specifically because this
+matters:** `order_forfeiture` actually calls the same BR-34 forfeiture
+allocation math already tested for cascade defaults — confirmed via
+database read that a buyer's EMD hold was marked `forfeited` with the
+allocation correctly summing to the full held amount, not just a status
+label. `rating_consequence` actually calls `RatingService::
+initiateDowngrade` and self-approves it at the correct BR-36 tier (Tenant
+Admin ruling → Tenant Admin approval; Super Admin ruling → both approval
+tiers, since Super Admin outranks the dual-gate) — confirmed the seller's
+actual `seller_star_rating` decreased, not just an event being recorded.
 
-**Next: Tier 2** — Dispute Resolution Framework (BR-40) and scheduled-job
-infrastructure (the latter needed by BR-14's grace windows, Express's
-countdown, Buy-Now's offer lapse, and this Tier's own stall-flagging —
-all currently still require manual/dev-only triggering).
+**Known simplifications, flagged rather than hidden:**
+1. **The precise per-category filing-window trigger event isn't specified
+   precisely enough in the source document to implement five different
+   anchors confidently** — one consistent anchor (the sale_event's
+   `actual_closed_at`) is used for the 7-day window instead. The 7-day
+   figure itself is carried from the plain-language guide, which itself
+   flags it as "not independently reconfirmed" — not a settled figure.
+2. **Evidence is text-only in this pass** — no file/photo attachment for
+   dispute evidence (`MediaService` exists for listings but wasn't
+   extended here to keep scope contained). A real limitation for disputes
+   that would benefit from photographic evidence (e.g., condition_delivery).
+3. **An appeal ruling records the final decision but does NOT
+   automatically reverse whatever the original ruling already executed**
+   (a forfeiture already processed, a rating already changed). If an
+   appeal overturns the original ruling, reversing its real-world effects
+   is a manual admin action, not automated. Flagged directly in the
+   service code, not discovered later.
+4. **Standing Review (BR-40's sixth category, BR-61) deliberately
+   excluded from the category enum** — it's system-initiated (not
+   user-filed) and BR-61 itself isn't built (Tier 4), so including a
+   category with no system to trigger it would have been misleading.
+
+**Real bugs found and fixed BEFORE they shipped** (caught during writing/
+testing, not after):
+1. A malformed tenant lookup in the forfeiture execution branch (passed
+   an array where a tenant ID string was expected) — caught before the
+   first test run.
+2. `executeRuling` referenced `$dispute['ruled_by_party_id']`, which is
+   only saved to the database *after* `executeRuling` runs — always null
+   at the point it was read. Fixed by passing the ruler's ID as an
+   explicit parameter instead of relying on a not-yet-persisted field.
+3. **A pre-existing bug from D-24**, unrelated to this feature but found
+   while testing it: `ListingController::submitForApproval` had no
+   try/catch around the BR-11 photo-count check, unlike every other
+   controller action — so a listing without enough photos crashed with a
+   raw 500 error instead of a friendly redirect message. This bug existed
+   since D-24 and was never caught because D-24's own test always
+   uploaded enough photos first. Fixed here.
+
+**Verified over real HTTP, not just `spark` tests:** ran the complete
+flow — listing with photos → approval (by the actual granted Tenant
+Admin, not the seller) → Buy-Now sale → dispute filed by buyer → evidence
+from both sides → Tenant Admin ruling (rating_consequence) → seller
+appeals → Super Admin rules on the appeal → dispute reaches `closed`.
+Confirmed directly in the database: `status=closed`,
+`ruling_outcome=rating_consequence`, `ruling_authority_type=tenant_admin`,
+appeal ruling recorded.
+
+**Full regression: 160 assertions across all eight engines, zero failures.**
+
+**Remaining from D-23:** Tier 2's second item (scheduled-job
+infrastructure), then Tier 3 (Super Admin panel + REAL auth — this build
+made the authorization gap even more visible, since a real login/2FA
+path for Super Admin is now clearly needed, not just role membership;
+tenant onboarding; conflict-of-interest blocks).

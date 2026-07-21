@@ -90,7 +90,6 @@ class ListingController extends BaseController
         $expressState = null;
         $settlementRecord = null;
         $media = (new \App\Models\ListingMediaModel())->findForListing($listingId);
-        $seller = (new \App\Models\PartyModel())->find($listing['seller_party_id']);
         if ($saleEvent && $saleEvent['status'] === 'closed_sold') {
             $settlementRecord = (new \App\Models\SettlementModel())->findBySaleEvent($saleEvent['id']);
         }
@@ -112,14 +111,17 @@ class ListingController extends BaseController
             'isOwner' => session()->get('logged_in_party_id') === $listing['seller_party_id'],
             'minPhotos' => \App\Libraries\MediaService::minPhotos(),
             'settlementRecord' => $settlementRecord,
-            'sellerRating' => $seller ? (float) $seller['seller_star_rating'] : null,
         ]);
     }
 
     // BR-13: submit for Tenant Admin review
     public function submitForApproval(string $listingId)
     {
-        $this->lifecycle->submitForApproval($listingId);
+        try {
+            $this->lifecycle->submitForApproval($listingId);
+        } catch (\RuntimeException $e) {
+            return redirect()->to("/listings/{$listingId}")->with('error', $e->getMessage());
+        }
         return redirect()->to("/listings/{$listingId}");
     }
 

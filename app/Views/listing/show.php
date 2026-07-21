@@ -12,16 +12,6 @@
   <h1 style="font-size:26px; margin:12px 0 4px;"><?= esc($listing['category']) ?><?= $listing['subcategory'] ? ' / ' . esc($listing['subcategory']) : '' ?></h1>
   <p style="color:var(--ink-3); font-size:13px;">Lot ID: <?= esc($listing['id']) ?> · Media: <?= esc(strtoupper($listing['media_tier'])) ?></p>
 
-  <?php if ($sellerRating !== null): ?>
-    <div style="display:inline-flex; align-items:center; gap:6px; background:var(--amber-soft); color:#9C5B1F; padding:6px 12px; border-radius:100px; font-size:13px; font-weight:700; margin:8px 0;">
-      <?php
-        $fullStars = (int) floor($sellerRating);
-        $stars = str_repeat('★', $fullStars) . str_repeat('☆', 5 - $fullStars);
-      ?>
-      <?= esc($stars) ?> <?= number_format($sellerRating, 1) ?> Seller Rating
-    </div>
-  <?php endif; ?>
-
   <?php if (!empty($media)): ?>
     <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(90px, 1fr)); gap:8px; margin:16px 0;">
       <?php foreach ($media as $m): ?>

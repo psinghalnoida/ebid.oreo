@@ -35,6 +35,19 @@ class AuthorizationService
         return $this->isTenantAdminFor($partyId, $listing['tenant_id']);
     }
 
+    // ⚠️ MINIMAL STAND-IN: this checks role membership only — it is NOT
+    // BR-04's separate Auth0/TOTP Super Admin login path, which remains
+    // deferred (Tier 3, D-23). This exists only to unblock BR-40's real
+    // requirement that a Super Admin rule on buyer-side disputes and
+    // appeals — Dispute Resolution couldn't be built at all without some
+    // form of this authorization existing first. Provisioned via
+    // `php spark grant:super-admin`, same pattern as tenant_admin.
+    public function isSuperAdmin(string $partyId): bool
+    {
+        $roleModel = new \App\Models\PartyRoleModel();
+        return $roleModel->hasActiveRole($partyId, 'super_admin', null);
+    }
+
     public function isTenantAdminForSaleEvent(string $partyId, string $saleEventId): bool
     {
         $saleEvent = $this->saleEventModel->find($saleEventId);

@@ -35,6 +35,7 @@ class Filters extends BaseFilters
         'pagecache'     => PageCache::class,
         'performance'   => PerformanceMetrics::class,
         'tenantAdmin'   => \App\Filters\TenantAdminFilter::class,
+        'superAdmin'    => \App\Filters\SuperAdminFilter::class,
     ];
 
     /**
