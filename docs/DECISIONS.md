@@ -1001,3 +1001,96 @@ and verified.
 **Remaining from D-23: Tier 3** — Super Admin panel + REAL auth (BR-04,
 distinct from the minimal role-check stand-in built in D-27), tenant
 onboarding workflow, conflict-of-interest blocks (BR-21/22).
+---
+
+### D-29: Tier 3 — Super Admin real auth (BR-04), tenant onboarding (BR-06/07), conflict-of-interest blocks (BR-21/22) — Tier 3 fully closed, D-23's full gate now met
+
+**Decision:** All three remaining Tier 3 items are built and verified.
+This is the last tier of D-23's corrected deployment gate — all of D-23
+(Tiers 1, 2, and 3) is now complete.
+
+**BR-04 — real Super Admin authentication, not just a role check:**
+
+A genuine, cryptographically-correct TOTP (RFC 6238) implementation —
+compatible with Google Authenticator, Authy, and any standard
+authenticator app. **Explicitly flagged substitution:** BR-04 names
+"Auth0/TOTP" — Auth0 is a paid external vendor requiring its own account
+setup, the same category of dependency as the payment gateway and SMS
+provider (both deferred, D-23). TOTP itself is an open standard requiring
+no vendor. This delivers genuine 2FA; if Auth0 specifically is needed
+later (SSO, centralized management), it can sit alongside or replace this
+layer — this is not a fake stand-in.
+
+**Verified the TOTP math is actually correct, not just self-consistent:**
+cross-checked `TotpService`'s output against a second, independently
+written implementation of the same algorithm — both produced identical
+codes for the same secret and time window. This matters because TOTP has
+several places a subtle bug (byte-packing order, truncation offset,
+base32 padding) could silently produce codes that never validate against
+a real authenticator app while still passing tests that only check
+self-consistency.
+
+**A real security tightening, not just role storage:** `SuperAdminFilter`
+previously (as built in D-27, as an interim stand-in) only checked
+`party_role` membership from a REGULAR session — meaning any session
+where that party was logged in normally would satisfy it, defeating
+BR-04's "separate login path" requirement. Now it requires a distinct
+session marker (`super_admin_totp_verified_at`) set only by the real
+`/admin/login` flow. Verified over real HTTP: a regular user who never
+went through `/admin/login` is redirected away from `/admin`, not shown
+the dashboard, even though they hold the `super_admin` role in the
+database.
+
+**BR-06/07 — tenant onboarding:** real Super-Admin-gated UI
+(`TenantController`, `/admin/tenants/create`) replacing every prior raw
+database insert used throughout testing since Phase 0. Tenant creation
+IS the whitelisting act per BR-06.
+
+**BR-21/22 — conflict-of-interest blocks:** a listing's own assigned
+inspector, and a tenant's own Tenant Admin, are now genuinely blocked
+from bidding, offering, or pledging on listings within their scope —
+enforced in `AuthorizationService::hasConflictOfInterest`, wired into all
+three "commit to buying" entry points (`BiddingService`, `OfferService`,
+`ExpressAuctionService`). Verified a genuinely unrelated buyer is NOT
+blocked — confirming the check is scoped correctly, not overly broad.
+
+**A real bug caught and fixed, same class as a prior one (D-13):**
+`PartyModel`'s `allowedFields` didn't include the new `totp_secret`/
+`totp_enabled_at` columns, so `beginTotpSetup`'s update silently failed —
+caught immediately by the test suite, not discovered later. Worth noting
+this is the second time this exact class of bug (a new column added to a
+migration without the corresponding model update) has occurred on this
+project — a pattern worth being more careful about on any future schema
+addition.
+
+**Verified over real HTTP, the complete flow, not just the service
+layer:** registered an account → granted `super_admin` via CLI → visited
+the real `/admin/setup-totp` page and extracted the actual secret shown
+→ computed a valid code independently → confirmed setup via the real
+form → logged in via the separate `/admin/login` form with mPIN + the
+computed code → reached the real `/admin` dashboard, confirmed by page
+content, not just a redirect status.
+
+**Full regression: 185 assertions across all ten engines, zero failures.**
+
+**Known simplification, flagged, not hidden:** the TOTP secret is stored
+in plain text in the database for now — a real production deployment
+should encrypt it at rest using CodeIgniter's Encryption service. Noted
+in the migration file itself, not just this log.
+
+---
+
+## D-23's full deployment gate is now met — Tiers 1, 2, and 3 all complete
+
+| Tier | Status | Decisions |
+|---|---|---|
+| Tier 1 | ✅ Complete | D-24, D-25, D-26 |
+| Tier 2 | ✅ Complete | D-27, D-28 |
+| Tier 3 | ✅ Complete | D-29 |
+
+This closes out the corrected deployment gate established in D-23 after
+the full BR/PR audit. Per the project owner's own framing, this
+deployment is intended to remain internal/testing-only initially, with
+real payment gateway and SMS integration connected and tested against
+the live deployed site afterward — both remain deliberately stubbed, not
+overlooked.

@@ -63,6 +63,17 @@ $routes->post('/disputes/(:segment)/rule', 'DisputeController::rule/$1');
 $routes->post('/disputes/(:segment)/appeal', 'DisputeController::appeal/$1');
 $routes->post('/disputes/(:segment)/rule-appeal', 'DisputeController::ruleOnAppeal/$1', ['filter' => 'superAdmin']);
 
+// Super Admin real auth (BR-04)
+$routes->get('/admin/setup-totp', 'SuperAdminAuthController::setupTotpForm');
+$routes->post('/admin/setup-totp', 'SuperAdminAuthController::setupTotpSubmit');
+$routes->get('/admin/login', 'SuperAdminAuthController::loginForm');
+$routes->post('/admin/login', 'SuperAdminAuthController::loginSubmit');
+$routes->get('/admin/logout', 'SuperAdminAuthController::logout');
+
+$routes->get('/admin', 'AdminController::dashboard', ['filter' => 'superAdmin']);
+$routes->get('/admin/tenants/create', 'TenantController::createForm', ['filter' => 'superAdmin']);
+$routes->post('/admin/tenants', 'TenantController::createSubmit', ['filter' => 'superAdmin']);
+
 // Legal documents (BR-01/D-15: reviewed structural content, pending fields flagged)
 $routes->get('/terms', 'LegalController::termsOfUsage');
 $routes->get('/privacy', 'LegalController::privacyPolicy');

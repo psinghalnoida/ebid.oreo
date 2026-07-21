@@ -35,6 +35,26 @@ class AuthorizationService
         return $this->isTenantAdminFor($partyId, $listing['tenant_id']);
     }
 
+    // BR-21: the listing's assigned inspector may not bid/offer/pledge on
+    // that same listing. BR-22: a Tenant Admin may not bid/offer/pledge
+    // on any listing belonging to their own tenant's storefront. Both
+    // checked together since every "commit to buying" entry point
+    // (BiddingService, OfferService, ExpressAuctionService) needs both.
+    public function hasConflictOfInterest(string $partyId, string $listingId): ?string
+    {
+        $listing = $this->listingModel->findActiveById($listingId);
+        if (!$listing) {
+            return null;
+        }
+        if ($listing['inspector_party_id'] === $partyId) {
+            return 'BR-21: the assigned inspector for a listing may not bid, offer, or pledge on it.';
+        }
+        if ($this->isTenantAdminFor($partyId, $listing['tenant_id'])) {
+            return 'BR-22: a Tenant Admin may not bid, offer, or pledge on a listing belonging to their own tenant.';
+        }
+        return null;
+    }
+
     // ⚠️ MINIMAL STAND-IN: this checks role membership only — it is NOT
     // BR-04's separate Auth0/TOTP Super Admin login path, which remains
     // deferred (Tier 3, D-23). This exists only to unblock BR-40's real

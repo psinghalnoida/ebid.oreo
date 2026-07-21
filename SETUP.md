@@ -128,15 +128,28 @@ Follow this pattern for any new table/model — see any existing Model's
   admin/seller action, exactly on the 3rd. Reuses `sale_event`'s existing
   `scheduled_start_at`/`scheduled_end_at` columns rather than new schema.
 
-## Deployment gate — see D-23 (supersedes D-18)
+## Deployment gate — D-23 (supersedes D-18) — FULLY MET
 
-D-18's original gate (Easy/Buy-Now/Express working) was met, but a full
-BR/PR audit afterward surfaced bigger gaps (no photo upload, no
-settlement flow, no dispute resolution) — D-23 established a corrected,
-tiered gate. Current status: **Tier 1 complete** (D-24/25/26), **Tier 2
-complete** (D-27 Dispute Resolution, D-28 scheduled-job infrastructure).
-**Tier 3 remaining**: Super Admin panel + real auth, tenant onboarding,
-conflict-of-interest blocks.
+All three tiers of D-23's corrected deployment gate are complete:
+**Tier 1** (D-24/25/26 — media, settlement, seller rating), **Tier 2**
+(D-27/28 — dispute resolution, scheduled jobs), **Tier 3** (D-29 — real
+Super Admin TOTP auth, tenant onboarding, conflict-of-interest blocks).
+See `docs/DECISIONS.md` for the full detail behind each.
+
+## Super Admin — provisioning and first login
+
+No admin panel existed to grant this role from, so it's still a CLI step:
+
+```bash
+php spark grant:super-admin <mobile_number>
+```
+
+That party must then be logged in normally once (`/login`) to visit
+`/admin/setup-totp` and enroll a real authenticator app (Google
+Authenticator, Authy, etc. — enter the shown secret manually, no QR
+code). Confirm with the 6-digit code from the app. After that, Super
+Admin access is only reachable via the SEPARATE `/admin/login` — mobile +
+mPIN + a valid TOTP code, all three required.
 
 ## Scheduled jobs — REQUIRED for the platform's timers to actually work
 

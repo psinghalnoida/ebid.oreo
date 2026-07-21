@@ -26,6 +26,13 @@ class OfferService
         if (!$saleEvent) {
             throw new \RuntimeException('Sale event not found');
         }
+
+        // BR-21/BR-22: conflict-of-interest block
+        $conflict = (new AuthorizationService())->hasConflictOfInterest($buyerPartyId, $saleEvent['listing_id']);
+        if ($conflict) {
+            throw new \RuntimeException($conflict);
+        }
+
         if ($saleEvent['sale_format'] !== 'buy_now') {
             throw new \RuntimeException('OfferService is only for Buy-Now sale events');
         }

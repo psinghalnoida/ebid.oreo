@@ -41,6 +41,13 @@ class ExpressAuctionService
         if (!$saleEvent || $saleEvent['sale_format'] !== 'express') {
             throw new \RuntimeException('ExpressAuctionService is only for Express sale events');
         }
+
+        // BR-21/BR-22: conflict-of-interest block
+        $conflict = (new AuthorizationService())->hasConflictOfInterest($buyerPartyId, $saleEvent['listing_id']);
+        if ($conflict) {
+            throw new \RuntimeException($conflict);
+        }
+
         if ($saleEvent['status'] !== 'active') {
             throw new \RuntimeException("Cannot pledge on a sale_event with status={$saleEvent['status']}");
         }

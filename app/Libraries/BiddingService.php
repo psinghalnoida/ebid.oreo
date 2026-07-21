@@ -29,6 +29,13 @@ class BiddingService
         if (!$saleEvent) {
             throw new \RuntimeException('Sale event not found');
         }
+
+        // BR-21/BR-22: conflict-of-interest block
+        $conflict = (new AuthorizationService())->hasConflictOfInterest($bidderPartyId, $saleEvent['listing_id']);
+        if ($conflict) {
+            throw new \RuntimeException($conflict);
+        }
+
         if ($saleEvent['status'] !== 'active') {
             throw new \RuntimeException("Cannot bid on a sale_event with status={$saleEvent['status']}");
         }
