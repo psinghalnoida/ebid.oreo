@@ -1,69 +1,68 @@
-# CodeIgniter 4 Application Starter
+# eBid Hub
 
-## What is CodeIgniter?
+Multi-tenant B2B/B2C salvage and surplus auction platform, built on
+CodeIgniter 4 (PHP) with server-rendered views.
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+**Super Admin:** Piyush Singhal
+**Deployment contact:** Arpit (SSH/server access, i2k2)
 
-This repository holds a composer-installable app starter.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
+## What this is
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+Four sale formats (Easy, Buy-Now, Express live; Tender not yet built), a
+tested EMD escrow engine, a four-score rating system with Crawl-Back
+recovery, real Tenant Admin role-based access control, and a full
+Trust & Support content section — all built and verified against real
+PostgreSQL data before ever being pushed.
 
-You can read the [user guide](https://codeigniter.com/user_guide/)
-corresponding to the latest version of the framework.
+## Start here
 
-## Installation & updates
+- **`SETUP.md`** — installation, environment configuration, what's built
+  and what isn't, and the exact convention new models must follow (UUID
+  primary keys need to be generated explicitly — see the note in there).
+- **`docs/DECISIONS.md`** — every architectural and technical decision
+  made on this project, with its reasoning, in chronological order (D-01
+  through the present). If you're wondering *why* something was built a
+  particular way, this is where to look before assuming it's a mistake.
 
-`composer create-project codeigniter4/appstarter` then `composer update` whenever
-there is a new release of the framework.
+## Quick start
 
-When updating, check the release notes to see if there are any changes you might need to apply
-to your `app` folder. The affected files can be copied or merged from
-`vendor/codeigniter4/framework/app`.
+\`\`\`bash
+composer install
+cp env .env
+# edit .env — see SETUP.md for the required database and app.baseURL settings
+php spark migrate
+php spark serve
+\`\`\`
 
-## Setup
+Visit `/` for the landing page, `/trust-support` for the FAQ/legal hub,
+`/register` to create an account.
 
-Copy `env` to `.env` and tailor for your app, specifically the baseURL
-and any database settings.
+## Verifying the build
 
-## Important Change with index.php
+\`\`\`bash
+php spark test:cascade    # EMD engine, H1/H2/H3 cascade, full-failure handling
+php spark test:rating     # Rating engine, Crawl-Back, forced-neutral
+php spark test:lifecycle  # Listing lifecycle, archive-and-recreate
+php spark test:auth       # BR-02 mobile/OTP/mPIN flow
+php spark test:buynow     # Buy-Now offers, BR-42 trust-over-price
+php spark test:express    # Express Auction, PR-11 3rd-pledge trigger
+\`\`\`
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+These are real, permanent test commands (not throwaway scripts) — rerun
+any of them after making a change to confirm nothing broke.
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+## Provisioning a Tenant Admin
 
-**Please** read the user guide for a better explanation of how CI4 works!
+There's no Super Admin panel yet, so this is done via CLI:
 
-## Repository Management
+\`\`\`bash
+php spark grant:tenant-admin <mobile_number> <tenant_id>
+\`\`\`
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
+## Known gaps before production use
 
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
-
-## Server Requirements
-
-PHP version 8.2 or higher is required, with the following extensions installed:
-
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
-
-> [!WARNING]
-> - The end of life date for PHP 7.4 was November 28, 2022.
-> - The end of life date for PHP 8.0 was November 26, 2023.
-> - The end of life date for PHP 8.1 was December 31, 2025.
-> - If you are still using below PHP 8.2, you should upgrade immediately.
-> - The end of life date for PHP 8.2 will be December 31, 2026.
-
-Additionally, make sure that the following extensions are enabled in your PHP:
-
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+Every dev-only stand-in (payment gateway simulation, time-skip helpers,
+missing seller/admin ownership checks on a couple of endpoints) is
+explicitly flagged with a `⚠️ DEV-ONLY` comment in the code itself, and
+explained in `docs/DECISIONS.md`. Search the codebase for `DEV-ONLY`
+before deploying anywhere real users can reach it.
