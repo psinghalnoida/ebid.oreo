@@ -17,7 +17,13 @@ class ListingModel extends Model
         'quantity', 'quantity_basis', 'make_model', 'yard_location_address',
         'yard_location_pin', 'inspector_party_id', 'inspector_contact_note',
         'status', 'rejection_reason', 'superseded_by_listing_id', 'archived_at', 'updated_at',
+        'media_tier', 'media_count',
     ];
+
+    public function setMediaCount(string $listingId, int $count): void
+    {
+        $this->update($listingId, ['media_count' => $count, 'updated_at' => date('Y-m-d H:i:s')]);
+    }
 
     public function findActiveById(string $id): ?array
     {

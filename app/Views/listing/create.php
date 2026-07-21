@@ -40,7 +40,13 @@
 
     <label style="font-size:12px; color:var(--ink-3);">Yard Location PIN (6-digit)</label>
     <input type="text" name="yard_location_pin" required maxlength="6" pattern="\d{6}"
-      style="display:block; width:100%; padding:12px; margin:6px 0 20px; border:1px solid var(--line); border-radius:10px;">
+      style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
+
+    <label style="font-size:12px; color:var(--ink-3);">Media Tier (BR-59)</label>
+    <select name="media_tier" style="display:block; width:100%; padding:12px; margin:6px 0 20px; border:1px solid var(--line); border-radius:10px;">
+      <option value="certified_by_seller">Certified by Seller — I'll upload my own photos</option>
+      <option value="verified">Verified — eBid Hub's inspection team photographs it (inspection fee applies)</option>
+    </select>
 
     <button type="submit" class="btn btn-emerald" style="width:100%;">Create Listing</button>
   </form>

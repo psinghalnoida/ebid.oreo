@@ -59,6 +59,7 @@ class ListingController extends BaseController
                 'make_model' => $this->request->getPost('make_model'),
                 'yard_location_address' => $this->request->getPost('yard_location_address'),
                 'yard_location_pin' => $this->request->getPost('yard_location_pin'),
+                'media_tier' => $this->request->getPost('media_tier') ?: 'certified_by_seller',
             ]);
         } catch (\Throwable $e) {
             return view('listing/create', [
@@ -87,6 +88,7 @@ class ListingController extends BaseController
 
         $offers = [];
         $expressState = null;
+        $media = (new \App\Models\ListingMediaModel())->findForListing($listingId);
         if ($saleEvent && $saleEvent['sale_format'] === 'buy_now') {
             $offerModel = new \App\Models\OfferModel();
             $offers = $offerModel->findForSaleEvent($saleEvent['id']);
@@ -101,7 +103,9 @@ class ListingController extends BaseController
 
         return view('listing/show', [
             'title' => 'Listing — eBid Hub', 'listing' => $listing, 'saleEvent' => $saleEvent,
-            'offers' => $offers, 'expressState' => $expressState,
+            'offers' => $offers, 'expressState' => $expressState, 'media' => $media,
+            'isOwner' => session()->get('logged_in_party_id') === $listing['seller_party_id'],
+            'minPhotos' => \App\Libraries\MediaService::minPhotos(),
         ]);
     }
 

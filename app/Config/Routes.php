@@ -41,6 +41,10 @@ $routes->post('/sale-events/(:segment)/pledge', 'ExpressController::pledge/$1');
 $routes->post('/sale-events/(:segment)/express-bid', 'ExpressController::placeBid/$1');
 $routes->post('/sale-events/(:segment)/dev-force-close-bidding', 'ExpressController::devForceCloseBidding/$1', ['filter' => 'tenantAdmin:saleEvent']);
 
+// Listing media (BR-11, BR-45)
+$routes->post('/listings/(:segment)/media', 'MediaController::upload/$1');
+$routes->post('/listings/(:segment)/media/(:segment)/set-primary', 'MediaController::setPrimary/$1/$2');
+
 // Legal documents (BR-01/D-15: reviewed structural content, pending fields flagged)
 $routes->get('/terms', 'LegalController::termsOfUsage');
 $routes->get('/privacy', 'LegalController::privacyPolicy');

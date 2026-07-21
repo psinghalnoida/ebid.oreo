@@ -603,3 +603,180 @@ is met. What deployment itself still requires — server-side database
 setup, `composer install` on the real server, `app.baseURL` configuration
 — was never blocked by code readiness and remains exactly as described in
 `SETUP.md`.
+---
+
+### D-21: Deployment gate expanded beyond D-18 — five additional gaps to close before deployment
+
+**Decision:** Following a gap analysis after D-20 (deployment-ready per the
+original D-18 criterion), the project owner decided to close five
+additional gaps before deploying, rather than deploying with them
+outstanding and closing them afterward as D-18 originally implied.
+
+**Gaps being closed, in build order:**
+1. **Buy-Now offer-acceptance ownership check** — `OfferController::accept`
+   currently lacks a check that the caller is actually the listing's
+   seller (flagged as a known gap in D-19). Small fix, same pattern as
+   the existing `TenantAdminFilter`.
+2. **Scheduled-job infrastructure** — none of the time-based triggers
+   (BR-14 grace window, Express's 1-hour countdown, Buy-Now's 3-day offer
+   lapse) run automatically; they only advance via dev-only force
+   endpoints. The underlying logic is already built and tested — this
+   closes the gap between "logic exists" and "logic runs on a schedule."
+3. **Settlement / NOC / dual-rating flow (BR-33)** — no real HTTP flow
+   exists for both parties to confirm a completed sale and trigger
+   ratings. The rating engine itself (`RatingService`) is fully built and
+   tested (D-08 note on Shadow Banning threshold still applies) — this
+   connects it to real routes, the same kind of gap auth and Easy Auction
+   had before D-13/D-14 closed them.
+4. **Real Super Admin panel + Super Admin auth (BR-04)** — replacing the
+   `grant:tenant-admin` CLI stand-in with actual tenant creation and
+   admin management screens, plus Super Admin's separate Auth0/TOTP login
+   path (not yet started at all).
+5. **Tender Auction format** — the fourth and last sale format, previously
+   deprioritized (Company Shop exclusive, lowest business priority per the
+   original roadmap) — now being built to the same standard as the other
+   three.
+
+**Explicitly NOT included in this expanded gate** (per the project
+owner's own sequencing choice): filling in the legal document blank
+fields (Gap 7 — requires real values only the project owner can supply,
+not a coding task) and a third-party security audit (Gap 9 — an external
+procurement action, not something more code produces). Neither blocks
+deployment by itself under this decision, but both remain open items.
+
+**Rationale:** deploying with a genuinely large, connected feature area
+(admin/settlement/scheduling) still missing was judged worse than a
+longer pre-deployment build phase, given this is a fintech-adjacent
+platform.
+---
+
+### D-22: Gap 4 closed — Buy-Now offer acceptance now enforces seller ownership
+
+**Decision:** `OfferController::accept` now verifies the logged-in party
+is actually the listing's seller before allowing offer acceptance —
+closing the gap flagged in D-19 and scheduled in D-21.
+
+**Verified over real HTTP:** a registered non-seller ("attacker") attempting
+to accept an offer on someone else's listing receives **403** with the
+exact message "BR-42: only the listing's seller may accept an offer on
+it." The real seller's identical request succeeds (303), confirmed in the
+database that the offer's status actually transitioned to `accepted`.
+
+**Full regression: all 121 assertions across all six engines still pass.**
+
+**Remaining from D-21:** scheduled-job infrastructure, settlement/NOC/
+dual-rating flow, Super Admin panel + auth, Tender Auction.
+---
+
+### D-23: Deployment gate re-scoped based on complete BR/PR audit — supersedes D-21
+
+**Decision:** Following a full audit against all 61 BRs and 36 PRs (not
+just the 5 gaps previously identified), the deployment gate is
+re-scoped. D-21's list is superseded by this decision.
+
+**Context that triggered this:** the audit surfaced that no listing photo/
+media upload exists anywhere in the application — despite BR-11, BR-45,
+BR-59, and BR-60 all treating listing photos as mandatory — which is a
+more fundamental gap than anything on D-21's list. This was not
+previously flagged as a gap because it was never explicitly checked
+against the full BR/PR document until now.
+
+**New deployment gate — Tiers 1, 2, and 3, in this order:**
+
+**Tier 1 (build first — the core journey is broken without these):**
+1. Listing media upload (BR-11, BR-45, BR-59, BR-60)
+2. Settlement — Dual-NOC & Mandatory Rating Gate (BR-33, PR-22)
+3. Stall Resolution (BR-39, PR-23) — ships alongside #2
+4. Seller rating visible pre-bid (BR-41) — small fix, bundled in opportunistically
+
+**Tier 2 (the safety net once real deposits/goods are involved):**
+5. Dispute Resolution Framework (BR-40, PR-24)
+6. Scheduled-job infrastructure (closes Gap 3 from D-21)
+
+**Tier 3 (needed to operate as a real, multi-tenant business):**
+7. Super Admin panel + auth (BR-04) — replaces the `grant:tenant-admin`
+   CLI stand-in
+8. Tenant onboarding workflow (BR-06, BR-07)
+9. Conflict-of-interest blocks (BR-21, BR-22)
+
+**Explicitly deferred past this deployment** (project owner's decision):
+- Tender Auction format (Gap 8 from D-21 — unchanged, stays lowest priority)
+- Tier 4 items: full audit trail/hot-cold tiering (BR-05), KYC verification
+  flow (BR-17), buyer preferences/CLV (BR-23), shipping (BR-24), GST
+  invoicing (BR-56), AML screening (BR-54), Express defect disclosure
+  (BR-57), AI listing pre-audit (BR-46), Seller Standing Review (BR-61)
+- **Payment gateway and SMS provider integration** — explicitly deferred
+  to AFTER this deployment. The project owner's stated plan: deploy first
+  with the existing dev-only EMD-funding stubs and on-screen OTP display
+  still in place, then connect the real PG and SMS providers against the
+  live deployed site and test that integration there, rather than
+  building it in isolation beforehand.
+
+**Nature of this deployment, per the project owner's own framing:** "a
+working site with most infrastructure complete," kept "strictly for
+testing purposes" initially — i.e., an internal/controlled deployment,
+not a public launch. This is consistent with real money not yet being
+able to move (PG still stubbed) and OTP still being visible on-screen
+(SMS still stubbed) even after Tiers 1-3 are complete.
+---
+
+### D-24: Tier 1 Item 1 — Listing media upload (BR-11, BR-45, BR-59, BR-60) — the single biggest gap, now closed
+
+**Decision:** Real photo upload now exists — the single most customer-
+breaking gap identified in the full BR/PR audit. Sellers can upload
+photos (5-50, BR-11), designate a primary photo, and choose between
+Verified and Certified-by-Seller media tiers (BR-59) at listing creation.
+`ListingLifecycleService::submitForApproval` now enforces the 5-photo
+minimum — a listing genuinely cannot be submitted for review without it.
+
+**Honest limitations, not silently glossed over:**
+1. **BR-45's GPS/timestamp capture is best-effort, not guaranteed.**
+   BR-45 describes automatic capture "at the moment of capture," which on
+   a native mobile app means automatic EXIF/sensor data. This is a WEB
+   application — GPS is only captured if the browser's Geolocation API
+   is available and the user grants permission, submitted as ordinary
+   form fields, not verified device sensor data. This is a real gap
+   between what BR-45 describes and what a web app can actually
+   guarantee, flagged explicitly rather than treated as equivalent.
+2. **BR-59's "genuine photo, not stock imagery" requirement is NOT
+   code-enforced anywhere.** Detecting whether an uploaded photo is a
+   real photo of the actual item versus stock/generated imagery would
+   require computer-vision fraud detection — out of scope. This remains
+   a trust/audit-time concern, same as it would be for any platform
+   without a dedicated CV pipeline.
+3. **Verified tier (inspector-captured) is recorded but not enforced.**
+   Selecting "Verified" at listing time doesn't currently trigger any
+   real inspection workflow or block seller self-upload — the actual
+   in-person inspection remains a real-world process outside what this
+   build enforces.
+
+**Two real bugs found and fixed during this build:**
+1. **Postgres boolean strings are truthy in PHP.** This driver returns
+   Postgres booleans as literal `'t'`/`'f'` strings, and PHP treats the
+   non-empty string `"f"` as truthy. `ListingMediaModel::findForListing`
+   was returning `is_primary` as this raw string, causing the listing
+   page to show **every** photo as "PRIMARY" regardless of the actual
+   value. Fixed by explicitly casting to real PHP booleans on retrieval.
+   This bug class was already known and correctly handled in
+   `RatingService`/`TestRating` — it just hadn't been applied
+   consistently to this new model. Worth checking any future boolean
+   field the same way.
+2. **The pre-existing `test:lifecycle` suite broke** once the BR-11 gate
+   was added — it had never accounted for a photo requirement since that
+   requirement didn't exist when it was written. Fixed by setting a
+   simulated media count directly via the model (real file uploads
+   aren't practical inside a CLI test), while the real upload path is
+   separately verified via genuine HTTP multipart requests with real
+   JPEG files (see verification below), not just the CLI test.
+
+**Verified over real HTTP with genuine JPEG files (not empty/fake
+files):** uploaded 3 photos (below the 5-photo minimum) — submission for
+approval correctly blocked with the exact BR-11 message. Uploaded 3 more
+(6 total) — submission then succeeded. Confirmed a non-owner attempting
+to upload photos to someone else's listing receives 403. Confirmed
+switching the primary photo via `setPrimary` correctly demotes the prior
+primary — verified directly in the database, not just the rendered page,
+specifically because the boolean bug above had already fooled a
+page-level check once in this same session.
+
+**Full regression: all 121 assertions across all six engines still pass.**

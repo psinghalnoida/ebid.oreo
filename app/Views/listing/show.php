@@ -10,7 +10,50 @@
     <?= esc(strtoupper($listing['status'])) ?>
   </span>
   <h1 style="font-size:26px; margin:12px 0 4px;"><?= esc($listing['category']) ?><?= $listing['subcategory'] ? ' / ' . esc($listing['subcategory']) : '' ?></h1>
-  <p style="color:var(--ink-3); font-size:13px;">Lot ID: <?= esc($listing['id']) ?></p>
+  <p style="color:var(--ink-3); font-size:13px;">Lot ID: <?= esc($listing['id']) ?> · Media: <?= esc(strtoupper($listing['media_tier'])) ?></p>
+
+  <?php if (!empty($media)): ?>
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(90px, 1fr)); gap:8px; margin:16px 0;">
+      <?php foreach ($media as $m): ?>
+        <div style="position:relative;">
+          <img src="/<?= esc($m['file_path']) ?>" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:8px; border:2px solid <?= $m['is_primary'] ? 'var(--emerald)' : 'var(--line)' ?>;">
+          <?php if ($m['is_primary']): ?><span style="position:absolute; top:4px; left:4px; background:var(--emerald); color:#fff; font-size:9px; padding:2px 6px; border-radius:100px;">PRIMARY</span><?php endif; ?>
+          <?php if (!empty($isOwner) && !$m['is_primary']): ?>
+            <form method="post" action="/listings/<?= esc($listing['id']) ?>/media/<?= esc($m['id']) ?>/set-primary">
+              <button type="submit" style="font-size:9px; margin-top:2px; width:100%; background:none; border:1px solid var(--line); border-radius:6px; cursor:pointer;">Set primary</button>
+            </form>
+          <?php endif; ?>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+
+  <p style="font-size:12px; color:<?= (int) $listing['media_count'] < $minPhotos ? '#B5482F' : 'var(--ink-3)' ?>;">
+    <?= (int) $listing['media_count'] ?> / <?= $minPhotos ?> minimum photos (BR-11) — max 50
+  </p>
+
+  <?php if (!empty($isOwner) && in_array($listing['status'], ['inventory', 'pending_approval'], true)): ?>
+    <form method="post" action="/listings/<?= esc($listing['id']) ?>/media" enctype="multipart/form-data" style="margin:10px 0 20px;">
+      <input type="file" name="photos[]" multiple accept="image/jpeg,image/png,image/webp" required
+        style="display:block; width:100%; padding:10px; border:1px dashed var(--line); border-radius:10px; margin-bottom:8px;">
+      <input type="hidden" name="gps_lat" id="gpsLat_<?= esc($listing['id']) ?>">
+      <input type="hidden" name="gps_lng" id="gpsLng_<?= esc($listing['id']) ?>">
+      <button type="submit" class="btn btn-ghost">Upload Photos</button>
+      <p style="font-size:10.5px; color:var(--ink-3); margin-top:6px;">
+        BR-45: location is captured automatically if your browser allows it — this is a best-effort web substitute for a native app's automatic capture, not a guarantee.
+      </p>
+    </form>
+    <script>
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(pos) {
+          var latEl = document.getElementById('gpsLat_<?= esc($listing['id']) ?>');
+          var lngEl = document.getElementById('gpsLng_<?= esc($listing['id']) ?>');
+          if (latEl) latEl.value = pos.coords.latitude;
+          if (lngEl) lngEl.value = pos.coords.longitude;
+        });
+      }
+    </script>
+  <?php endif; ?>
 
   <table style="width:100%; border-collapse:collapse; margin:20px 0; font-size:14px;">
     <tr><td style="padding:8px 0; color:var(--ink-3); width:180px;">Condition</td><td><?= esc($listing['physical_condition']) ?></td></tr>

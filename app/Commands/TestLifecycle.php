@@ -46,6 +46,13 @@ class TestLifecycle extends BaseCommand
         ]);
         $this->assert($listing['status'] === 'inventory', 'BR-13: new listing starts at inventory');
 
+        // BR-11: submitForApproval now requires >=5 photos (added after this
+        // test was originally written) — simulate uploads directly via the
+        // model rather than real file uploads, which aren't practical in a
+        // CLI test context. Real upload enforcement is tested separately
+        // via real HTTP with actual files (see D-24).
+        $listingModel->setMediaCount($listing['id'], 6);
+
         CLI::write("\n=== BR-13: Approval lifecycle ===", 'yellow');
         $listing = $lifecycle->submitForApproval($listing['id']);
         $this->assert($listing['status'] === 'pending_approval', 'Submitted for approval');

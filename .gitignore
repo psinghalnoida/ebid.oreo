@@ -124,3 +124,7 @@ _modules/*
 
 /results/
 /phpunit.xml
+
+# Listing photo uploads — never commit real user-uploaded content
+/public/uploads/listings/*
+!/public/uploads/.gitkeep

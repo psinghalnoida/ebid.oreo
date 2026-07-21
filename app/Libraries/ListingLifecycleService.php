@@ -23,6 +23,8 @@ class ListingLifecycleService
     }
 
     // BR-13: inventory -> pending_approval
+    // BR-11: minimum 5, maximum 50 photos required before a listing can
+    // be submitted for Tenant Admin review.
     public function submitForApproval(string $listingId): array
     {
         $listing = $this->listingModel->findActiveById($listingId);
@@ -31,6 +33,11 @@ class ListingLifecycleService
         }
         if ($listing['status'] !== 'inventory') {
             throw new \RuntimeException("Cannot submit for approval from status={$listing['status']}");
+        }
+        if ((int) $listing['media_count'] < 5) {
+            throw new \RuntimeException(
+                "BR-11 violation: at least 5 photos are required before submitting for approval (currently {$listing['media_count']})"
+            );
         }
         return $this->listingModel->transitionStatus($listingId, 'pending_approval');
     }
