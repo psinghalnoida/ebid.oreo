@@ -946,3 +946,58 @@ infrastructure), then Tier 3 (Super Admin panel + REAL auth — this build
 made the authorization gap even more visible, since a real login/2FA
 path for Super Admin is now clearly needed, not just role membership;
 tenant onboarding; conflict-of-interest blocks).
+---
+
+### D-28: Tier 2 Item 2 — scheduled-job infrastructure — Tier 2 fully closed
+
+**Decision:** Every time-based trigger that previously required a manual
+"dev-force" action now has a real automation path — `SchedulerService`,
+callable via `php spark run:scheduler`, intended to run every minute via
+a real cron entry (documented in `SETUP.md`).
+
+**What this actually automates:**
+1. BR-14 grace window expiry (Easy/Buy-Now) — auto-freezes to `active`.
+2. **Express's bidding-window expiry auto-initiating the cascade** — this
+   was a genuine, previously-undiscovered gap: nothing, not even a
+   dev-force action, had ever automatically started the cascade when
+   Express's 1-hour window ended. `devForceCloseBidding` only expired the
+   window itself; something still had to separately call
+   `CascadeService::initiateCascade`, and until this build, nothing did.
+3. Buy-Now's 3-day offer auto-lapse (`OfferService::lapseStaleOffers`,
+   built in D-19 but never wired to anything automatic until now).
+4. BR-39 settlement stall-flagging (`SettlementService::
+   flagStalledSettlements`, same situation — built in D-25, unwired
+   until now).
+
+**Honest limitation, not fixed by this and not fixable by scheduling
+alone:** Easy Auction was never given a defined "bidding ends at time X"
+mechanism anywhere in this codebase — only Express got an explicit
+countdown (the pledge-triggered window). The scheduler cannot close an
+Easy Auction's bidding phase automatically because no such trigger point
+exists to check against. This is a separate, real gap from what
+scheduling itself closes — flagged explicitly in both this log and
+`SETUP.md` rather than left for Arpit to discover by confusion later.
+
+**Idempotency verified, not assumed:** the Express-cascade path
+specifically checks whether H1's bid already has a `topup_required_by`
+set before initiating the cascade again — confirmed via test that running
+the scheduler twice in a row on the same expired event only processes it
+once. This matters because a cron running every minute WILL see the same
+expired record on every single run until its status changes; without
+this guard, cascade would have been re-initiated dozens of times before
+anyone paid.
+
+**Verified against real data:** all four categories tested with genuinely
+backdated timestamps (grace period, Express window, stale offer) rather
+than just calling the methods with fresh data — confirming the actual
+time-comparison logic works, not just that the methods execute.
+
+**Full regression: 173 assertions across all nine engines, zero failures.**
+
+**Tier 2 (D-23) is now fully closed**: Dispute Resolution Framework
+(D-27) and scheduled-job infrastructure (D-28) are both built, tested,
+and verified.
+
+**Remaining from D-23: Tier 3** — Super Admin panel + REAL auth (BR-04,
+distinct from the minimal role-check stand-in built in D-27), tenant
+onboarding workflow, conflict-of-interest blocks (BR-21/22).

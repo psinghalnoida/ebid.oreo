@@ -128,27 +128,57 @@ Follow this pattern for any new table/model — see any existing Model's
   admin/seller action, exactly on the 3rd. Reuses `sale_event`'s existing
   `scheduled_start_at`/`scheduled_end_at` columns rather than new schema.
 
-## Deployment gate (D-18) — met
+## Deployment gate — see D-23 (supersedes D-18)
 
-Per the project owner's stated criterion, deployment was gated on Easy
-Auction, Buy-Now, and Express Auction all being fully built and
-demonstrable end-to-end. As of this build, all three are — see D-14,
-D-19, D-20 in `docs/DECISIONS.md`. Deployment readiness from a *code*
-standpoint is met; the remaining steps below (server database setup,
-`composer install`, `app.baseURL`) were never blocked by code readiness
-and still need to happen on the actual i2k2 server.
+D-18's original gate (Easy/Buy-Now/Express working) was met, but a full
+BR/PR audit afterward surfaced bigger gaps (no photo upload, no
+settlement flow, no dispute resolution) — D-23 established a corrected,
+tiered gate. Current status: **Tier 1 complete** (D-24/25/26), **Tier 2
+complete** (D-27 Dispute Resolution, D-28 scheduled-job infrastructure).
+**Tier 3 remaining**: Super Admin panel + real auth, tenant onboarding,
+conflict-of-interest blocks.
+
+## Scheduled jobs — REQUIRED for the platform's timers to actually work
+
+Every time-based trigger (BR-14 grace windows, Express's 1-hour bidding
+countdown, Buy-Now's 3-day offer lapse, BR-39 settlement stall-flagging)
+depends on this cron entry actually being installed on the server. Without
+it, these only advance via manual dev-force actions — the logic is real
+and tested, but nothing calls it automatically until this is set up.
+
+```bash
+crontab -e
+```
+
+Add this line (adjust the path to match where the repo actually lives):
+```
+* * * * * cd /var/www/ebid.oreo && php spark run:scheduler >> /var/log/ebidhub-scheduler.log 2>&1
+```
+
+This runs every minute. Verify it's working:
+```bash
+tail -f /var/log/ebidhub-scheduler.log
+```
+You should see output like `Grace periods frozen: 0` etc. every minute
+once it's running — zero counts are expected most of the time; non-zero
+counts confirm it's genuinely processing real expired timers, not just
+running silently.
+
+**Known limitation, not fixed by this:** Easy Auction was never given a
+defined "bidding ends at time X" mechanism anywhere in this codebase —
+only Express got an explicit countdown. The scheduler cannot close an
+Easy Auction automatically because no such trigger point exists to check
+against. This is a separate, real gap from what scheduling itself closes.
 
 ## Not yet built
 
 Tender format (Company Shop exclusive, lower priority per the roadmap), a
-real Super Admin panel (`grant:tenant-admin` spark command is a
-stand-in), Super Admin's separate Auth0/TOTP login path (BR-04),
-settlement/NOC/dual-rating flow (BR-33), a real payment gateway (still
-stubbed across every format's `devFundEmd`/`dev-fund-emd-*`/`pledge`
-endpoints), and scheduled-job infrastructure (needed for the real BR-14
-grace-window timer, the 3-day offer auto-lapse, and Express's 1-hour
-bidding countdown — all exist as callable service methods but nothing
-triggers them on a schedule yet).
+real Super Admin panel (`grant:tenant-admin`/`grant:super-admin` spark
+commands are stand-ins), Super Admin's separate Auth0/TOTP login path
+(BR-04), tenant onboarding workflow, conflict-of-interest blocks (BR-21/22),
+a real payment gateway (still stubbed across every format's
+`devFundEmd`/`dev-fund-emd-*`/`pledge` endpoints), and Easy Auction's
+missing bidding-end trigger (see limitation above).
 
 ## Production web server (Apache/Nginx)
 
