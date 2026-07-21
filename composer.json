@@ -1,14 +1,8 @@
 {
-    "name": "codeigniter4/appstarter",
-    "description": "CodeIgniter4 starter app",
-    "license": "MIT",
+    "name": "ebidhub/platform",
+    "description": "eBid Hub — multi-tenant B2B/B2C salvage and surplus auction platform",
+    "license": "proprietary",
     "type": "project",
-    "homepage": "https://codeigniter.com",
-    "support": {
-        "forum": "https://forum.codeigniter.com/",
-        "source": "https://github.com/codeigniter4/CodeIgniter4",
-        "slack": "https://codeigniterchat.slack.com"
-    },
     "require": {
         "php": "^8.2",
         "codeigniter4/framework": "^4.7"
