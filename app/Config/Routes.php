@@ -36,6 +36,11 @@ $routes->post('/sale-events/(:segment)/offers', 'OfferController::submit/$1');
 $routes->post('/sale-events/(:segment)/offers/(:segment)/accept', 'OfferController::accept/$1/$2');
 $routes->post('/offers/(:segment)/withdraw', 'OfferController::withdraw/$1');
 
+// Express Auction (BR-12/PR-11)
+$routes->post('/sale-events/(:segment)/pledge', 'ExpressController::pledge/$1');
+$routes->post('/sale-events/(:segment)/express-bid', 'ExpressController::placeBid/$1');
+$routes->post('/sale-events/(:segment)/dev-force-close-bidding', 'ExpressController::devForceCloseBidding/$1', ['filter' => 'tenantAdmin:saleEvent']);
+
 // Legal documents (BR-01/D-15: reviewed structural content, pending fields flagged)
 $routes->get('/terms', 'LegalController::termsOfUsage');
 $routes->get('/privacy', 'LegalController::privacyPolicy');

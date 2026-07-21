@@ -86,12 +86,23 @@ class ListingController extends BaseController
             ->get()->getRowArray();
 
         $offers = [];
+        $expressState = null;
         if ($saleEvent && $saleEvent['sale_format'] === 'buy_now') {
             $offerModel = new \App\Models\OfferModel();
             $offers = $offerModel->findForSaleEvent($saleEvent['id']);
         }
+        if ($saleEvent && $saleEvent['sale_format'] === 'express') {
+            $expressService = new \App\Libraries\ExpressAuctionService();
+            $expressState = [
+                'pledgeCount' => $expressService->pledgeCount($saleEvent['id']),
+                'biddingOpen' => $expressService->isBiddingOpen($saleEvent),
+            ];
+        }
 
-        return view('listing/show', ['title' => 'Listing — eBid Hub', 'listing' => $listing, 'saleEvent' => $saleEvent, 'offers' => $offers]);
+        return view('listing/show', [
+            'title' => 'Listing — eBid Hub', 'listing' => $listing, 'saleEvent' => $saleEvent,
+            'offers' => $offers, 'expressState' => $expressState,
+        ]);
     }
 
     // BR-13: submit for Tenant Admin review

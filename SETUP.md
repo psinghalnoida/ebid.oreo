@@ -120,15 +120,35 @@ Follow this pattern for any new table/model — see any existing Model's
   is gated only by login, not by a check that the caller is actually the
   listing's seller — must be added before production use (see D-19).
 
+- **`app/Controllers/ExpressController.php` + `ExpressAuctionService`
+  + extended `listing/show.php`** — Express Auction is complete: the
+  automatic "launches on the 3rd distinct buyer pledge" mechanic (PR-11)
+  genuinely works — verified via direct database reads that bidding
+  stays closed after 1-2 pledges and opens automatically, with no
+  admin/seller action, exactly on the 3rd. Reuses `sale_event`'s existing
+  `scheduled_start_at`/`scheduled_end_at` columns rather than new schema.
+
+## Deployment gate (D-18) — met
+
+Per the project owner's stated criterion, deployment was gated on Easy
+Auction, Buy-Now, and Express Auction all being fully built and
+demonstrable end-to-end. As of this build, all three are — see D-14,
+D-19, D-20 in `docs/DECISIONS.md`. Deployment readiness from a *code*
+standpoint is met; the remaining steps below (server database setup,
+`composer install`, `app.baseURL`) were never blocked by code readiness
+and still need to happen on the actual i2k2 server.
+
 ## Not yet built
 
-Express and Tender formats, a real Super Admin panel (`grant:tenant-admin`
-spark command is a stand-in), Super Admin's separate Auth0/TOTP login path
-(BR-04), settlement/NOC/dual-rating flow (BR-33), a real payment gateway
-(still stubbed via `devFundEmd`/`dev-fund-emd-offer`), and scheduled-job
-infrastructure (needed for the real BR-14 grace-window timer and the
-3-day offer auto-lapse — both exist as callable service methods but
-nothing triggers them on a schedule yet).
+Tender format (Company Shop exclusive, lower priority per the roadmap), a
+real Super Admin panel (`grant:tenant-admin` spark command is a
+stand-in), Super Admin's separate Auth0/TOTP login path (BR-04),
+settlement/NOC/dual-rating flow (BR-33), a real payment gateway (still
+stubbed across every format's `devFundEmd`/`dev-fund-emd-*`/`pledge`
+endpoints), and scheduled-job infrastructure (needed for the real BR-14
+grace-window timer, the 3-day offer auto-lapse, and Express's 1-hour
+bidding countdown — all exist as callable service methods but nothing
+triggers them on a schedule yet).
 
 ## Production web server (Apache/Nginx)
 

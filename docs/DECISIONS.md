@@ -544,3 +544,62 @@ exist yet. Must be added before production use.
 **Not yet wired:** `OfferService::lapseStaleOffers()` (the 3-day
 no-reason-needed auto-lapse) exists and works, but nothing calls it on a
 schedule — no cron/scheduled-job infrastructure exists yet.
+---
+
+### D-20: Express Auction fully wired to real HTTP routes — the last sale format before the D-18 deployment gate
+
+**Decision:** Express Auction is now complete and real — the automatic
+"launch on 3rd distinct buyer pledge" mechanic (PR-11) genuinely works
+over real HTTP, not simulated. Per D-18, this was the final piece gating
+deployment: Easy Auction (D-14), Buy-Now (D-19), and now Express are all
+built, tested, and demonstrable end-to-end.
+
+**Key design decision:** Express reuses `sale_event.scheduled_start_at`/
+`scheduled_end_at` — columns that existed in the schema since Phase 0 but
+were unused — rather than adding new schema. `scheduled_start_at` being
+set is what "bidding phase has opened" means; `scheduled_end_at` is the
+1-hour run-window deadline. No new migration was needed for this format.
+
+**New pieces:** `ExpressAuctionService` (pledge tracking, exact-3rd-pledge
+trigger, bidding-phase gate wrapping the already-tested `BiddingService`),
+`ExpressController`, and Express-specific UI in `listing/show.php`
+(live pledge counter, pledge button, bid form that only appears once
+bidding is genuinely open).
+
+**Verified over real HTTP, not just `spark` tests:** registered a seller
++ 3 buyers, created/approved a listing, attached Express (RV ₹50,000).
+Confirmed via direct database read: after 1st and 2nd pledges,
+`scheduled_start_at` stayed NULL (bidding correctly not open — also
+verified the bid form doesn't even render on the page at this stage).
+After the 3rd distinct pledge, `scheduled_start_at` was set automatically
+with **no admin/seller action** — confirmed via database read, not just
+page appearance. Placed a real bid (₹60,000, displayed correctly),
+force-closed the window (Tenant Admin–gated action), then confirmed a
+further bid attempt correctly shows "the 1-hour Express bidding window
+has closed" on the actual page.
+
+**Test-layer confirmation (spark test:express, 16 assertions) additionally
+proved:** a 4th pledge does NOT reset the bidding window once already
+triggered, and BR-43's 150% anti-jacking ceiling still applies inside
+Express bidding exactly as it does in Easy (same underlying
+`BiddingService`, correctly reused rather than reimplemented).
+
+**Full regression: 121 total assertions across all six engines
+(cascade/rating/lifecycle/auth/buy-now/express), zero failures.**
+
+**Consistent with every other format built so far, these dev-only
+stand-ins exist and are flagged the same way:**
+- `ExpressController::pledge` simulates cleared EMD payment — same
+  payment-gateway gap as every other format (BidController::devFundEmd,
+  OfferController::devFundEmd).
+- `ExpressController::devForceCloseBidding` skips the real 1-hour wait —
+  gated behind `tenantAdmin`, consistent with the D-17/D-19 pattern, but
+  the underlying time-skip itself remains a stand-in pending real
+  scheduled-job infrastructure (same gap noted in D-19 for the grace-window
+  timer and offer auto-lapse).
+
+**What deployment readiness now looks like:** per D-18, code-side the gate
+is met. What deployment itself still requires — server-side database
+setup, `composer install` on the real server, `app.baseURL` configuration
+— was never blocked by code readiness and remains exactly as described in
+`SETUP.md`.

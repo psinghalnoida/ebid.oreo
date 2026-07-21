@@ -42,7 +42,12 @@ class SaleEventController extends BaseController
         }
 
         $format = $this->request->getPost('sale_format') ?: 'easy';
-        $ern = ($format === 'buy_now' ? 'BN-' : 'EH-') . strtoupper(substr($listingId, 0, 8));
+        $ernPrefix = match ($format) {
+            'buy_now' => 'BN-',
+            'express' => 'EX-',
+            default => 'EH-',
+        };
+        $ern = $ernPrefix . strtoupper(substr($listingId, 0, 8));
 
         $data = [
             'listing_id' => $listingId,

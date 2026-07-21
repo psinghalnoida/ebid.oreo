@@ -41,13 +41,13 @@
   <?php endif; ?>
 
   <?php if ($listing['status'] === 'upcoming' && !$saleEvent): ?>
-    <div style="display:flex; gap:24px; margin-top:16px;">
+    <div style="display:flex; gap:16px; margin-top:16px;">
       <form method="post" action="/listings/<?= esc($listing['id']) ?>/sale-events" style="flex:1;">
         <input type="hidden" name="sale_format" value="easy">
         <label style="font-size:12px; color:var(--ink-3);">Reserve Value (₹) — Easy Auction</label>
         <input type="number" name="reserve_value" required
           style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
-        <button type="submit" class="btn btn-emerald">Attach Easy Auction</button>
+        <button type="submit" class="btn btn-emerald">Attach Easy</button>
       </form>
       <form method="post" action="/listings/<?= esc($listing['id']) ?>/sale-events" style="flex:1;">
         <input type="hidden" name="sale_format" value="buy_now">
@@ -55,6 +55,13 @@
         <input type="number" name="expected_value" required
           style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
         <button type="submit" class="btn btn-ghost">Attach Buy-Now</button>
+      </form>
+      <form method="post" action="/listings/<?= esc($listing['id']) ?>/sale-events" style="flex:1;">
+        <input type="hidden" name="sale_format" value="express">
+        <label style="font-size:12px; color:var(--ink-3);">Reserve Value (₹) — Express Auction</label>
+        <input type="number" name="reserve_value" required
+          style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
+        <button type="submit" class="btn btn-ghost">Attach Express</button>
       </form>
     </div>
   <?php endif; ?>
@@ -71,6 +78,9 @@
           <p style="font-size:32px; font-weight:800; margin:4px 0;">₹<?= number_format((float) $saleEvent['expected_value'], 2) ?> <span style="font-size:14px; color:var(--ink-3); font-weight:400;">expected</span></p>
           <p style="font-size:12px; color:var(--ink-3);">EMD required: ₹<?= number_format((float) $saleEvent['expected_value'] * 0.10, 2) ?> (10% of EV, BR-27)</p>
         <?php endif; ?>
+      <?php elseif ($saleEvent['sale_format'] === 'express'): ?>
+        <p style="font-size:32px; font-weight:800; margin:4px 0;">₹<?= number_format((float)($saleEvent['current_price'] ?? $saleEvent['reserve_value']), 2) ?></p>
+        <p style="font-size:12px; color:var(--ink-3);">Reserve: ₹<?= number_format((float) $saleEvent['reserve_value'], 2) ?> · EMD required: ₹<?= number_format((float) $saleEvent['reserve_value'] * 0.10, 2) ?></p>
       <?php else: ?>
         <p style="font-size:32px; font-weight:800; margin:4px 0;">₹<?= number_format((float)($saleEvent['current_price'] ?? $saleEvent['reserve_value']), 2) ?></p>
         <p style="font-size:12px; color:var(--ink-3);">Reserve: ₹<?= number_format((float) $saleEvent['reserve_value'], 2) ?> · EMD required: ₹<?= number_format((float) $saleEvent['reserve_value'] * 0.10, 2) ?></p>
@@ -134,6 +144,32 @@
           </div>
           <?php endforeach; ?>
         </div>
+        <?php endif; ?>
+      <?php endif; ?>
+
+      <?php if ($saleEvent['status'] === 'active' && $saleEvent['sale_format'] === 'express'): ?>
+        <div style="margin-top:16px; background:var(--line-soft); padding:12px 16px; border-radius:10px;">
+          <p style="font-size:13px; font-weight:600;">Pledges: <?= esc($expressState['pledgeCount']) ?> / 3 required to open bidding (PR-11)</p>
+          <?php if (!$expressState['biddingOpen'] && $expressState['pledgeCount'] < 3): ?>
+            <p style="font-size:12px; color:var(--ink-3); margin:4px 0 0;">Bidding opens automatically the instant the 3rd distinct buyer pledges — no seller/admin action needed.</p>
+          <?php endif; ?>
+        </div>
+
+        <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/pledge" style="margin-top:12px;">
+          <p style="font-size:12px; color:var(--ink-3);">⚠️ Dev-only: simulates cleared EMD payment. The pledge-count/trigger logic itself is real.</p>
+          <button type="submit" class="btn btn-ghost">Pledge Reserve (fund EMD)</button>
+        </form>
+
+        <?php if ($expressState['biddingOpen']): ?>
+        <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/express-bid" style="margin-top:10px; display:flex; gap:8px;">
+          <input type="number" name="amount" placeholder="Bid amount" required step="0.01"
+            style="flex:1; padding:12px; border:1px solid var(--line); border-radius:10px;">
+          <button type="submit" class="btn btn-emerald">Bid</button>
+        </form>
+        <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/dev-force-close-bidding" style="margin-top:10px;">
+          <p style="font-size:12px; color:var(--ink-3);">⚠️ Dev-only: forces the real 1-hour bidding window to expire immediately (Tenant Admin action)</p>
+          <button type="submit" class="btn btn-ghost">Force-close Bidding (dev)</button>
+        </form>
         <?php endif; ?>
       <?php endif; ?>
     </div>
