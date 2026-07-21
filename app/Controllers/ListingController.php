@@ -85,7 +85,13 @@ class ListingController extends BaseController
             ->orderBy('created_at', 'DESC')
             ->get()->getRowArray();
 
-        return view('listing/show', ['title' => 'Listing — eBid Hub', 'listing' => $listing, 'saleEvent' => $saleEvent]);
+        $offers = [];
+        if ($saleEvent && $saleEvent['sale_format'] === 'buy_now') {
+            $offerModel = new \App\Models\OfferModel();
+            $offers = $offerModel->findForSaleEvent($saleEvent['id']);
+        }
+
+        return view('listing/show', ['title' => 'Listing — eBid Hub', 'listing' => $listing, 'saleEvent' => $saleEvent, 'offers' => $offers]);
     }
 
     // BR-13: submit for Tenant Admin review

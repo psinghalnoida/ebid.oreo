@@ -41,19 +41,40 @@
   <?php endif; ?>
 
   <?php if ($listing['status'] === 'upcoming' && !$saleEvent): ?>
-    <form method="post" action="/listings/<?= esc($listing['id']) ?>/sale-events">
-      <label style="font-size:12px; color:var(--ink-3);">Reserve Value (₹) — Easy Auction</label>
-      <input type="number" name="reserve_value" required
-        style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
-      <button type="submit" class="btn btn-emerald">Attach Easy Auction</button>
-    </form>
+    <div style="display:flex; gap:24px; margin-top:16px;">
+      <form method="post" action="/listings/<?= esc($listing['id']) ?>/sale-events" style="flex:1;">
+        <input type="hidden" name="sale_format" value="easy">
+        <label style="font-size:12px; color:var(--ink-3);">Reserve Value (₹) — Easy Auction</label>
+        <input type="number" name="reserve_value" required
+          style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
+        <button type="submit" class="btn btn-emerald">Attach Easy Auction</button>
+      </form>
+      <form method="post" action="/listings/<?= esc($listing['id']) ?>/sale-events" style="flex:1;">
+        <input type="hidden" name="sale_format" value="buy_now">
+        <label style="font-size:12px; color:var(--ink-3);">Expected Value (₹) — Buy-Now</label>
+        <input type="number" name="expected_value" required
+          style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
+        <button type="submit" class="btn btn-ghost">Attach Buy-Now</button>
+      </form>
+    </div>
   <?php endif; ?>
 
   <?php if ($saleEvent): ?>
     <div style="border:1px solid var(--line); border-radius:16px; padding:22px; margin-top:20px;">
       <p style="font-size:11px; color:var(--ink-3); text-transform:uppercase; letter-spacing:0.5px;"><?= esc($saleEvent['ern']) ?> · <?= esc(strtoupper($saleEvent['sale_format'])) ?> · <?= esc(strtoupper($saleEvent['status'])) ?></p>
-      <p style="font-size:32px; font-weight:800; margin:4px 0;">₹<?= number_format((float)($saleEvent['current_price'] ?? $saleEvent['reserve_value']), 2) ?></p>
-      <p style="font-size:12px; color:var(--ink-3);">Reserve: ₹<?= number_format((float) $saleEvent['reserve_value'], 2) ?> · EMD required: ₹<?= number_format((float) $saleEvent['reserve_value'] * 0.10, 2) ?></p>
+
+      <?php if ($saleEvent['sale_format'] === 'buy_now'): ?>
+        <?php if ($saleEvent['status'] === 'closed_sold' && $saleEvent['current_price']): ?>
+          <p style="font-size:32px; font-weight:800; margin:4px 0;">₹<?= number_format((float) $saleEvent['current_price'], 2) ?> <span style="font-size:14px; color:var(--emerald); font-weight:600;">accepted</span></p>
+          <p style="font-size:12px; color:var(--ink-3);">Expected Value was ₹<?= number_format((float) $saleEvent['expected_value'], 2) ?></p>
+        <?php else: ?>
+          <p style="font-size:32px; font-weight:800; margin:4px 0;">₹<?= number_format((float) $saleEvent['expected_value'], 2) ?> <span style="font-size:14px; color:var(--ink-3); font-weight:400;">expected</span></p>
+          <p style="font-size:12px; color:var(--ink-3);">EMD required: ₹<?= number_format((float) $saleEvent['expected_value'] * 0.10, 2) ?> (10% of EV, BR-27)</p>
+        <?php endif; ?>
+      <?php else: ?>
+        <p style="font-size:32px; font-weight:800; margin:4px 0;">₹<?= number_format((float)($saleEvent['current_price'] ?? $saleEvent['reserve_value']), 2) ?></p>
+        <p style="font-size:12px; color:var(--ink-3);">Reserve: ₹<?= number_format((float) $saleEvent['reserve_value'], 2) ?> · EMD required: ₹<?= number_format((float) $saleEvent['reserve_value'] * 0.10, 2) ?></p>
+      <?php endif; ?>
 
       <?php if ($saleEvent['status'] === 'pending_approval'): ?>
         <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/approve" style="margin-top:14px;">
@@ -69,7 +90,7 @@
         </form>
       <?php endif; ?>
 
-      <?php if ($saleEvent['status'] === 'active'): ?>
+      <?php if ($saleEvent['status'] === 'active' && $saleEvent['sale_format'] === 'easy'): ?>
         <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/dev-fund-emd" style="margin-top:16px;">
           <p style="font-size:12px; color:var(--ink-3);">⚠️ Dev-only: simulates cleared EMD payment (no payment gateway connected yet)</p>
           <button type="submit" class="btn btn-ghost">Fund EMD (dev)</button>
@@ -79,6 +100,41 @@
             style="flex:1; padding:12px; border:1px solid var(--line); border-radius:10px;">
           <button type="submit" class="btn btn-emerald">Bid</button>
         </form>
+      <?php endif; ?>
+
+      <?php if ($saleEvent['status'] === 'active' && $saleEvent['sale_format'] === 'buy_now'): ?>
+        <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/dev-fund-emd-offer" style="margin-top:16px;">
+          <p style="font-size:12px; color:var(--ink-3);">⚠️ Dev-only: simulates cleared EMD payment (no payment gateway connected yet)</p>
+          <button type="submit" class="btn btn-ghost">Fund EMD (dev)</button>
+        </form>
+        <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/offers" style="margin-top:10px; display:flex; gap:8px;">
+          <input type="number" name="amount" placeholder="Offer amount" required step="0.01"
+            style="flex:1; padding:12px; border:1px solid var(--line); border-radius:10px;">
+          <button type="submit" class="btn btn-emerald">Submit Offer</button>
+        </form>
+
+        <?php if (!empty($offers)): ?>
+        <div style="margin-top:20px; border-top:1px solid var(--line); padding-top:16px;">
+          <p style="font-size:12px; color:var(--ink-3); font-weight:700; text-transform:uppercase; margin-bottom:10px;">Offers Received (BR-16: buyer identity masked pre-acceptance)</p>
+          <?php foreach ($offers as $offer): ?>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px dashed var(--line);">
+            <div>
+              <span style="font-weight:700;">₹<?= number_format((float) $offer['amount'], 2) ?></span>
+              <span style="font-size:11px; color:var(--ink-3); margin-left:8px; text-transform:uppercase;"><?= esc($offer['status']) ?></span>
+              <?php if ($offer['seller_selection_reason']): ?>
+                <div style="font-size:11.5px; color:var(--ink-3); margin-top:2px;">Reason: <?= esc($offer['seller_selection_reason']) ?></div>
+              <?php endif; ?>
+            </div>
+            <?php if ($offer['status'] === 'submitted'): ?>
+            <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/offers/<?= esc($offer['id']) ?>/accept">
+              <input type="text" name="reason" placeholder="Reason (required if not highest)" style="font-size:11px; padding:6px; border:1px solid var(--line); border-radius:6px; margin-right:6px;">
+              <button type="submit" class="btn btn-emerald" style="padding:6px 12px; font-size:12px;">Accept</button>
+            </form>
+            <?php endif; ?>
+          </div>
+          <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
       <?php endif; ?>
     </div>
   <?php endif; ?>

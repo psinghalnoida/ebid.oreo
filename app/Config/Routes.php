@@ -30,6 +30,12 @@ $routes->post('/sale-events/(:segment)/dev-force-freeze', 'SaleEventController::
 $routes->post('/sale-events/(:segment)/dev-fund-emd', 'BidController::devFundEmd/$1');
 $routes->post('/sale-events/(:segment)/bid', 'BidController::placeBid/$1');
 
+// Buy-Now offers (BR-27/BR-42/BR-29)
+$routes->post('/sale-events/(:segment)/dev-fund-emd-offer', 'OfferController::devFundEmd/$1');
+$routes->post('/sale-events/(:segment)/offers', 'OfferController::submit/$1');
+$routes->post('/sale-events/(:segment)/offers/(:segment)/accept', 'OfferController::accept/$1/$2');
+$routes->post('/offers/(:segment)/withdraw', 'OfferController::withdraw/$1');
+
 // Legal documents (BR-01/D-15: reviewed structural content, pending fields flagged)
 $routes->get('/terms', 'LegalController::termsOfUsage');
 $routes->get('/privacy', 'LegalController::privacyPolicy');

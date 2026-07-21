@@ -112,14 +112,23 @@ Follow this pattern for any new table/model — see any existing Model's
   php spark grant:tenant-admin <mobile_number> <tenant_id>
   ```
 
+- **`app/Controllers/OfferController.php` + `OfferModel`/`OfferService`
+  + extended `listing/show.php`** — Buy-Now is now a complete, real
+  format: submit an offer, seller accepts (with mandatory reason if not
+  the highest, BR-42), EMD top-up/refund on acceptance (BR-29). Verified
+  end-to-end over real HTTP down to the database. ⚠️ `OfferController::accept`
+  is gated only by login, not by a check that the caller is actually the
+  listing's seller — must be added before production use (see D-19).
+
 ## Not yet built
 
-Buy-Now/Express/Tender-specific route flows, a real Super Admin panel
-(the `grant:tenant-admin` spark command is a stand-in for this), Super
-Admin's separate Auth0/TOTP login path (BR-04), settlement/NOC/dual-rating
-flow (BR-33), and a real payment gateway integration to replace the
-current dev-only EMD funding stub (`BidController::devFundEmd` — still
-a stand-in, unrelated to the authorization work above).
+Express and Tender formats, a real Super Admin panel (`grant:tenant-admin`
+spark command is a stand-in), Super Admin's separate Auth0/TOTP login path
+(BR-04), settlement/NOC/dual-rating flow (BR-33), a real payment gateway
+(still stubbed via `devFundEmd`/`dev-fund-emd-offer`), and scheduled-job
+infrastructure (needed for the real BR-14 grace-window timer and the
+3-day offer auto-lapse — both exist as callable service methods but
+nothing triggers them on a schedule yet).
 
 ## Production web server (Apache/Nginx)
 

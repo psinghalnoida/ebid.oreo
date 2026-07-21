@@ -472,3 +472,75 @@ request from that party succeeds (303 redirect), confirmed via direct
 database read that `listing.status` actually transitioned to `upcoming`.
 Full regression: all 89 previously-passing assertions across
 cascade/rating/lifecycle/auth still pass — no regressions introduced.
+---
+
+### D-18: Deployment gate — Buy-Now and Express Auction must be fully working first
+
+**Decision:** The i2k2 server deployment will not happen until Buy-Now and
+Express Auction are built, tested, and demonstrable end-to-end — the same
+bar Easy Auction was held to (D-14, D-17). Easy Auction alone is not
+sufficient to trigger deployment.
+
+**Rationale (project owner's stated reasoning):** deployment should happen
+once there's "complete infra... to fully test and run" these two formats,
+not incrementally per-format. This avoids deploying a partially-capable
+system and then patching it live.
+
+**Practical effect on build order:** Buy-Now and Express Auction routes/
+controllers/views are the next priority, following the same pattern
+established for Easy Auction — service-layer logic already exists and is
+tested (EmdService already handles 'buy_now' and 'express' baseline
+calculation; BiddingService/CascadeService are format-aware), but neither
+format has real HTTP routes yet, the same gap Easy Auction had until D-14.
+---
+
+### D-19: Buy-Now fully wired to real HTTP routes — BR-42, BR-29, BR-27 verified end-to-end
+
+**Decision:** Buy-Now is now a complete, working sale format — real HTTP
+routes, not just tested service logic, matching the bar set for Easy
+Auction (D-14) and gated by the same real Tenant Admin authorization
+(D-17) for listing/sale-event approval.
+
+**New pieces:**
+- `offer` table (migration 11) — a dedicated concept, deliberately NOT
+  reusing the `bid` table, since Buy-Now offers don't compete head-to-head
+  (no H1/H2/H3) — each stands independently until the seller picks one.
+- `OfferModel`, `OfferService` — BR-27 EMD gate (10% of Expected Value),
+  BR-42 trust-over-price discretion (seller can accept a non-highest
+  offer, but a reason is mandatory when they do), BR-29 EMD adjustment
+  (top-up owed if accepted price > EV, refund if below).
+- `OfferController` + extended `listing/show.php` — submit an offer,
+  withdraw one (reason required, per policy — a 3-day unactioned lapse
+  needs no reason, handled separately by `OfferService::lapseStaleOffers()`,
+  not yet wired to a scheduler), and the seller's accept UI showing all
+  offers with a reason field.
+- `SaleEventController::createSubmit` extended to branch on `sale_format`
+  rather than being Easy-only.
+
+**Verified end-to-end over real HTTP, not just `spark` tests:** registered
+a seller + 2 buyers, created and approved a listing, attached a Buy-Now
+event (EV ₹100,000), funded EMD for both buyers, submitted a higher
+offer (₹120,000) and a lower one (₹95,000). Confirmed accepting the lower
+offer *without* a reason is blocked with the exact BR-42 error shown on
+the actual page; accepting it *with* a reason succeeds. Verified in the
+database: the higher offer auto-rejected, the accepted offer's reason
+logged, `sale_event.current_price` = 95000 (not the EV or the higher
+offer), the winning buyer's EMD correctly recalculated to ₹9,500 (10% of
+the accepted price, a refund since it closed below EV) and still held
+pending settlement, and the losing buyer's EMD released, not forfeited.
+
+**Real bug found and fixed:** the listing page's price display only ever
+showed the Expected Value for Buy-Now events, even after a sale closed —
+so a ₹95,000 accepted deal still displayed "₹100,000 expected." Fixed to
+show the actual accepted price, clearly labeled, once `status = closed_sold`.
+
+**New dev-only stand-in, flagged same as the others:**
+`OfferController::accept` is currently gated only by login, not by a
+check that the caller actually owns the listing being sold — unlike
+listing/sale-event approval (BR-09, Tenant Admin), this decision belongs
+to the **seller** specifically (BR-42), and that ownership check doesn't
+exist yet. Must be added before production use.
+
+**Not yet wired:** `OfferService::lapseStaleOffers()` (the 3-day
+no-reason-needed auto-lapse) exists and works, but nothing calls it on a
+schedule — no cron/scheduled-job infrastructure exists yet.

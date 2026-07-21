@@ -27,7 +27,8 @@ class SaleEventController extends BaseController
         return session()->get('logged_in_party_id');
     }
 
-    // BR-12: attach an Easy Auction to an approved (upcoming) listing
+    // BR-12: attach a Sale Event to an approved (upcoming) listing —
+    // Easy Auction (reserve_value) or Buy-Now (expected_value).
     public function createSubmit(string $listingId)
     {
         $sellerId = $this->requireLogin();
@@ -40,15 +41,24 @@ class SaleEventController extends BaseController
             return redirect()->to("/listings/{$listingId}")->with('error', 'Listing must be approved (upcoming) before attaching a sale event.');
         }
 
-        $ern = 'EH-' . strtoupper(substr($listingId, 0, 8));
-        $saleEvent = $this->saleEventModel->createSaleEvent([
+        $format = $this->request->getPost('sale_format') ?: 'easy';
+        $ern = ($format === 'buy_now' ? 'BN-' : 'EH-') . strtoupper(substr($listingId, 0, 8));
+
+        $data = [
             'listing_id' => $listingId,
             'tenant_id' => $listing['tenant_id'],
             'ern' => $ern,
-            'sale_format' => 'easy',
-            'reserve_value' => $this->request->getPost('reserve_value'),
-            'result_mode' => 'instant_close',
-        ]);
+            'sale_format' => $format,
+        ];
+
+        if ($format === 'buy_now') {
+            $data['expected_value'] = $this->request->getPost('expected_value');
+        } else {
+            $data['reserve_value'] = $this->request->getPost('reserve_value');
+            $data['result_mode'] = 'instant_close';
+        }
+
+        $saleEvent = $this->saleEventModel->createSaleEvent($data);
 
         // BR-13: listing moves to active once a sale system is attached
         $this->listingModel->transitionStatus($listingId, 'active');
