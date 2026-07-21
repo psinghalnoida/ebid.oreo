@@ -853,3 +853,28 @@ small, still open), Tier 2 (Dispute Resolution Framework, scheduled-job
 infrastructure — this settlement's stall-flagging and BR-14's timers all
 still require manual/dev-only triggering), Tier 3 (Super Admin panel,
 tenant onboarding, conflict-of-interest blocks).
+---
+
+### D-26: Tier 1 Item 4 — seller rating visible pre-bid (BR-41) — Tier 1 fully closed
+
+**Decision:** The listing page now displays the seller's actual rating
+(star icons + numeric value) prominently, before any bid/offer/pledge
+action — closing the last item on Tier 1 from D-23.
+
+**Verified over real HTTP with a genuinely changed value, not just the
+default:** confirmed a new seller correctly shows the 3.0★ default, then
+updated that seller's actual `seller_star_rating` to 4.7 directly in the
+database and confirmed the listing page reflected the real, changed
+value (`★★★★☆ 4.7`) — proving this reads live data, not a static/cached
+display.
+
+**Full regression: 142 assertions across all seven engines, zero failures.**
+
+**Tier 1 (D-23) is now fully closed**: media upload (D-24), settlement/
+dual-NOC/rating gate + stall resolution (D-25), and seller rating
+visibility (D-26) are all built, tested, and verified over real HTTP.
+
+**Next: Tier 2** — Dispute Resolution Framework (BR-40) and scheduled-job
+infrastructure (the latter needed by BR-14's grace windows, Express's
+countdown, Buy-Now's offer lapse, and this Tier's own stall-flagging —
+all currently still require manual/dev-only triggering).
