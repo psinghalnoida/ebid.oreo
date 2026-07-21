@@ -88,7 +88,11 @@ class ListingController extends BaseController
 
         $offers = [];
         $expressState = null;
+        $settlementRecord = null;
         $media = (new \App\Models\ListingMediaModel())->findForListing($listingId);
+        if ($saleEvent && $saleEvent['status'] === 'closed_sold') {
+            $settlementRecord = (new \App\Models\SettlementModel())->findBySaleEvent($saleEvent['id']);
+        }
         if ($saleEvent && $saleEvent['sale_format'] === 'buy_now') {
             $offerModel = new \App\Models\OfferModel();
             $offers = $offerModel->findForSaleEvent($saleEvent['id']);
@@ -106,6 +110,7 @@ class ListingController extends BaseController
             'offers' => $offers, 'expressState' => $expressState, 'media' => $media,
             'isOwner' => session()->get('logged_in_party_id') === $listing['seller_party_id'],
             'minPhotos' => \App\Libraries\MediaService::minPhotos(),
+            'settlementRecord' => $settlementRecord,
         ]);
     }
 

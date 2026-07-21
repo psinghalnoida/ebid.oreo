@@ -780,3 +780,76 @@ specifically because the boolean bug above had already fooled a
 page-level check once in this same session.
 
 **Full regression: all 121 assertions across all six engines still pass.**
+---
+
+### D-25: Tier 1 Items 2 & 3 — Settlement/Dual-NOC/Rating Gate (BR-33) and Stall Resolution (BR-39)
+
+**Decision:** A sale can now actually finish. Previously a sale event
+could reach `closed_sold` with no real way to formally close — no
+mechanism for both parties to confirm the physical transaction, rate
+each other, or release/deduct from the buyer's EMD. This closes that gap.
+
+**New pieces:** `settlement` table, `SettlementModel`, `SettlementService`
+(dual-NOC confirmation, mandatory bidirectional rating, auto-completion,
+fee deduction on success, BR-39 stall flagging and forced-neutral
+resolution), `SettlementController`, real HTTP routes, and a settlement
+detail view.
+
+**A real, previously-undiscovered gap fixed as part of this build:**
+`CascadeService::processTopupPaid` (the Easy/Express "winner pays"
+handler) never actually closed the `sale_event` or created any way to
+reach settlement — Easy and Express auctions had **no path to formal
+closure at all**, even before this Tier's work began. This wasn't on any
+previous gap list because nothing had tested that far down the flow.
+Fixed alongside settlement creation itself.
+
+**BR-33's fee deduction on a successful sale was never built before now**
+— only the BR-34 forfeiture math (for a *default*) existed.
+`EmdService::calculateSettlementFee` is new, and deliberately reuses the
+same `emd_hold` columns the forfeiture math uses (`forfeited_to_tenant_
+amount`/`forfeited_to_saas_amount`) for the fee split — same shape of
+data, different real-world cause (a successful sale, not a default),
+documented clearly in the model to avoid confusion later.
+
+**Rating mechanism note:** this codebase's rating engine works via
+relative upgrade/downgrade deltas (BR-35/36), not a direct "set to N
+stars" input. Settlement ratings are mapped onto this: a "good" outcome
+applies a modest automatic upgrade (BR-36 — no approval needed); a
+"problem" outcome initiates a downgrade through the EXISTING BR-36
+approval-gated flow, with a mandatory reason — it does not apply
+immediately, consistent with every other downgrade already in this
+codebase.
+
+**Real bugs found and fixed during this build:**
+1. **Accidentally deleted `EmdHoldModel::markReleased`** while adding the
+   new `markSettled` method — a `str_replace` replaced the method instead
+   of adding alongside it. Caught immediately by grepping for callers
+   before it could break the three other places that depend on it
+   (`ListingLifecycleService`, `OfferService` x2).
+2. **`checkCompletion` only transitioned `'pending'` → `'completed'`**,
+   so a settlement force-resolved out of `'stalled'` status could never
+   actually reach `'completed'` — the status guard blocked it. Caught by
+   a failing test assertion, not a silent gap.
+
+**Verified over real HTTP, not just `spark` tests:** ran the complete
+flow — listing → photos → approval → Buy-Now offer → acceptance →
+settlement auto-created → all four steps confirmed by the correct
+parties → settlement reaches `completed`. Confirmed directly in the
+database: fee math exactly correct (₹58,000 sale, 5% fee = ₹2,900 split
+₹2,610 tenant / ₹290 SaaS, buyer refund ₹3,100 from a ₹6,000 hold).
+Stall flagging and forced-neutral resolution verified via `spark
+test:settlement` (backdating a settlement's `created_at` to simulate 8
+days passing, since a real 7-day wait isn't practical to test live).
+
+**Full regression: 142 assertions across all seven engines, zero failures.**
+
+**Note on the 7-day stall threshold:** not explicitly quantified in the
+retrieved BR/PR text — a reasonable default, flagged the same way the
+OTP-attempt limit was in `AuthService`, not treated as a settled business
+rule requiring no further confirmation.
+
+**Remaining from D-23:** Tier 1 Item 4 (seller rating visible pre-bid —
+small, still open), Tier 2 (Dispute Resolution Framework, scheduled-job
+infrastructure — this settlement's stall-flagging and BR-14's timers all
+still require manual/dev-only triggering), Tier 3 (Super Admin panel,
+tenant onboarding, conflict-of-interest blocks).

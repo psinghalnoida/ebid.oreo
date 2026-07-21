@@ -54,6 +54,27 @@ class EmdHoldModel extends Model
         return $this->find($holdId);
     }
 
+    // BR-33: records a SUCCESSFUL settlement's fee deduction. Deliberately
+    // reuses the forfeited_to_tenant_amount/forfeited_to_saas_amount
+    // columns (built originally for BR-34 default forfeiture) to record
+    // the platform's fee split here too — same shape of data (money split
+    // between tenant/SaaS), different real-world cause. status='released'
+    // (not 'forfeited') since this is a successful transaction, and
+    // forfeited_to_seller_amount is always 0 here since the seller is
+    // paid directly and offline (BR-10.1), never through EMD.
+    public function markSettled(string $holdId, float $tenantAmount, float $saasAmount, float $buyerRefund): array
+    {
+        $this->update($holdId, [
+            'status' => 'released',
+            'released_at' => date('Y-m-d H:i:s'),
+            'forfeited_to_tenant_amount' => $tenantAmount,
+            'forfeited_to_saas_amount' => $saasAmount,
+            'forfeited_to_seller_amount' => 0,
+            'recalculated_amount' => $buyerRefund,
+        ]);
+        return $this->find($holdId);
+    }
+
     // BR-34: forfeiture allocation — split recorded explicitly
     public function markForfeited(string $holdId, float $tenantAmount, float $saasAmount, float $sellerAmount): array
     {

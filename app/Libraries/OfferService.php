@@ -112,6 +112,11 @@ class OfferService
         $this->saleEventModel->markClosed($saleEventId, 'closed_sold');
         $this->saleEventModel->updateCurrentPrice($saleEventId, (float) $offer['amount'], $offer['buyer_party_id']);
 
+        // BR-33: create the settlement record now that a winner is confirmed
+        (new \App\Libraries\SettlementService())->createForSaleEvent(
+            $saleEventId, $offer['buyer_party_id'], (float) $offer['amount']
+        );
+
         return $accepted;
     }
 

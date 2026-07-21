@@ -43,4 +43,14 @@ class AuthorizationService
         }
         return $this->isTenantAdminFor($partyId, $saleEvent['tenant_id']);
     }
+
+    public function isTenantAdminForSettlement(string $partyId, string $settlementId): bool
+    {
+        $settlementModel = new \App\Models\SettlementModel();
+        $settlement = $settlementModel->find($settlementId);
+        if (!$settlement) {
+            return false;
+        }
+        return $this->isTenantAdminForSaleEvent($partyId, $settlement['sale_event_id']);
+    }
 }

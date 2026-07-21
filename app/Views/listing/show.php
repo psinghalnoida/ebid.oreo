@@ -113,6 +113,12 @@
     <div style="border:1px solid var(--line); border-radius:16px; padding:22px; margin-top:20px;">
       <p style="font-size:11px; color:var(--ink-3); text-transform:uppercase; letter-spacing:0.5px;"><?= esc($saleEvent['ern']) ?> · <?= esc(strtoupper($saleEvent['sale_format'])) ?> · <?= esc(strtoupper($saleEvent['status'])) ?></p>
 
+      <?php if (!empty($settlementRecord)): ?>
+        <a href="/settlements/<?= esc($settlementRecord['id']) ?>" class="btn btn-emerald" style="display:inline-block; margin-bottom:12px; font-size:12px; padding:8px 14px;">
+          Go to Settlement (<?= esc(strtoupper($settlementRecord['status'])) ?>)
+        </a>
+      <?php endif; ?>
+
       <?php if ($saleEvent['sale_format'] === 'buy_now'): ?>
         <?php if ($saleEvent['status'] === 'closed_sold' && $saleEvent['current_price']): ?>
           <p style="font-size:32px; font-weight:800; margin:4px 0;">₹<?= number_format((float) $saleEvent['current_price'], 2) ?> <span style="font-size:14px; color:var(--emerald); font-weight:600;">accepted</span></p>

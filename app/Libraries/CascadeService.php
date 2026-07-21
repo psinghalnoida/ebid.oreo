@@ -51,6 +51,16 @@ class CascadeService
             $owed = EmdService::calculateCascadeTopupOwed((float) $hold['amount'], (float) $paidBid['amount']);
             $this->emdHoldModel->setRecalculatedAmount($hold['id'], (float) $hold['amount'] + $owed);
         }
+
+        // BR-33: this was previously a gap — a successful top-up never
+        // actually closed the sale_event or created a settlement, so
+        // Easy/Express auctions had no way to reach formal closure at
+        // all. Fixed as part of building the settlement flow (D-25).
+        $this->saleEventModel->markClosed($paidBid['sale_event_id'], 'closed_sold');
+        (new \App\Libraries\SettlementService())->createForSaleEvent(
+            $paidBid['sale_event_id'], $paidBid['bidder_party_id'], (float) $paidBid['amount']
+        );
+
         return $paidBid;
     }
 

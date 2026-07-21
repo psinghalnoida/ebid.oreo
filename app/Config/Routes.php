@@ -45,6 +45,15 @@ $routes->post('/sale-events/(:segment)/dev-force-close-bidding', 'ExpressControl
 $routes->post('/listings/(:segment)/media', 'MediaController::upload/$1');
 $routes->post('/listings/(:segment)/media/(:segment)/set-primary', 'MediaController::setPrimary/$1/$2');
 
+// Settlement (BR-33, BR-39)
+$routes->get('/settlements/(:segment)', 'SettlementController::show/$1');
+$routes->post('/settlements/(:segment)/confirm-seller-noc', 'SettlementController::confirmSellerNoc/$1');
+$routes->post('/settlements/(:segment)/confirm-buyer-noc', 'SettlementController::confirmBuyerNoc/$1');
+$routes->post('/settlements/(:segment)/rate-as-buyer', 'SettlementController::rateAsBuyer/$1');
+$routes->post('/settlements/(:segment)/rate-as-seller', 'SettlementController::rateAsSeller/$1');
+$routes->post('/settlements/dev-flag-stalled', 'SettlementController::devFlagStalled');
+$routes->post('/settlements/(:segment)/force-resolve', 'SettlementController::forceResolve/$1', ['filter' => 'tenantAdmin:settlement']);
+
 // Legal documents (BR-01/D-15: reviewed structural content, pending fields flagged)
 $routes->get('/terms', 'LegalController::termsOfUsage');
 $routes->get('/privacy', 'LegalController::privacyPolicy');

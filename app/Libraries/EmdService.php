@@ -82,6 +82,33 @@ class EmdService
         return ['tenantAmount' => $tenantAmount, 'saasAmount' => $saasAmount, 'sellerAmount' => $sellerAmount];
     }
 
+    // BR-33/BR-31: fee deduction on a SUCCESSFUL settlement (distinct from
+    // calculateForfeitureAllocation, which is for a DEFAULT). The buyer
+    // pays the seller the full sale value directly and offline (BR-10.1)
+    // — the platform's cut comes only from the buyer's held EMD, with the
+    // remainder refunded. Fee is a percentage of the final sale price,
+    // not of the held EMD amount (per the Fee & Charges Schedule).
+    public static function calculateSettlementFee(
+        float $finalPrice, float $buyerFeePercent, float $heldAmount, float $saasFeePercent = 0.5
+    ): array {
+        $feeTotal = round($finalPrice * ($buyerFeePercent / 100), 2);
+        $saasAmount = round($finalPrice * ($saasFeePercent / 100), 2);
+        $tenantAmount = round($feeTotal - $saasAmount, 2);
+        $buyerRefund = round($heldAmount - $feeTotal, 2);
+
+        if ($buyerRefund < 0) {
+            // Held EMD didn't cover the fee — should be rare (EMD is 10%,
+            // default fee is 5%), but not impossible if a tenant sets an
+            // unusually high buyer fee. Flagged rather than silently
+            // producing a negative refund.
+            throw new \RuntimeException(
+                'EMD_CALCULATION_ERROR: held EMD (' . $heldAmount . ') is insufficient to cover the settlement fee (' . $feeTotal . ') — this tenant\'s buyer fee percent may be set too high relative to the EMD baseline'
+            );
+        }
+
+        return ['tenantAmount' => $tenantAmount, 'saasAmount' => $saasAmount, 'buyerRefund' => $buyerRefund];
+    }
+
     private static function round2(float $n): float
     {
         return round($n, 2);

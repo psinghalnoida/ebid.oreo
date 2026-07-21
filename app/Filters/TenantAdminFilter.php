@@ -29,9 +29,11 @@ class TenantAdminFilter implements FilterInterface
         }
 
         $auth = new AuthorizationService();
-        $authorized = $resourceType === 'saleEvent'
-            ? $auth->isTenantAdminForSaleEvent($partyId, $resourceId)
-            : $auth->isTenantAdminForListing($partyId, $resourceId);
+        $authorized = match ($resourceType) {
+            'saleEvent' => $auth->isTenantAdminForSaleEvent($partyId, $resourceId),
+            'settlement' => $auth->isTenantAdminForSettlement($partyId, $resourceId),
+            default => $auth->isTenantAdminForListing($partyId, $resourceId),
+        };
 
         if (!$authorized) {
             return service('response')->setStatusCode(403)
