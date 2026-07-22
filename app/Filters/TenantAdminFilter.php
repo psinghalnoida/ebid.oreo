@@ -32,6 +32,8 @@ class TenantAdminFilter implements FilterInterface
         $authorized = match ($resourceType) {
             'saleEvent' => $auth->isTenantAdminForSaleEvent($partyId, $resourceId),
             'settlement' => $auth->isTenantAdminForSettlement($partyId, $resourceId),
+            'sellerApplication' => $auth->isTenantAdminForSellerApplication($partyId, $resourceId),
+            'tenant' => $auth->isTenantAdminFor($partyId, $resourceId),
             default => $auth->isTenantAdminForListing($partyId, $resourceId),
         };
 

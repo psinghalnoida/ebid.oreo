@@ -47,9 +47,19 @@ class ListingController extends BaseController
             return redirect()->to('/login');
         }
 
+        $tenantId = $this->request->getPost('tenant_id');
+
+        // BR-09: only a party the Tenant Admin has explicitly upgraded to
+        // Seller on THIS specific tenant may list here.
+        $sellerApp = new \App\Libraries\SellerApplicationService();
+        if (!$sellerApp->isApprovedSeller($sellerId, $tenantId)) {
+            return redirect()->to("/tenants/{$tenantId}/apply-to-sell")
+                ->with('error', 'BR-09: you must be an approved Seller on this specific tenant before listing here.');
+        }
+
         try {
             $listing = $this->listingModel->createListing([
-                'tenant_id' => $this->request->getPost('tenant_id'),
+                'tenant_id' => $tenantId,
                 'seller_party_id' => $sellerId,
                 'physical_condition' => $this->request->getPost('physical_condition'),
                 'category' => $this->request->getPost('category'),

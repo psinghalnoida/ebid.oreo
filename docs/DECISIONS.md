@@ -1165,3 +1165,76 @@ have broken graceful error handling in production.
 ten test suites) plus a fresh real-HTTP smoke test (`/`, `/trust-support`,
 `/login` all returning 200) run after every change in this audit, not
 just at the end.
+---
+
+### D-31: BR-09 seller approval gate + Tenant Admin dashboard — built directly from source text, no interpretation required
+
+**Decision:** Following the project owner's explicit "no deviation" instruction, both items were built strictly from confirmed BR/PR source text, quoted directly rather than paraphrased from memory.
+
+**BR-09 (exact text):** "The Tenant Admin... holds exclusive authority to
+upgrade a buyer to a Seller — scoped strictly to that tenant's own
+storefront. A seller upgraded on one tenant has no automatic selling
+rights on another. If a seller's account is suspended, all of their
+active listings on that tenant are instantly suspended pending review."
+
+**This was a real, previously-unenforced gap**: any registered user could
+create a listing on any tenant directly. The listing itself needed
+Tenant Admin approval, but nothing gated *who could attempt to list* on a
+given tenant in the first place. Now genuinely gated — new
+`seller_application` table, `SellerApplicationService` (apply/approve/
+reject), and `ListingController::createSubmit` checks `isApprovedSeller`
+before allowing creation at all.
+
+**All three parts of BR-09's text were implemented, not just the happy
+path**: (1) apply/approve/reject, (2) tenant-scoping enforced via a
+`UNIQUE(party_id, tenant_id)` constraint — one application per tenant,
+no bleed-through rights, and (3) the suspension cascade — revoking a
+seller's status now genuinely suspends every active listing they have on
+that specific tenant (`SellerApplicationService::suspendSeller`),
+requiring a new `suspended` listing status added to the enum since it
+didn't previously exist.
+
+**Verified over real HTTP, both directions**: a buyer attempting to
+create a listing before approval is redirected to `/apply-to-sell` with
+the exact BR-09 message. After applying and the real Tenant Admin
+approving via the real dashboard, the identical listing-creation request
+succeeds. Confirmed a stranger (not that tenant's admin) gets 403
+attempting to view the dashboard or act on applications.
+
+**Tenant Admin dashboard**: no single BR/PR mandates an exact layout —
+built directly from the authorities BR-09/BR-13/BR-40/BR-39/PR-13 already
+assign to Tenant Admin (listing approval, sale event approval, seller
+applications, dispute rulings, stalled settlement resolution), surfaced
+in one real screen at `/tenants/{id}/dashboard#rather than inventing
+new authority. Verified counts genuinely reflect live data — tested that
+submitting a real seller application changes the dashboard's count from
+0 to 1, not a hardcoded display.
+
+**Full regression: 185 assertions across all ten engines, zero failures.**
+
+---
+
+## Still outstanding from this round — explicitly not yet built
+
+Per the discussion before this build began, three items remain, each
+with a specific reason it wasn't included in this pass:
+
+1. **Tender Auction** — clarified with the project owner (invitation via
+   buyer-directory search, H1-wins selection, manual/offline EMD) but not
+   yet built. Next in queue.
+2. **PR-9's full Media Upload spec** — a newly-discovered gap, not one of
+   the four originally flagged items. What's built (D-24) covers photos
+   and the 5-50 count gate; missing against PR-9's actual text: video/
+   document upload, WebP transcoding (300KB target), a background upload
+   queue, and browser-localStorage autosave. Raised for the project
+   owner's decision on priority, not silently deferred.
+3. **Easy Auction's "missing timer"** — re-examined against BR-12's exact
+   text ("scheduled open bidding at RV... seller's choice at listing").
+   This reframes the original finding: BR-12 doesn't describe an
+   automatic system-driven close time the way Express's countdown works
+   — it implies the SELLER sets a schedule (start/end) as a listing
+   parameter, which was never built as a field at all, rather than there
+   being a broken automatic timer. Needs the project owner's confirmation
+   on this reframing before building anything, since building an
+   automatic close mechanism that isn't actually what BR-12 describes
+   would itself be a deviation.

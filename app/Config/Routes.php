@@ -74,6 +74,14 @@ $routes->get('/admin', 'AdminController::dashboard', ['filter' => 'superAdmin'])
 $routes->get('/admin/tenants/create', 'TenantController::createForm', ['filter' => 'superAdmin']);
 $routes->post('/admin/tenants', 'TenantController::createSubmit', ['filter' => 'superAdmin']);
 
+// Seller Application (BR-09)
+$routes->get('/tenants/(:segment)/apply-to-sell', 'SellerApplicationController::applyForm/$1');
+$routes->post('/tenants/(:segment)/apply-to-sell', 'SellerApplicationController::applySubmit/$1');
+$routes->get('/tenants/(:segment)/pending-sellers', 'SellerApplicationController::pendingList/$1', ['filter' => 'tenantAdmin:tenant']);
+$routes->post('/seller-applications/(:segment)/approve', 'SellerApplicationController::approve/$1', ['filter' => 'tenantAdmin:sellerApplication']);
+$routes->post('/seller-applications/(:segment)/reject', 'SellerApplicationController::reject/$1', ['filter' => 'tenantAdmin:sellerApplication']);
+$routes->get('/tenants/(:segment)/dashboard', 'TenantAdminController::dashboard/$1', ['filter' => 'tenantAdmin:tenant']);
+
 // Legal documents (BR-01/D-15: reviewed structural content, pending fields flagged)
 $routes->get('/terms', 'LegalController::termsOfUsage');
 $routes->get('/privacy', 'LegalController::privacyPolicy');
