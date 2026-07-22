@@ -64,7 +64,7 @@ class BidController extends BaseController
         $amount = (float) $this->request->getPost('amount');
 
         try {
-            $this->bidding->placeBid($saleEventId, $bidderId, $amount);
+            (new \App\Libraries\EasyAuctionService())->placeBid($saleEventId, $bidderId, $amount);
         } catch (\RuntimeException $e) {
             return redirect()->to("/listings/{$saleEvent['listing_id']}")->with('error', $e->getMessage());
         }

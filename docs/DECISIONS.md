@@ -1238,3 +1238,73 @@ with a specific reason it wasn't included in this pass:
    on this reframing before building anything, since building an
    automatic close mechanism that isn't actually what BR-12 describes
    would itself be a deviation.
+---
+
+### D-32: Easy Auction seller-set schedule + Dynamic Time anti-sniping (BR-12)
+
+**Decision:** Confirmed with the project owner that BR-12's "scheduled
+open bidding at RV... seller's choice at listing" means the seller sets
+their own start/end schedule — not a broken automatic system timer, which
+was the original framing before rereading the source text. Additionally
+confirmed: the actual close is governed by Dynamic Time (anti-sniping),
+not a hard cutoff — a bid landing close to the deadline pushes it back.
+
+**A second discovery of the same unused-columns pattern**: while building
+this, found `dynamic_time_trigger_minutes`/`dynamic_time_extension_
+minutes` already existed on `sale_event` since Phase 0 (defaults 10/2
+minutes) but had never been wired to any logic — flagged during the D-30
+audit as an unbuilt feature, now actually implemented. Also found these
+same columns were missing from `SaleEventModel::allowedFields` — the
+identical silent-failure pattern caught three times before (D-13, D-29,
+D-30) — checked and fixed proactively this time, before writing any
+logic that would need to write to them, rather than discovering it via a
+failed test.
+
+**New piece:** `EasyAuctionService` — mirrors `ExpressAuctionService`'s
+structure. Wraps the already-tested `BiddingService` with (1) a bidding-
+window gate (blocks bids before the seller's start time or after the end
+time) and (2) Dynamic Time: any bid landing within
+`dynamic_time_trigger_minutes` of the current end pushes it back by
+`dynamic_time_extension_minutes` — can repeat indefinitely if bids keep
+landing close to the (moving) deadline.
+
+**Backward compatibility deliberately preserved**: any `sale_event`
+created before this feature existed has no schedule set at all — treated
+as always-open rather than retroactively blocked, since breaking existing
+data would be a bigger problem than not gating it.
+
+**Scheduler extended, including a case that would otherwise hang
+forever**: `processExpiredEasyAuctions()` auto-initiates the cascade once
+an Easy Auction's schedule genuinely ends — but an Easy Auction that
+received ZERO bids before its schedule ended needed separate handling,
+since the cascade logic assumes at least one bid exists. Added an
+explicit path resolving a zero-bid expired auction to
+`cycle_ended_unsold` (an existing enum value, previously never actually
+used) — without this, a zero-bid auction would have sat in `active`
+status indefinitely, never picked up by anything.
+
+**Verified rigorously, including negative and idempotency cases, not
+just the happy path:** bidding correctly blocked before the seller's
+start time and after the end time; a bid within the trigger window
+genuinely pushes the deadline by exactly the configured amount (not an
+arbitrary push); a bid FAR from the deadline does NOT trigger an
+extension (confirming the check isn't overly aggressive); the zero-bid
+scheduler path resolves correctly; running the scheduler twice on an
+already-cascaded event doesn't re-trigger or reset anything; a legacy
+sale_event with no schedule at all still allows bidding.
+
+**Two debugging detours during verification, both confirmed as test-
+script mistakes, not product bugs**: (1) a `psql` `RETURNING` clause
+output got contaminated with the trailing `INSERT 0 1` status line when
+captured via a shell variable, corrupting a UUID used in a later query —
+fixed by isolating just the first output line; (2) called
+`dev-force-freeze` with the seller's session cookie instead of the
+Tenant Admin's — correctly rejected with 403, exactly as D-17 intended,
+not a flaw in the gate.
+
+**Full regression: 196 assertions across all eleven engines, zero failures.**
+
+**Still outstanding from the original five-item round**: Tender Auction
+(clarifications confirmed, not yet built) and PR-9's full Media Upload
+spec (explicitly deferred per the project owner's decision — noted as a
+known gap, not silently dropped).

@@ -90,6 +90,44 @@ class SchedulerService
         return $processed;
     }
 
+    // BR-12/Dynamic Time: auto-initiate the cascade once an Easy
+    // Auction's seller-set schedule has genuinely ended — accounting for
+    // any Dynamic Time extensions that may have pushed the end time
+    // later than originally set.
+    public function processExpiredEasyAuctions(): array
+    {
+        $db = \Config\Database::connect();
+        $candidates = $db->table('sale_event')
+            ->where('sale_format', 'easy')
+            ->where('status', 'active')
+            ->where('scheduled_end_at IS NOT NULL')
+            ->where('scheduled_end_at <', date('Y-m-d H:i:s'))
+            ->get()->getResultArray();
+
+        $processed = [];
+        foreach ($candidates as $saleEvent) {
+            $ranked = $this->bidModel->findRankedBids($saleEvent['id'], 1);
+
+            if (empty($ranked)) {
+                // No bids at all when the schedule ended — this must
+                // still resolve, not sit open forever.
+                $this->saleEventModel->markClosed($saleEvent['id'], 'cycle_ended_unsold');
+                $processed[] = $saleEvent['id'];
+                continue;
+            }
+            if ($ranked[0]['topup_required_by'] !== null) {
+                continue; // already cascaded on a prior scheduler run
+            }
+            try {
+                $this->cascade->initiateCascade($saleEvent['id']);
+                $processed[] = $saleEvent['id'];
+            } catch (\RuntimeException $e) {
+                continue;
+            }
+        }
+        return $processed;
+    }
+
     // BR: Buy-Now offers lapse unactioned after 3 days, no reason required
     public function processStaleOffers(): array
     {
@@ -109,6 +147,7 @@ class SchedulerService
         return [
             'gracePeriodsProcessed' => $this->processExpiredGracePeriods(),
             'expressBiddingClosed' => $this->processExpiredExpressBidding(),
+            'easyAuctionsClosed' => $this->processExpiredEasyAuctions(),
             'staleOffersLapsed' => $this->processStaleOffers(),
             'settlementsFlaggedStalled' => $this->processStalledSettlements(),
         ];

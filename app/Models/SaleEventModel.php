@@ -17,6 +17,7 @@ class SaleEventModel extends Model
         'expected_value', 'reserve_value', 'result_mode',
         'current_price', 'current_high_bidder_party_id',
         'grace_period_ends_at', 'scheduled_start_at', 'scheduled_end_at',
+        'dynamic_time_trigger_minutes', 'dynamic_time_extension_minutes',
         'actual_closed_at', 'rejection_reason',
         'emergency_stopped_at', 'emergency_stop_reason', 'updated_at',
     ];

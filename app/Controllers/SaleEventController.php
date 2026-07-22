@@ -63,6 +63,22 @@ class SaleEventController extends BaseController
             $data['result_mode'] = 'instant_close';
         }
 
+        // BR-12: Easy Auction runs on a seller-set schedule (start/end),
+        // not an automatic system timer the way Express does — the
+        // seller chooses when their own auction runs.
+        if ($format === 'easy') {
+            $startAt = $this->request->getPost('scheduled_start_at');
+            $endAt = $this->request->getPost('scheduled_end_at');
+            if (!$startAt || !$endAt) {
+                return redirect()->to("/listings/{$listingId}")->with('error', 'Easy Auction requires both a start and end date/time.');
+            }
+            if (strtotime($endAt) <= strtotime($startAt)) {
+                return redirect()->to("/listings/{$listingId}")->with('error', 'The end time must be after the start time.');
+            }
+            $data['scheduled_start_at'] = date('Y-m-d H:i:s', strtotime($startAt));
+            $data['scheduled_end_at'] = date('Y-m-d H:i:s', strtotime($endAt));
+        }
+
         $saleEvent = $this->saleEventModel->createSaleEvent($data);
 
         // BR-13: listing moves to active once a sale system is attached

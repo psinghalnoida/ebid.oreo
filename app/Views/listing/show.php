@@ -90,6 +90,12 @@
         <label style="font-size:12px; color:var(--ink-3);">Reserve Value (₹) — Easy Auction</label>
         <input type="number" name="reserve_value" required
           style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
+        <label style="font-size:12px; color:var(--ink-3);">Start (BR-12: you set the schedule)</label>
+        <input type="datetime-local" name="scheduled_start_at" required
+          style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
+        <label style="font-size:12px; color:var(--ink-3);">End</label>
+        <input type="datetime-local" name="scheduled_end_at" required
+          style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
         <button type="submit" class="btn btn-emerald">Attach Easy</button>
       </form>
       <form method="post" action="/listings/<?= esc($listing['id']) ?>/sale-events" style="flex:1;">

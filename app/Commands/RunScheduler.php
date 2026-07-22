@@ -22,6 +22,7 @@ class RunScheduler extends BaseCommand
 
         CLI::write('Grace periods frozen: ' . count($results['gracePeriodsProcessed']), 'green');
         CLI::write('Express auctions cascaded: ' . count($results['expressBiddingClosed']), 'green');
+        CLI::write('Easy auctions closed: ' . count($results['easyAuctionsClosed']), 'green');
         CLI::write('Stale offers lapsed: ' . count($results['staleOffersLapsed']), 'green');
         CLI::write('Settlements flagged stalled: ' . count($results['settlementsFlaggedStalled']), 'green');
     }
