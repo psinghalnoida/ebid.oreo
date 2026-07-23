@@ -102,6 +102,36 @@ class TenderService
         return $this->saleEventModel->find($tokenRow['sale_event_id']);
     }
 
+    // BR: Tender's EMD is manual/offline, but always audited — either a
+    // real amount + where it was paid, or an explicit reason why not.
+    // Also creates the corresponding emd_hold record (amount possibly 0)
+    // so the existing, already-tested BiddingService EMD gate continues
+    // to work unmodified — eligibility to bid is gated on this hold
+    // existing at all, not on its amount being non-zero.
+    public function logManualEmd(string $saleEventId, string $partyId, ?float $amount, ?string $locationNote, ?string $noEmdReason, string $loggedByPartyId): array
+    {
+        $this->requireTenderEvent($saleEventId);
+        if (!$this->eligibilityModel->isEligible($saleEventId, $partyId)) {
+            throw new \RuntimeException('EMD can only be logged for an eligible participant.');
+        }
+
+        $logModel = new \App\Models\TenderEmdLogModel();
+        $entry = $logModel->logEmd($saleEventId, $partyId, $amount, $locationNote, $noEmdReason, $loggedByPartyId);
+
+        $emdHoldModel = new \App\Models\EmdHoldModel();
+        $existing = $emdHoldModel->findBySaleEventAndParty($saleEventId, $partyId);
+        if (!$existing) {
+            $emdHoldModel->createHold($saleEventId, $partyId, 'manual_offline', (float) $entry['amount']);
+        }
+
+        return $entry;
+    }
+
+    public function getEmdLog(string $saleEventId): array
+    {
+        return (new \App\Models\TenderEmdLogModel())->findForSaleEvent($saleEventId);
+    }
+
     private function requireTenderEvent(string $saleEventId): array
     {
         $saleEvent = $this->saleEventModel->find($saleEventId);

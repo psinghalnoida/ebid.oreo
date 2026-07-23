@@ -16,6 +16,13 @@ class EmdService
             }
             return self::round2($expectedValue * self::EMD_PERCENT);
         }
+        if ($saleFormat === 'tender') {
+            // BR: Tender's EMD is manual/offline — no automated 10% gate.
+            // The actual audit trail (amount + payment location, or a
+            // logged reason if none) is tracked separately via
+            // TenderService::logManualEmd, not enforced here.
+            return 0.0;
+        }
         if ($saleFormat === 'express' || $saleFormat === 'easy') {
             if (!$reserveValue || $reserveValue <= 0) {
                 throw new \RuntimeException(self::ERROR_PREFIX . ": {$saleFormat} requires a positive reserve_value");

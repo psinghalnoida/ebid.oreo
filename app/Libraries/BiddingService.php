@@ -67,6 +67,21 @@ class BiddingService
             throw new \RuntimeException("Bid {$amount} does not exceed current high bid {$currentHighAmount}");
         }
 
+        // Bid increment check — only enforced if this sale_event has one
+        // set (backward-compatible with any sale_event created before
+        // this feature existed). The increment itself may already be
+        // halved (increment_halved_at set) — callers (EasyAuctionService/
+        // ExpressAuctionService/TenderBiddingService) are responsible for
+        // triggering that halving; this only reads the CURRENT value.
+        if ($saleEvent['bid_increment_amount'] !== null && $currentHigh) {
+            $requiredMinimum = $currentHighAmount + (float) $saleEvent['bid_increment_amount'];
+            if ($amount < $requiredMinimum) {
+                throw new \RuntimeException(
+                    "Bid {$amount} does not meet the minimum increment — must be at least {$requiredMinimum} (current price {$currentHighAmount} + increment " . $saleEvent['bid_increment_amount'] . ')'
+                );
+            }
+        }
+
         $newBid = $this->bidModel->createBid($saleEventId, $bidderPartyId, $amount);
         $this->bidModel->setStanding($newBid['id'], 'h1');
         $this->bidModel->resetOutbidStandings($saleEventId, [$newBid['id']]);

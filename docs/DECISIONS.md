@@ -1446,3 +1446,80 @@ controller/routes/views built yet — that's the next layer, alongside
 Tender's bidding mechanics (seller-flexible increment, the two-window
 Dynamic Time behavior) and the post-auction manual review/rejection
 workflow.
+---
+
+### D-35: Tender bidding mechanics — increment, dual-window Dynamic Time, and manual EMD audit trail
+
+**Decision:** Built and precisely verified the exact mechanics confirmed
+in the previous round's detailed clarification — including a critical
+near-miss bug caught during this build that would have broken deployment
+on any fresh server if it had shipped.
+
+**A genuinely serious bug found and fixed, not glossed over:** while
+tracking down what looked like test flakiness, discovered a real
+duplicate migration file (`2026-01-01-000020_CreateTenderBiddingAndReview.php`)
+sitting alongside the correct one, both numbered migration 020, both
+attempting to create `tender_emd_log` with DIFFERENT, incompatible check-
+constraint logic (the stale file used `amount IS NULL` for the no-EMD
+case; the current, correct design uses `amount = 0 NOT NULL`, matching
+the actual column definition). This file was apparently left over from
+an earlier draft within this same session and never cleaned up. On a
+provably empty, freshly-created database, `php spark migrate` failed
+outright — meaning **this would have broken Arpit's first deployment on
+the real server**, not just a sandbox inconvenience. Found only because
+the failure was treated as worth root-causing rather than dismissed as
+environment noise; confirmed by checking `\dt` for zero relations,
+observing the failure persisted anyway, and tracing it to the duplicate
+file by grepping for every migration referencing `tender_emd_log`. The
+stale file has been deleted entirely.
+
+**What's built and precisely verified:**
+
+1. **Bid increment enforcement** — now a real check inside the shared
+   `BiddingService::placeBid` (gated on `bid_increment_amount` being set,
+   so it's backward-compatible with every sale_event created before this
+   existed). A bid below the required increment is rejected with the
+   exact shortfall shown.
+
+2. **Increment halving — 10 minutes before scheduled end, exactly once.**
+   Verified: the increment is unchanged before the window, correctly
+   halves the first time a bid lands inside it, and — critically — stays
+   at the halved value on a second bid inside the same window, not
+   re-halving. `increment_halved_at` is the persistence guard.
+
+3. **Anti-snipe extension — matching the worked example precisely.**
+   `new_end = MAX(current_end, bid_time + extension)`, not `current_end +
+   extension`. Verified against a controlled scenario reproducing the
+   exact numbers discussed (a bid landing shortly before a deadline
+   extends to bid-time-plus-extension, not deadline-plus-extension), and
+   separately verified the boundary case: a bid landing at the *exact*
+   edge of the anti-snipe window correctly leaves the end time
+   unchanged, rather than blindly extending regardless.
+
+4. **Manual/offline EMD with a mandatory audit trail, enforced at the
+   database level, not just in application code.** A real `CHECK`
+   constraint on `tender_emd_log` requires either (amount > 0 AND a
+   payment location is recorded) OR (amount = 0 AND a reason is
+   recorded) — there is no code path that can insert a row satisfying
+   neither. Verified all three cases: a real amount without a location
+   note is rejected; a waived EMD without a reason is rejected; EMD
+   cannot be logged for a party who isn't even eligible to bid.
+
+**Design note on why `bid_increment_amount` reuses the same column name
+across formats**: rather than a Tender-specific field, this was added to
+`sale_event` generically, since Easy and Express also need this same
+field once their corrections (identified in D-34, not yet applied) are
+made — avoiding three near-duplicate columns for what's structurally the
+same concept, populated differently per format's own rules.
+
+**Full regression: 224 assertions across all thirteen engines, zero
+failures** — including a fully clean, continuous run from a freshly
+reset database, specifically to rule out any residual doubt after the
+migration collision was found.
+
+**Still remaining for Tender**: the post-auction workflow — H1 declared
+provisional, extension requests, Tenant-Admin-mediated rejection on
+behalf of insurer/insured/surveyor with cascade to H2/H3, final
+confirmation, auction reporting, and archival. No real HTTP routes/
+controllers/views exist yet for anything in D-34 or D-35 either — both
+layers are currently service-layer only, verified via `spark` tests.

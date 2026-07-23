@@ -18,6 +18,8 @@ class SaleEventModel extends Model
         'current_price', 'current_high_bidder_party_id',
         'grace_period_ends_at', 'scheduled_start_at', 'scheduled_end_at',
         'dynamic_time_trigger_minutes', 'dynamic_time_extension_minutes',
+        'bid_increment_amount', 'increment_halved_at', 'anti_snipe_trigger_minutes',
+        'tender_increment', 'tender_increment_halved', 'tender_increment_halving_minutes',
         'actual_closed_at', 'rejection_reason',
         'emergency_stopped_at', 'emergency_stop_reason', 'updated_at',
     ];
