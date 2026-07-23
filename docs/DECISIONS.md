@@ -1359,3 +1359,90 @@ prices, and category counts genuinely reflect the database, not
 hardcoded values).
 
 **Full regression: 196 assertions across all eleven engines, zero failures.**
+---
+
+### D-34: Tender Auction foundation — interest registration, eligibility, documents, stakeholder access
+
+**Decision:** This session's Tender Auction spec-gathering surfaced real
+corrections needed to already-shipped Easy and Express Auction logic,
+not just new Tender requirements — logged here in full since "no
+deviation" means these need to be tracked as genuine defects, not folded
+quietly into a new feature's scope.
+
+**Real corrections identified, not yet applied (Tender was built first,
+per the project owner's explicit choice, so further Tender-building could
+surface still more corrections before touching Easy/Express in one pass):**
+
+1. **Easy Auction (D-32) is missing a minimum bid increment entirely.**
+   The actual Tech Stack Specification's bid-processing engine text states:
+   "must exceed current price by at least the required increment (halved
+   during Dynamic Time, per Intensity Mode)" — a general platform
+   mechanic I never built for Easy. Confirmed: seller selects between
+   2%-5% of Reserve Value at creation; the increment halves once when the
+   already-existing 10-minute Dynamic Time trigger fires, and stays
+   halved (does not re-halve on further clock extensions).
+
+2. **Easy Auction's clock-extension math is wrong.** Currently calculates
+   `new_end = current_end + extension`. Confirmed correct math is
+   `new_end = MAX(current_end, bid_time + extension)` — extending from
+   the bid's own timestamp, never from the current end, and never moving
+   the end time earlier than it already was. Confirmed via a worked
+   boundary example: a bid landing exactly at the edge of the trigger
+   window should produce no change to the end time at all; the current
+   code would wrongly extend it regardless.
+
+3. **Express Auction (D-20) is also missing a bid increment.** Confirmed:
+   fixed 2% of Reserve Value, calculated automatically (no seller
+   choice), halves during a 10-minute-before-end window — this window is
+   entirely new, Express currently has no late-stage behavior at all. The
+   fixed 1-hour countdown itself remains correct as originally built —
+   it does not extend, matching the original design.
+
+These three corrections are logged now and will be applied to Easy and
+Express in a dedicated pass once Tender's remaining layers (bidding
+mechanics, post-auction workflow) are also fully specified — per the
+project owner's explicit sequencing choice, to avoid fixing the shared
+foundation twice.
+
+**What's actually built in this session — Tender's foundation layer:**
+
+- `tender_interest` — buyers opt in by registering interest (BR-12: "the
+  event... Buyers wanting to participate register their interest").
+- `tender_eligibility` — the seller's real whitelist of who may bid,
+  tracking whether each approved party came from the interest pool or
+  was added directly (both explicitly confirmed as valid paths).
+- `tender_document` — Terms of Sale, required documents, and EMD
+  information published as part of setting up the event, before buyers
+  can meaningfully be approved.
+- `tender_stakeholder_token` — genuine read-only access for insurer/
+  insured/surveyor via a random 48-character token in a URL, no platform
+  account required, confirmed explicitly by the project owner rather than
+  building a full auth system these external parties would never use.
+- **BR-12/BR-14 enforced at creation, not just assumed**: `SaleEventController`
+  now validates the tenant is genuinely `company_shop` class before
+  allowing a Tender sale event to be created at all.
+
+**A real bug found and fixed during verification, not dismissed as
+flakiness:** the full regression suite failed intermittently on a
+`sale_event.ern` uniqueness collision — traced down carefully rather than
+assumed to be test-environment noise, and found to be genuine: both
+`TestDispute.php` (D-27, testing Tender's exclusion from Dispute
+Resolution) and this session's new `TestTenderFoundation.php` hardcoded
+the identical ERN string `TEST-TENDER-001`. Invisible when either test
+ran alone; guaranteed to collide the moment both ran in the same database
+session — exactly what the full regression does. Fixed by renaming one
+test's identifier; then swept all twelve test files for any other
+duplicate ERN/subdomain/mobile-number strings before considering this
+closed, rather than assuming this was the only instance.
+
+**Full regression: 210 assertions across all twelve engines, zero failures.**
+
+**Verified over spark tests, not yet real HTTP** — this foundation layer
+has real service-level tests (14 assertions covering the Company Shop
+restriction, interest/eligibility flows including the wrong-seller and
+already-eligible rejection cases, document publishing authorization, and
+stakeholder token generation/resolution/rejection) but no HTTP
+controller/routes/views built yet — that's the next layer, alongside
+Tender's bidding mechanics (seller-flexible increment, the two-window
+Dynamic Time behavior) and the post-auction manual review/rejection
+workflow.

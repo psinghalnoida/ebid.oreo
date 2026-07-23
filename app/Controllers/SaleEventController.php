@@ -79,6 +79,15 @@ class SaleEventController extends BaseController
             $data['scheduled_end_at'] = date('Y-m-d H:i:s', strtotime($endAt));
         }
 
+        // BR-12/BR-14: Tender is restricted exclusively to Company Shop
+        if ($format === 'tender') {
+            try {
+                (new \App\Libraries\TenderService())->validateCompanyShopOnly($listing['tenant_id']);
+            } catch (\RuntimeException $e) {
+                return redirect()->to("/listings/{$listingId}")->with('error', $e->getMessage());
+            }
+        }
+
         $saleEvent = $this->saleEventModel->createSaleEvent($data);
 
         // BR-13: listing moves to active once a sale system is attached

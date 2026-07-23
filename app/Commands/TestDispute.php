@@ -63,7 +63,7 @@ class TestDispute extends BaseCommand
             'quantity_basis' => 'unit', 'yard_location_address' => 'Test Yard', 'yard_location_pin' => '600011',
         ]);
         $tenderEvent = $saleEventModel->createSaleEvent([
-            'listing_id' => $tenderListing['id'], 'tenant_id' => $tenant['id'], 'ern' => 'TEST-TENDER-001',
+            'listing_id' => $tenderListing['id'], 'tenant_id' => $tenant['id'], 'ern' => 'TEST-DISPUTE-TENDER-EXCL-001',
             'sale_format' => 'tender', 'status' => 'active',
         ]);
         $rejected = false;
