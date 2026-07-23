@@ -1308,3 +1308,54 @@ not a flaw in the gate.
 (clarifications confirmed, not yet built) and PR-9's full Media Upload
 spec (explicitly deferred per the project owner's decision — noted as a
 known gap, not silently dropped).
+---
+
+### D-33: Real marketplace landing page — live data, not the bare hero placeholder
+
+**Decision:** The landing page was a deliberate minimal placeholder since
+D-11 (proving the CI4 rewrite rendered a real page), never revisited once
+the team moved to building business logic. The project owner correctly
+flagged it as not looking like a real marketplace. Rebuilt using the
+richer mockup design that existed before the framework rewrite
+(`ebid-hub-modern-marketplace.html`) — same visual language, but now
+genuinely wired to live data instead of static/fake content.
+
+**What's now real, not hardcoded:**
+- Hero product card shows the most recent genuinely active listing
+  (photo, category, real current price) — or a graceful "be the first on
+  the yard" empty state if nothing is live yet.
+- A "Live Right Now" grid of up to 12 real active sale events.
+- Category tiles show actual counts from the database
+  (`GROUP BY category`), not the mockup's placeholder numbers
+  (1,204 / 618 / 973 etc.).
+- The hero stat "Live Right Now" reflects a genuine `COUNT()` of active
+  sale events.
+
+**Deliberately kept static**: the "How Selling Works" format explainer
+and the trust/rating explanation section — these describe platform
+features, not live transactional data, the same way most real e-commerce
+sites have static "how it works" content alongside live product grids.
+Also updated to say "three sale formats live today" with Tender visually
+marked "Coming soon" rather than claiming four are available, since
+Tender isn't built yet.
+
+**A real bug caught by testing the actual fresh-install case, not just
+the happy path with data already populated**: the query joining a
+listing's primary photo failed with a 500 error — `pg_query(): ERROR:
+column "true" does not exist` — CodeIgniter's query builder was
+auto-escaping the raw boolean literal `true` in the join condition as a
+quoted column identifier. Fixed by explicitly disabling escaping for that
+join clause. This would have broken the landing page immediately on a
+genuinely fresh production database with zero listings — exactly the
+state Arpit's first deployment will actually be in — caught specifically
+because the empty-database case was tested first, not skipped in favor
+of the more visually interesting populated case.
+
+**Verified twice, deliberately in this order**: first against a
+completely fresh, empty database (confirming both empty states render
+correctly — this is what a real first deployment looks like), then
+against real populated data end-to-end (confirming the actual grid,
+prices, and category counts genuinely reflect the database, not
+hardcoded values).
+
+**Full regression: 196 assertions across all eleven engines, zero failures.**
