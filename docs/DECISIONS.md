@@ -1523,3 +1523,81 @@ behalf of insurer/insured/surveyor with cascade to H2/H3, final
 confirmation, auction reporting, and archival. No real HTTP routes/
 controllers/views exist yet for anything in D-34 or D-35 either — both
 layers are currently service-layer only, verified via `spark` tests.
+---
+
+### D-36: Tender post-auction review workflow — the manual, flexible process fully implemented
+
+**Decision:** Built the complete post-auction workflow confirmed across
+the earlier detailed clarification — provisional winner declaration,
+buyer-requested/admin-granted extensions, Tenant-Admin-mediated rejection
+on behalf of insurer/insured/surveyor with cascade to the next eligible
+bidder, final confirmation, auction reporting, and archival (handled via
+existing terminal sale_event statuses, not a new status — `closed_sold`
+and `cycle_ended_unsold` already represent "no longer active").
+
+**Two more leftover files from the same earlier abandoned draft found
+and fixed, not just the migration from D-35**: `TenderReviewModel.php`
+already existed on disk with the exact same missing-`allowedFields`
+pattern now caught five times on this project — missing `extension_
+granted_by_party_id`, which my current migration includes but the old
+draft's model didn't know about. Fixed before it could cause a silent
+write failure. A broader sweep for any other stray files from that same
+draft found nothing further.
+
+**What's built and rigorously verified — the full multi-round cascade,
+not just a single happy path:**
+
+1. **Manual, seller-triggered closure** — `closeBiddingAndDeclareProvisional`
+   requires the actual listing's seller, not just any logged-in party.
+   Creates round 1, provisional, naming the genuine current H1.
+2. **Extension** — logged with a reason, no auto-expiry, gated to Tenant
+   Admin only (confirmed: insurer/insured/surveyor aren't platform users,
+   Tenant Admin acts on their behalf exclusively).
+3. **Rejection cascades correctly to the next ELIGIBLE bidder specifically
+   — not just next-highest bid, and never back to someone already
+   rejected.** Verified across two full rejection rounds (H1 rejected →
+   correctly moves to H2, not back to H1; H2 rejected → correctly moves
+   to H3, explicitly confirmed it does NOT loop back to H1). The rejected
+   party's EMD hold is released, not left dangling.
+4. **Confirmation hands off into the exact same Settlement/dual-NOC gate
+   every other format uses** — not a separate, parallel closing
+   mechanism. Verified a real `Settlement` record is created naming the
+   *actual* confirmed winner (buyerC, after two rounds of rejection), not
+   the original H1 (buyerA) — the price and buyer correctly reflect where
+   the process actually ended up, not where it started.
+5. **Full cascade failure** (every eligible bidder rejected, nobody
+   left) correctly resolves to `cycle_ended_unsold` rather than being
+   left in an undefined or stuck state.
+6. **Auction report** — participants, eligibility, full bid history, the
+   EMD audit log, and every review round, all pulled from real data.
+
+**Two more real bugs caught during this build, both fixed immediately:**
+1. `generateAuctionReport` queried `bid.created_at`, a column that
+   doesn't exist — the actual column is `placed_at`. Caught by the test
+   actually exercising the report method, not assumed correct.
+2. `round_number` compared with PHP's strict `===` against a literal
+   integer failed — the same Postgres-integer-returned-as-string pattern
+   already seen with booleans (D-24). Checked whether this affects real
+   product code (`TenderReviewService`, controllers) — it doesn't, only
+   the test's own assertions needed fixing — but flagged as the same
+   general class of gotcha worth remembering for any future integer
+   comparison against database-sourced values.
+
+**Also caught: a mobile-number collision this time, not an ERN one** —
+`TestTenderReview.php`'s buyer numbers collided with `TestScheduler.php`
+(D-28). The collision sweep from D-34 only covered ERN and subdomain
+strings at the time; re-run now to also cover mobile numbers, confirming
+this file is clean against all thirteen other test files.
+
+**Full regression: 245 assertions across all fourteen engines, zero
+failures**, verified in one clean, continuous run from a freshly reset
+database.
+
+**What remains before Tender is genuinely complete end-to-end**: real
+HTTP routes/controllers/views for everything built across D-34, D-35, and
+D-36 — all of it is currently service-layer only, proven via `spark`
+tests but not yet reachable through an actual browser. Also still
+outstanding: a real page for stakeholders to view via their token (the
+token generation/resolution mechanism exists and is tested, but no
+live-auction-state view has been built for it to render yet), and the
+three Easy/Express corrections identified in D-34 (still not yet applied).
