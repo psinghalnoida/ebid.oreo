@@ -33,7 +33,9 @@ class MediaController extends BaseController
             return service('response')->setStatusCode(403)->setBody('Only the listing\'s seller may upload photos to it.');
         }
 
-        $files = $this->request->getFileMultiple('photos');
+        $photoFiles = $this->request->getFileMultiple('photos') ?: [];
+        $videoFiles = $this->request->getFileMultiple('videos') ?: [];
+        $files = array_merge($photoFiles, $videoFiles);
         $gpsLat = $this->request->getPost('gps_lat') ?: null;
         $gpsLng = $this->request->getPost('gps_lng') ?: null;
 

@@ -2036,3 +2036,89 @@ test.
 
 **Full regression: 254 assertions across all fifteen engines, zero
 failures**, both with and without the sidecar running.
+---
+
+### D-43: Real server-side media compression — images and video, per PR-9's actual spec
+
+**Decision:** Built genuine server-side compression, closing the gap
+flagged repeatedly since D-24/D-34/D-38 and explicitly surfaced again
+when the project owner asked directly whether it existed. It did not —
+confirmed by reading the actual code (`$file->move($uploadDir, $newName)`
+was the entire storage step, nothing in between) before answering, not
+from memory.
+
+**Images**: PHP's GD extension (confirmed available, including native
+WebP encoding) — every uploaded JPEG/PNG/WebP is resized to a 1920px
+maximum dimension (proportional, never distorting aspect ratio) and
+re-encoded to WebP, stepping quality downward from 80 until PR-9's
+300KB target is met or a 40-quality floor is hit (never degraded further
+than that, even if the target isn't reached). PNG transparency is
+flattened onto white before re-encoding, rather than left to render as
+an unintended black background.
+
+**Video**: ffmpeg (confirmed installed, a genuine system dependency, not
+a PHP library) — transcoded to a 1280×720 cap, 4Mbps target bitrate,
+H.264/AAC in an MP4 container, trimmed to PR-9's 120-second cap rather
+than rejected outright (a seller re-uploading a shorter clip is real
+friction for what's usually an incidental overage). `media_type` is now
+tracked per file (`photo`/`video`) — video is explicitly optional and
+**never counted against BR-11's 5-50 photo requirement**, a real bug
+caught and fixed before it shipped: the original count logic would have
+let a seller pass the "5 photos required" gate with fewer real photos
+than required if a video was also uploaded, since it counted all files
+together.
+
+**A genuine bug found and fixed mid-build, not assumed away**: the
+quality-stepping compression loop repeatedly overwrites the same output
+path as it steps quality downward, and PHP's `filesize()` caches its
+result per path — meaning repeated checks on the same overwritten file
+were returning **stale sizes from an earlier iteration**, not the actual
+current file. Confirmed directly: a manual reproduction showed
+`filesize()` reporting the previous iteration's size while
+`clearstatcache()` correctly revealed the real, current value. Without
+this fix, the loop was making decisions on wrong data and reporting the
+wrong final compressed size to the caller. Fixed by explicitly clearing
+the stat cache before every size check.
+
+**A second genuine bug found during real HTTP testing, not caught by
+unit-level tests**: uploading multiple photos plus a video in one
+request silently failed — a `303` response, but nothing stored,
+correctly not assumed to mean success and checked against the database
+directly instead. Traced to PHP's own `post_max_size`/`upload_max_filesize`
+ini settings (8M/2M by default) being far smaller than what this feature
+actually needs — and critically, **exceeding `post_max_size` causes PHP
+to silently empty `$_POST`/`$_FILES` entirely rather than raising any
+error**, which is exactly why the failure looked identical to "no files
+were selected" with nothing in the application logs. This is not just a
+sandbox quirk — it will affect the real i2k2 server identically unless
+configured, so it's now an explicit, flagged step in the deployment
+guide (`post_max_size = 550M`, `upload_max_filesize = 520M`), not just a
+note in this log.
+
+**Verified with real, non-trivial test data, not synthetic minimal
+files**: generated a realistic 4032×3024 (4MB) test photo matching a
+typical phone camera, and a real 1080p/10-second test video via ffmpeg's
+own test-pattern generator, plus a 150-second video specifically to
+verify the trim-at-120s path. Confirmed via `ffprobe` against the actual
+output files (not just the code's own reported values) that resolution,
+duration, and format all match exactly what was intended. The tiny
+1.3KB/200×200 synthetic images used throughout the rest of this
+project's testing were deliberately NOT reused here, since they're too
+small to meaningfully exercise compression at all.
+
+**Verified over real HTTP end-to-end**, with the actual multipart upload
+endpoint: 5 real ~1.5MB photos plus a real video, uploaded together in
+one request, confirmed via direct database and disk inspection — each
+photo compressed from ~1.5MB to ~102KB (93% reduction), the video
+transcoded and its 10-second duration correctly recorded, all 6 files
+genuinely present on disk with no leftover raw uploads, and
+`listing.media_count` correctly showing 5 (photos only), not 6.
+
+**Full regression: 254 assertions across all fifteen engines, zero
+failures.**
+
+**Deployment guide updated**, not just this log: `php8.2-gd` added to
+the PHP extension install list, a new explicit `ffmpeg` installation
+step, and the critical `post_max_size`/`upload_max_filesize` fix — all
+in Step 3, flagged as critical since skipping it reproduces the exact
+silent-failure behavior found during this session's testing.

@@ -15,6 +15,7 @@ class ListingMediaModel extends Model
     protected $allowedFields = [
         'id', 'listing_id', 'uploaded_by_party_id', 'file_path', 'original_filename',
         'is_primary', 'gps_lat', 'gps_lng', 'captured_at',
+        'media_type', 'original_size_bytes', 'compressed_size_bytes', 'duration_seconds',
     ];
 
     public function createMedia(array $data): array
@@ -41,9 +42,13 @@ class ListingMediaModel extends Model
         return $rows;
     }
 
-    public function countForListing(string $listingId): int
+    public function countForListing(string $listingId, ?string $mediaType = null): int
     {
-        return $this->where('listing_id', $listingId)->countAllResults();
+        $query = $this->where('listing_id', $listingId);
+        if ($mediaType !== null) {
+            $query->where('media_type', $mediaType);
+        }
+        return $query->countAllResults();
     }
 
     public function clearPrimaryForListing(string $listingId): void

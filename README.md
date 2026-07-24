@@ -90,13 +90,50 @@ sudo add-apt-repository -y ppa:ondrej/php
 sudo apt update
 
 sudo apt install -y php8.2 php8.2-cli php8.2-fpm php8.2-mbstring \
-  php8.2-xml php8.2-curl php8.2-pgsql php8.2-intl unzip git
+  php8.2-xml php8.2-curl php8.2-pgsql php8.2-intl php8.2-gd unzip git
 
 php -v    # confirm it now reports 8.2.x, not 8.1.x
 ```
 
 If `php -v` still shows 8.1, run `sudo update-alternatives --config php`
 and select the 8.2 entry.
+
+**`php8.2-gd` is required for photo compression** (D-43) — without it,
+every listing photo upload will fail with an error. Confirm it's active:
+
+```bash
+php -m | grep gd
+```
+
+**Install ffmpeg for video transcoding** (D-43) — this is a genuine
+system-level dependency, not a PHP extension:
+
+```bash
+sudo apt install -y ffmpeg
+ffmpeg -version    # confirm it installed
+```
+
+**Critical — increase PHP's upload limits.** The default `post_max_size`
+(8M) and `upload_max_filesize` (2M) are both far too small once video
+uploads are involved — with these defaults, uploading several photos
+plus a video in one request will **silently fail with no error message
+at all** (this is a known PHP behavior: exceeding `post_max_size` empties
+`$_POST`/`$_FILES` entirely rather than raising an exception, which
+looks exactly like nothing was submitted). This was caught directly
+during testing this feature, not a theoretical concern:
+
+```bash
+sudo nano /etc/php/8.2/fpm/php.ini
+```
+
+Set:
+```ini
+post_max_size = 550M
+upload_max_filesize = 520M
+```
+
+Restart PHP-FPM after this change (`sudo systemctl restart php8.2-fpm` —
+covered again in Step 12 once Nginx is set up).
 
 ### Step 4 — Install PostgreSQL
 
@@ -176,10 +213,10 @@ depends on this being correct.
 sudo php spark migrate
 ```
 
-This creates every table the application needs — as of this build, 22
+This creates every table the application needs — as of this build, 26
 migrations covering parties, tenants, listings, all four sale formats,
-EMD escrow, ratings, settlement, disputes, and Tender's full workflow.
-Confirm with:
+EMD escrow, ratings, settlement, disputes, Tender's full workflow, and
+account recovery/media compression. Confirm with:
 
 ```bash
 sudo -u postgres psql -d ebidhub -c "\dt"
