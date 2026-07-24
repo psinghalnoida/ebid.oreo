@@ -1726,3 +1726,75 @@ Easy/Express correction backlog (D-37), and now the real HTTP layer
 marketplace landing page, the platform now has all four sale formats
 (Easy, Buy-Now, Express, Tender) reachable, tested, and verified through
 actual HTTP requests, not just service-layer proof.
+---
+
+### D-39: Pre-deployment repository cleanup — a genuinely significant regression found and fixed
+
+**Decision:** Full documentation and structural audit for "one-shot
+deployment" readiness, per the project owner's explicit request before
+closing further gaps. This went well beyond a cosmetic pass.
+
+**The most significant finding: `README.md`'s full deployment guide had
+been silently lost since D-24, and nobody — including this session —
+noticed until now.** The complete 16-step i2k2 deployment guide
+(including the critical PHP 8.2 PPA fix, without which `composer install`
+fails outright on Ubuntu 22.04's default PHP 8.1) was added at commit
+`32adaa4`. The very next commit that touched `README.md`, `c972d24`
+(D-24), **silently overwrote it with an older, simpler cached version** —
+almost certainly a stale local copy carried over during that round's
+file-copying, not a deliberate change. This means for every commit since
+D-24, anyone consulting `README.md` for deployment steps would have found
+a generic four-line "quick start" instead of the actual guide — missing
+the PHP version fix specifically, which would have caused a real,
+confusing failure on the actual i2k2 server. Confirmed via `git show
+32adaa4:README.md` that the full 293-line guide genuinely existed before
+being lost. Restored in full, then updated throughout to reflect
+everything built since (all four sale formats, real Super Admin, 22
+migrations instead of 11, fifteen test commands instead of six).
+
+**A second, separate class of drift found**: `SETUP.md` had accumulated
+multiple stale and, in one case, genuinely self-contradictory claims —
+one section correctly described the real Super Admin TOTP panel (D-29)
+while an earlier section in the *same file* still said "no admin panel
+exists yet." Also stale: "Tender not yet built" (built, D-34-38),
+"Tenant Admin authorization... dev-only stand-in" (real since D-17),
+`OfferController::accept`'s missing ownership check (closed in D-22, but
+the warning about it was never removed), and Easy Auction's "no defined
+bidding-end mechanism" limitation (resolved in D-32). Every one of these
+was corrected — not just noted, but rewritten to reflect the actual
+current, verified state — and the stale "What's built so far" section
+listing 9 tables and 4 test commands was replaced with an accurate
+summary pointing to `docs/DECISIONS.md` and the new `docs/SITE_MAP.md`
+for full detail, rather than trying to re-describe everything inline
+(which is exactly the kind of content that goes stale fastest).
+
+**Structural/code audit, same rigor as D-30, at the current scale:**
+- All 79 route→controller-method references verified programmatically —
+  every one resolves to a real method, no dangling references.
+- Every controller confirmed reachable by at least one route.
+- A full `allowedFields`-vs-actual-schema sweep across every model (the
+  bug pattern that has now bitten this project five separate times) —
+  no new gaps found beyond the already-known, deliberately-excluded
+  columns (DB-default timestamps, CHECK-constrained fixed values).
+- Migration sequence re-verified — 22 migrations, no gaps, no duplicate
+  numbers (specifically checked given D-35 found a genuine duplicate
+  migration file earlier this session).
+- File placement confirmed to follow CodeIgniter convention throughout
+  (Controllers/Libraries/Models each flat within their type, as the
+  framework expects) — no files sitting in the wrong place.
+
+**Final verification — a genuine one-shot deployment simulation, not
+just a read-through**: built a fresh copy of the repository, restored
+`vendor/` and `.env` (simulating a real `composer install` +
+configuration step, since Claude's sandbox itself cannot reach Packagist
+— see D-11), reset the database completely, ran every migration from
+zero, and ran the complete test suite. **254 assertions, all fifteen
+suites, zero failures, on a genuinely fresh setup** — not a reused,
+already-migrated database.
+
+**New file**: `docs/SITE_MAP.md` — every real, working route in the
+application, organized by who can access it, with an honest, explicit
+list of what's built-but-unreachable (the listing edit and emergency-stop
+logic specifically) versus what's genuinely not built yet versus what's
+deliberately deferred. Referenced from both `README.md` and `SETUP.md`
+going forward instead of duplicating page-by-page detail in three places.

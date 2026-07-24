@@ -43,41 +43,47 @@ Visit http://localhost:8080/trust-support — should show the Trust & Support hu
 
 ## What's built so far
 
-- `app/Controllers/Home.php` → `app/Views/landing.php` — landing page
-- `app/Controllers/TrustSupport.php` → `app/Views/trust_support.php` — Trust
-  & Support hub (⚠️ card copy is placeholder structure only — awaiting
-  legally-reviewed final policy text before it's real)
-- `app/Views/layouts/main.php` — shared base layout (Modern Marketplace
-  Minimal design system: off-white/near-black/emerald, Sora typeface)
-- **`app/Database/Migrations/`** — all 9 tables (party, tenant, party_role,
-  listing, sale_event, bid, emd_hold, rating_event, + rating state columns),
-  ported from the earlier Node prototype. Run via `php spark migrate`.
-  Tested including full rollback (`php spark migrate:rollback`).
-- **`app/Models/`** — Party, Tenant, Listing, SaleEvent, Bid, EmdHold,
-  RatingEvent — CodeIgniter Model classes wrapping the schema above.
-- **`app/Libraries/`** — the actual business logic, each traceable to
-  specific BR references:
-  - `EmdService.php` — BR-27 baseline calc, BR-29 Buy-Now adjustment,
-    BR-34 forfeiture allocation math
-  - `BiddingService.php` — BR-27 live EMD gate, BR-43 anti-jacking ceiling
-  - `CascadeService.php` — BR-28 H1/H2/H3 baton-pass and full-cascade-failure
-  - `RatingService.php` — BR-35/36/38/39 upgrade/downgrade/Crawl-Back/
-    forced-neutral (⚠️ Shadow Banning threshold still unconfirmed — see D-08)
-  - `ListingLifecycleService.php` — BR-13/14 status transitions,
-    archive-and-recreate, grace-window edits, emergency stop
-  - `Uuid.php` — small helper; CodeIgniter's Model layer needs the UUID
-    primary key supplied explicitly on insert (see note below)
-- **`app/Commands/`** — `php spark test:cascade`, `test:rating`,
-  `test:lifecycle`, `test:auth` — real, runnable test suites (89 assertions
-  total, zero failures) that exercise the above against a real database.
-  Kept in the project as ongoing verification tooling, not just one-off
-  scripts — rerun anytime after a change to confirm nothing broke.
-- **`app/Controllers/AuthController.php` + `app/Views/auth/*`** — BR-02
-  auth flow, real browser-reachable pages: `/register` → OTP verify → mPIN
-  setup, and `/login` with the 3-strike lockout → OTP reset flow. Verified
-  via real HTTP requests, not just the service layer. ⚠️ OTP is shown
-  on-screen in dev mode since the SMS provider is still stubbed — must be
-  removed before production.
+This section stays deliberately concise — for full detail, see
+`docs/DECISIONS.md` (every decision, in order, with reasoning) and
+`docs/SITE_MAP.md` (every real page, organized by who can reach it).
+
+- **All four sale formats** (Easy, Buy-Now, Express, Tender) — fully
+  built, tested, and reachable through real HTTP pages, not just service
+  layer. Tender specifically includes interest registration, seller
+  eligibility approval, Terms of Sale/document publishing, manual EMD
+  audit logging, seller-flexible bid increments with dual-window Dynamic
+  Time, a full manual post-auction review workflow (provisional winner,
+  extension, rejection with cascade to the next bidder, confirmation),
+  and genuine no-login stakeholder access via a random token.
+- **EMD escrow, cascade, and forfeiture** — `EmdService`,
+  `BiddingService`, `CascadeService` — BR-27/28/34/43.
+- **Four-score rating system** — `RatingService` — upgrade/downgrade/
+  Crawl-Back/forced-neutral (⚠️ Shadow Banning threshold still
+  unconfirmed — see D-08).
+- **Listing lifecycle** — `ListingLifecycleService` — BR-13/14 status
+  transitions, archive-and-recreate, grace-window edits, emergency stop.
+  ⚠️ Both the material-edit and emergency-stop logic are fully built and
+  tested but currently have **no HTTP route** — see `docs/SITE_MAP.md`.
+- **Settlement** — dual-NOC + mandatory rating gate, stall resolution.
+- **Dispute Resolution Framework** — filing, evidence, category-based
+  ruling authority, appeal.
+- **Scheduled-job automation** — grace windows, Express's countdown,
+  offer lapse, settlement stall-flagging, Easy Auction's own schedule —
+  all genuinely automatic once the cron entry (below) is installed.
+- **Real Super Admin** (TOTP 2FA, separate login path), **Tenant Admin**
+  (role-scoped authorization), **seller approval gate** (BR-09), and
+  **conflict-of-interest blocks** (BR-21/22) — see the dedicated section
+  below for provisioning.
+- **Real marketplace landing page** — live listings, real category
+  counts, not placeholder content.
+- `app/Commands/` — fifteen real, permanent `spark test:*` commands
+  (254+ assertions total, zero known failures) — see Step 10 of the
+  deployment guide in `README.md` for the full list. Rerun any of them
+  after a change to confirm nothing broke.
+- `app/Controllers/AuthController.php` — BR-02 mobile/OTP/mPIN flow,
+  3-strike lockout → OTP reset. ⚠️ OTP is shown on-screen in dev mode
+  since the SMS provider is still stubbed — must be removed before
+  production.
 
 ## Important convention for any NEW model you add
 
@@ -96,18 +102,22 @@ Follow this pattern for any new table/model — see any existing Model's
   real browser-clickable pages: create a listing, submit/approve, attach
   an Easy Auction, approve it, fund EMD, place bids. Verified end-to-end
   over real HTTP down to the database (see D-14). ⚠️ Several endpoints
-  are explicitly dev-only stand-ins for pieces not yet built (Tenant Admin
-  authorization, the real 60-minute grace-window timer, a real payment
-  gateway) — each is clearly marked in the code and MUST be
-  removed/replaced before production use. See D-14 for the full list.
+  are still explicit dev-only stand-ins — the grace-window timer can be
+  force-frozen (real automatic timing exists via the scheduler, see
+  below, but a manual override remains for testing) and EMD funding is
+  simulated pending the real payment gateway. Tenant Admin authorization
+  itself is real, not a stand-in (D-17). Each dev-only marker is clearly
+  flagged in the code (`grep -rn "DEV-ONLY" app/`) — review before
+  production use.
 
 - **`app/Filters/TenantAdminFilter.php` + `app/Libraries/AuthorizationService.php`
   + `app/Models/PartyRoleModel.php`** — real BR-09 Tenant Admin
   authorization, replacing the dev-only approve/reject shortcuts from
   before. A logged-in party must actually hold the `tenant_admin` role
   for a listing's specific tenant to approve/reject it — enforced with a
-  403 response otherwise, verified over real HTTP. Since there's no Super
-  Admin panel yet to grant this role through a UI, use:
+  403 response otherwise, verified over real HTTP. A real Super Admin
+  panel exists (D-29), but granting the Tenant Admin role specifically
+  is still a deliberate CLI-only step, not self-service:
   ```
   php spark grant:tenant-admin <mobile_number> <tenant_id>
   ```
@@ -116,9 +126,9 @@ Follow this pattern for any new table/model — see any existing Model's
   + extended `listing/show.php`** — Buy-Now is now a complete, real
   format: submit an offer, seller accepts (with mandatory reason if not
   the highest, BR-42), EMD top-up/refund on acceptance (BR-29). Verified
-  end-to-end over real HTTP down to the database. ⚠️ `OfferController::accept`
-  is gated only by login, not by a check that the caller is actually the
-  listing's seller — must be added before production use (see D-19).
+  end-to-end over real HTTP down to the database. `OfferController::accept`
+  now correctly verifies the caller is actually the listing's seller
+  (D-22 — this was flagged as a real gap in D-19 and closed shortly after).
 
 - **`app/Controllers/ExpressController.php` + `ExpressAuctionService`
   + extended `listing/show.php`** — Express Auction is complete: the
@@ -128,17 +138,21 @@ Follow this pattern for any new table/model — see any existing Model's
   admin/seller action, exactly on the 3rd. Reuses `sale_event`'s existing
   `scheduled_start_at`/`scheduled_end_at` columns rather than new schema.
 
-## Deployment gate — D-23 (supersedes D-18) — FULLY MET
+## Deployment gate — D-23 (supersedes D-18) — FULLY MET, and superseded by further work
 
 All three tiers of D-23's corrected deployment gate are complete:
 **Tier 1** (D-24/25/26 — media, settlement, seller rating), **Tier 2**
 (D-27/28 — dispute resolution, scheduled jobs), **Tier 3** (D-29 — real
 Super Admin TOTP auth, tenant onboarding, conflict-of-interest blocks).
-See `docs/DECISIONS.md` for the full detail behind each.
+**Since then, the full Tender Auction format was also built end-to-end**
+(D-34 through D-38 — foundation, bidding mechanics, post-auction review,
+corrections applied back to Easy/Express, and the real HTTP layer). See
+`docs/DECISIONS.md` for the full detail behind each.
 
 ## Super Admin — provisioning and first login
 
-No admin panel existed to grant this role from, so it's still a CLI step:
+The panel itself is real (D-29) — but *granting* the role is deliberately
+still a CLI-only step, not self-service, by design:
 
 ```bash
 php spark grant:super-admin <mobile_number>
@@ -177,21 +191,25 @@ once it's running — zero counts are expected most of the time; non-zero
 counts confirm it's genuinely processing real expired timers, not just
 running silently.
 
-**Known limitation, not fixed by this:** Easy Auction was never given a
-defined "bidding ends at time X" mechanism anywhere in this codebase —
-only Express got an explicit countdown. The scheduler cannot close an
-Easy Auction automatically because no such trigger point exists to check
-against. This is a separate, real gap from what scheduling itself closes.
+**Update (D-32):** Easy Auction now has a real seller-set schedule and
+genuine Dynamic Time anti-sniping — the limitation that used to be noted
+here (no defined bidding-end mechanism) has been resolved. The scheduler
+correctly auto-closes an Easy Auction once its schedule genuinely ends.
 
 ## Not yet built
 
-Tender format (Company Shop exclusive, lower priority per the roadmap), a
-real Super Admin panel (`grant:tenant-admin`/`grant:super-admin` spark
-commands are stand-ins), Super Admin's separate Auth0/TOTP login path
-(BR-04), tenant onboarding workflow, conflict-of-interest blocks (BR-21/22),
-a real payment gateway (still stubbed across every format's
-`devFundEmd`/`dev-fund-emd-*`/`pledge` endpoints), and Easy Auction's
-missing bidding-end trigger (see limitation above).
+Real navigation/account pages a normal user would expect on day one —
+generic logout for regular users, "My Listings", "My Bids/Purchases", a
+user profile page, and a proper browse-all-listings page with filters
+(the landing page only shows the 12 most recent active listings). Also:
+a page for Super Admin to view/edit an *existing* tenant (only creation
+exists), TOTP recovery if a Super Admin loses their device, HTTP routes
+for the already-built-and-tested listing edit and emergency-stop logic
+(see `docs/SITE_MAP.md` for the full list), KYC data collection (Tier 4),
+video/document upload and transcoding for listings (PR-9's full spec,
+deferred by the project owner's decision), and a real payment gateway/SMS
+provider (still stubbed across every format's `devFundEmd`/
+`dev-fund-emd-*`/`pledge` endpoints — connects post-deployment).
 
 ## Production web server (Apache/Nginx)
 
