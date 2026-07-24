@@ -82,6 +82,19 @@ $routes->post('/seller-applications/(:segment)/approve', 'SellerApplicationContr
 $routes->post('/seller-applications/(:segment)/reject', 'SellerApplicationController::reject/$1', ['filter' => 'tenantAdmin:sellerApplication']);
 $routes->get('/tenants/(:segment)/dashboard', 'TenantAdminController::dashboard/$1', ['filter' => 'tenantAdmin:tenant']);
 
+// Tender Auction — real HTTP routes
+$routes->post('/sale-events/(:segment)/tender/interest', 'TenderController::registerInterest/$1');
+$routes->get('/sale-events/(:segment)/tender/eligibility', 'TenderController::manageEligibility/$1');
+$routes->post('/sale-events/(:segment)/tender/eligibility/grant', 'TenderController::grantEligibility/$1');
+$routes->post('/sale-events/(:segment)/tender/documents', 'TenderController::publishDocument/$1');
+$routes->post('/sale-events/(:segment)/tender/emd', 'TenderController::logEmd/$1');
+$routes->post('/sale-events/(:segment)/tender/bid', 'TenderController::placeBid/$1');
+$routes->post('/sale-events/(:segment)/tender/stakeholder-link', 'TenderController::generateStakeholderLink/$1');
+$routes->get('/tender-view/(:segment)', 'TenderController::stakeholderView/$1');
+$routes->post('/sale-events/(:segment)/tender/close-bidding', 'TenderController::closeBidding/$1');
+$routes->post('/tender-reviews/(:segment)/action', 'TenderController::reviewAction/$1');
+$routes->get('/sale-events/(:segment)/tender/report', 'TenderController::auctionReport/$1');
+
 // Legal documents (BR-01/D-15: reviewed structural content, pending fields flagged)
 $routes->get('/terms', 'LegalController::termsOfUsage');
 $routes->get('/privacy', 'LegalController::privacyPolicy');

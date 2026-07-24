@@ -112,6 +112,19 @@
           style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
         <button type="submit" class="btn btn-ghost">Attach Express</button>
       </form>
+      <form method="post" action="/listings/<?= esc($listing['id']) ?>/sale-events" style="flex:1;">
+        <input type="hidden" name="sale_format" value="tender">
+        <label style="font-size:12px; color:var(--ink-3);">Increment (₹, your choice) — Tender (Company Shop only)</label>
+        <input type="number" name="bid_increment_amount" required
+          style="display:block; width:100%; padding:12px; margin:6px 0 8px; border:1px solid var(--line); border-radius:10px;">
+        <label style="font-size:11px; color:var(--ink-3);">Start</label>
+        <input type="datetime-local" name="scheduled_start_at" required
+          style="display:block; width:100%; padding:10px; margin:4px 0 8px; border:1px solid var(--line); border-radius:10px;">
+        <label style="font-size:11px; color:var(--ink-3);">End</label>
+        <input type="datetime-local" name="scheduled_end_at" required
+          style="display:block; width:100%; padding:10px; margin:4px 0 14px; border:1px solid var(--line); border-radius:10px;">
+        <button type="submit" class="btn btn-ghost">Attach Tender</button>
+      </form>
     </div>
   <?php endif; ?>
 
@@ -225,6 +238,74 @@
           <p style="font-size:12px; color:var(--ink-3);">⚠️ Dev-only: forces the real 1-hour bidding window to expire immediately (Tenant Admin action)</p>
           <button type="submit" class="btn btn-ghost">Force-close Bidding (dev)</button>
         </form>
+        <?php endif; ?>
+      <?php endif; ?>
+
+      <?php if ($saleEvent['sale_format'] === 'tender'): ?>
+        <div style="margin-top:16px; background:var(--line-soft); padding:12px 16px; border-radius:10px;">
+          <p style="font-size:13px; font-weight:600;">Increment: ₹<?= number_format((float) $saleEvent['bid_increment_amount'], 2) ?><?= $saleEvent['increment_halved_at'] ? ' (halved)' : '' ?></p>
+        </div>
+
+        <a href="/sale-events/<?= esc($saleEvent['id']) ?>/tender/interest" style="display:inline-block; margin-top:10px;" class="btn btn-ghost">Register Interest</a>
+        <?php if ($isOwner): ?>
+          <a href="/sale-events/<?= esc($saleEvent['id']) ?>/tender/eligibility" class="btn btn-ghost" style="margin-left:6px;">Manage Eligibility</a>
+          <a href="/sale-events/<?= esc($saleEvent['id']) ?>/tender/report" class="btn btn-ghost" style="margin-left:6px;">Auction Report</a>
+        <?php endif; ?>
+
+        <?php if ($isOwner): ?>
+        <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/tender/documents" style="margin-top:14px;">
+          <p style="font-size:12px; color:var(--ink-3);">Publish Terms of Sale / Documents</p>
+          <select name="document_type" style="padding:8px; border:1px solid var(--line); border-radius:8px; font-size:12px; margin-bottom:6px;">
+            <option value="terms_of_sale">Terms of Sale</option>
+            <option value="required_document">Required Document</option>
+            <option value="emd_information">EMD Information</option>
+          </select>
+          <input type="text" name="title" placeholder="Title" required style="display:block; width:100%; padding:8px; margin-bottom:6px; border:1px solid var(--line); border-radius:8px;">
+          <textarea name="description_text" placeholder="Details" rows="2" style="display:block; width:100%; padding:8px; border:1px solid var(--line); border-radius:8px;"></textarea>
+          <button type="submit" class="btn btn-ghost" style="margin-top:6px; font-size:12px;">Publish</button>
+        </form>
+
+        <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/tender/emd" style="margin-top:14px;">
+          <p style="font-size:12px; color:var(--ink-3);">Log Manual EMD</p>
+          <input type="text" name="party_id" placeholder="Buyer Party ID" required style="display:block; width:100%; padding:8px; margin-bottom:6px; border:1px solid var(--line); border-radius:8px;">
+          <input type="number" name="amount" placeholder="Amount (0 if waived)" required style="display:block; width:100%; padding:8px; margin-bottom:6px; border:1px solid var(--line); border-radius:8px;">
+          <input type="text" name="payment_location_note" placeholder="Payment location (if amount > 0)" style="display:block; width:100%; padding:8px; margin-bottom:6px; border:1px solid var(--line); border-radius:8px;">
+          <input type="text" name="no_emd_reason" placeholder="Reason (if amount = 0)" style="display:block; width:100%; padding:8px; margin-bottom:6px; border:1px solid var(--line); border-radius:8px;">
+          <button type="submit" class="btn btn-ghost" style="font-size:12px;">Log EMD</button>
+        </form>
+
+        <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/tender/stakeholder-link" style="margin-top:14px;">
+          <input type="text" name="label" placeholder="Label (e.g. Insurer XYZ)" style="padding:8px; border:1px solid var(--line); border-radius:8px; font-size:12px;">
+          <button type="submit" class="btn btn-ghost" style="font-size:12px;">Generate Stakeholder Link</button>
+        </form>
+        <?php endif; ?>
+
+        <?php if ($tenderState['isEligible'] && $tenderState['biddingOpen']): ?>
+        <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/tender/bid" style="margin-top:14px; display:flex; gap:8px;">
+          <input type="number" name="amount" placeholder="Bid amount" required step="0.01" style="flex:1; padding:12px; border:1px solid var(--line); border-radius:10px;">
+          <button type="submit" class="btn btn-emerald">Bid</button>
+        </form>
+        <?php elseif (!$tenderState['isEligible']): ?>
+        <p style="font-size:12px; color:var(--ink-3); margin-top:14px;">You are not yet approved to bid on this Tender.</p>
+        <?php endif; ?>
+
+        <?php if ($isOwner && !$tenderState['currentReview']): ?>
+        <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/tender/close-bidding" style="margin-top:14px;">
+          <p style="font-size:12px; color:var(--ink-3);">Manual seller action — no automatic timer</p>
+          <button type="submit" class="btn btn-ghost">Close Bidding & Declare Provisional Winner</button>
+        </form>
+        <?php endif; ?>
+
+        <?php if ($tenderState['currentReview'] && in_array($tenderState['currentReview']['status'], ['provisional', 'extension_granted'], true)): ?>
+        <div style="margin-top:14px; background:var(--amber-soft); padding:14px; border-radius:10px;">
+          <p style="font-size:12px; margin:0 0 8px;">Round <?= esc($tenderState['currentReview']['round_number']) ?> — <?= esc(strtoupper($tenderState['currentReview']['status'])) ?> — Tenant Admin action (on behalf of insurer/insured/surveyor)</p>
+          <form method="post" action="/tender-reviews/<?= esc($tenderState['currentReview']['id']) ?>/action" style="display:flex; gap:6px; flex-wrap:wrap;">
+            <input type="text" name="reason" placeholder="Reason" style="flex:1; min-width:120px; padding:8px; border:1px solid var(--line); border-radius:8px; font-size:12px;">
+            <button type="submit" name="action" value="extend" class="btn btn-ghost" style="font-size:11px; padding:6px 10px;">Grant Extension</button>
+            <button type="submit" name="action" value="reject" class="btn btn-ghost" style="font-size:11px; padding:6px 10px;">Reject</button>
+            <button type="submit" name="action" value="confirm" class="btn btn-emerald" style="font-size:11px; padding:6px 10px;">Confirm Winner</button>
+          </form>
+        </div>
         <?php endif; ?>
       <?php endif; ?>
     </div>

@@ -115,9 +115,23 @@ class ListingController extends BaseController
             ];
         }
 
+        $tenderState = null;
+        if ($saleEvent && $saleEvent['sale_format'] === 'tender') {
+            $callerId = session()->get('logged_in_party_id');
+            $tenderService = new \App\Libraries\TenderService();
+            $tenderBidding = new \App\Libraries\TenderBiddingService();
+            $tenderReview = new \App\Libraries\TenderReviewService();
+            $tenderState = [
+                'isEligible' => $callerId ? $tenderService->isEligible($saleEvent['id'], $callerId) : false,
+                'biddingOpen' => $tenderBidding->isBiddingOpen($saleEvent),
+                'documents' => $tenderService->getDocuments($saleEvent['id']),
+                'currentReview' => $tenderReview->getCurrentReview($saleEvent['id']),
+            ];
+        }
+
         return view('listing/show', [
             'title' => 'Listing — eBid Hub', 'listing' => $listing, 'saleEvent' => $saleEvent,
-            'offers' => $offers, 'expressState' => $expressState, 'media' => $media,
+            'offers' => $offers, 'expressState' => $expressState, 'tenderState' => $tenderState, 'media' => $media,
             'isOwner' => session()->get('logged_in_party_id') === $listing['seller_party_id'],
             'minPhotos' => \App\Libraries\MediaService::minPhotos(),
             'settlementRecord' => $settlementRecord,

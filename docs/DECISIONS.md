@@ -1659,3 +1659,70 @@ views for all of Tender (D-34/35/36 are service-layer only), and a real
 stakeholder-facing view for the token-based read-only access (the
 generation/resolution mechanism exists and is tested, but nothing renders
 for it to display yet).
+---
+
+### D-38: Tender's real HTTP layer — the complete workflow, verified genuinely end-to-end over real HTTP
+
+**Decision:** Built the full HTTP layer (routes, `TenderController`,
+views) for everything constructed across D-34/35/36/37 — interest
+registration, eligibility management (both paths), Terms of Sale/document
+publishing, manual EMD logging, bidding, stakeholder read-only access,
+and the complete post-auction review workflow. Tender is now genuinely
+reachable through a browser, not just proven at the service layer.
+
+**Verified with the real, complete journey, not a shortcut**: registered
+seller/Tenant Admin/two buyers → seller applied and was approved on a
+genuine Company Shop tenant → created and approved a listing with real
+photos → attached a Tender with a seller-chosen increment and real
+schedule → one buyer registered interest and was approved from that
+list, the second was added directly by mobile number (both paths,
+confirmed distinct) → seller published Terms of Sale → Tenant Admin
+manually logged EMD for both buyers (one with a real amount, one waived
+with a reason) → both buyers bid → seller manually closed bidding,
+declaring the correct provisional winner → Tenant Admin rejected that
+result with a reason → **verified the cascade correctly moved to the
+actual next-highest bidder, not arbitrarily** → Tenant Admin confirmed
+the new winner → **verified the final `current_price` and settlement
+record reflect the confirmed winner's bid, not the original provisional
+winner's** → confirmed the stakeholder view renders with zero login,
+showing both bid amounts with no bidder identities, exactly as BR-16
+requires.
+
+**Three real mistakes made and corrected during this verification, each
+instructive:**
+
+1. **A `curl -d` vs `--data-urlencode` encoding bug** — sending a mobile
+   number with a literal `+` via plain `-d` silently turned it into a
+   space, causing a party lookup to fail with no visible error in the
+   test's own output (both the success and failure paths return the same
+   303 status). Caught by checking the database directly rather than
+   trusting the HTTP status code alone — the exact same category of
+   mistake made and caught earlier in this project's history, worth
+   remembering as a recurring trap specifically with `+`-prefixed phone
+   numbers in form-encoded test data.
+2. **A premature rejection accidentally closed out a real sale event**
+   — because eligibility hadn't finished propagating correctly (a
+   consequence of mistake #1), only one bidder existed at rejection
+   time, so the cascade correctly found nobody left and resolved to
+   `cycle_ended_unsold` — genuinely correct product behavior, but not the
+   scenario intended to be tested. Required setting up a second, clean
+   sale event to properly verify the multi-bidder cascade over HTTP.
+3. **Forgot the manual EMD logging step before attempting to bid**, on
+   the second sale event — the same omission already caught once while
+   writing `TestTenderReview.php`, now repeated in manual HTTP testing.
+   Confirms this project's EMD gate is being applied consistently and
+   correctly (it blocked exactly when it should have), and that this
+   specific setup step is easy to forget — worth flagging clearly in
+   `SETUP.md`/documentation for whoever operates this for real.
+
+**Full regression: 254 assertions across all fifteen engines, zero
+failures**, confirming the new HTTP layer introduced no service-level
+regressions.
+
+**This closes out the entire "no deviation" Tender build** — foundation
+(D-34), bidding mechanics (D-35), post-auction review (D-36), the
+Easy/Express correction backlog (D-37), and now the real HTTP layer
+(D-38) making all of it genuinely usable. Combined with D-33's real
+marketplace landing page, the platform now has all four sale formats
+(Easy, Buy-Now, Express, Tender) reachable, tested, and verified through
+actual HTTP requests, not just service-layer proof.

@@ -102,6 +102,26 @@ class SaleEventController extends BaseController
             } catch (\RuntimeException $e) {
                 return redirect()->to("/listings/{$listingId}")->with('error', $e->getMessage());
             }
+
+            $startAt = $this->request->getPost('scheduled_start_at');
+            $endAt = $this->request->getPost('scheduled_end_at');
+            if (!$startAt || !$endAt) {
+                return redirect()->to("/listings/{$listingId}")->with('error', 'Tender requires both a start and end date/time.');
+            }
+            if (strtotime($endAt) <= strtotime($startAt)) {
+                return redirect()->to("/listings/{$listingId}")->with('error', 'The end time must be after the start time.');
+            }
+            $data['scheduled_start_at'] = date('Y-m-d H:i:s', strtotime($startAt));
+            $data['scheduled_end_at'] = date('Y-m-d H:i:s', strtotime($endAt));
+
+            // Seller's total flexibility — a direct rupee amount, not a
+            // percentage (confirmed distinct from Easy/Express).
+            $data['bid_increment_amount'] = (float) ($this->request->getPost('bid_increment_amount') ?: 0) ?: null;
+
+            // The two confirmed, distinct windows.
+            $data['dynamic_time_trigger_minutes'] = 10;  // increment halving
+            $data['anti_snipe_trigger_minutes'] = 2;      // clock extension
+            $data['dynamic_time_extension_minutes'] = 2;
         }
 
         $saleEvent = $this->saleEventModel->createSaleEvent($data);
