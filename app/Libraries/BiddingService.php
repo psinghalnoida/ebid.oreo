@@ -98,6 +98,18 @@ class BiddingService
         // Return the up-to-date record — the pre-update snapshot captured
         // right after insert() would still show the default 'outbid'
         // standing, not the 'h1' just set above.
-        return $this->bidModel->find($newBid['id']);
+        $finalBid = $this->bidModel->find($newBid['id']);
+
+        // D-42: notify the real-time sidecar — after the DB write has
+        // fully succeeded, never before. If the sidecar is unreachable,
+        // this fails silently (see RealtimeBroadcastService) — a bid
+        // must never fail or be delayed because real-time push is down.
+        (new RealtimeBroadcastService())->broadcast($saleEventId, 'bid_placed', [
+            'amount' => (float) $finalBid['amount'],
+            'standing' => $finalBid['standing'],
+            'bidderPartyId' => $finalBid['bidder_party_id'],
+        ]);
+
+        return $finalBid;
     }
 }

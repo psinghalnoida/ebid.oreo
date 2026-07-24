@@ -268,20 +268,100 @@ sudo systemctl reload nginx
 sudo systemctl status php8.2-fpm    # confirm it's running (installed in Step 3)
 ```
 
-### Step 13 — Point your domain's DNS at this server
+### Step 13 — Install and run the real-time WebSocket sidecar (D-42)
+
+Live bidding updates (the price updating for everyone watching an
+auction without needing to refresh) run through a genuinely separate
+Node.js process — CodeIgniter/PHP has no native way to push updates to a
+browser. This is not optional if you want bidders to see updates live;
+without it, the site still works completely correctly, just without
+real-time push (everyone needs to refresh to see the latest price).
+
+```bash
+# Install Node.js if not already present
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt install -y nodejs
+
+cd /var/www/ebid.oreo/realtime
+sudo npm install
+```
+
+Set a real secret (not the dev default) and add it to `.env` alongside
+the database config from Step 8:
+
+```
+EBIDHUB_WS_INTERNAL_URL = http://127.0.0.1:8081/broadcast
+EBIDHUB_BROADCAST_SECRET = <a real random string, not the dev default>
+```
+
+Run it as a systemd service so it survives reboots and restarts on crash:
+
+```bash
+sudo nano /etc/systemd/system/ebidhub-realtime.service
+```
+
+```ini
+[Unit]
+Description=eBid Hub Real-time WebSocket Sidecar
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/ebid.oreo/realtime
+Environment=EBIDHUB_WS_PORT=8081
+Environment=EBIDHUB_BROADCAST_SECRET=<the same real secret from .env above>
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=5
+User=www-data
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable ebidhub-realtime
+sudo systemctl start ebidhub-realtime
+sudo systemctl status ebidhub-realtime    # confirm it's running
+```
+
+**Browsers need to reach port 8081 directly** (the JavaScript on the
+listing page connects to `wss://<domain>:8081/ws`) — either open that
+port in the firewall, or better, add a WebSocket-aware location block to
+the Nginx config from Step 12 to proxy it through the same domain/port
+443 instead of exposing 8081 separately:
+
+```nginx
+location /ws {
+    proxy_pass http://127.0.0.1:8081;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+}
+```
+
+If you use this Nginx approach instead of exposing port 8081 directly,
+update the WebSocket URL the browser connects to accordingly — this
+requires a small change to `app/Views/listing/show.php`'s script block
+(currently hardcoded to connect on port 8081). Flag this with Piyush if
+you go this route, since it's a real code change, not just a config one.
+
+### Step 14 — Point your domain's DNS at this server
 
 Add an A record for `<YOUR_ACTUAL_DOMAIN>` pointing at `103.25.128.136`,
 through whatever DNS provider manages that domain. This needs to happen
 before Step 14 can succeed.
 
-### Step 14 — SSL via Let's Encrypt
+### Step 15 — SSL via Let's Encrypt
 
 ```bash
 sudo apt install -y certbot python3-certbot-nginx
 sudo certbot --nginx -d <YOUR_ACTUAL_DOMAIN>
 ```
 
-### Step 15 — Provision the first Super Admin and Tenant Admin
+### Step 16 — Provision the first Super Admin and Tenant Admin
 
 A real Super Admin panel with genuine TOTP 2FA now exists (see
 `docs/DECISIONS.md` D-29) — this is no longer a CLI-only bootstrap the
@@ -307,13 +387,21 @@ way it was in earlier builds.
 sudo php spark grant:tenant-admin <mobile_number> <tenant_id>
 ```
 
-### Step 16 — Final verification
+### Step 17 — Final verification
 
 Visit `https://<YOUR_ACTUAL_DOMAIN>/` — should show the real marketplace
 landing page (live listings grid, category counts — not a placeholder).
 Visit `/trust-support` — should show the FAQ/legal hub. Try `/register`
 end-to-end with a real phone number. Log in as Super Admin via
 `/admin/login` and confirm the dashboard loads.
+
+**Also confirm the real-time sidecar specifically**: open two browser
+tabs (or two different devices) on the same live auction's listing page,
+place a bid from one, and confirm the price updates on the *other* tab
+within a second or two, with no refresh. If it doesn't update, check
+`sudo systemctl status ebidhub-realtime` and the browser's developer
+console for a WebSocket connection error — the site itself still works
+correctly either way, this only affects the live-update experience.
 
 ---
 

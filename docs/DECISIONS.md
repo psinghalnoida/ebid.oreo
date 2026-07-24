@@ -1940,3 +1940,99 @@ deferred: `dev`→`main` merge (done, see the merge that preceded this
 session), legal document blanks (waiting on real values from the project
 owner), a real security audit (external engagement), and the actual
 i2k2 server deployment itself.
+---
+
+### D-42: Real-time bidding updates via a Node.js WebSocket sidecar
+
+**Decision:** Built genuine real-time push for live bidding — a Node.js
+WebSocket server running as a separate process alongside the PHP
+application, confirmed working end-to-end with a real bid placed through
+the actual application reaching a live WebSocket client within seconds.
+
+**Why a separate process, not something added to PHP directly**: this
+was discussed and confirmed explicitly before building anything.
+CodeIgniter/PHP has no native way to hold a connection open and push
+updates — every request runs, responds, and ends. Three real options
+were laid out: a Node.js sidecar (chosen), a PHP-based approach (Swoole/
+ReactPHP, which needs either an uncommon PHP extension or its own
+long-running process anyway), or a managed third-party service (Pusher/
+Ably — ruled out because, like the payment gateway and SMS provider, it
+needs a real vendor account and API key that can't be created inside
+this sandbox, meaning it couldn't be built and verified the same honest
+way as everything else on this project).
+
+**Architecture**: `realtime/server.js` is a standalone Node.js process
+(the `ws` package) that maintains WebSocket "rooms" keyed by
+`sale_event_id` — a browser only receives updates for the specific
+auction it's viewing, never a global firehose. PHP notifies this process
+via an internal HTTP endpoint (`/broadcast`), protected by a shared
+secret never exposed to browsers, whenever a bid-relevant event actually
+happens. The sidecar deliberately has zero knowledge of BR rules, EMD, or
+any business logic — it's purely a message relay; PHP decides what
+happened and is correct, the sidecar's only job is getting that message
+to browsers instantly.
+
+**Fails silently by design, verified specifically**: `RealtimeBroadcastService`
+uses a 500ms timeout and treats any failure (sidecar down, network
+issue) as a non-event — bidding itself must never be blocked or slowed
+by real-time infrastructure being unavailable. Confirmed this explicitly:
+ran the entire 254-assertion regression suite with the sidecar not
+running at all, and every test still passed — the broadcast calls fail
+quietly and the core transactional logic is completely unaffected.
+
+**Wired into the one shared choke point, not duplicated per format**:
+the `bid_placed` broadcast lives inside `BiddingService::placeBid`
+itself — the core logic already shared by Easy, Express, and Tender — so
+one broadcast call covers all three formats rather than three separate,
+easy-to-drift copies. Dynamic Time extension and increment-halving
+events are broadcast separately from each format's own service
+(`EasyAuctionService`, `ExpressAuctionService`, `TenderBiddingService`),
+since those are genuine state changes distinct from a new bid landing.
+
+**Verified with a real, complete end-to-end test, not a mocked one**:
+started both the Node.js sidecar and the PHP application together,
+registered real accounts, built a real listing through to an active Easy
+Auction sale event, connected a genuine WebSocket client (a separate
+Node.js process, not the same one as the server) watching that specific
+`sale_event_id`, then placed a real bid through the actual HTTP endpoint
+— confirming the client received the broadcast with the *correct* real
+data (amount, standing, bidder party ID) within roughly one second,
+without any refresh.
+
+**A real environment lesson hit and fixed during this build**: background
+processes started in one tool call don't survive into a separate tool
+call in this sandboxed environment — an early attempt to start the
+sidecar and PHP server, then test them in a follow-up call, failed
+because both processes had already been silently killed. Fixed by
+keeping the sidecar, PHP server, and the full test sequence inside one
+self-contained block, the same pattern already used successfully
+throughout the rest of this project's real-HTTP verification work.
+
+**Browser-side JavaScript added to `listing/show.php`**: connects only
+while a sale event is genuinely `active`, updates the visible price
+in-place on a `bid_placed` event, and shows a light status line on
+`dynamic_time_update`. Wrapped in a try/catch and an `onerror` handler
+that does nothing but silently give up — a browser that can't reach the
+sidecar (or is on a network that blocks the WebSocket port) sees the
+page behave exactly as it did before this feature existed, never a
+broken or degraded experience.
+
+**Deployment guide updated with a new Step 13** — installing Node.js,
+running the sidecar as a systemd service (so it survives reboots and
+restarts automatically on crash), and the two options for exposing port
+8081 to browsers (direct, or proxied through Nginx's existing HTTPS
+setup) — with an explicit flag that the Nginx-proxy route requires a
+small code change to the hardcoded port in the browser script, not just
+config, if that path is chosen.
+
+**Honest scope boundary, not silently assumed**: this covers the
+scenario explicitly discussed and confirmed — dozens of simultaneous
+bidders per item, sub-second latency. It has not been load-tested at
+that specific scale (the sandbox environment can't simulate fifty
+concurrent real browser connections); the *mechanism* is proven correct
+end-to-end, but real-world load behavior at the upper end of "dozens"
+should be watched once live, not assumed identical to this single-client
+test.
+
+**Full regression: 254 assertions across all fifteen engines, zero
+failures**, both with and without the sidecar running.

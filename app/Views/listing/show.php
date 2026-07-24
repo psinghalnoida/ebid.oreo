@@ -147,12 +147,13 @@
           <p style="font-size:12px; color:var(--ink-3);">EMD required: ₹<?= number_format((float) $saleEvent['expected_value'] * 0.10, 2) ?> (10% of EV, BR-27)</p>
         <?php endif; ?>
       <?php elseif ($saleEvent['sale_format'] === 'express'): ?>
-        <p style="font-size:32px; font-weight:800; margin:4px 0;">₹<?= number_format((float)($saleEvent['current_price'] ?? $saleEvent['reserve_value']), 2) ?></p>
+        <p id="live-price" style="font-size:32px; font-weight:800; margin:4px 0;">₹<?= number_format((float)($saleEvent['current_price'] ?? $saleEvent['reserve_value']), 2) ?></p>
         <p style="font-size:12px; color:var(--ink-3);">Reserve: ₹<?= number_format((float) $saleEvent['reserve_value'], 2) ?> · EMD required: ₹<?= number_format((float) $saleEvent['reserve_value'] * 0.10, 2) ?></p>
       <?php else: ?>
-        <p style="font-size:32px; font-weight:800; margin:4px 0;">₹<?= number_format((float)($saleEvent['current_price'] ?? $saleEvent['reserve_value']), 2) ?></p>
+        <p id="live-price" style="font-size:32px; font-weight:800; margin:4px 0;">₹<?= number_format((float)($saleEvent['current_price'] ?? $saleEvent['reserve_value']), 2) ?></p>
         <p style="font-size:12px; color:var(--ink-3);">Reserve: ₹<?= number_format((float) $saleEvent['reserve_value'], 2) ?> · EMD required: ₹<?= number_format((float) $saleEvent['reserve_value'] * 0.10, 2) ?></p>
       <?php endif; ?>
+      <p id="live-status" style="font-size:11px; color:var(--ink-3); margin-top:4px;"></p>
 
       <?php if ($saleEvent['status'] === 'pending_approval'): ?>
         <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/approve" style="margin-top:14px;">
@@ -309,6 +310,54 @@
         <?php endif; ?>
       <?php endif; ?>
     </div>
+  <?php endif; ?>
+
+  <?php if ($saleEvent && $saleEvent['status'] === 'active'): ?>
+  <script>
+    // D-42: real-time bidding updates. Connects only while this auction
+    // is genuinely live — if the sidecar is down, this fails silently
+    // and the page just behaves as it always did (manual refresh),
+    // never blocking or breaking anything else on the page.
+    (function () {
+      const saleEventId = <?= json_encode($saleEvent['id']) ?>;
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      // Same host, dedicated port — the sidecar runs alongside the main
+      // app, not behind the same Nginx vhost by default (see the
+      // deployment guide for the reverse-proxy alternative).
+      const wsUrl = wsProtocol + '//' + window.location.hostname + ':8081/ws?saleEventId=' + saleEventId;
+
+      let socket;
+      try {
+        socket = new WebSocket(wsUrl);
+      } catch (e) {
+        return; // browser couldn't even attempt the connection — fail silent
+      }
+
+      socket.onmessage = function (event) {
+        const msg = JSON.parse(event.data);
+        const priceEl = document.getElementById('live-price');
+        const statusEl = document.getElementById('live-status');
+
+        if (msg.event === 'bid_placed' && priceEl) {
+          priceEl.textContent = '₹' + Number(msg.data.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+          priceEl.style.transition = 'none';
+          priceEl.style.color = 'var(--emerald)';
+          setTimeout(() => { priceEl.style.transition = 'color 1s'; priceEl.style.color = ''; }, 50);
+          if (statusEl) statusEl.textContent = 'Live — new bid just now';
+        }
+
+        if (msg.event === 'dynamic_time_update' && statusEl) {
+          statusEl.textContent = 'Live — the auction just extended or its increment changed. Refresh for exact details.';
+        }
+      };
+
+      socket.onerror = function () {
+        // Sidecar unreachable — page still works normally, just without
+        // live updates. No error shown to the user; refreshing the page
+        // always shows the correct, current state regardless.
+      };
+    })();
+  </script>
   <?php endif; ?>
 </main>
 <?= $this->endSection() ?>

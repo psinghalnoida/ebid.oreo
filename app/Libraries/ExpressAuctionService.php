@@ -125,11 +125,13 @@ class ExpressAuctionService
         $triggerThreshold = $currentEnd->modify("-{$triggerMinutes} minutes");
 
         if (new \DateTimeImmutable() >= $triggerThreshold) {
-            $this->saleEventModel->update($saleEventId, [
+            $updates = [
                 'bid_increment_amount' => round((float) $saleEvent['bid_increment_amount'] / 2, 2),
                 'increment_halved_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
-            ]);
+            ];
+            $this->saleEventModel->update($saleEventId, $updates);
+            (new RealtimeBroadcastService())->broadcast($saleEventId, 'dynamic_time_update', $updates);
         }
     }
 

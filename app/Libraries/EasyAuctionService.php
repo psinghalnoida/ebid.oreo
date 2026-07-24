@@ -84,6 +84,14 @@ class EasyAuctionService
         }
 
         $this->saleEventModel->update($saleEventId, $updates);
+
+        // D-42: notify watchers the clock/increment just changed —
+        // separate event from bid_placed, since this can happen without
+        // a new bid record (though in practice it always follows one).
+        if (!empty($updates)) {
+            (new RealtimeBroadcastService())->broadcast($saleEventId, 'dynamic_time_update', $updates);
+        }
+
         return $this->saleEventModel->find($saleEventId);
     }
 }
