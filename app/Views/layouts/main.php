@@ -44,6 +44,7 @@
     <nav class="tabs">
       <a href="/" class="<?= (uri_string() === '' || uri_string() === '/') ? 'active' : '' ?>">Marketplace</a>
       <a href="/browse" class="<?= (strpos(uri_string(), 'browse') !== false) ? 'active' : '' ?>">Browse</a>
+      <a href="/tenants" class="<?= (uri_string() === 'tenants') ? 'active' : '' ?>">Sell</a>
       <a href="/trust-support" class="<?= (strpos(uri_string(), 'trust-support') !== false) ? 'active' : '' ?>">Trust & Support</a>
     </nav>
     <div>

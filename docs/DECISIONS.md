@@ -1868,3 +1868,75 @@ edit an existing tenant (only creation exists), no TOTP recovery path,
 no tenant discovery/directory page for browsing shops before applying to
 sell — plus everything already listed as deliberately deferred (KYC,
 full media spec, payment gateway/SMS).
+---
+
+### D-41: TOTP recovery, dual-channel mPIN reset, and the final two site-map items
+
+**Decision:** Closed the last three items from `docs/SITE_MAP.md`, plus
+the account-recovery discussion that preceded this build.
+
+**TOTP recovery — CLI-based, as agreed after discussion.** Explored and
+ruled out relying on Google/Microsoft Authenticator's own cloud sync —
+correctly identified as entirely outside this platform's visibility or
+control (the server only ever sees a 6-digit code, never which app or
+sync state produced it). Also discussed and scoped down a richer
+email+mobile+secret-question design once it became clear this only
+applies to Super Admin (1-2 people), not the general user base — the
+richer design would have been disproportionate to the actual risk being
+solved. Landed on `php spark reset-totp <mobile>`, matching this
+project's established pattern for sensitive bootstrap actions
+(`grant:super-admin`, `grant:tenant-admin`). Verified: genuinely clears
+`totp_secret`/`totp_enabled_at` in the database (not just a UI message),
+and correctly refuses to act on any party who isn't actually a Super
+Admin.
+
+**Dual-channel mPIN reset — email + mobile together, per the project
+owner's explicit request.** Scope confirmed during discussion: this is
+specifically for the project owner's own account (hardcoded default
+email `psinghalnoida@gmail.com`), not a general feature for every user.
+`php spark set-recovery-email <mobile> [email]` sets it, matching the
+same CLI-bootstrap pattern. Once set, mPIN reset requires **both** a
+mobile OTP and an email OTP, submitted together — verified specifically
+that the mobile code alone is correctly rejected with an explicit "both
+required together" message, not silently accepted. Accounts with no
+recovery email keep the exact original mobile-only behavior — verified
+unchanged.
+
+**Two real bugs found and fixed while building this — both from
+assumptions about the existing schema that turned out wrong:**
+1. `otp_verification.purpose` is a strict Postgres ENUM, not free text —
+   the new `mpin_reset_email` value caused a genuine 500 error on the
+   very first real test. Same class of fix as D-27's `party_role_type`
+   enum extension — additive migration, not a rebuild.
+2. `otp_verification.mobile_number` was `VARCHAR(13)`, sized exactly for
+   `+91XXXXXXXXXX` phone numbers — too narrow for an email address.
+   Widened via migration rather than building a separate table, since
+   the column's actual role is "whatever channel identifier this OTP was
+   sent to," which email addresses fit the same conceptual role as.
+
+**Email sending itself is honestly dev-stubbed**, same pattern as SMS
+throughout this entire project — the OTP is shown on-screen rather than
+actually emailed, clearly flagged in code comments, pending a real
+SMTP/transactional email service connected post-deployment.
+
+**Tenant view/edit for Super Admin** — was create-only since D-29;
+now a real detail/edit page exists (`/admin/tenants/{id}`), gated behind
+the same `superAdmin` filter as tenant creation. Deliberately did not
+make `tenant_class`/`subdomain` editable through this form — changing
+either affects existing listings and links in ways that need a
+deliberate decision, not a quick form field.
+
+**Tenant discovery directory** (`/tenants`) — public, no login required,
+lists every whitelisted tenant with a direct "Apply to Sell" link.
+Closes the gap where a seller previously needed to already know a
+tenant's ID before they could apply. Linked from the header nav ("Sell").
+
+**Full regression: 254 assertions across all fifteen engines, zero
+failures**, verified fresh after both enum/schema fixes.
+
+**This closes every item from `docs/SITE_MAP.md`'s gap list.** Remaining
+work is now entirely the items that were already known and explicitly
+deferred: `dev`→`main` merge (done, see the merge that preceded this
+session), legal document blanks (waiting on real values from the project
+owner), a real security audit (external engagement), and the actual
+i2k2 server deployment itself.

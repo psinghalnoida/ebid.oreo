@@ -43,4 +43,37 @@ class TenantController extends BaseController
 
         return redirect()->to('/admin')->with('error', "Tenant \"{$tenant['name']}\" whitelisted successfully.");
     }
+
+    // Was missing entirely — Super Admin could only create tenants, not
+    // view or correct one afterward.
+    public function view(string $tenantId)
+    {
+        $tenant = $this->tenantModel->find($tenantId);
+        if (!$tenant) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+        return view('admin/tenant_view', ['title' => 'Tenant — eBid Hub', 'tenant' => $tenant]);
+    }
+
+    public function editSubmit(string $tenantId)
+    {
+        $tenant = $this->tenantModel->find($tenantId);
+        if (!$tenant) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $this->tenantModel->update($tenantId, [
+            'name' => $this->request->getPost('name') ?: $tenant['name'],
+            'buyer_fee_percent' => $this->request->getPost('buyer_fee_percent') ?: $tenant['buyer_fee_percent'],
+        ]);
+        return redirect()->to("/admin/tenants/{$tenantId}")->with('error', 'Tenant updated.');
+    }
+
+    // Was missing entirely — a seller had no way to discover which
+    // tenants exist without already knowing a tenant ID.
+    public function directory()
+    {
+        $tenants = $this->tenantModel->orderBy('name', 'ASC')->findAll();
+        return view('tenants_directory', ['title' => 'Browse Tenants — eBid Hub', 'tenants' => $tenants]);
+    }
 }

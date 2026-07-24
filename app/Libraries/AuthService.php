@@ -77,6 +77,46 @@ class AuthService
         return true;
     }
 
+    // Dual-channel mPIN reset — email side. Deliberately separate from
+    // requestOtp() rather than reusing it with a bypassed validation
+    // check, since mixing "this must be a valid Indian mobile number"
+    // and "this must be an email" into one method invites exactly the
+    // kind of silent-wrong-validation bug this project has hit before.
+    // Same dev-stub caveat as requestOtp — real email sending isn't
+    // connected yet, this returns the plain OTP for on-screen display.
+    public function requestEmailOtp(string $email): string
+    {
+        $otp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $expiresAt = (new \DateTimeImmutable())->modify('+' . self::OTP_EXPIRY_MINUTES . ' minutes');
+
+        $this->otpModel->createOtp(
+            Uuid::v4(), $email, password_hash($otp, PASSWORD_BCRYPT),
+            'mpin_reset_email', $expiresAt->format('Y-m-d H:i:s')
+        );
+
+        return $otp;
+    }
+
+    public function verifyEmailOtp(string $email, string $submittedOtp): bool
+    {
+        $record = $this->otpModel->findActive($email, 'mpin_reset_email');
+        if (!$record) {
+            return false;
+        }
+        if (new \DateTimeImmutable() > new \DateTimeImmutable($record['expires_at'])) {
+            return false;
+        }
+        if ((int) $record['attempts'] >= self::OTP_MAX_ATTEMPTS) {
+            return false;
+        }
+        if (!password_verify($submittedOtp, $record['otp_hash'])) {
+            $this->otpModel->incrementAttempts($record['id']);
+            return false;
+        }
+        $this->otpModel->markVerified($record['id']);
+        return true;
+    }
+
     // BR-02: registration — call only after verifyOtp() succeeded for
     // purpose='registration'. Creates the party if one doesn't already exist.
     public function completeRegistration(string $mobileNumber, string $entityType = 'individual'): array

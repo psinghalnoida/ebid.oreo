@@ -32,7 +32,7 @@
     </tr>
     <?php foreach ($tenants as $t): ?>
     <tr style="border-top:1px solid var(--line);">
-      <td style="padding:8px 0;"><?= esc($t['name']) ?></td>
+      <td style="padding:8px 0;"><a href="/admin/tenants/<?= esc($t['id']) ?>" style="color:var(--emerald);"><?= esc($t['name']) ?></a></td>
       <td><?= esc($t['tenant_class']) ?></td>
       <td><?= esc($t['subdomain']) ?></td>
       <td><?= esc($t['buyer_fee_percent']) ?>%</td>

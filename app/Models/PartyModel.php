@@ -15,7 +15,7 @@ class PartyModel extends Model
 
     protected $allowedFields = [
         'id', 'mobile_number', 'mobile_verified_at', 'entity_type', 'mpin_hash', 'failed_mpin_attempts',
-        'totp_secret', 'totp_enabled_at', 'archived_at',
+        'totp_secret', 'totp_enabled_at', 'archived_at', 'recovery_email',
         'full_name', 'pan', 'aadhaar_masked', 'date_of_birth', 'occupation',
         'org_cin', 'org_gstin', 'org_pan', 'org_msme_registration', 'org_udyam_number',
         'org_company_type', 'org_industry', 'org_annual_turnover', 'org_employee_count',

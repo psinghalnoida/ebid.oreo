@@ -110,6 +110,19 @@ class AuthController extends BaseController
             session()->set('pending_mpin_reset_party_id', $result['partyId']);
             session()->set('pending_mpin_reset_mobile', $mobile);
             $otp = $this->auth->requestOtp($mobile, 'mpin_reset');
+
+            $party = (new \App\Models\PartyModel())->find($result['partyId']);
+            if (!empty($party['recovery_email'])) {
+                // Dual-channel: both mobile and email OTP required
+                // together, per the account owner's explicit request.
+                session()->set('pending_mpin_reset_email', $party['recovery_email']);
+                $emailOtp = $this->auth->requestEmailOtp($party['recovery_email']);
+                return view('auth/reset_verify_otp', [
+                    'title' => 'Verify OTP to Reset mPIN — eBid Hub', 'mobile' => $mobile, 'devOtp' => $otp,
+                    'devEmailOtp' => $emailOtp, 'email' => $party['recovery_email'],
+                ]);
+            }
+
             return view('auth/reset_verify_otp', [
                 'title' => 'Verify OTP to Reset mPIN — eBid Hub', 'mobile' => $mobile, 'devOtp' => $otp,
             ]);
@@ -125,6 +138,7 @@ class AuthController extends BaseController
     {
         $mobile = session()->get('pending_mpin_reset_mobile');
         $partyId = session()->get('pending_mpin_reset_party_id');
+        $email = session()->get('pending_mpin_reset_email');
         $otp = trim($this->request->getPost('otp'));
 
         if (!$mobile || !$partyId) {
@@ -133,14 +147,27 @@ class AuthController extends BaseController
 
         if (!$this->auth->verifyOtp($mobile, 'mpin_reset', $otp)) {
             return view('auth/reset_verify_otp', [
-                'title' => 'Verify OTP to Reset mPIN — eBid Hub', 'mobile' => $mobile,
-                'error' => 'Incorrect or expired OTP. Please try again.',
+                'title' => 'Verify OTP to Reset mPIN — eBid Hub', 'mobile' => $mobile, 'email' => $email,
+                'error' => 'Incorrect or expired mobile OTP. Please try again.',
             ]);
+        }
+
+        // Dual-channel: both codes required together — the mobile code
+        // alone is not sufficient once a recovery email is on file.
+        if ($email) {
+            $emailOtp = trim($this->request->getPost('email_otp'));
+            if (!$this->auth->verifyEmailOtp($email, $emailOtp)) {
+                return view('auth/reset_verify_otp', [
+                    'title' => 'Verify OTP to Reset mPIN — eBid Hub', 'mobile' => $mobile, 'email' => $email,
+                    'error' => 'Mobile OTP correct, but the email OTP was incorrect or expired. Both are required together.',
+                ]);
+            }
         }
 
         session()->set('pending_mpin_setup_party_id', $partyId);
         session()->remove('pending_mpin_reset_mobile');
         session()->remove('pending_mpin_reset_party_id');
+        session()->remove('pending_mpin_reset_email');
 
         return view('auth/set_mpin', ['title' => 'Set a new mPIN — eBid Hub']);
     }

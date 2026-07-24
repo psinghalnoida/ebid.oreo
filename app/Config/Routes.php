@@ -103,6 +103,9 @@ $routes->get('/my-activity', 'MyActivityController::myActivity');
 $routes->get('/profile', 'MyActivityController::profile');
 $routes->post('/listings/(:segment)/edit', 'ListingController::editSubmit/$1');
 $routes->post('/sale-events/(:segment)/emergency-stop', 'SaleEventController::emergencyStop/$1', ['filter' => 'tenantAdmin:saleEvent']);
+$routes->get('/admin/tenants/(:segment)', 'TenantController::view/$1', ['filter' => 'superAdmin']);
+$routes->post('/admin/tenants/(:segment)/edit', 'TenantController::editSubmit/$1', ['filter' => 'superAdmin']);
+$routes->get('/tenants', 'TenantController::directory');
 
 // Legal documents (BR-01/D-15: reviewed structural content, pending fields flagged)
 $routes->get('/terms', 'LegalController::termsOfUsage');
