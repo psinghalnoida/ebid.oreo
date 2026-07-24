@@ -1798,3 +1798,73 @@ list of what's built-but-unreachable (the listing edit and emergency-stop
 logic specifically) versus what's genuinely not built yet versus what's
 deliberately deferred. Referenced from both `README.md` and `SETUP.md`
 going forward instead of duplicating page-by-page detail in three places.
+---
+
+### D-40: Navigation gaps closed — logout, My Listings, My Activity, Profile, Browse, and wiring up two fully-built-but-unreachable features
+
+**Decision:** Closed every navigation gap flagged in `docs/SITE_MAP.md`
+(D-38's audit). All six items verified over real HTTP, not just
+service-layer tests, since navigation is inherently a UI/routing concern.
+
+**A worse gap than initially documented, found while fixing it**: the
+header nav didn't just lack session-awareness — it always showed "Log
+In" with a literal `href="#"` regardless of actual login state, and the
+same for "List an Asset". Neither link ever worked. Fixed to be genuinely
+session-aware: shows My Listings/My Activity/Profile/Log Out when
+authenticated, Log In when not — verified both states over real HTTP.
+
+**What's now real:**
+1. **Logout** (`AuthController::logout`) — was missing entirely; only
+   Super Admin had a logout route.
+2. **My Listings** — a seller's own listings, real query, joined to
+   whatever sale event each has.
+3. **My Activity** — bids, offers, and settlements/purchases, all
+   genuinely queried per logged-in party.
+4. **Profile** — mobile number, both rating scores, KYC status, straight
+   from the party record.
+5. **Browse** — a real all-listings page with category and format
+   filters, distinct from the landing page's 12-item preview.
+6. **Listing edit and Emergency Stop** — `ListingLifecycleService::
+   requestMaterialEdit`/`emergencyStop` were fully built and tested
+   since early in the project but had zero HTTP route. Both now wired,
+   both re-verified with real access control (a stranger blocked from
+   editing someone else's listing with 403; a seller — not Tenant Admin —
+   blocked from emergency-stopping with 403; a missing reason correctly
+   rejected rather than silently accepted).
+
+**Real bugs caught during this build, not before:**
+1. **A bug in my own new controller code** — `ListingController::
+   editSubmit` initially accessed `$result['id']` on
+   `requestMaterialEdit`'s return value, but the actual structure is
+   `$result['newListing']['id']` (a nested array, confirmed by reading
+   the service method directly rather than assuming). Caught before
+   testing, by checking the actual return shape first.
+2. **A real, previously-latent query bug surfaced by the new Browse
+   page**: `select('DISTINCT l.category')` — CodeIgniter's query builder
+   auto-escapes each token it identifies as a column, and mis-parsed
+   `DISTINCT` itself as a column identifier, producing `SELECT
+   "DISTINCT" "l"."category"` — a syntax error. Fixed using CI4's proper
+   `distinct()` method instead of embedding the keyword in the select
+   string. The same category of escaping issue as the `true`-literal bug
+   found in D-33's landing page work, now recognized as a recurring
+   pattern with this specific query builder rather than a one-off.
+
+**Verified thoroughly over real HTTP**: session-aware header in both
+states; My Listings/Activity/Profile all showing genuine per-party data;
+Browse working with no filter, a category filter, and a format filter;
+listing edit correctly archiving the original (`archived_at` set,
+`superseded_by_listing_id` pointing at the new record — confirmed the
+`status` column deliberately stays unchanged, since archival is tracked
+via the timestamp field, not a status transition, matching the existing
+pattern elsewhere in the schema) while creating a genuinely updated new
+listing; emergency stop correctly setting `status=cancelled` with the
+real reason stored.
+
+**Full regression: 254 assertions across all fifteen engines, zero
+failures.**
+
+**Site map gaps still remaining, unchanged**: Super Admin cannot view/
+edit an existing tenant (only creation exists), no TOTP recovery path,
+no tenant discovery/directory page for browsing shops before applying to
+sell — plus everything already listed as deliberately deferred (KYC,
+full media spec, payment gateway/SMS).

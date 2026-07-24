@@ -165,4 +165,35 @@ class ListingController extends BaseController
         $this->lifecycle->reject($listingId, $reason);
         return redirect()->to("/listings/{$listingId}");
     }
+
+    // Was fully built and tested (archive-and-recreate, refunds active
+    // bids) but had no HTTP route at all until now.
+    public function editSubmit(string $listingId)
+    {
+        $partyId = session()->get('logged_in_party_id');
+        if (!$partyId) return redirect()->to('/login');
+
+        $listing = $this->listingModel->find($listingId);
+        if (!$listing || $listing['seller_party_id'] !== $partyId) {
+            return service('response')->setStatusCode(403)->setBody('Only the listing\'s seller may edit it.');
+        }
+
+        $newData = [
+            'physical_condition' => $this->request->getPost('physical_condition') ?: $listing['physical_condition'],
+            'category' => $this->request->getPost('category') ?: $listing['category'],
+            'subcategory' => $this->request->getPost('subcategory') ?: $listing['subcategory'],
+            'quantity' => $this->request->getPost('quantity') ?: $listing['quantity'],
+            'quantity_basis' => $listing['quantity_basis'],
+            'seller_party_id' => $partyId,
+            'yard_location_address' => $this->request->getPost('yard_location_address') ?: $listing['yard_location_address'],
+            'yard_location_pin' => $this->request->getPost('yard_location_pin') ?: $listing['yard_location_pin'],
+        ];
+
+        try {
+            $result = $this->lifecycle->requestMaterialEdit($listingId, $newData);
+        } catch (\RuntimeException $e) {
+            return redirect()->to("/listings/{$listingId}")->with('error', $e->getMessage());
+        }
+        return redirect()->to("/listings/{$result['newListing']['id']}")->with('error', 'Listing updated — this is a new listing record (archive-and-recreate per BR-13); any active bids on the old one were withdrawn and EMD released.');
+    }
 }

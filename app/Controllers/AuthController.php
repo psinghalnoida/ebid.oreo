@@ -144,4 +144,11 @@ class AuthController extends BaseController
 
         return view('auth/set_mpin', ['title' => 'Set a new mPIN — eBid Hub']);
     }
+
+    // Was missing entirely — only Super Admin had a logout route.
+    public function logout()
+    {
+        session()->destroy();
+        return redirect()->to('/');
+    }
 }

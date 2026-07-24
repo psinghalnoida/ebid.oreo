@@ -43,11 +43,19 @@
     <div class="brand">eBid<span>Hub</span></div>
     <nav class="tabs">
       <a href="/" class="<?= (uri_string() === '' || uri_string() === '/') ? 'active' : '' ?>">Marketplace</a>
+      <a href="/browse" class="<?= (strpos(uri_string(), 'browse') !== false) ? 'active' : '' ?>">Browse</a>
       <a href="/trust-support" class="<?= (strpos(uri_string(), 'trust-support') !== false) ? 'active' : '' ?>">Trust & Support</a>
     </nav>
     <div>
-      <a href="#" class="btn btn-ghost">Log In</a>
-      <a href="#" class="btn btn-emerald">List an Asset</a>
+      <?php if (session()->get('logged_in_party_id')): ?>
+        <a href="/my-listings" class="btn btn-ghost">My Listings</a>
+        <a href="/my-activity" class="btn btn-ghost">My Activity</a>
+        <a href="/profile" class="btn btn-ghost">Profile</a>
+        <a href="/logout" class="btn btn-ghost">Log Out</a>
+      <?php else: ?>
+        <a href="/login" class="btn btn-ghost">Log In</a>
+      <?php endif; ?>
+      <a href="/listings/create" class="btn btn-emerald">List an Asset</a>
     </div>
   </div>
 </header>

@@ -156,4 +156,22 @@ class SaleEventController extends BaseController
         $this->lifecycle->freezeAfterGrace($saleEventId);
         return redirect()->to("/listings/{$saleEvent['listing_id']}");
     }
+
+    // Was fully built and tested (BR-14: withdraws all bids, releases all
+    // EMD, mandatory audited reason) but had no HTTP route at all until
+    // now. Access is enforced by the tenantAdmin route filter.
+    public function emergencyStop(string $saleEventId)
+    {
+        $saleEvent = $this->saleEventModel->find($saleEventId);
+        $reason = $this->request->getPost('reason');
+        if (!$reason) {
+            return redirect()->to("/listings/{$saleEvent['listing_id']}")->with('error', 'BR-14: a reason is required to emergency-stop a sale event.');
+        }
+        try {
+            $this->lifecycle->emergencyStop($saleEventId, $reason);
+        } catch (\RuntimeException $e) {
+            return redirect()->to("/listings/{$saleEvent['listing_id']}")->with('error', $e->getMessage());
+        }
+        return redirect()->to("/listings/{$saleEvent['listing_id']}");
+    }
 }

@@ -95,6 +95,15 @@ $routes->post('/sale-events/(:segment)/tender/close-bidding', 'TenderController:
 $routes->post('/tender-reviews/(:segment)/action', 'TenderController::reviewAction/$1');
 $routes->get('/sale-events/(:segment)/tender/report', 'TenderController::auctionReport/$1');
 
+// Navigation gaps closed — logout, My Listings/Activity/Profile, browse
+$routes->get('/logout', 'AuthController::logout');
+$routes->get('/browse', 'Home::browse');
+$routes->get('/my-listings', 'MyActivityController::myListings');
+$routes->get('/my-activity', 'MyActivityController::myActivity');
+$routes->get('/profile', 'MyActivityController::profile');
+$routes->post('/listings/(:segment)/edit', 'ListingController::editSubmit/$1');
+$routes->post('/sale-events/(:segment)/emergency-stop', 'SaleEventController::emergencyStop/$1', ['filter' => 'tenantAdmin:saleEvent']);
+
 // Legal documents (BR-01/D-15: reviewed structural content, pending fields flagged)
 $routes->get('/terms', 'LegalController::termsOfUsage');
 $routes->get('/privacy', 'LegalController::privacyPolicy');
