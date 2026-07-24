@@ -85,13 +85,19 @@ class TestEasySchedule extends BaseCommand
             'listing_id' => $listing2['id'], 'tenant_id' => $tenant['id'], 'ern' => 'TEST-EASYSCHED-002',
             'sale_format' => 'easy', 'reserve_value' => 30000, 'status' => 'active',
             'scheduled_start_at' => date('Y-m-d H:i:s', strtotime('-10 minutes')),
-            // Deadline in 5 minutes — well within the default 10-minute trigger window
-            'scheduled_end_at' => date('Y-m-d H:i:s', strtotime('+5 minutes')),
+            // D-34 correction: deadline must be within the EXTENSION amount
+            // (2 min) for the corrected bid_time+extension math to actually
+            // produce a later end time — 5 minutes out (the original D-32
+            // test's value) is inside the WIDER 10-min increment-halving
+            // window but does NOT need clock extension, since bid_time+2min
+            // would still be earlier than a 5-min-out deadline.
+            'scheduled_end_at' => date('Y-m-d H:i:s', strtotime('+1 minute')),
             'dynamic_time_trigger_minutes' => 10, 'dynamic_time_extension_minutes' => 2,
         ]);
         $emdHoldModel->createHold($saleEvent2['id'], $buyer['id'], 'van', 3000);
 
         $before = $saleEventModel->find($saleEvent2['id']);
+        $expectedNewEnd = (new \DateTimeImmutable())->modify('+2 minutes'); // bid time (now) + extension — the corrected formula
         $easy->placeBid($saleEvent2['id'], $buyer['id'], 32000);
         $after = $saleEventModel->find($saleEvent2['id']);
 
@@ -99,11 +105,10 @@ class TestEasySchedule extends BaseCommand
             new \DateTimeImmutable($after['scheduled_end_at']) > new \DateTimeImmutable($before['scheduled_end_at']),
             'A bid within the trigger window genuinely pushed scheduled_end_at later, not left it unchanged'
         );
-        $expectedNewEnd = (new \DateTimeImmutable($before['scheduled_end_at']))->modify('+2 minutes');
         $actualNewEnd = new \DateTimeImmutable($after['scheduled_end_at']);
         $this->assert(
             abs($expectedNewEnd->getTimestamp() - $actualNewEnd->getTimestamp()) < 2,
-            'The extension is exactly the configured 2 minutes, not an arbitrary push'
+            'The extension is (bid time + 2 min), matching the D-34-corrected formula, not (old end + 2 min)'
         );
 
         CLI::write("\n=== A bid NOT near the deadline does NOT trigger an extension ===", 'yellow');

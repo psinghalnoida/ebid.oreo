@@ -77,6 +77,22 @@ class SaleEventController extends BaseController
             }
             $data['scheduled_start_at'] = date('Y-m-d H:i:s', strtotime($startAt));
             $data['scheduled_end_at'] = date('Y-m-d H:i:s', strtotime($endAt));
+
+            // D-34 correction: seller selects 2-5% of Reserve Value as
+            // the bid increment — was missing entirely from the original
+            // D-32 build.
+            $incrementPercent = (float) ($this->request->getPost('increment_percent') ?: 2);
+            if ($incrementPercent < 2 || $incrementPercent > 5) {
+                return redirect()->to("/listings/{$listingId}")->with('error', 'Bid increment must be between 2% and 5% of Reserve Value.');
+            }
+            $data['bid_increment_amount'] = round(((float) $data['reserve_value']) * ($incrementPercent / 100), 2);
+        }
+
+        // D-34 correction: Express gets an automatic 2% increment — was
+        // also missing entirely, plus the 10-minute halving window that
+        // didn't exist for Express at all before.
+        if ($format === 'express') {
+            $data['bid_increment_amount'] = round(((float) $data['reserve_value']) * 0.02, 2);
         }
 
         // BR-12/BR-14: Tender is restricted exclusively to Company Shop

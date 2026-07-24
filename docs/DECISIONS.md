@@ -1601,3 +1601,61 @@ outstanding: a real page for stakeholders to view via their token (the
 token generation/resolution mechanism exists and is tested, but no
 live-auction-state view has been built for it to render yet), and the
 three Easy/Express corrections identified in D-34 (still not yet applied).
+---
+
+### D-37: D-34's three corrections applied to Easy and Express — the D-23/D-34 correction backlog is now fully closed
+
+**Decision:** All three corrections flagged in D-34 (discovered while
+gathering Tender's exact specification) are now applied, verified, and
+consistent with Tender's proven implementation of the same underlying
+mechanics.
+
+**1. Easy Auction's clock-extension math corrected** — was
+`current_end + extension`, now `MAX(current_end, bid_time + extension)`,
+matching Tender's confirmed formula exactly.
+
+**2. Easy Auction now has a real bid increment** — seller selects 2-5%
+of Reserve Value at creation (enforced server-side, a submission outside
+that range is rejected). Halves once in the same shared 10-minute window
+that also governs the clock extension — Easy uses ONE window for both
+behaviors, confirmed distinct from Tender's two-window design.
+
+**3. Express Auction now has a real bid increment** — fixed 2% of
+Reserve Value, calculated automatically, no seller input. Halves once in
+a 10-minute-before-end window that didn't exist for Express at all
+before. Critically, **Express's clock itself was verified to still NOT
+extend** — the fixed 1-hour countdown remains exactly as originally
+designed; only the increment behavior was added. This was specifically
+tested, not assumed: a bid placed inside the halving window was
+confirmed to leave `scheduled_end_at` completely unchanged while still
+correctly halving the increment.
+
+**A real, expected regression caught and properly fixed, not just
+patched around**: applying the corrected clock-extension math broke two
+assertions in the original D-32 test (`test:easyschedule`), because that
+test's own expected values were written against the OLD, buggy formula.
+Traced to two things needing correction in the test itself: (1) the test
+scenario used a 5-minute-out deadline, which was inside the OLD single-
+window model's trigger range but does NOT need clock extension under the
+corrected math (`bid_time + 2min` doesn't exceed a 5-minute-out deadline)
+— fixed by using a 1-minute-out deadline that genuinely triggers
+extension; (2) the expected new-end-time calculation itself still used
+`old_end + extension` instead of `bid_time + extension` — fixed to match
+the corrected formula precisely, not just loosened to pass.
+
+**Full regression: 254 assertions across all fifteen engines, zero
+failures**, in one clean, continuous run from a freshly reset database.
+
+**This closes the correction backlog opened in D-34.** All three items
+identified there are now applied. Combined with D-36, this represents
+Tender's core logic (foundation, bidding, review) plus the retroactive
+fixes to Easy and Express — all now internally consistent with each
+other, using the same `bid_increment_amount`/`increment_halved_at`
+columns and the same corrected extension math across all three formats
+that support it.
+
+**Still remaining, unchanged from D-36**: real HTTP routes/controllers/
+views for all of Tender (D-34/35/36 are service-layer only), and a real
+stakeholder-facing view for the token-based read-only access (the
+generation/resolution mechanism exists and is tested, but nothing renders
+for it to display yet).

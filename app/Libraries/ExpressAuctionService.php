@@ -104,7 +104,33 @@ class ExpressAuctionService
                     : 'The 1-hour Express bidding window has closed'
             );
         }
-        return $this->bidding->placeBid($saleEventId, $bidderPartyId, $amount);
+        $result = $this->bidding->placeBid($saleEventId, $bidderPartyId, $amount);
+        $this->applyIncrementHalvingIfNeeded($saleEventId);
+        return $result;
+    }
+
+    // D-34 correction: Express was missing the increment-halving
+    // requirement entirely — the general engine spec describes this as
+    // applying platform-wide, not just to Easy/Tender. Unlike Easy/Tender,
+    // Express's clock itself never extends (fixed 1-hour window,
+    // confirmed explicitly) — only the increment behavior applies here.
+    public function applyIncrementHalvingIfNeeded(string $saleEventId): void
+    {
+        $saleEvent = $this->saleEventModel->find($saleEventId);
+        if ($saleEvent['increment_halved_at'] !== null || $saleEvent['bid_increment_amount'] === null || $saleEvent['scheduled_end_at'] === null) {
+            return;
+        }
+        $triggerMinutes = (int) ($saleEvent['dynamic_time_trigger_minutes'] ?? 10);
+        $currentEnd = new \DateTimeImmutable($saleEvent['scheduled_end_at']);
+        $triggerThreshold = $currentEnd->modify("-{$triggerMinutes} minutes");
+
+        if (new \DateTimeImmutable() >= $triggerThreshold) {
+            $this->saleEventModel->update($saleEventId, [
+                'bid_increment_amount' => round((float) $saleEvent['bid_increment_amount'] / 2, 2),
+                'increment_halved_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+        }
     }
 
     // ⚠️ DEV-ONLY: forces the countdown to expiry immediately, since a
