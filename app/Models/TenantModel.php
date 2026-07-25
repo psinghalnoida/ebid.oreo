@@ -15,7 +15,7 @@ class TenantModel extends Model
     protected $allowedFields = [
         'id', 'name', 'tenant_class', 'subdomain', 'custom_domain',
         'buyer_fee_percent', 'branding_logo_url', 'branding_primary_color',
-        'terms_url', 'suspended_at', 'updated_at',
+        'terms_url', 'suspended_at', 'updated_at', 'low_bracket_max', 'medium_bracket_max',
     ];
 
     public function createTenant(array $data): array

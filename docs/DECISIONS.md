@@ -2498,3 +2498,113 @@ emergency stops, scheduler runs, and Tender's complete review workflow
 are all covered. What remains is cold-tier archival specifically, which
 is blocked on real Google Cloud credentials — the same category of gap
 as the payment gateway and SMS provider, not a build-effort gap.
+---
+
+### D-50: BR-38 Crawl-Back & Shadow Banning — a major discovery of dormant infrastructure, two severe latent bugs found and fixed, and the first real enforcement built
+
+**Decision:** Built BR-38's actual enforcement — the rating system's
+real consequences below 2★, which had no teeth at all before this
+session.
+
+**A significant discovery made before writing any new schema**: while
+adding the columns this build seemed to need, found that a far more
+complete Crawl-Back/Shadow-Ban schema already existed from very early
+in the project (migration 009) — including an escalation table
+(`CRAWL_BACK_CLEAN_REQUIRED_BY_OFFENCE = [1=>3, 2=>3, 3=>5, 4=>5, 5=>8]`)
+and both entry logic (`maybeTriggerCrawlBack`, called automatically from
+`approveDowngrade`) and exit logic
+(`recordCleanTransactionForCrawlBack`) already written. This directly
+contradicted a design decision already made earlier in this same
+session (flat 3, no escalation) — surfaced explicitly to the project
+owner rather than silently choosing either the old code or the newer
+verbal answer, and the existing escalation table was kept per their
+explicit call. The Shadow Ban threshold constant already sitting in the
+code (1.5★) also turned out to exactly match what was independently
+confirmed with the project owner in this same session — it had been
+sitting there as an unconfirmed placeholder since D-08, now genuinely
+confirmed and the comment updated accordingly.
+
+**What this discovery actually meant**: the schema and the state-machine
+logic (entry, escalation, exit) were real and correct. What was
+completely missing — confirmed by grepping the entire codebase and
+finding zero references outside `RatingService` itself — was any actual
+ENFORCEMENT. `recordCleanTransactionForCrawlBack` was never called from
+anywhere. Nothing checked a party's Crawl-Back status before letting a
+bid or offer through. Shadow Ban's visibility suppression was pure
+database state with no query anywhere respecting it. This is the same
+"schema laid down early, business logic never wired" pattern found
+before with BR-21's `inspector_party_id` (D-44).
+
+**Genuinely new work, not previously scaffolded**: tenant-level value
+brackets (`low_bracket_max`/`medium_bracket_max`, nullable — platform
+default used until a tenant customizes, per the project owner's explicit
+decision), the actual transaction-ceiling resolution
+(`RatingService::getTransactionCeiling`), enforcement wired into both
+buyer-side entry points (`BiddingService::placeBid`,
+`OfferService::submitOffer`) and the seller-side mirror
+(`SaleEventController::createSubmit`, blocking a flush-out-active
+seller from listing above their bracket), Shadow Ban's visibility
+suppression wired into both the Browse page and the marketplace
+landing page (excluding a shadow-banned seller's listings from
+discovery — not an outright block, the listing remains reachable by
+direct link, matching BR-38's "graduated suppression, not a hard block"
+language), and the exit trigger finally connected — every completed
+settlement now genuinely calls `recordCleanTransactionForCrawlBack` for
+both parties.
+
+**Two severe, pre-existing latent bugs found and fixed — not introduced
+this session, but newly exposed by finally calling this dormant code for
+the first time**: the classic Postgres boolean-as-string issue
+(`'f'` is a non-empty PHP string and therefore truthy) was present in
+THREE separate places reading `crawl_back_active_buyer`/
+`crawl_back_active_seller`. The worst of the three, in
+`recordCleanTransactionForCrawlBack`'s completion check, would have —
+the moment this session's settlement-completion wiring went live —
+force-reset every single buyer's and seller's rating to exactly 3.0 on
+their very first completed transaction, regardless of whether they had
+ever actually been in Crawl-Back. Caught immediately by the full
+regression suite before it went anywhere near real data, not discovered
+later. Fixed all three occurrences using the same explicit-cast pattern
+already established elsewhere in this codebase
+(`in_array($value, [true, 't', 1, '1'], true)`).
+
+**Verified with a dedicated test built specifically to prove
+enforcement, not just tracking** (`test:crawlback`) — and two genuine
+bugs in that test itself, found and fixed the same disciplined way as
+the product bugs: (1) tested "can still bid within the bracket"
+immediately after a bid had already pushed the sale event's current
+price above that bracket, making the assertion mathematically
+impossible regardless of BR-38's correctness — fixed by using a fresh
+sale event; (2) passed a *decrease delta* to `initiateDowngrade` where
+an absolute target value was intended, landing a test seller at 1.8★
+instead of the intended 1.2★, so the Shadow Ban check correctly never
+triggered on data that was never actually below the threshold — fixed
+by computing the correct delta from the known 3.0 default.
+
+**Final result: 11 assertions, all passing**, proving the complete real
+cycle — an unrestricted buyer bids freely; a downgrade below 2.0
+triggers Crawl-Back; the SAME buyer is genuinely blocked from a bid
+above the Low bracket; the same buyer CAN still bid within it; three
+clean transactions genuinely restore the rating to exactly 3.0 and lift
+the restriction; a seller below 1.5★ is genuinely marked Shadow Banned
+and their listing genuinely disappears from the Browse query.
+
+**Verified over real HTTP too**: a genuinely restricted buyer, through
+the actual bidding page, receives the exact real block with the correct
+message — not just a passing unit-style test.
+
+**Full regression: 281 assertions across all seventeen engines
+(sixteen existing plus the new `test:crawlback`), zero failures.**
+
+**Two numbers remain explicitly flagged as unconfirmed placeholders**,
+not silently treated as settled: the platform-default Low/Medium bracket
+values (₹50,000 / ₹5,00,000) and the 1★ floor's flat transaction ceiling
+(₹10,000) — neither is specified anywhere in the BR/PR document itself.
+
+**Still outstanding from BR-38's full scope**: seller delisting for
+confirmed fraud specifically (the schema exists — `seller_delisted_at`/
+`seller_delisted_reason` on `party` — but no action triggers it yet,
+deliberately left as a separate, explicit Tenant Admin/Super Admin
+decision rather than automatic at any rating threshold), and the
+standing-deposit formula to raise the 1★ floor (explicitly deferred per
+the project owner's decision this session).

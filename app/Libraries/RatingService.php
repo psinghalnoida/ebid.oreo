@@ -9,8 +9,14 @@ class RatingService
 {
     private const DEFAULT_RATING = 3.0;
     private const CRAWL_BACK_THRESHOLD = 2.0;
-    private const SHADOW_BAN_THRESHOLD = 1.5; // ⚠️ unconfirmed placeholder — see docs/DECISIONS.md D-08
+    private const SHADOW_BAN_THRESHOLD = 1.5; // Confirmed by the project owner (see docs/DECISIONS.md D-50) — was an unconfirmed placeholder since D-08
     private const PLATFORM_FLOOR = 1.0;
+    // ⚠️ Unconfirmed placeholder, same status Shadow Ban's threshold had
+    // until this session — the BR/PR document specifies a "flat
+    // transaction ceiling" exists at the 1★ floor but never states the
+    // actual rupee value. Flagged for the project owner to confirm or
+    // adjust, not silently treated as settled.
+    private const PLATFORM_FLOOR_TRANSACTION_CEILING = 10000.0;
     private const DEPOSIT_OVERRIDE_FLOOR = 50000;
     private const FORCED_NEUTRAL_PATTERN_LIMIT = 5;
 
@@ -53,7 +59,8 @@ class RatingService
 
         $role = $this->roleColumnFor($ratingRole);
         if ($newValue >= self::DEFAULT_RATING) {
-            $isActive = $role === 'buyer' ? $party['crawl_back_active_buyer'] : $party['crawl_back_active_seller'];
+            $rawFlag = $role === 'buyer' ? $party['crawl_back_active_buyer'] : $party['crawl_back_active_seller'];
+            $isActive = in_array($rawFlag, [true, 't', 1, '1'], true);
             if ($isActive) {
                 $this->partyModel->deactivateCrawlBack($partyId, $role);
             }
@@ -122,16 +129,26 @@ class RatingService
 
         if ($newValue <= self::PLATFORM_FLOOR) {
             $this->partyModel->setShadowBanned($partyId, $role, true);
+            (new AuditLogService())->log('rating.shadow_banned', $partyId, [
+                'ratingRole' => $ratingRole, 'newValue' => $newValue, 'reason' => 'platform_floor',
+            ]);
             return;
         }
         if ($newValue < self::SHADOW_BAN_THRESHOLD) {
             $this->partyModel->setShadowBanned($partyId, $role, true);
+            (new AuditLogService())->log('rating.shadow_banned', $partyId, [
+                'ratingRole' => $ratingRole, 'newValue' => $newValue, 'reason' => 'below_threshold',
+            ]);
             return;
         }
         if ($newValue < self::CRAWL_BACK_THRESHOLD) {
             $offenceCount = $this->partyModel->incrementOffenceCount($partyId, $role);
             $cleanRequired = $this->cleanRequiredFor($offenceCount);
             $this->partyModel->activateCrawlBack($partyId, $role, $cleanRequired);
+            (new AuditLogService())->log('rating.crawl_back_activated', $partyId, [
+                'ratingRole' => $ratingRole, 'newValue' => $newValue,
+                'offenceCount' => $offenceCount, 'cleanTransactionsRequired' => $cleanRequired,
+            ]);
         }
     }
 
@@ -141,7 +158,8 @@ class RatingService
         $role = $this->roleColumnFor($ratingRole);
         $party = $this->partyModel->recordCleanTransaction($partyId, $role);
 
-        $isActive = $role === 'buyer' ? $party['crawl_back_active_buyer'] : $party['crawl_back_active_seller'];
+        $rawFlag = $role === 'buyer' ? $party['crawl_back_active_buyer'] : $party['crawl_back_active_seller'];
+        $isActive = in_array($rawFlag, [true, 't', 1, '1'], true);
         $required = $role === 'buyer' ? $party['crawl_back_clean_required_buyer'] : $party['crawl_back_clean_required_seller'];
         $completed = $role === 'buyer' ? $party['crawl_back_clean_completed_buyer'] : $party['crawl_back_clean_completed_seller'];
 
@@ -152,6 +170,9 @@ class RatingService
                 'party_id' => $partyId, 'rating_role' => $ratingRole, 'event_type' => 'upgrade',
                 'previous_value' => (float) $party[$ratingRole], 'new_value' => self::DEFAULT_RATING,
                 'reason' => 'BR-38 Crawl-Back completed — restored to 3.0', 'status' => 'applied',
+            ]);
+            (new AuditLogService())->log('rating.crawl_back_completed', $partyId, [
+                'ratingRole' => $ratingRole, 'cleanTransactionsCompleted' => $completed, 'restoredTo' => self::DEFAULT_RATING,
             ]);
             return ['crawlBackCompleted' => true, 'restoredTo' => self::DEFAULT_RATING];
         }
@@ -182,6 +203,61 @@ class RatingService
         }
 
         return ['event' => $event, 'strikeCount' => $strikeCount, 'patternTriggered' => false];
+    }
+
+    // BR-38: platform-wide defaults, used whenever a tenant hasn't set
+    // its own brackets — per the project owner's explicit decision (one
+    // default now, tenant-customizable later). These specific rupee
+    // values are NOT specified anywhere in the BR/PR document — a
+    // reasonable placeholder for salvage/surplus values, flagged here
+    // for confirmation rather than treated as settled.
+    private const PLATFORM_DEFAULT_LOW_BRACKET_MAX = 50000.0;
+    private const PLATFORM_DEFAULT_MEDIUM_BRACKET_MAX = 500000.0;
+
+    public function resolveLowBracketMax(array $tenant): float
+    {
+        return $tenant['low_bracket_max'] !== null
+            ? (float) $tenant['low_bracket_max']
+            : self::PLATFORM_DEFAULT_LOW_BRACKET_MAX;
+    }
+
+    // Returns null if unrestricted, or the exact value ceiling if this
+    // party is currently restricted — the actual ENFORCEMENT this
+    // project was missing: entry/exit tracking existed already, but
+    // nothing checked it before letting a transaction through.
+    public function getTransactionCeiling(string $partyId, string $ratingRole, array $tenant): ?float
+    {
+        $party = $this->requireParty($partyId);
+        $role = $this->roleColumnFor($ratingRole);
+
+        $rating = (float) $party[$ratingRole];
+
+        // The 1★ platform floor is a flat, non-tenant-configurable
+        // ceiling — stricter than even the Low bracket, and applies
+        // regardless of Crawl-Back/flush-out state specifically.
+        // Per the project owner's explicit decision, the standing-
+        // deposit formula that would raise this is deliberately not
+        // built — the floor is fixed until that's revisited.
+        if ($rating <= self::PLATFORM_FLOOR) {
+            return self::PLATFORM_FLOOR_TRANSACTION_CEILING;
+        }
+
+        $rawFlag = $role === 'buyer' ? $party['crawl_back_active_buyer'] : $party['crawl_back_active_seller'];
+        $isRestricted = in_array($rawFlag, [true, 't', 1, '1'], true);
+        if ($isRestricted) {
+            return $this->resolveLowBracketMax($tenant);
+        }
+
+        return null;
+    }
+
+    public function isShadowBanned(string $partyId, string $ratingRole): bool
+    {
+        $party = $this->requireParty($partyId);
+        $role = $this->roleColumnFor($ratingRole);
+        return $role === 'buyer'
+            ? $party['shadow_banned_at_buyer'] !== null
+            : $party['shadow_banned_at_seller'] !== null;
     }
 
     private function requireParty(string $partyId): array

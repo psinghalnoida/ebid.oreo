@@ -130,6 +130,14 @@ class SettlementService
             }
 
             $this->settlementModel->update($settlementId, ['status' => 'completed', 'completed_at' => date('Y-m-d H:i:s')]);
+
+            // BR-38: a completed settlement is a genuine clean
+            // transaction for BOTH parties — the exit path was fully
+            // built (RatingService::recordCleanTransactionForCrawlBack)
+            // but never actually called anywhere until now.
+            $ratingService = new RatingService();
+            $ratingService->recordCleanTransactionForCrawlBack($settlement['buyer_party_id'], 'star_rating');
+            $ratingService->recordCleanTransactionForCrawlBack($settlement['seller_party_id'], 'seller_star_rating');
         }
 
         return $this->settlementModel->find($settlementId);

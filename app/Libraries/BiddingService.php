@@ -36,6 +36,18 @@ class BiddingService
             throw new \RuntimeException($conflict);
         }
 
+        // BR-38: Crawl-Back / platform-floor transaction ceiling — a
+        // restricted buyer may only bid within their permitted value
+        // range. Was fully tracked (entry/exit/escalation) but never
+        // actually enforced anywhere until now.
+        $tenant = (new \App\Models\TenantModel())->find($saleEvent['tenant_id']);
+        $ceiling = (new RatingService())->getTransactionCeiling($bidderPartyId, 'star_rating', $tenant);
+        if ($ceiling !== null && $amount > $ceiling) {
+            throw new \RuntimeException(
+                "BR-38: your account is currently restricted to transactions up to ₹" . number_format($ceiling, 2) . '.'
+            );
+        }
+
         if ($saleEvent['status'] !== 'active') {
             throw new \RuntimeException("Cannot bid on a sale_event with status={$saleEvent['status']}");
         }

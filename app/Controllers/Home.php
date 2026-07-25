@@ -13,8 +13,10 @@ class Home extends BaseController
                       l.id as listing_id, l.category, l.subcategory, l.physical_condition, l.yard_location_pin,
                       lm.file_path as photo_path')
             ->join('listing l', 'l.id = se.listing_id')
+            ->join('party p', 'p.id = l.seller_party_id')
             ->join('listing_media lm', 'lm.listing_id = l.id AND lm.is_primary = true', 'left', false)
             ->whereIn('se.status', ['active', 'grace_period'])
+            ->where('p.shadow_banned_at_seller', null)
             ->orderBy('se.created_at', 'DESC')
             ->limit(12)
             ->get()->getResultArray();
@@ -52,8 +54,14 @@ class Home extends BaseController
                       l.id as listing_id, l.category, l.subcategory, l.physical_condition,
                       lm.file_path as photo_path')
             ->join('listing l', 'l.id = se.listing_id')
+            ->join('party p', 'p.id = l.seller_party_id')
             ->join('listing_media lm', 'lm.listing_id = l.id AND lm.is_primary = true', 'left', false)
-            ->whereIn('se.status', ['active', 'grace_period']);
+            ->whereIn('se.status', ['active', 'grace_period'])
+            // BR-38: Shadow Banning is graduated visibility suppression,
+            // not an outright block — a shadow-banned seller's listing
+            // is simply excluded from discovery/browse; it remains
+            // directly reachable by its own URL, unaffected.
+            ->where('p.shadow_banned_at_seller', null);
 
         if ($category) {
             $query->where('l.category', $category);

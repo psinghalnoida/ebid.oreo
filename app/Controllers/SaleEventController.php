@@ -124,6 +124,20 @@ class SaleEventController extends BaseController
             $data['dynamic_time_extension_minutes'] = 2;
         }
 
+        // BR-38: a seller in flush-out state may only list within their
+        // permitted value range — the mirrored seller-side ladder,
+        // enforced the same way as the buyer-side check.
+        $sellerValue = $data['reserve_value'] ?? $data['expected_value'] ?? null;
+        if ($sellerValue !== null) {
+            $tenant = (new \App\Models\TenantModel())->find($listing['tenant_id']);
+            $ceiling = (new \App\Libraries\RatingService())->getTransactionCeiling($sellerId, 'seller_star_rating', $tenant);
+            if ($ceiling !== null && (float) $sellerValue > $ceiling) {
+                return redirect()->to("/listings/{$listingId}")->with('error',
+                    "BR-38: your seller account is currently restricted to listings valued up to ₹" . number_format($ceiling, 2) . '.'
+                );
+            }
+        }
+
         $saleEvent = $this->saleEventModel->createSaleEvent($data);
 
         // BR-13: listing moves to active once a sale system is attached
