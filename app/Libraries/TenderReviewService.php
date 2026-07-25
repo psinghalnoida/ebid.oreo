@@ -45,7 +45,12 @@ class TenderReviewService
             throw new \RuntimeException('No bids were placed — nothing to declare a provisional winner from.');
         }
 
-        return $this->reviewModel->createReview($saleEventId, $currentHigh['id'], $currentHigh['bidder_party_id'], 1);
+        $review = $this->reviewModel->createReview($saleEventId, $currentHigh['id'], $currentHigh['bidder_party_id'], 1);
+        (new \App\Libraries\AuditLogService())->log('tender.bidding_closed', $sellerId, [
+            'saleEventId' => $saleEventId, 'provisionalWinnerPartyId' => $currentHigh['bidder_party_id'],
+            'amount' => (float) $currentHigh['amount'],
+        ]);
+        return $review;
     }
 
     public function grantExtension(string $reviewId, string $tenantAdminId, string $reason): array
@@ -59,6 +64,9 @@ class TenderReviewService
         $this->reviewModel->update($reviewId, [
             'status' => 'extension_granted', 'extension_reason' => $reason,
             'extension_granted_by_party_id' => $tenantAdminId, 'extension_granted_at' => date('Y-m-d H:i:s'),
+        ]);
+        (new \App\Libraries\AuditLogService())->log('tender.extension_granted', $tenantAdminId, [
+            'reviewId' => $reviewId, 'saleEventId' => $review['sale_event_id'], 'reason' => $reason,
         ]);
         return $this->reviewModel->find($reviewId);
     }
@@ -74,6 +82,10 @@ class TenderReviewService
         $this->reviewModel->update($reviewId, [
             'status' => 'rejected', 'rejection_reason' => $reason,
             'rejected_by_party_id' => $tenantAdminId, 'rejected_at' => date('Y-m-d H:i:s'),
+        ]);
+        (new \App\Libraries\AuditLogService())->log('tender.result_rejected', $tenantAdminId, [
+            'reviewId' => $reviewId, 'saleEventId' => $review['sale_event_id'],
+            'rejectedPartyId' => $review['party_id'], 'roundNumber' => $review['round_number'], 'reason' => $reason,
         ]);
 
         $rejectedHold = $this->emdHoldModel->findBySaleEventAndParty($review['sale_event_id'], $review['party_id']);
@@ -99,6 +111,9 @@ class TenderReviewService
 
         if (!$nextBid) {
             $this->saleEventModel->markClosed($review['sale_event_id'], 'cycle_ended_unsold');
+            (new \App\Libraries\AuditLogService())->log('tender.cycle_ended_unsold', $tenantAdminId, [
+                'saleEventId' => $review['sale_event_id'], 'roundsExhausted' => count($priorRounds),
+            ]);
             return $this->reviewModel->find($reviewId);
         }
 
@@ -122,6 +137,11 @@ class TenderReviewService
 
         $this->saleEventModel->markClosed($review['sale_event_id'], 'closed_sold');
         $this->saleEventModel->updateCurrentPrice($review['sale_event_id'], (float) $bid['amount'], $review['party_id']);
+
+        (new \App\Libraries\AuditLogService())->log('tender.winner_confirmed', $tenantAdminId, [
+            'reviewId' => $reviewId, 'saleEventId' => $review['sale_event_id'],
+            'winnerPartyId' => $review['party_id'], 'finalPrice' => (float) $bid['amount'],
+        ]);
 
         (new SettlementService())->createForSaleEvent($review['sale_event_id'], $review['party_id'], (float) $bid['amount']);
 

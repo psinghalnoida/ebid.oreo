@@ -36,7 +36,9 @@ merge needs to happen first — check with Piyush.
 ## Start here
 
 - **`SETUP.md`** — local development setup, what's built and what isn't,
-  and the exact convention new models must follow.
+  and the exact conventions every new model AND every new state-changing
+  feature must follow — including audit logging (BR-05), which is a
+  standing requirement for new development, not a one-time completed task.
 - **`docs/DECISIONS.md`** — every architectural and technical decision
   made on this project, with its reasoning, in chronological order (D-01
   through the present). If you're wondering *why* something was built a
@@ -44,6 +46,9 @@ merge needs to happen first — check with Piyush.
 - **`docs/SITE_MAP.md`** — every real, working page in the application,
   organized by who can access it, plus an honest list of what's not yet
   reachable even where the underlying logic exists.
+- **`docs/BR_PR_AUDIT.md`** — a full cross-reference of every business
+  rule and process workflow against what's actually built, with what
+  remains prioritized.
 - **The deployment guide below** — for putting this on the actual i2k2
   server.
 

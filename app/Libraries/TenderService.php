@@ -60,7 +60,13 @@ class TenderService
         }
 
         $source = $this->interestModel->hasRegisteredInterest($saleEventId, $partyId) ? 'interest' : 'direct';
-        return $this->eligibilityModel->grantEligibility($saleEventId, $partyId, $source, $sellerId);
+        $result = $this->eligibilityModel->grantEligibility($saleEventId, $partyId, $source, $sellerId);
+
+        (new AuditLogService())->log('tender.eligibility_granted', $sellerId, [
+            'saleEventId' => $saleEventId, 'grantedToPartyId' => $partyId, 'source' => $source,
+        ]);
+
+        return $result;
     }
 
     public function isEligible(string $saleEventId, string $partyId): bool
@@ -75,11 +81,15 @@ class TenderService
         if ($listing['seller_party_id'] !== $sellerId) {
             throw new \RuntimeException('Only the listing\'s seller may publish Tender documents.');
         }
-        return $this->documentModel->createDocument([
+        $result = $this->documentModel->createDocument([
             'sale_event_id' => $saleEventId, 'uploaded_by_party_id' => $sellerId,
             'document_type' => $documentType, 'title' => $title,
             'file_path' => $filePath, 'description_text' => $descriptionText,
         ]);
+        (new AuditLogService())->log('tender.document_published', $sellerId, [
+            'saleEventId' => $saleEventId, 'documentType' => $documentType, 'title' => $title,
+        ]);
+        return $result;
     }
 
     public function getDocuments(string $saleEventId): array
@@ -90,7 +100,15 @@ class TenderService
     public function generateStakeholderLink(string $saleEventId, string $creatorPartyId, ?string $label = null): array
     {
         $this->requireTenderEvent($saleEventId);
-        return $this->tokenModel->createToken($saleEventId, $creatorPartyId, $label);
+        $token = $this->tokenModel->createToken($saleEventId, $creatorPartyId, $label);
+        // BR-05: the token VALUE itself is deliberately excluded from the
+        // payload — the audit log records that access was granted and by
+        // whom, not a reusable credential that would let anyone reading
+        // the log itself gain the same access being audited.
+        (new AuditLogService())->log('tender.stakeholder_link_generated', $creatorPartyId, [
+            'saleEventId' => $saleEventId, 'label' => $label,
+        ]);
+        return $token;
     }
 
     public function resolveStakeholderToken(string $token): array
@@ -123,6 +141,11 @@ class TenderService
         if (!$existing) {
             $emdHoldModel->createHold($saleEventId, $partyId, 'manual_offline', (float) $entry['amount']);
         }
+
+        (new AuditLogService())->log('emd.held', $loggedByPartyId, [
+            'saleEventId' => $saleEventId, 'forPartyId' => $partyId, 'amount' => (float) $entry['amount'],
+            'channel' => 'manual_offline', 'locationNote' => $locationNote, 'noEmdReason' => $noEmdReason,
+        ]);
 
         return $entry;
     }

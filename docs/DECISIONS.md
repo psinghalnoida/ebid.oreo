@@ -2437,3 +2437,64 @@ lifecycle, emergency stops, and every automatic scheduler run.
 steps specifically (distinct from the review/forfeiture/release paths
 already covered), and cold-tier archival (blocked on real Google Cloud
 credentials, same category as the payment gateway).
+---
+
+### D-49: Audit trail wiring completed — Tender's full workflow, and a permanent convention so this stays part of every future feature
+
+**Decision:** Closed the last genuinely outstanding wiring gap flagged
+after D-48 — Tender's eligibility grants, document publishing,
+stakeholder link generation, manual EMD logging, bidding-close,
+extension, rejection, and confirmation — and, per the project owner's
+explicit request, established a documented, discoverable convention so
+audit logging becomes a standing requirement for all future development,
+not a one-off completed task that quietly stops being followed.
+
+**Seven Tender actions wired**, covering both `TenderService` and
+`TenderReviewService`: `tender.eligibility_granted`,
+`tender.document_published`, `tender.stakeholder_link_generated`,
+`emd.held` (the manual/offline EMD entry itself, distinct from
+BiddingService's van-collected path), `tender.bidding_closed`,
+`tender.extension_granted`, and — filling a real gap where only the
+*resulting* EMD release was logged, not the ruling decision itself —
+`tender.result_rejected`, `tender.cycle_ended_unsold`, and
+`tender.winner_confirmed`.
+
+**A genuine security-conscious decision made while wiring the
+stakeholder link**: deliberately excluded the token's actual value from
+the audit payload. Logging "a stakeholder link was generated, by whom,
+with what label" is correct; logging the token string itself would turn
+the audit log into a live credential store — anyone with Log Reader
+access could extract working access tokens, defeating the point of
+having a separately-scoped, no-login stakeholder view in the first
+place.
+
+**Verified against the same standard set by D-46's hard lesson**: ran
+the full Tender-specific test suites (`tenderfoundation`, `tenderbidding`,
+`tenderreview`) immediately followed by `test:auditlog` in one continuous
+pass — confirming the chain, now carrying every new Tender event type
+alongside everything from D-45 through D-48, still verifies as genuinely
+clean. 270 assertions across all sixteen engines, zero failures.
+
+**The second, equally important half of this session**: added a
+permanent, first-class convention section to `SETUP.md`, matching the
+weight and visibility of the existing UUID-generation convention (the
+one other "every new piece of code must follow this" rule already
+established on this project). Defines the four categories that require
+audit logging (financial events, authority decisions, access grants,
+irreversible state transitions), the standard code pattern, and — most
+importantly — the three specific mistakes this project actually made
+and had to fix, named explicitly so they don't get quietly repeated:
+missing actor identity in the call chain (found three separate times),
+never logging secret/credential values in a payload, and the real need
+to test against a realistic multi-source chain rather than an isolated
+test. `README.md`'s "Start here" section now points to this explicitly,
+and `docs/BR_PR_AUDIT.md` is added to that same list for discoverability.
+
+**This closes out the audit trail as a completed body of work for this
+phase** — authentication, bidding, listing decisions, settlements,
+disputes (including appeals), admin actions, the full EMD lifecycle
+across every sale format including Tender's manual/offline path,
+emergency stops, scheduler runs, and Tender's complete review workflow
+are all covered. What remains is cold-tier archival specifically, which
+is blocked on real Google Cloud credentials — the same category of gap
+as the payment gateway and SMS provider, not a build-effort gap.

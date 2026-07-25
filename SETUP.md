@@ -97,6 +97,68 @@ caused real failures during testing. Every model's create method instead:
 Follow this pattern for any new table/model — see any existing Model's
 `create*()` method for a working example.
 
+## Important convention for any NEW feature you build — audit logging (BR-05)
+
+This is not optional polish; it's a standing requirement, the same
+weight as the UUID convention above. Every state-changing action that
+falls into one of these four categories **must** call `AuditLogService`
+before returning — decide this at design time, not as an afterthought
+once the feature already works:
+
+1. **Financial events** — anything that creates, releases, forfeits, or
+   adjusts a real sum of money (EMD, fees, settlement amounts).
+2. **Authority decisions** — anything only a Tenant Admin or Super Admin
+   can do (approve/reject a listing, rule on a dispute, grant a role,
+   suspend a seller).
+3. **Access grants** — anything that gives a party a capability they
+   didn't have before (Tender eligibility, a stakeholder link, a role).
+4. **Irreversible or high-consequence state transitions** — emergency
+   stop, a listing's material edit (archive-and-recreate), a settlement
+   completing.
+
+If a new action doesn't clearly fall into one of these four, it
+probably doesn't need logging — routine reads, page views, and browsing
+don't belong in the audit trail. When genuinely unsure, log it; a
+false positive here is far cheaper than a missing record later.
+
+**The standard pattern** — this is the whole cost of doing it right:
+
+```php
+(new \App\Libraries\AuditLogService())->log(
+    'category.specific_action',   // e.g. 'emd.held', 'listing.approved', 'dispute.ruled'
+    $actorPartyId,                 // who did this — null ONLY for genuinely system-triggered events (the scheduler)
+    ['relevant' => 'context'],     // whatever a future investigator would actually need to see
+);
+```
+
+Three things that have each caused a real bug when skipped, found the
+hard way — check all three before considering a new integration done:
+
+- **Does the calling method actually have the real actor's identity
+  available to it, or is it silently missing?** This exact gap was
+  found and fixed three separate times (D-47's listing approve/reject,
+  D-48's offer acceptance and emergency stop) — a method that "obviously"
+  should know who's calling it sometimes doesn't, because nobody thought
+  to pass it through. Check the actual call chain, don't assume.
+- **Never put a secret, token, or credential value in the payload.**
+  The audit log itself is a real target — logging the stakeholder token
+  string alongside "a link was generated" would turn the log into the
+  very credential it's supposed to be auditing access to (see
+  `TenderService::generateStakeholderLink` for the pattern: log that
+  access was granted and by whom, never the token itself).
+- **Test against a realistic, multi-source chain, not just your own
+  isolated new test.** `verifyChainIntegrity()` walks the *entire*
+  table — D-46 found two genuine bugs (a timestamp round-trip issue, a
+  JSONB reformatting issue) that were completely invisible in an
+  isolated 3-record test and only surfaced once real application data
+  from other features accumulated in the same table. Run the full
+  `test:auditlog` suite after the full regression, not in isolation,
+  before considering new wiring verified.
+
+`docs/DECISIONS.md` entries D-45 through D-49 are the full worked
+history of this — read them if a new case doesn't obviously fit the
+checklist above.
+
 - **`app/Controllers/ListingController.php`, `SaleEventController.php`,
   `BidController.php` + `app/Views/listing/*`** — the Easy Auction flow,
   real browser-clickable pages: create a listing, submit/approve, attach
