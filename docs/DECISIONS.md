@@ -2324,3 +2324,47 @@ release/forfeit events, listing approval/rejection, Tender's full
 workflow, scheduled-job actions, and most Tenant Admin actions remain
 unwired. This session's batch specifically targeted the highest-value
 transactional and authority actions, not exhaustive coverage.
+---
+
+### D-47: Audit trail widened further — listing approval/rejection and both EMD forfeiture paths
+
+**Decision:** Continued widening `AuditLogService` wiring from D-46's
+transactional core: listing approval/rejection, and both distinct
+forfeiture paths — the system-triggered cascade default (`CascadeService`)
+and the human-decided dispute-ordered forfeiture (`DisputeService`),
+logged as genuinely distinct event types rather than conflated into one.
+
+**A real gap found before writing any audit code**: `ListingLifecycleService::
+approve()`/`reject()` didn't accept an actor party ID at all — and the
+controller wasn't even fetching the logged-in session's party ID to pass
+in, despite that being trivially available and used everywhere else in
+this codebase. Fixed by adding the parameter as optional (default
+`null`, preserving backward compatibility with the one existing test
+caller that doesn't pass one) and threading the real session actor
+through from the controller.
+
+**Verified the actor-threading fix genuinely works, not just that it
+compiles**: over real HTTP, registered a real Tenant Admin, had them
+approve a real listing through the actual page, then confirmed via a SQL
+join that the resulting audit entry names their genuine mobile number —
+not null, not a placeholder.
+
+**EMD forfeiture logged with real financial detail, not just "it
+happened"**: both events record the actual amount and its full
+Tenant/SaaS/Seller allocation breakdown (matching BR-34's split), and
+the cascade-triggered path additionally records whether it was a
+full-cascade failure. These are the highest-stakes financial events this
+platform produces — a bidder genuinely losing real money — and are
+logged accordingly.
+
+**Full regression re-run at each step, matching the discipline
+established by D-46's hard-won lesson**: this session's changes further
+grew the realistic, multi-source audit chain (now also including listing
+approvals and both forfeiture types from real test execution) and it
+continues to verify as genuinely clean — 270 assertions across all
+sixteen engines, zero failures, in one continuous pass.
+
+**Wiring still outstanding, same honest scope as D-45/D-46**: EMD hold
+creation/pledge/release (as opposed to forfeiture specifically), Tender's
+full workflow beyond what D-46 already covered, scheduled-job actions,
+and most remaining Tenant Admin actions.

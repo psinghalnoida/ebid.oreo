@@ -120,6 +120,18 @@ class CascadeService
             return null;
         }
         $allocation = EmdService::calculateForfeitureAllocation((float) $hold['amount'], $tenantFeePercent, 0.5, $isFullCascadeFailure);
-        return $this->emdHoldModel->markForfeited($hold['id'], $allocation['tenantAmount'], $allocation['saasAmount'], $allocation['sellerAmount']);
+        $result = $this->emdHoldModel->markForfeited($hold['id'], $allocation['tenantAmount'], $allocation['saasAmount'], $allocation['sellerAmount']);
+
+        // BR-05: EMD forfeiture is real money genuinely lost by the
+        // defaulting bidder — the highest-stakes financial event this
+        // platform produces, always logged. actor is null: forfeiture is
+        // system-triggered by a cascade default, not a human decision.
+        (new \App\Libraries\AuditLogService())->log('emd.forfeited', $partyId, [
+            'saleEventId' => $saleEventId, 'amount' => (float) $hold['amount'],
+            'tenantAmount' => $allocation['tenantAmount'], 'saasAmount' => $allocation['saasAmount'],
+            'sellerAmount' => $allocation['sellerAmount'], 'fullCascadeFailure' => $isFullCascadeFailure,
+        ]);
+
+        return $result;
     }
 }

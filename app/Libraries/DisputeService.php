@@ -163,6 +163,9 @@ class DisputeService
                     (float) $hold['amount'], (float) $tenant['buyer_fee_percent'], 0.5, false
                 );
                 $this->emdHoldModel->markForfeited($hold['id'], $allocation['tenantAmount'], $allocation['saasAmount'], $allocation['sellerAmount']);
+                (new AuditLogService())->log('emd.forfeited_by_dispute_ruling', $rulerPartyId, [
+                    'disputeId' => $dispute['id'], 'targetPartyId' => $target, 'amount' => (float) $hold['amount'],
+                ]);
             }
         } elseif ($outcome === 'rating_consequence') {
             $target = $atFaultPartyId ?? $dispute['respondent_party_id'];

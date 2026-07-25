@@ -180,14 +180,14 @@ class ListingController extends BaseController
     // listing's tenant.
     public function approve(string $listingId)
     {
-        $this->lifecycle->approve($listingId);
+        $this->lifecycle->approve($listingId, session()->get('logged_in_party_id'));
         return redirect()->to("/listings/{$listingId}");
     }
 
     public function reject(string $listingId)
     {
         $reason = $this->request->getPost('reason') ?: 'insufficient photos';
-        $this->lifecycle->reject($listingId, $reason);
+        $this->lifecycle->reject($listingId, $reason, session()->get('logged_in_party_id'));
         return redirect()->to("/listings/{$listingId}");
     }
 

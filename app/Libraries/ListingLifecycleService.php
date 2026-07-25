@@ -43,24 +43,28 @@ class ListingLifecycleService
     }
 
     // BR-13: pending_approval -> upcoming
-    public function approve(string $listingId): array
+    public function approve(string $listingId, ?string $actorPartyId = null): array
     {
         $listing = $this->listingModel->findActiveById($listingId);
         if (!$listing || $listing['status'] !== 'pending_approval') {
             throw new \RuntimeException('Listing must be pending_approval to approve');
         }
-        return $this->listingModel->transitionStatus($listingId, 'upcoming');
+        $result = $this->listingModel->transitionStatus($listingId, 'upcoming');
+        (new \App\Libraries\AuditLogService())->log('listing.approved', $actorPartyId, ['listingId' => $listingId]);
+        return $result;
     }
 
     // BR-13: every rejection requires a closed-list reason, logged.
     // Rejected listings return to inventory so the seller can revise and resubmit.
-    public function reject(string $listingId, string $reason): array
+    public function reject(string $listingId, string $reason, ?string $actorPartyId = null): array
     {
         $listing = $this->listingModel->findActiveById($listingId);
         if (!$listing || $listing['status'] !== 'pending_approval') {
             throw new \RuntimeException('Listing must be pending_approval to reject');
         }
-        return $this->listingModel->transitionStatus($listingId, 'inventory', $reason);
+        $result = $this->listingModel->transitionStatus($listingId, 'inventory', $reason);
+        (new \App\Libraries\AuditLogService())->log('listing.rejected', $actorPartyId, ['listingId' => $listingId, 'reason' => $reason]);
+        return $result;
     }
 
     // BR-13: material edit on an ACTIVE listing — archive-and-recreate.
