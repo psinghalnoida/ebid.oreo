@@ -122,6 +122,19 @@ class BiddingService
             'bidderPartyId' => $finalBid['bidder_party_id'],
         ]);
 
+        // BR-48: the Live Ticker tracks each buyer's OWN active bids
+        // and standing — every affected bidder (the new bid, plus
+        // anyone whose standing just shifted as a result) gets notified
+        // on their individual buyer-room, not just the shared
+        // sale_event room a listing page watches.
+        $broadcaster = new RealtimeBroadcastService();
+        $affectedBidders = $this->bidModel->findRankedBids($saleEventId, 3);
+        foreach ($affectedBidders as $bid) {
+            $broadcaster->broadcastToBuyer($bid['bidder_party_id'], 'ticker_bid_update', [
+                'saleEventId' => $saleEventId, 'amount' => (float) $bid['amount'], 'standing' => $bid['standing'],
+            ]);
+        }
+
         // BR-05: every transactional action is logged — a bid changes
         // real money exposure (EMD held) and the state of a live sale.
         (new AuditLogService())->log('bid.placed', $bidderPartyId, [

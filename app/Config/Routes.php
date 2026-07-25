@@ -107,6 +107,9 @@ $routes->get('/admin/audit-log', 'AuditLogController::index', ['filter' => 'supe
 $routes->get('/admin/audit-log/verify', 'AuditLogController::verifyIntegrity', ['filter' => 'superAdmin']);
 $routes->get('/admin/delist-seller', 'SellerDelistingController::form', ['filter' => 'superAdmin']);
 $routes->post('/admin/delist-seller', 'SellerDelistingController::submit', ['filter' => 'superAdmin']);
+$routes->get('/preferences', 'PreferencesController::form');
+$routes->post('/preferences', 'PreferencesController::submit');
+$routes->get('/ticker-feed', 'LiveTickerController::feed');
 $routes->get('/admin/tenants/(:segment)', 'TenantController::view/$1', ['filter' => 'superAdmin']);
 $routes->post('/admin/tenants/(:segment)/edit', 'TenantController::editSubmit/$1', ['filter' => 'superAdmin']);
 $routes->get('/tenants', 'TenantController::directory');

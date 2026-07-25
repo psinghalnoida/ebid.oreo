@@ -1,4 +1,5 @@
-// eBid Hub — Real-time WebSocket sidecar (D-42)
+// eBid Hub — Real-time WebSocket sidecar (D-42, extended D-52 for the
+// Live Ticker / BR-48)
 //
 // This is a genuinely separate, long-running process from the PHP
 // application — CodeIgniter/PHP has no native way to hold a connection
@@ -8,16 +9,20 @@
 // Architecture:
 //   Browser <--WebSocket--> this server <--internal HTTP--> PHP app
 //
-// PHP calls the internal /broadcast endpoint (protected by a shared
-// secret, never exposed publicly) whenever a bid-relevant event happens
-// — a bid placed, Dynamic Time extending the clock, the increment
-// halving, a cascade completing. This server then pushes that event to
-// every browser currently watching that specific sale_event.
+// Two genuinely distinct room namespaces:
+//   - "sale_event:<uuid>" — a listing page watching ONE specific
+//     auction (D-42's original model, unchanged).
+//   - "buyer:<uuid>" — a buyer's Live Ticker, watching potentially MANY
+//     auctions at once (their own active bids, plus CLV matches).
+//     A single persistent connection per buyer, not one connection per
+//     auction they happen to care about — the proper long-term fix
+//     rather than the browser opening N separate sockets.
 //
-// Deliberately does NOT touch the database directly — it has no
-// knowledge of BR rules, EMD, or anything else. It's purely a message
-// relay: PHP decides what happened and is correct, this server just
-// gets that message to browsers instantly.
+// PHP calls /broadcast (existing, sale-event-scoped) whenever a
+// bid-relevant event happens on a specific auction, and separately
+// calls /broadcast-to-buyer (new) whenever that same event is relevant
+// to a specific buyer's ticker — PHP decides who cares and why; this
+// server is purely a relay, same discipline as D-42.
 
 const http = require('http');
 const { WebSocketServer } = require('ws');
@@ -25,27 +30,27 @@ const { WebSocketServer } = require('ws');
 const WS_PORT = process.env.EBIDHUB_WS_PORT || 8081;
 const BROADCAST_SECRET = process.env.EBIDHUB_BROADCAST_SECRET || 'dev-only-change-in-production';
 
-const rooms = new Map();
+const saleEventRooms = new Map();
+const buyerRooms = new Map();
 
-function joinRoom(saleEventId, ws) {
-    if (!rooms.has(saleEventId)) {
-        rooms.set(saleEventId, new Set());
+function joinRoom(roomMap, roomKey, ws, wsPropertyName) {
+    if (!roomMap.has(roomKey)) {
+        roomMap.set(roomKey, new Set());
     }
-    rooms.get(saleEventId).add(ws);
-    ws._saleEventId = saleEventId;
+    roomMap.get(roomKey).add(ws);
+    ws[wsPropertyName] = roomKey;
 }
 
-function leaveRoom(ws) {
-    const saleEventId = ws._saleEventId;
-    if (!saleEventId || !rooms.has(saleEventId)) return;
-    rooms.get(saleEventId).delete(ws);
-    if (rooms.get(saleEventId).size === 0) {
-        rooms.delete(saleEventId);
+function leaveRoom(roomMap, roomKey, ws) {
+    if (!roomKey || !roomMap.has(roomKey)) return;
+    roomMap.get(roomKey).delete(ws);
+    if (roomMap.get(roomKey).size === 0) {
+        roomMap.delete(roomKey);
     }
 }
 
-function broadcastToRoom(saleEventId, payload) {
-    const room = rooms.get(saleEventId);
+function broadcastToRoom(roomMap, roomKey, payload) {
+    const room = roomMap.get(roomKey);
     if (!room) return 0;
     const message = JSON.stringify(payload);
     let sent = 0;
@@ -58,8 +63,26 @@ function broadcastToRoom(saleEventId, payload) {
     return sent;
 }
 
+function handleBroadcastRequest(body, roomMap, keyField) {
+    const parsed = JSON.parse(body);
+    if (parsed.secret !== BROADCAST_SECRET) {
+        return { status: 403, body: { error: 'invalid secret' } };
+    }
+    if (!parsed[keyField] || !parsed.event) {
+        return { status: 400, body: { error: `${keyField} and event are required` } };
+    }
+
+    const sentCount = broadcastToRoom(roomMap, parsed[keyField], {
+        event: parsed.event,
+        data: parsed.data || {},
+        timestamp: new Date().toISOString(),
+    });
+
+    return { status: 200, body: { ok: true, delivered: sentCount } };
+}
+
 const httpServer = http.createServer((req, res) => {
-    if (req.method !== 'POST' || req.url !== '/broadcast') {
+    if (req.method !== 'POST' || (req.url !== '/broadcast' && req.url !== '/broadcast-to-buyer')) {
         res.writeHead(404);
         res.end();
         return;
@@ -69,26 +92,11 @@ const httpServer = http.createServer((req, res) => {
     req.on('data', (chunk) => { body += chunk; });
     req.on('end', () => {
         try {
-            const parsed = JSON.parse(body);
-            if (parsed.secret !== BROADCAST_SECRET) {
-                res.writeHead(403);
-                res.end(JSON.stringify({ error: 'invalid secret' }));
-                return;
-            }
-            if (!parsed.saleEventId || !parsed.event) {
-                res.writeHead(400);
-                res.end(JSON.stringify({ error: 'saleEventId and event are required' }));
-                return;
-            }
-
-            const sentCount = broadcastToRoom(parsed.saleEventId, {
-                event: parsed.event,
-                data: parsed.data || {},
-                timestamp: new Date().toISOString(),
-            });
-
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ ok: true, delivered: sentCount }));
+            const result = req.url === '/broadcast'
+                ? handleBroadcastRequest(body, saleEventRooms, 'saleEventId')
+                : handleBroadcastRequest(body, buyerRooms, 'buyerId');
+            res.writeHead(result.status, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(result.body));
         } catch (err) {
             res.writeHead(400);
             res.end(JSON.stringify({ error: 'invalid JSON body' }));
@@ -101,17 +109,29 @@ const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 wss.on('connection', (ws, req) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const saleEventId = url.searchParams.get('saleEventId');
+    const buyerId = url.searchParams.get('buyerId');
 
-    if (!saleEventId) {
-        ws.close(1008, 'saleEventId query parameter is required');
+    if (!saleEventId && !buyerId) {
+        ws.close(1008, 'saleEventId or buyerId query parameter is required');
         return;
     }
 
-    joinRoom(saleEventId, ws);
-    ws.send(JSON.stringify({ event: 'connected', data: { saleEventId } }));
+    if (saleEventId) {
+        joinRoom(saleEventRooms, saleEventId, ws, '_saleEventId');
+    }
+    if (buyerId) {
+        joinRoom(buyerRooms, buyerId, ws, '_buyerId');
+    }
+    ws.send(JSON.stringify({ event: 'connected', data: { saleEventId, buyerId } }));
 
-    ws.on('close', () => leaveRoom(ws));
-    ws.on('error', () => leaveRoom(ws));
+    ws.on('close', () => {
+        leaveRoom(saleEventRooms, ws._saleEventId, ws);
+        leaveRoom(buyerRooms, ws._buyerId, ws);
+    });
+    ws.on('error', () => {
+        leaveRoom(saleEventRooms, ws._saleEventId, ws);
+        leaveRoom(buyerRooms, ws._buyerId, ws);
+    });
 });
 
 httpServer.listen(WS_PORT, () => {

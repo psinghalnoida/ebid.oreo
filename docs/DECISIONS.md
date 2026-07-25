@@ -2667,3 +2667,89 @@ floor, and now delisting for confirmed fraud — every piece of BR-38's
 described scope is built, wired, and verified. The two placeholder
 numbers flagged in D-50 (bracket defaults, floor ceiling) remain
 explicitly unconfirmed, not silently settled.
+---
+
+### D-52: BR-23 CLV matching and BR-48 Live Ticker — genuine real-time architecture extension, verified end-to-end
+
+**Decision:** Built BR-23's category/location/value buyer preferences,
+and BR-48's Live Ticker on top of it — a persistent, global, real-time
+sidebar, extending D-42's WebSocket sidecar with a genuinely new
+subscription model rather than working around the existing one.
+
+**Four design decisions discussed and confirmed before writing any
+code**, since the BR/PR document left real gaps: (1) the PC/Money Points
+balance panel described in BR-48 depends on a "pre-funding" concept that
+doesn't exist anywhere on this platform (every EMD funding happens
+per-bid, not as a general top-up) — confirmed to skip this panel
+entirely for now rather than build fake data or a bigger unscoped
+pre-funding flow; (2) the ticker's UI placement — confirmed as a genuine
+global fixed sidebar across every page, not a page a buyer navigates to,
+matching BR-48's "continuous... real-time visibility" language; (3) the
+interest-match feed cap, left to judgment — capped at 12; (4) the
+real-time architecture approach — confirmed to build the proper
+multi-auction extension now rather than a simpler polling stand-in.
+
+**Genuine architectural extension to D-42's sidecar, not a workaround**:
+the original model was one room per sale_event (a listing page watching
+one auction). A Live Ticker needs one buyer watching potentially many
+auctions simultaneously — their own active bids, plus CLV matches. Added
+a second, independent room namespace (`buyer:<uuid>`) and a parallel
+`/broadcast-to-buyer` endpoint, verified with the same rigor as D-42's
+original build: a real WebSocket client, a real broadcast trigger,
+confirmed delivery — and confirmed the original sale-event room still
+works unchanged, no regression in D-42's existing behavior.
+
+**BR-23**: `buyer_preference` table (categories, comfort states, budget
+range), stored as plain TEXT rather than JSONB — deliberately following
+D-46's hard lesson (JSONB reformats JSON on storage, breaking anything
+depending on exact fidelity; not needed here specifically, but kept
+consistent with the project's now-established default). A real
+preferences form, and `ClvMatchingService::findMatches()` computing
+actual matching listings — BR-24's rule (matching evaluated strictly on
+Basic Cost, never a shipping-inclusive figure) is naturally satisfied
+since no shipping cost field exists on a listing yet.
+
+**Two real bugs found and fixed during this build, both caught before
+shipping, not after:**
+1. A fragile `str_replace('/broadcast', '/broadcast-to-buyer', ...)`
+   in my own first draft of the buyer-broadcast URL derivation — worked
+   for the default configuration but would break under any different
+   `EBIDHUB_WS_INTERNAL_URL` format. Rewritten to derive a clean base
+   URL once, rather than string-patching a specific expected pattern.
+2. **A genuine design gap in the ticker feed's own query**: the first
+   version only checked the `bid` table, silently missing every Buy-Now
+   commitment — Buy-Now offers live in a completely separate `offer`
+   table, something D-46 and D-48's audit-logging work had already
+   established a pattern around but this new feature initially missed.
+   Found immediately by testing against a real Buy-Now offer and seeing
+   an empty result, rather than assuming a `DISTINCT ON` syntax issue
+   (the first suspicion) — checked the actual data first. Fixed with a
+   proper merge across both tables, keeping only the most recent activity
+   per sale event.
+
+**Verified over real HTTP, the complete pipeline together**: the
+sidecar and PHP running together, a real bid placed through the actual
+bidding endpoint, confirmed via a genuine separate WebSocket client
+that the buyer's own Live Ticker received a live push — correct sale
+event, correct amount, correct H1 standing — confirmed independently a
+second way via the ticker feed's own HTTP endpoint agreeing with the
+WebSocket push.
+
+**BR-38 integration confirmed correct by construction, not just
+assumed**: the ticker feed explicitly checks Shadow Ban status before
+computing interest matches — a Shadow-Banned buyer's own active-bid
+tracking is untouched, only new CLV matches stop populating, matching
+BR-48's explicit language.
+
+**Full regression: 281 assertions across all seventeen engines, zero
+failures**, re-run after every meaningful change per this project's
+established discipline.
+
+**Explicitly out of scope for this pass, not overlooked**: BR-47
+(Related Auctions) and BR-49 (High-Value Disposal Reporting) remain
+unbuilt — adjacent items from the same document section, deliberately
+not bundled into this already-substantial build. The comfort-states
+filter is currently informational only (no state/location field exists
+on a listing beyond the yard PIN code, which doesn't map cleanly to a
+state name) — flagged as a documented gap in the code itself, not a
+silent omission.

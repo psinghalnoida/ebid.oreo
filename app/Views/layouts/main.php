@@ -61,6 +61,85 @@
   </div>
 </header>
 
+<?php if (session()->get('logged_in_party_id')): ?>
+<aside id="live-ticker" style="position:fixed; right:0; top:62px; bottom:0; width:260px; background:#fff; border-left:1px solid var(--line); overflow-y:auto; padding:16px; z-index:50;">
+  <p style="font-size:11px; color:var(--ink-3); text-transform:uppercase; letter-spacing:0.5px; margin:0 0 12px;">Live Ticker</p>
+
+  <div id="ticker-own-bids"></div>
+  <p id="ticker-own-bids-empty" style="font-size:12px; color:var(--ink-3); display:none;">No active bids right now.</p>
+
+  <p style="font-size:11px; color:var(--ink-3); text-transform:uppercase; letter-spacing:0.5px; margin:20px 0 12px;">Sales of Interest</p>
+  <div id="ticker-interest-matches"></div>
+  <p style="font-size:11px; margin-top:16px;"><a href="/preferences" style="color:var(--emerald);">Tune your preferences →</a></p>
+</aside>
+<style>
+  main { margin-right: 260px; }
+  @media (max-width: 900px) { #live-ticker { display: none; } main { margin-right: 0; } }
+  .ticker-item { border-bottom: 1px solid var(--line); padding: 8px 0; font-size: 12px; }
+  .ticker-item .amount { font-weight: 700; }
+  .ticker-item .h1 { color: var(--emerald); }
+</style>
+<script>
+  (function () {
+    const partyId = <?= json_encode(session()->get('logged_in_party_id')) ?>;
+
+    function renderOwnBids(bids) {
+      const container = document.getElementById('ticker-own-bids');
+      const empty = document.getElementById('ticker-own-bids-empty');
+      if (!bids.length) { container.innerHTML = ''; empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
+      container.innerHTML = bids.map(function (b) {
+        const isH1 = b.standing === 'h1';
+        return '<div class="ticker-item"><a href="/listings/' + b.listing_id + '" style="color:inherit; text-decoration:none;">' +
+          '<div>' + b.category + ' <span style="color:var(--ink-3); font-size:10px;">' + b.sale_format.toUpperCase() + '</span></div>' +
+          '<div class="amount">₹' + Number(b.amount).toLocaleString('en-IN') + ' <span class="' + (isH1 ? 'h1' : '') + '">' + b.standing.toUpperCase() + '</span></div>' +
+          '</a></div>';
+      }).join('');
+    }
+
+    function renderInterestMatches(matches) {
+      const container = document.getElementById('ticker-interest-matches');
+      if (!matches.length) { container.innerHTML = '<p style="font-size:12px; color:var(--ink-3);">No matches yet — set your preferences.</p>'; return; }
+      container.innerHTML = matches.map(function (m) {
+        const price = m.current_price || m.reserve_value || m.expected_value;
+        return '<div class="ticker-item"><a href="/listings/' + m.listing_id + '" style="color:inherit; text-decoration:none;">' +
+          '<div>' + m.category + '</div><div class="amount">₹' + Number(price).toLocaleString('en-IN') + '</div></a></div>';
+      }).join('');
+    }
+
+    fetch('/ticker-feed').then(function (r) { return r.json(); }).then(function (data) {
+      renderOwnBids(data.ownBids);
+      renderInterestMatches(data.interestMatches);
+    });
+
+    // BR-48: live updates via the buyer-scoped WebSocket room — a
+    // single persistent connection watching every auction this buyer
+    // cares about, not one connection per auction.
+    if (!partyId) return;
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    let socket;
+    try {
+      socket = new WebSocket(wsProtocol + '//' + window.location.hostname + ':8081/ws?buyerId=' + partyId);
+    } catch (e) { return; }
+
+    socket.onmessage = function (event) {
+      const msg = JSON.parse(event.data);
+      if (msg.event === 'ticker_bid_update') {
+        // Simplest correct refresh: re-fetch the feed rather than
+        // trying to patch individual DOM rows — the ticker is small
+        // enough that this stays cheap, and avoids subtle state bugs
+        // from partial client-side merging.
+        fetch('/ticker-feed').then(function (r) { return r.json(); }).then(function (data) {
+          renderOwnBids(data.ownBids);
+          renderInterestMatches(data.interestMatches);
+        });
+      }
+    };
+    socket.onerror = function () { /* sidecar unreachable — ticker just doesn't update live, page still works */ };
+  })();
+</script>
+<?php endif; ?>
+
 <?= $this->renderSection('content') ?>
 
 <footer>
