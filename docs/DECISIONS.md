@@ -2122,3 +2122,51 @@ the PHP extension install list, a new explicit `ffmpeg` installation
 step, and the critical `post_max_size`/`upload_max_filesize` fix — all
 in Step 3, flagged as critical since skipping it reproduces the exact
 silent-failure behavior found during this session's testing.
+---
+
+### D-44: BR-21 conflict-of-interest fix — the first item from the full BR/PR audit
+
+**Decision:** Fixed the narrow scope found in `docs/BR_PR_AUDIT.md` —
+BR-21 names three distinct bound roles (Surveyor, Yard Inspector,
+Physical Custodian) that must each independently be blocked from
+bidding/offering/pledging on their own listing, but only one field
+(`inspector_party_id`, covering Yard Inspector) was ever checked.
+
+**A bigger discovery made while fixing this**: none of the three roles —
+not even the one that already existed — had ever been captured through
+any real form anywhere in the application. The conflict check itself was
+correctly built and tested (D-29), but it had been checking a field that
+no real user flow could ever actually populate. This entire feature had
+been dormant in real usage since it was first built, only ever set via
+direct database manipulation in tests. Found by tracing every usage of
+`inspector_party_id` across the codebase before writing any new code,
+not assumed.
+
+**What's now real**: `surveyor_party_id` and `custodian_party_id` added
+to `listing` (both optional, matching BR-11's minimal case of binding a
+single inspection authority — a listing is not required to populate all
+three). All three fields are now captured on the actual listing creation
+form, entered by mobile number and resolved to a party ID — consistent
+with the same by-mobile-number pattern already used for Tender
+eligibility. `AuthorizationService::hasConflictOfInterest` now checks
+all three, with a distinct, role-specific message for each.
+
+**Verified precisely, not just "does it block"**: extended the existing
+BR-21 spark test to confirm surveyor and custodian are now genuinely
+blocked (previously they weren't — the test itself proves the fix, not
+just describes it), while re-confirming a genuinely unrelated buyer is
+still NOT blocked, so the fix isn't overly broad. Then verified over real
+HTTP — the first time this feature has ever been exercised outside a
+unit-style test: created a listing through the actual form, bound a
+surveyor by mobile number, confirmed it resolved correctly to a party ID
+in the database, and confirmed that surveyor is genuinely blocked from
+submitting a real Buy-Now offer, with the exact role-specific message
+shown on the actual page.
+
+**Full regression: 256 assertions across all fifteen engines (tier3 grew
+from 12 to 14), zero failures.**
+
+**Source**: this is the first fix to come out of `docs/BR_PR_AUDIT.md`
+(the comprehensive audit completed this session) — logged there as
+priority item #1, now closed. The audit's other findings remain open,
+prioritized in that document.

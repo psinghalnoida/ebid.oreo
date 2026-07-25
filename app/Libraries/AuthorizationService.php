@@ -40,6 +40,12 @@ class AuthorizationService
     // on any listing belonging to their own tenant's storefront. Both
     // checked together since every "commit to buying" entry point
     // (BiddingService, OfferService, ExpressAuctionService) needs both.
+    // BR-21/PR-18: three DISTINCT bound roles — Surveyor, Yard
+    // Inspector, Physical Custodian — potentially three different
+    // people on the same listing, each independently blocked. Was
+    // previously checking only inspector_party_id (Yard Inspector) —
+    // narrower than the actual rule, found and fixed during a full
+    // BR/PR audit (see BR_PR_AUDIT.md).
     public function hasConflictOfInterest(string $partyId, string $listingId): ?string
     {
         $listing = $this->listingModel->findActiveById($listingId);
@@ -47,7 +53,13 @@ class AuthorizationService
             return null;
         }
         if ($listing['inspector_party_id'] === $partyId) {
-            return 'BR-21: the assigned inspector for a listing may not bid, offer, or pledge on it.';
+            return 'BR-21: the assigned Yard Inspector for a listing may not bid, offer, or pledge on it.';
+        }
+        if (!empty($listing['surveyor_party_id']) && $listing['surveyor_party_id'] === $partyId) {
+            return 'BR-21: the assigned Surveyor for a listing may not bid, offer, or pledge on it.';
+        }
+        if (!empty($listing['custodian_party_id']) && $listing['custodian_party_id'] === $partyId) {
+            return 'BR-21: the assigned Physical Custodian for a listing may not bid, offer, or pledge on it.';
         }
         if ($this->isTenantAdminFor($partyId, $listing['tenant_id'])) {
             return 'BR-22: a Tenant Admin may not bid, offer, or pledge on a listing belonging to their own tenant.';

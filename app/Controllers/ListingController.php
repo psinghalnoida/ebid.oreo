@@ -57,6 +57,28 @@ class ListingController extends BaseController
                 ->with('error', 'BR-09: you must be an approved Seller on this specific tenant before listing here.');
         }
 
+        // BR-11/BR-21: bind up to three inspection-authority roles, each
+        // by mobile number (resolved to a party ID) — all optional, per
+        // BR-11's minimal case ("for direct owner listings, the owner's
+        // own contact"). Was never actually captured through any form
+        // until now — found during a full BR/PR audit.
+        $partyModel = new \App\Models\PartyModel();
+        $inspectorPartyId = null;
+        $surveyorPartyId = null;
+        $custodianPartyId = null;
+        if ($mobile = $this->request->getPost('inspector_mobile')) {
+            $party = $partyModel->findByMobile($mobile);
+            $inspectorPartyId = $party['id'] ?? null;
+        }
+        if ($mobile = $this->request->getPost('surveyor_mobile')) {
+            $party = $partyModel->findByMobile($mobile);
+            $surveyorPartyId = $party['id'] ?? null;
+        }
+        if ($mobile = $this->request->getPost('custodian_mobile')) {
+            $party = $partyModel->findByMobile($mobile);
+            $custodianPartyId = $party['id'] ?? null;
+        }
+
         try {
             $listing = $this->listingModel->createListing([
                 'tenant_id' => $tenantId,
@@ -70,6 +92,9 @@ class ListingController extends BaseController
                 'yard_location_address' => $this->request->getPost('yard_location_address'),
                 'yard_location_pin' => $this->request->getPost('yard_location_pin'),
                 'media_tier' => $this->request->getPost('media_tier') ?: 'certified_by_seller',
+                'inspector_party_id' => $inspectorPartyId,
+                'surveyor_party_id' => $surveyorPartyId,
+                'custodian_party_id' => $custodianPartyId,
             ]);
         } catch (\Throwable $e) {
             return view('listing/create', [

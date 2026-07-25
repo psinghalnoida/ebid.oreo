@@ -82,17 +82,21 @@ class TestTier3 extends BaseCommand
         $tenant = $tenantModel->createTenant(['name' => 'Tier3 Test Tenant', 'tenant_class' => 'general', 'subdomain' => 'tier3test']);
         $seller = $partyModel->createParty('+919222801003');
         $inspector = $partyModel->createParty('+919222801004');
+        $surveyor = $partyModel->createParty('+919222801007');
+        $custodian = $partyModel->createParty('+919222801008');
         $listing = $listingModel->createListing([
             'tenant_id' => $tenant['id'], 'seller_party_id' => $seller['id'],
             'physical_condition' => 'Used', 'category' => 'Machinery', 'quantity' => 1,
             'quantity_basis' => 'unit', 'yard_location_address' => 'Test Yard', 'yard_location_pin' => '600017',
-            'inspector_party_id' => $inspector['id'],
+            'inspector_party_id' => $inspector['id'], 'surveyor_party_id' => $surveyor['id'], 'custodian_party_id' => $custodian['id'],
         ]);
         $saleEvent = $saleEventModel->createSaleEvent([
             'listing_id' => $listing['id'], 'tenant_id' => $tenant['id'], 'ern' => 'TEST-TIER3-001',
             'sale_format' => 'easy', 'reserve_value' => 40000, 'status' => 'active',
         ]);
         $emdHoldModel->createHold($saleEvent['id'], $inspector['id'], 'van', 4000);
+        $emdHoldModel->createHold($saleEvent['id'], $surveyor['id'], 'van', 4000);
+        $emdHoldModel->createHold($saleEvent['id'], $custodian['id'], 'van', 4000);
 
         $bidding = new BiddingService();
         $inspectorBlocked = false;
@@ -101,7 +105,23 @@ class TestTier3 extends BaseCommand
         } catch (\RuntimeException $e) {
             $inspectorBlocked = str_contains($e->getMessage(), 'BR-21');
         }
-        $this->assert($inspectorBlocked, 'The listing\'s own assigned inspector is blocked from bidding on it');
+        $this->assert($inspectorBlocked, 'The listing\'s own assigned Yard Inspector is blocked from bidding on it');
+
+        $surveyorBlocked = false;
+        try {
+            $bidding->placeBid($saleEvent['id'], $surveyor['id'], 45000);
+        } catch (\RuntimeException $e) {
+            $surveyorBlocked = str_contains($e->getMessage(), 'BR-21') && str_contains($e->getMessage(), 'Surveyor');
+        }
+        $this->assert($surveyorBlocked, 'The listing\'s own assigned Surveyor is blocked from bidding on it (D-44 fix — was previously unblocked)');
+
+        $custodianBlocked = false;
+        try {
+            $bidding->placeBid($saleEvent['id'], $custodian['id'], 45000);
+        } catch (\RuntimeException $e) {
+            $custodianBlocked = str_contains($e->getMessage(), 'BR-21') && str_contains($e->getMessage(), 'Custodian');
+        }
+        $this->assert($custodianBlocked, 'The listing\'s own assigned Physical Custodian is blocked from bidding on it (D-44 fix — was previously unblocked)');
 
         CLI::write("\n=== BR-22: Tenant Admin cannot bid on their own tenant's listings ===", 'yellow');
         $tenantAdmin = $partyModel->createParty('+919222801005');

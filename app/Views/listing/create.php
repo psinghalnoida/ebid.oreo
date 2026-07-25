@@ -48,6 +48,14 @@
       <option value="verified">Verified — eBid Hub's inspection team photographs it (inspection fee applies)</option>
     </select>
 
+    <p style="font-size:12px; color:var(--ink-3); margin:16px 0 4px;">Inspection Authority (BR-11/BR-21) — optional, by mobile number. Anyone bound here is blocked from bidding/offering on this listing.</p>
+    <input type="text" name="inspector_mobile" placeholder="Yard Inspector mobile (optional)"
+      style="display:block; width:100%; padding:10px; margin:4px 0; border:1px solid var(--line); border-radius:8px; font-size:13px;">
+    <input type="text" name="surveyor_mobile" placeholder="Surveyor mobile (optional)"
+      style="display:block; width:100%; padding:10px; margin:4px 0; border:1px solid var(--line); border-radius:8px; font-size:13px;">
+    <input type="text" name="custodian_mobile" placeholder="Physical Custodian mobile (optional)"
+      style="display:block; width:100%; padding:10px; margin:4px 0 20px; border:1px solid var(--line); border-radius:8px; font-size:13px;">
+
     <button type="submit" class="btn btn-emerald" style="width:100%;">Create Listing</button>
   </form>
 </main>
