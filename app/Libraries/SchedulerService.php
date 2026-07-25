@@ -144,12 +144,26 @@ class SchedulerService
     // Runs everything in one pass — this is what the real cron entry calls.
     public function runAll(): array
     {
-        return [
+        $result = [
             'gracePeriodsProcessed' => $this->processExpiredGracePeriods(),
             'expressBiddingClosed' => $this->processExpiredExpressBidding(),
             'easyAuctionsClosed' => $this->processExpiredEasyAuctions(),
             'staleOffersLapsed' => $this->processStaleOffers(),
             'settlementsFlaggedStalled' => $this->processStalledSettlements(),
         ];
+
+        // BR-05: every scheduler run is a genuine "configuration/state
+        // change" event, even with zero human present — actor is
+        // deliberately null (system-triggered, not a person's decision).
+        // Logged as one summary record per run rather than one entry per
+        // individual sale_event/offer touched, since a busy scheduler run
+        // could otherwise flood the log with dozens of near-identical
+        // entries for what is fundamentally one automatic sweep.
+        $totalActions = array_sum(array_map('count', $result));
+        if ($totalActions > 0) {
+            (new \App\Libraries\AuditLogService())->log('scheduler.run', null, $result);
+        }
+
+        return $result;
     }
 }

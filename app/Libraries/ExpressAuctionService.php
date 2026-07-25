@@ -56,6 +56,9 @@ class ExpressAuctionService
         $existing = $this->emdHoldModel->findBySaleEventAndParty($saleEventId, $buyerPartyId);
         if (!$existing || $existing['status'] !== 'held') {
             $this->emdHoldModel->createHold($saleEventId, $buyerPartyId, 'van', $baseline);
+            (new AuditLogService())->log('emd.held', $buyerPartyId, [
+                'saleEventId' => $saleEventId, 'amount' => $baseline, 'channel' => 'van', 'context' => 'express_pledge',
+            ]);
         }
 
         $pledgeCount = $this->pledgeCount($saleEventId);

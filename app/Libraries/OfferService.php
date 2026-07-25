@@ -83,7 +83,7 @@ class OfferService
     // BR-29: EMD adjustment — top-up owed if the accepted price is above
     // EV, excess refunded if below. Identities unlock (display-layer
     // concern, not enforced here) only once this resolves.
-    public function acceptOffer(string $saleEventId, string $offerId, ?string $reason = null): array
+    public function acceptOffer(string $saleEventId, string $offerId, ?string $reason = null, ?string $actorPartyId = null): array
     {
         $saleEvent = $this->saleEventModel->find($saleEventId);
         $offer = $this->offerModel->find($offerId);
@@ -102,6 +102,11 @@ class OfferService
         $accepted = $this->offerModel->markAccepted($offerId, $isHighest ? null : $reason);
         $this->offerModel->rejectAllOtherSubmitted($saleEventId, $offerId);
 
+        (new \App\Libraries\AuditLogService())->log('offer.accepted', $actorPartyId, [
+            'saleEventId' => $saleEventId, 'offerId' => $offerId, 'amount' => (float) $offer['amount'],
+            'buyerPartyId' => $offer['buyer_party_id'], 'wasHighest' => $isHighest, 'reason' => $reason,
+        ]);
+
         // BR-29: recalculate the winning buyer's EMD against the final price
         $hold = $this->emdHoldModel->findBySaleEventAndParty($saleEventId, $offer['buyer_party_id']);
         if ($hold) {
@@ -110,10 +115,17 @@ class OfferService
         }
 
         // Release EMD for every other buyer whose offer was rejected
+        $releasedCount = 0;
         foreach ($this->emdHoldModel->findAllBySaleEvent($saleEventId) as $otherHold) {
             if ($otherHold['party_id'] !== $offer['buyer_party_id']) {
                 $this->emdHoldModel->markReleased($otherHold['id']);
+                $releasedCount++;
             }
+        }
+        if ($releasedCount > 0) {
+            (new \App\Libraries\AuditLogService())->log('emd.released', $actorPartyId, [
+                'saleEventId' => $saleEventId, 'reason' => 'buy_now_offer_not_accepted', 'holdsReleased' => $releasedCount,
+            ]);
         }
 
         $this->saleEventModel->markClosed($saleEventId, 'closed_sold');

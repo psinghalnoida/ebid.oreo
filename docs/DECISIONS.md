@@ -2368,3 +2368,72 @@ sixteen engines, zero failures, in one continuous pass.
 creation/pledge/release (as opposed to forfeiture specifically), Tender's
 full workflow beyond what D-46 already covered, scheduled-job actions,
 and most remaining Tenant Admin actions.
+---
+
+### D-48: Audit trail wiring — EMD hold creation/release across every format, and scheduled-job runs
+
+**Decision:** Closed the remaining EMD gap flagged after D-47 (forfeiture
+was covered; creation and release were not) across Easy, Buy-Now, and
+Express, plus every genuine release path — Tender rejection, Buy-Now's
+losing-offer bulk release, and emergency stop's bulk release. Also logs
+every automatic scheduler run as one summary event.
+
+**The same actor-threading gap found twice more, both fixed properly,
+not worked around:**
+1. `OfferService::acceptOffer` didn't accept an actor party ID, and the
+   controller — despite already verifying the caller is genuinely the
+   listing's seller (D-22) — never passed that identity through.
+2. `ListingLifecycleService::emergencyStop` had the identical gap.
+
+Both fixed the same way as D-47's listing-approval fix: an optional
+parameter (preserving backward compatibility with every existing test
+caller, all of which use the old signature), threaded from the real
+session actor in the controller. `emergencyStop`'s fix also required
+changing `releaseAllHoldsForSaleEvent` from `void` to returning the
+actual count released, so the audit entry could report a real number
+instead of just "something happened." The material-edit cascade
+(`requestMaterialEdit` → `cancelOpenSaleEventsForListing` →
+`emergencyStop`) now correctly attributes to the listing's own seller,
+since a seller's own edit request — not a Tenant Admin action — is what
+triggers that specific cascade.
+
+**A real test-setup mistake caught before it could look like a product
+bug**: the first real-HTTP verification attempt showed zero `offer.
+accepted`/`emd.released` entries despite the offers apparently having
+gone through. Investigated properly rather than assumed — the sale event
+was still sitting in `grace_period` (BR-14's correctly-enforced 60-minute
+window), so the offer submissions themselves had silently failed with a
+real, correct rejection message. Not a bug in the wiring; a forgotten
+force-freeze step in the test, the same recurring lesson from earlier in
+this project. Redone correctly, and the full real cycle verified: two
+buyers fund EMD, the seller accepts the higher offer through the actual
+page, and the resulting audit trail shows all four events in order —
+both `emd.held` entries, `offer.accepted` naming the real seller, and
+`emd.released` correctly reporting one hold returned with the accurate
+reason.
+
+**Scheduled-job runs logged as one summary record per run, not one entry
+per item touched** — a deliberate choice: a busy scheduler sweep
+processing dozens of expired grace periods and stale offers in one pass
+would otherwise flood the log with near-identical entries for what is
+fundamentally one automatic sweep. `actor_party_id` is `null`, correctly
+representing a genuinely system-triggered event with no human decision
+behind it. Only logs when the run actually did something — an empty
+sweep (the common case, since most scheduler runs find nothing expired)
+doesn't add noise to the trail.
+
+**Full regression: 270 assertions across all sixteen engines, zero
+failures**, re-run at each step per the discipline established by D-46.
+
+**What this closes out**: EMD is now wired at every stage that matters —
+creation (D-48), forfeiture (D-47), and release (D-48) — across every
+sale format that uses the shared EMD mechanism. Combined with D-45
+through D-47, the audit trail now covers: authentication, bidding,
+listing approval/rejection, settlement NOCs, dispute rulings (including
+appeals), admin role grants, seller approval/suspension, the full EMD
+lifecycle, emergency stops, and every automatic scheduler run.
+
+**Still outstanding**: Tender's eligibility-grant and manual-EMD-logging
+steps specifically (distinct from the review/forfeiture/release paths
+already covered), and cold-tier archival (blocked on real Google Cloud
+credentials, same category as the payment gateway).

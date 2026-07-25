@@ -79,6 +79,10 @@ class TenderReviewService
         $rejectedHold = $this->emdHoldModel->findBySaleEventAndParty($review['sale_event_id'], $review['party_id']);
         if ($rejectedHold && $rejectedHold['status'] === 'held') {
             $this->emdHoldModel->markReleased($rejectedHold['id']);
+            (new \App\Libraries\AuditLogService())->log('emd.released', $tenantAdminId, [
+                'saleEventId' => $review['sale_event_id'], 'releasedForPartyId' => $review['party_id'],
+                'amount' => (float) $rejectedHold['amount'], 'reason' => 'tender_result_rejected',
+            ]);
         }
 
         $priorRounds = $this->reviewModel->findAllForSaleEvent($review['sale_event_id']);

@@ -83,7 +83,7 @@ class ListingLifecycleService
 
         // BR-14: any active sale_event on this listing is cancelled;
         // all bids withdrawn, all EMD released — never silently migrated.
-        $this->cancelOpenSaleEventsForListing($listingId, 'BR-13 material edit — listing superseded');
+        $this->cancelOpenSaleEventsForListing($listingId, 'BR-13 material edit — listing superseded', $listing['seller_party_id']);
 
         $result = $this->listingModel->supersede($listingId, $newListingData + [
             'tenant_id' => $listing['tenant_id'],
@@ -100,7 +100,7 @@ class ListingLifecycleService
 
     // BR-14: Tenant Admin/Super Admin emergency stop — any format, any time,
     // mandatory audited reason. Cancels the event, refunds all EMD.
-    public function emergencyStop(string $saleEventId, string $reason): array
+    public function emergencyStop(string $saleEventId, string $reason, ?string $actorPartyId = null): array
     {
         $saleEvent = $this->saleEventModel->find($saleEventId);
         if (!$saleEvent) {
@@ -108,7 +108,11 @@ class ListingLifecycleService
         }
 
         $this->bidModel->withdrawAllForSaleEvent($saleEventId);
-        $this->releaseAllHoldsForSaleEvent($saleEventId);
+        $releasedCount = $this->releaseAllHoldsForSaleEvent($saleEventId);
+
+        (new \App\Libraries\AuditLogService())->log('sale_event.emergency_stopped', $actorPartyId, [
+            'saleEventId' => $saleEventId, 'reason' => $reason, 'holdsReleased' => $releasedCount,
+        ]);
 
         $this->saleEventModel->update($saleEventId, [
             'status' => 'cancelled',
@@ -191,7 +195,7 @@ class ListingLifecycleService
         return $this->saleEventModel->transitionStatus($saleEventId, 'active');
     }
 
-    private function cancelOpenSaleEventsForListing(string $listingId, string $reason): void
+    private function cancelOpenSaleEventsForListing(string $listingId, string $reason, ?string $actorPartyId = null): void
     {
         $db = \Config\Database::connect();
         $openEvents = $db->table('sale_event')
@@ -200,14 +204,17 @@ class ListingLifecycleService
             ->get()->getResultArray();
 
         foreach ($openEvents as $event) {
-            $this->emergencyStop($event['id'], $reason);
+            $this->emergencyStop($event['id'], $reason, $actorPartyId);
         }
     }
 
-    private function releaseAllHoldsForSaleEvent(string $saleEventId): void
+    private function releaseAllHoldsForSaleEvent(string $saleEventId): int
     {
+        $count = 0;
         foreach ($this->emdHoldModel->findAllBySaleEvent($saleEventId) as $hold) {
             $this->emdHoldModel->markReleased($hold['id']);
+            $count++;
         }
+        return $count;
     }
 }

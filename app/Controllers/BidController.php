@@ -48,6 +48,9 @@ class BidController extends BaseController
         $existing = $this->emdHoldModel->findBySaleEventAndParty($saleEventId, $bidderId);
         if (!$existing || $existing['status'] !== 'held') {
             $this->emdHoldModel->createHold($saleEventId, $bidderId, 'van', $baseline);
+            (new \App\Libraries\AuditLogService())->log('emd.held', $bidderId, [
+                'saleEventId' => $saleEventId, 'amount' => $baseline, 'channel' => 'van',
+            ], $this->request->getIPAddress(), (string) $this->request->getUserAgent());
         }
 
         return redirect()->to("/listings/{$saleEvent['listing_id']}");

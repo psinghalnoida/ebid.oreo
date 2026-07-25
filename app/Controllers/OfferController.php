@@ -41,6 +41,9 @@ class OfferController extends BaseController
         $existing = $this->emdHoldModel->findBySaleEventAndParty($saleEventId, $buyerId);
         if (!$existing || $existing['status'] !== 'held') {
             $this->emdHoldModel->createHold($saleEventId, $buyerId, 'van', $baseline);
+            (new \App\Libraries\AuditLogService())->log('emd.held', $buyerId, [
+                'saleEventId' => $saleEventId, 'amount' => $baseline, 'channel' => 'van',
+            ], $this->request->getIPAddress(), (string) $this->request->getUserAgent());
         }
 
         return redirect()->to("/listings/{$saleEvent['listing_id']}");
@@ -109,7 +112,7 @@ class OfferController extends BaseController
         $reason = $this->request->getPost('reason') ?: null;
 
         try {
-            $this->offers->acceptOffer($saleEventId, $offerId, $reason);
+            $this->offers->acceptOffer($saleEventId, $offerId, $reason, $sellerId);
         } catch (\RuntimeException $e) {
             return redirect()->to("/listings/{$listing['id']}")->with('error', $e->getMessage());
         }

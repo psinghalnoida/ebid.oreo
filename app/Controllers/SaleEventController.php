@@ -168,7 +168,7 @@ class SaleEventController extends BaseController
             return redirect()->to("/listings/{$saleEvent['listing_id']}")->with('error', 'BR-14: a reason is required to emergency-stop a sale event.');
         }
         try {
-            $this->lifecycle->emergencyStop($saleEventId, $reason);
+            $this->lifecycle->emergencyStop($saleEventId, $reason, session()->get('logged_in_party_id'));
         } catch (\RuntimeException $e) {
             return redirect()->to("/listings/{$saleEvent['listing_id']}")->with('error', $e->getMessage());
         }
