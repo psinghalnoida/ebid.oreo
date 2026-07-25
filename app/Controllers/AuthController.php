@@ -94,19 +94,29 @@ class AuthController extends BaseController
     {
         $mobile = trim($this->request->getPost('mobile_number'));
         $mpin = trim($this->request->getPost('mpin'));
+        $audit = new \App\Libraries\AuditLogService();
+        $ip = $this->request->getIPAddress();
+        $userAgent = (string) $this->request->getUserAgent();
 
         try {
             $result = $this->auth->authenticateWithMpin($mobile, $mpin);
         } catch (\RuntimeException $e) {
+            // BR-05: failed login attempts are logged too — no actor
+            // party ID exists yet at this point (mobile is unverified/
+            // could be nonexistent), so the mobile number itself goes in
+            // the payload instead.
+            $audit->log('auth.login.failed', null, ['mobile' => $mobile, 'reason' => $e->getMessage()], $ip, $userAgent);
             return view('auth/login', ['title' => 'Log In — eBid Hub', 'error' => $e->getMessage()]);
         }
 
         if ($result['status'] === 'ok') {
             session()->set('logged_in_party_id', $result['party']['id']);
+            $audit->log('auth.login.success', $result['party']['id'], ['mobile' => $mobile], $ip, $userAgent);
             return view('auth/success', ['title' => 'Welcome back — eBid Hub']);
         }
 
         if ($result['status'] === 'otp_required') {
+            $audit->log('auth.login.otp_required', $result['partyId'], ['mobile' => $mobile, 'reason' => 'mpin_lockout_or_reset'], $ip, $userAgent);
             session()->set('pending_mpin_reset_party_id', $result['partyId']);
             session()->set('pending_mpin_reset_mobile', $mobile);
             $otp = $this->auth->requestOtp($mobile, 'mpin_reset');
@@ -127,6 +137,15 @@ class AuthController extends BaseController
                 'title' => 'Verify OTP to Reset mPIN — eBid Hub', 'mobile' => $mobile, 'devOtp' => $otp,
             ]);
         }
+
+        // Falls through here for status='invalid_mpin' — a wrong mPIN
+        // that hasn't yet hit the 3-strike lockout threshold. Missed on
+        // the first pass of wiring this in; caught by actually testing
+        // a real wrong-password attempt over HTTP rather than assuming
+        // the three branches above were exhaustive.
+        $audit->log('auth.login.invalid_mpin', $result['partyId'] ?? null, [
+            'mobile' => $mobile, 'attemptsRemaining' => $result['attemptsRemaining'] ?? null,
+        ], $ip, $userAgent);
 
         return view('auth/login', [
             'title' => 'Log In — eBid Hub',

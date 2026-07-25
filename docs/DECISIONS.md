@@ -2170,3 +2170,89 @@ from 12 to 14), zero failures.**
 (the comprehensive audit completed this session) — logged there as
 priority item #1, now closed. The audit's other findings remain open,
 prioritized in that document.
+---
+
+### D-45: BR-05 audit trail — hash-chained, tamper-evident, genuinely proven against real tampering
+
+**Decision:** Built the hard, novel core of BR-05 — an append-only,
+hash-chained audit trail — from `docs/BR_PR_AUDIT.md`'s top-priority
+item. This is deliberately the foundation-first piece of a larger
+build; full wiring across every application action and cold-tier cloud
+archival remain explicitly outstanding (see below).
+
+**Two independent layers of protection, both genuinely verified, not
+just implemented:**
+
+1. **Database-level lockdown** — `audit_log`'s `REVOKE UPDATE, DELETE,
+   TRUNCATE` from the application's own database role, confirmed via
+   `information_schema.role_table_grants`, not just assumed from the
+   migration's SQL. **A real gap caught in my own first draft**: I
+   initially revoked only UPDATE and DELETE — TRUNCATE achieves the same
+   devastating effect (wiping the entire table) and was still granted,
+   found only by actually querying the grant table rather than trusting
+   the REVOKE statement I'd written covered everything. Fixed, and
+   re-verified from a completely fresh migration run, not just patched
+   in the sandbox.
+
+2. **Hash chaining** — each record's hash covers its own content plus
+   the previous record's hash, so altering any single record breaks
+   every subsequent link. **Verified against a genuine attack, not a
+   theoretical description**: deliberately corrupted a real record by
+   connecting as the `postgres` superuser directly — bypassing the
+   application and its database-role restrictions entirely, exactly the
+   threat model BR-05 describes — then confirmed `verifyChainIntegrity()`
+   correctly detected the break and pinpointed the *exact* tampered
+   record's sequence number, not just "something is wrong somewhere."
+
+**Concurrency correctness, also verified, not assumed**: a Postgres
+advisory lock serializes writes, so two near-simultaneous log calls
+can't both read the same "previous hash" and fork the chain. Confirmed
+with 10 rapid sequential writes all chaining correctly with no gaps or
+forks.
+
+**A real gap found and fixed while wiring the first actual integration
+point (login events)**: `AuthService::authenticateWithMpin` has a third
+return path — `status: 'invalid_mpin'` for a wrong password that hasn't
+yet hit the 3-strike lockout — that I initially missed entirely, only
+handling the thrown-exception and two other status cases. Found by
+actually testing a real wrong-password attempt over HTTP and checking
+the database, not by assuming the three branches I'd written were
+exhaustive. The user-facing behavior was always correct (a working
+fallback error message already existed); only the *audit logging* for
+this specific, common case was the new gap. Fixed and re-verified.
+
+**Log Reader built and access-controlled**, per BR-05's "exposed
+exclusively to the Super Admin": a real page listing recent entries with
+event-type/actor filters, plus a genuine, callable integrity-check page
+— not just a described property, an actual button that re-walks the
+whole chain on demand. Verified over real HTTP: a genuine Super Admin
+(real TOTP login) can view both pages; a regular user is correctly
+redirected away.
+
+**Full regression: 270 assertions across all sixteen engines, zero
+failures.**
+
+**Explicitly NOT done — a foundation, not the complete BR-05 build:**
+- **Wiring is currently limited to login events only** (success,
+  failure, invalid mPIN, OTP-required/lockout). BR-05 calls for "every
+  operational interaction, configuration change, and transactional
+  action" — bids, EMD changes, settlement NOCs, dispute rulings, admin
+  role grants, and everything else remain unwired. This is a large,
+  ongoing task across the whole codebase, not something to claim
+  complete after one integration point.
+- **Hot/cold tiering is entirely unbuilt** — no job identifies records
+  older than 1 year, no compression, no encryption, no upload to cold
+  cloud storage. This is the same category of gap as the payment
+  gateway and SMS provider — Google Cloud Storage needs a real account
+  and credentials this sandbox cannot create — but unlike those, the
+  actual export/compression *logic* hasn't been attempted yet either,
+  only flagged as needing to be built once cold storage is available.
+- **5-year retention policy** is not enforced anywhere, since it depends
+  on the cold tier existing.
+- **BR-58's statutory export**, which depends on this audit trail,
+  remains blocked until wiring is comprehensive enough to be useful for
+  that purpose.
+
+**Next from the audit, per the priority order already discussed**: BR-38
+(Crawl-Back/Shadow Banning), or continuing to widen this audit trail's
+wiring across more of the application before moving to a new BR entirely.
