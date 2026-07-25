@@ -49,6 +49,10 @@ class GrantTenantAdmin extends BaseCommand
         }
 
         $roleModel->promoteTenantAdmin($party['id'], $tenantId);
+        (new \App\Libraries\AuditLogService())->log('admin.tenant_admin_granted', $party['id'], [
+            'mobile' => $mobile, 'tenantId' => $tenantId, 'tenantName' => $tenant['name'],
+            'demotedPreviousAdminId' => $existing['party_id'] ?? null, 'grantedViaCli' => true,
+        ]);
         CLI::write("✓ Granted tenant_admin to {$mobile} (party {$party['id']}) for tenant \"{$tenant['name']}\" ({$tenantId})", 'green');
     }
 }

@@ -40,6 +40,9 @@ class SellerApplicationService
             'status' => 'approved', 'decided_by_party_id' => $tenantAdminId, 'decided_at' => date('Y-m-d H:i:s'),
         ]);
         $this->roleModel->grantRole($app['party_id'], 'seller', $app['tenant_id']);
+        (new \App\Libraries\AuditLogService())->log('seller_application.approved', $tenantAdminId, [
+            'applicationId' => $applicationId, 'approvedPartyId' => $app['party_id'], 'tenantId' => $app['tenant_id'],
+        ]);
         return $this->applicationModel->find($applicationId);
     }
 
@@ -89,6 +92,10 @@ class SellerApplicationService
                 'status' => 'suspended', 'rejection_reason' => $reason, 'updated_at' => date('Y-m-d H:i:s'),
             ]);
         }
+
+        (new \App\Libraries\AuditLogService())->log('seller.suspended', $tenantAdminId, [
+            'suspendedPartyId' => $partyId, 'tenantId' => $tenantId, 'reason' => $reason, 'listingsSuspended' => count($suspended),
+        ]);
 
         return ['revokedFrom' => $partyId, 'listingsSuspended' => count($suspended)];
     }

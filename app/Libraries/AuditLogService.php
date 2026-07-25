@@ -37,6 +37,7 @@ class AuditLogService
             $this->db->table('audit_log')->insert([
                 'id' => $id,
                 'occurred_at' => $occurredAt,
+                'occurred_at_canonical' => $occurredAt,
                 'event_type' => $eventType,
                 'actor_party_id' => $actorPartyId,
                 'ip_address' => $ipAddress,
@@ -72,7 +73,12 @@ class AuditLogService
                 return (int) $row['sequence_number'];
             }
 
-            $occurredAt = (new \DateTimeImmutable($row['occurred_at']))->format('Y-m-d H:i:s.u');
+            // Use the exact stored canonical string, not a re-derivation
+            // via DateTimeImmutable round-tripped through the TIMESTAMPTZ
+            // column — Postgres trims trailing zero fractional digits on
+            // storage, so re-deriving would not reliably reproduce the
+            // original hash input (found and fixed during D-45).
+            $occurredAt = $row['occurred_at_canonical'] ?? (new \DateTimeImmutable($row['occurred_at']))->format('Y-m-d H:i:s.u');
             $canonical = json_encode([
                 'occurred_at' => $occurredAt,
                 'event_type' => $row['event_type'],

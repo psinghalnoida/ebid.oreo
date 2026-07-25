@@ -42,6 +42,9 @@ class GrantSuperAdmin extends BaseCommand
         }
 
         $roleModel->grantRole($party['id'], 'super_admin', null);
+        (new \App\Libraries\AuditLogService())->log('admin.super_admin_granted', $party['id'], [
+            'mobile' => $mobile, 'grantedViaCli' => true,
+        ]);
         CLI::write("✓ Granted super_admin to {$mobile} (party {$party['id']})", 'green');
     }
 }

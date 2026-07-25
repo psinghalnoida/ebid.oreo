@@ -110,6 +110,12 @@ class BiddingService
             'bidderPartyId' => $finalBid['bidder_party_id'],
         ]);
 
+        // BR-05: every transactional action is logged — a bid changes
+        // real money exposure (EMD held) and the state of a live sale.
+        (new AuditLogService())->log('bid.placed', $bidderPartyId, [
+            'saleEventId' => $saleEventId, 'amount' => (float) $finalBid['amount'], 'standing' => $finalBid['standing'],
+        ]);
+
         return $finalBid;
     }
 }

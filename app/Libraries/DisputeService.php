@@ -129,6 +129,10 @@ class DisputeService
             'ruling_outcome' => $outcome, 'ruling_rationale' => $rationale, 'ruled_at' => date('Y-m-d H:i:s'),
         ]);
 
+        (new AuditLogService())->log('dispute.ruled', $rulerPartyId, [
+            'disputeId' => $disputeId, 'outcome' => $outcome, 'rationale' => $rationale, 'atFaultPartyId' => $atFaultPartyId,
+        ]);
+
         return $this->disputeModel->find($disputeId);
     }
 
@@ -215,6 +219,9 @@ class DisputeService
         $this->disputeModel->update($disputeId, [
             'status' => 'closed', 'appeal_ruled_by_party_id' => $superAdminPartyId,
             'appeal_rationale' => $rationale, 'appeal_ruled_at' => date('Y-m-d H:i:s'),
+        ]);
+        (new AuditLogService())->log('dispute.appeal_ruled', $superAdminPartyId, [
+            'disputeId' => $disputeId, 'rationale' => $rationale,
         ]);
         return $this->disputeModel->find($disputeId);
     }

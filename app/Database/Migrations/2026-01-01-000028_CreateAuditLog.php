@@ -16,7 +16,7 @@ class CreateAuditLog extends Migration
                 actor_party_id            UUID REFERENCES party(id),
                 ip_address                 TEXT,
                 user_agent                   TEXT,
-                payload                        JSONB NOT NULL,
+                payload                        TEXT NOT NULL,
                 previous_hash              TEXT NOT NULL,
                 record_hash                  TEXT NOT NULL,
                 sequence_number                 BIGSERIAL

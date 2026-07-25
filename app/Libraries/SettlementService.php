@@ -53,6 +53,7 @@ class SettlementService
             throw new \RuntimeException('BR-33: only the seller may confirm receipt of payment.');
         }
         $this->settlementModel->update($settlementId, ['seller_noc_confirmed_at' => date('Y-m-d H:i:s')]);
+        (new AuditLogService())->log('settlement.seller_noc_confirmed', $callerId, ['settlementId' => $settlementId]);
         return $this->checkCompletion($settlementId);
     }
 
@@ -63,6 +64,7 @@ class SettlementService
             throw new \RuntimeException('BR-33: only the buyer may confirm receipt of goods.');
         }
         $this->settlementModel->update($settlementId, ['buyer_noc_confirmed_at' => date('Y-m-d H:i:s')]);
+        (new AuditLogService())->log('settlement.buyer_noc_confirmed', $callerId, ['settlementId' => $settlementId]);
         return $this->checkCompletion($settlementId);
     }
 

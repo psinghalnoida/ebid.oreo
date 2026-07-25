@@ -2256,3 +2256,71 @@ failures.**
 **Next from the audit, per the priority order already discussed**: BR-38
 (Crawl-Back/Shadow Banning), or continuing to widen this audit trail's
 wiring across more of the application before moving to a new BR entirely.
+---
+
+### D-46: Audit trail wiring widened — and two genuine hash-reproducibility bugs found by testing against realistic data
+
+**Decision:** Widened `AuditLogService` wiring beyond D-45's login-only
+foundation to cover the core transactional and authority actions: bid
+placement, both settlement NOC confirmations, dispute rulings (both the
+first ruling and appeal rulings), and three sensitive configuration
+changes — Super Admin role grants, Tenant Admin role grants, seller
+application approval, and seller suspension.
+
+**Two genuine bugs found, both only surfaced by testing against a
+realistic, multi-source chain — not caught by D-45's original isolated
+test with just 3 records.** Running the full regression suite for the
+first time after this wiring meant `audit_log` accumulated 40+ real
+entries from bidding, settlement, disputes, and admin actions across
+every other test suite before `test:auditlog` itself ran — and the
+"clean chain" assertion failed on this realistic data, even with zero
+actual tampering. Investigated properly rather than dismissed as
+flakiness (the same discipline as every prior "leftover data" scare on
+this project, but this one turned out to be real):
+
+1. **Timestamp round-trip fidelity.** `occurred_at` was `TIMESTAMPTZ`,
+   and Postgres trims trailing zero fractional-second digits on storage
+   (`.517160` becomes `.51716`). Re-deriving the hash-input string by
+   reading this column back and reformatting it did not reliably
+   reproduce the exact string used at write time — breaking
+   verification on genuinely untampered data. Fixed by adding
+   `occurred_at_canonical` (plain `TEXT`, storing the exact string used
+   for hashing, immune to any database-side reformatting), while keeping
+   the `TIMESTAMPTZ` column for real querying/sorting.
+
+2. **JSON reformatting on storage.** `payload` was `JSONB` — a
+   reformatting type. Postgres parses JSONB into an internal binary
+   representation and reserializes it on every read, without guaranteeing
+   the original key order or exact whitespace survives the round trip.
+   Confirmed directly: a payload written as `{"saleEventId":...,
+   "amount":...,"standing":...}` came back from the database as
+   `{"amount": ..., "standing": ..., "saleEventId": ...}` — different key
+   order, added whitespace. Fixed by changing `payload` to plain `TEXT`
+   — JSON validity becomes an application-level property (already true,
+   since `AuditLogService` only ever writes valid JSON) rather than a
+   database-enforced one, but exact byte fidelity is what tamper-evidence
+   actually depends on, not a database-level JSON-validity constraint.
+   Fixed at the source migration itself (028), not just patched via a
+   later `ALTER`, so a genuinely fresh deployment never has this bug at
+   all — the `ALTER`-based migration (030) exists to repair any
+   environment that already ran the old JSONB version.
+
+**Verified precisely — the second, harder run mattered more than the
+first.** After both fixes, ran the complete regression fresh: 40+ real,
+varied entries from actual application logic (not synthetic test data)
+verify as a genuinely clean chain, while the original deliberate-tampering
+test (D-45) still correctly detects real corruption when introduced. This
+is a meaningfully stronger proof than D-45's original isolated 3-record
+test, since it exercises the hashing logic against the actual variety of
+real payloads (nullable fields, nested objects, different actor types)
+the application genuinely produces.
+
+**Full regression: 270 assertions across all sixteen engines, zero
+failures**, confirmed in a fully continuous single pass with no prior
+standalone runs polluting the result.
+
+**Wiring still outstanding**, same honest scope as D-45: EMD fund/
+release/forfeit events, listing approval/rejection, Tender's full
+workflow, scheduled-job actions, and most Tenant Admin actions remain
+unwired. This session's batch specifically targeted the highest-value
+transactional and authority actions, not exhaustive coverage.
