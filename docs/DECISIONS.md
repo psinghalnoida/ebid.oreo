@@ -2608,3 +2608,62 @@ deliberately left as a separate, explicit Tenant Admin/Super Admin
 decision rather than automatic at any rating threshold), and the
 standing-deposit formula to raise the 1★ floor (explicitly deferred per
 the project owner's decision this session).
+---
+
+### D-51: BR-38 fully closed — seller delisting for confirmed fraud
+
+**Decision:** Built the last piece of BR-38's scope: "full delisting
+reserved strictly for confirmed fraud." A correction first: D-50's
+decision log claimed the schema for this already existed
+(`seller_delisted_at`/`seller_delisted_reason` on `party`) — that was
+wrong, checked and confirmed genuinely absent (both in the migration
+history and the live database) before writing any code this session,
+not assumed from the earlier, inaccurate note.
+
+**Deliberately built as distinct from, not a variant of, the existing
+tenant-scoped suspension** (`SellerApplicationService::suspendSeller`,
+D-31): delisting is platform-wide, permanent, and gated to Super Admin
+specifically — a Tenant Admin can suspend a seller from their own
+tenant, but confirmed fraud is a platform-level finding, not a
+per-tenant one. New columns: `seller_delisted_at`,
+`seller_delisted_reason`, `seller_delisted_by_party_id`.
+
+**The cascade is genuinely platform-wide**: every active listing this
+seller has, across *every* tenant, gets suspended in one action — not
+just the tenant where the fraud was found. Future listing creation is
+blocked entirely, checked before the tenant-specific BR-09 gate in
+`ListingController::createSubmit`, since this restriction applies
+regardless of which tenant is being applied to.
+
+**A real, plain-language warning page, not a casual action**: the form
+itself states explicitly that this is permanent, platform-wide, and
+reserved strictly for confirmed fraud — not to be used for ordinary
+poor ratings or routine disputes, matching BR-38's own language.
+
+**Fully audit-logged**, per D-49's convention: actor, the delisted
+party, the reason, and the count of listings suspended.
+
+**Verified over real HTTP, with the actual cascade proven end-to-end**:
+a seller made an approved Seller on two separate tenants, with one
+active listing on each. Confirmed a regular Tenant Admin genuinely
+cannot reach the delisting route (redirected to `/admin/login`, the
+same `superAdmin` filter used everywhere else). Confirmed the real
+Super Admin (genuine TOTP login, not a shortcut) successfully delisted
+the seller, and both listings — across both tenants — were genuinely
+suspended in the database. Confirmed the delisted seller's subsequent
+attempt to create a new listing was silently and correctly rejected —
+checked directly against the database (zero rows for the attempted
+listing), not by trusting a UI flash message, after discovering the
+landing page was never built to display flash errors at all (a real,
+separate, minor gap noted but not blocking — the enforcement itself
+was proven correct via the authoritative source).
+
+**Full regression: 281 assertions across all seventeen engines, zero
+failures.**
+
+**This closes BR-38 completely.** Combined with D-50: Crawl-Back entry/
+exit/enforcement, Shadow Ban entry/visibility-suppression, the platform
+floor, and now delisting for confirmed fraud — every piece of BR-38's
+described scope is built, wired, and verified. The two placeholder
+numbers flagged in D-50 (bracket defaults, floor ceiling) remain
+explicitly unconfirmed, not silently settled.

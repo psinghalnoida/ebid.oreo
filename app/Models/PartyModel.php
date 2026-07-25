@@ -24,6 +24,7 @@ class PartyModel extends Model
         'crawl_back_active_buyer', 'crawl_back_clean_required_buyer', 'crawl_back_clean_completed_buyer',
         'crawl_back_active_seller', 'crawl_back_clean_required_seller', 'crawl_back_clean_completed_seller',
         'shadow_banned_at_buyer', 'shadow_banned_at_seller', 'deposit_override_amount',
+        'seller_delisted_at', 'seller_delisted_reason', 'seller_delisted_by_party_id',
         'forced_neutral_count_buyer', 'forced_neutral_count_seller',
         'updated_at',
     ];

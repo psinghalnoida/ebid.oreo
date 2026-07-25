@@ -260,6 +260,55 @@ class RatingService
             : $party['shadow_banned_at_seller'] !== null;
     }
 
+    // BR-38: "full delisting reserved strictly for confirmed fraud" —
+    // the genuine end of the ladder, never automatic at any rating
+    // threshold. Platform-wide (not tenant-scoped, unlike
+    // SellerApplicationService::suspendSeller, D-31), and deliberately
+    // gated to Super Admin only, given its severity: a Tenant Admin can
+    // suspend a seller from their own tenant, but cannot end a seller's
+    // ability to sell anywhere on the platform.
+    public function delistSellerForFraud(string $partyId, string $superAdminId, string $confirmedFraudReason): array
+    {
+        $party = $this->requireParty($partyId);
+        if ($party['seller_delisted_at'] !== null) {
+            throw new \RuntimeException('This seller is already delisted.');
+        }
+
+        $this->partyModel->update($partyId, [
+            'seller_delisted_at' => date('Y-m-d H:i:s'),
+            'seller_delisted_reason' => $confirmedFraudReason,
+            'seller_delisted_by_party_id' => $superAdminId,
+        ]);
+
+        // Every active listing this seller has, across every tenant, is
+        // suspended — a confirmed-fraud finding is not tenant-specific.
+        $db = \Config\Database::connect();
+        $activeListings = $db->table('listing')
+            ->where('seller_party_id', $partyId)
+            ->whereIn('status', ['inventory', 'pending_approval', 'upcoming', 'active'])
+            ->get()->getResultArray();
+
+        $listingModel = new \App\Models\ListingModel();
+        foreach ($activeListings as $listing) {
+            $listingModel->update($listing['id'], [
+                'status' => 'suspended', 'rejection_reason' => 'Seller delisted — confirmed fraud: ' . $confirmedFraudReason,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+        }
+
+        (new AuditLogService())->log('seller.delisted', $superAdminId, [
+            'delistedPartyId' => $partyId, 'reason' => $confirmedFraudReason, 'listingsSuspended' => count($activeListings),
+        ]);
+
+        return ['delisted' => true, 'listingsSuspended' => count($activeListings)];
+    }
+
+    public function isDelisted(string $partyId): bool
+    {
+        $party = $this->requireParty($partyId);
+        return $party['seller_delisted_at'] !== null;
+    }
+
     private function requireParty(string $partyId): array
     {
         $party = $this->partyModel->find($partyId);

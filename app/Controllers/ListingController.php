@@ -49,6 +49,13 @@ class ListingController extends BaseController
 
         $tenantId = $this->request->getPost('tenant_id');
 
+        // BR-38: a delisted seller (confirmed fraud) cannot list on ANY
+        // tenant — checked before the tenant-specific BR-09 gate below,
+        // since this is a platform-wide restriction, not per-tenant.
+        if ((new \App\Libraries\RatingService())->isDelisted($sellerId)) {
+            return redirect()->to('/')->with('error', 'BR-38: this account has been delisted from selling on eBid Hub due to a confirmed fraud finding.');
+        }
+
         // BR-09: only a party the Tenant Admin has explicitly upgraded to
         // Seller on THIS specific tenant may list here.
         $sellerApp = new \App\Libraries\SellerApplicationService();
