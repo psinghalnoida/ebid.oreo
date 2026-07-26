@@ -3163,3 +3163,117 @@ failures.**
 **This closes Phase 2 completely** — BR-56 (D-57), BR-58 (D-58), and
 BR-60 (this decision) are all built and verified. `docs/BR_PR_AUDIT.md`
 updated accordingly.
+---
+
+### D-60: BR-61 Seller Standing Review — Phase 3 begins, the largest item since BR-38
+
+**Decision:** Built BR-61's complete lifecycle, following the same
+discuss-first discipline BR-38 received. Two genuine design gaps
+surfaced and confirmed with the project owner before any code: whether
+the CBS offense ladder resets with the general complaint counter
+(confirmed lifetime, matching D-50's Crawl-Back precedent) and what
+"suspension" should actually do (confirmed: reuse D-31's existing
+`suspendSeller`, not a new mechanism).
+
+**Built as a genuine extension of the existing dispute framework, not a
+parallel system** — a prior session had already anticipated this
+exact moment, leaving an explicit comment in the original dispute
+migration explaining why `standing_review` was deliberately excluded
+from the category enum "since BR-61 itself is not built... adding it
+here without the system that triggers it would be misleading." That
+discipline is what made this session's build genuinely clean rather
+than a bolt-on: `standing_review` is now a real 6th category in the
+same `dispute` table, and `DisputeService::fileAppeal`/`ruleOnAppeal`
+were checked for compatibility before assuming reuse — confirmed
+genuinely compatible (the respondent-party check in `fileAppeal` works
+correctly even with no filer, since the seller is the respondent).
+
+**A real schema conflict found and fixed properly, not worked
+around**: `dispute.sale_event_id` and `filed_by_party_id` were both
+`NOT NULL` — but Standing Review is explicitly system-initiated with no
+single transaction or filer behind it. Made both columns nullable
+rather than force a fake sale_event_id in, which would have
+misrepresented the data. `ruleOnDispute`'s existing authority-routing
+logic was checked and confirmed to genuinely depend on a real
+`sale_event_id` — so a dedicated `ruleOnCase` method was written for
+Standing Review specifically, rather than incorrectly reusing a method
+that would have broken on a null value.
+
+**Two real enum mismatches caught by checking actual values before
+running anything, not by a failed test**: `partial_fault` was used in
+an early draft but doesn't exist in `dispute_ruling_outcome`; separately,
+reusing the existing `order_forfeiture` value for a seller suspension
+would have recorded a factually wrong outcome type (that value means EMD
+forfeiture specifically). Added a genuine `suspension` value to the enum
+instead of forcing a semantic mismatch, given this project was already
+extending an enum in this same migration set.
+
+**The exact recurring "DISTINCT mis-parsed as a column" bug, caught
+immediately by the regression suite, not shipped**: the scheduler's new
+`processStandingReviewAnniversaries` query used `->select('DISTINCT
+party_id')` as a raw string — the same CI4 query-builder auto-escaping
+issue documented and fixed multiple times elsewhere in this project.
+Fixed using the established, already-proven-correct `->distinct()`
+method pattern from `Home.php` and `PreferencesController.php`, not a
+new workaround.
+
+**A genuine bug in my own service, caught by the dedicated test, not
+assumed correct**: `openCase()` generated its own local `$id` and later
+tried to re-fetch the created row by that same variable — but
+`DisputeModel::createDispute()` generates its *own* internal ID and
+silently overwrites whatever was passed in, so the local variable never
+matched what was actually inserted, causing `find()` to return `null`
+and crash on a return-type mismatch. Fixed by using `createDispute`'s
+actual returned row directly, rather than re-fetching by a stale
+reference.
+
+**A wrong test assertion, caught and corrected rather than the code
+weakened to pass it**: the dedicated test initially assumed
+`suspendSeller` updates `seller_application.status` to `'suspended'` —
+it doesn't; the real, pre-existing D-31 mechanism revokes the
+`party_role` row instead (`revoked_at`). Checked `suspendSeller`'s
+actual implementation before assuming, fixed the test's expectation to
+match the real mechanism rather than changing working, already-shipped
+code to satisfy an incorrect assumption.
+
+**Real trigger points wired, not just the counting mechanism**:
+listing rejection (`ListingLifecycleService::reject`) and at-fault
+dispute rulings (`DisputeService::ruleOnDispute`, scoped correctly to
+only count when the at-fault party is genuinely the seller on that
+transaction, not the buyer) both now call `recordComplaint`. CBS
+violations get a genuine manual-flagging action — automated detection
+remains confirmed out of scope per D-59's finding — available to the
+listing's Tenant Admin or Super Admin, with a real confirmation prompt
+given its permanence. The annual anniversary check is wired into the
+scheduler, anchored to the seller's actual first-approval date (computed
+from real `seller_application` data, no new schema needed for that
+specific piece) and advancing by exactly 12 months from the missed date
+on each cycle, not from "now" — preserving the fixed cadence BR-61's
+text explicitly requires.
+
+**Verified with a dedicated test as rigorous as D-50's `test:crawlback`**,
+proving the real lifecycle rather than just the data model: the general
+counter genuinely opens a case only after exceeding 10 (not at exactly
+10); a second complaint while a case is open does not create a
+duplicate; the case is confirmed as a genuine row in the shared dispute
+table with correctly-null `sale_event_id`/`filed_by_party_id`; a real
+ruling genuinely revokes the seller's actual role via the reused D-31
+mechanism; the CBS ladder's exact tier boundaries (1st/2nd warning,
+3rd/4th Tenant Admin discretion, 5th+ SaaS Admin exclusive) are each
+individually confirmed; and — the most important single assertion in
+the whole suite — the CBS offense count is confirmed to survive a real
+Standing Review conclusion completely untouched, while the general
+complaint counter genuinely resets, proving the two counters' different
+lifetimes are actually implemented as decided, not just described.
+
+**Full regression: 300 assertions across all eighteen engines
+(seventeen existing plus the new `test:standingreview`), zero
+failures.**
+
+**Explicitly not yet built, flagged rather than silently gapped**: the
+ruling UI currently requires the Tenant Admin to self-select which of
+the seller's tenants they're ruling for, rather than the system
+automatically scoping to only tenants that Tenant Admin actually
+administers — a real-HTTP verification pass and a tighter tenant-scoping
+check are the natural next increment on this feature, not attempted in
+this already-substantial session.

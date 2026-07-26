@@ -32,6 +32,13 @@
     <?= (int) $listing['media_count'] ?> / <?= $minPhotos ?> minimum photos (BR-11) — max 50
   </p>
 
+  <?php if (empty($isOwner)): ?>
+    <form method="post" action="/listings/<?= esc($listing['id']) ?>/flag-cbs-violation" style="margin-bottom:12px;"
+      onsubmit="return confirm('Flag this listing\'s media as a CBS violation? This is logged permanently and feeds Seller Standing Review (BR-61).');">
+      <button type="submit" class="btn btn-ghost" style="font-size:11px; color:#B5482F;">Flag CBS Violation (BR-59/61)</button>
+    </form>
+  <?php endif; ?>
+
   <?php if (!empty($isOwner) && in_array($listing['status'], ['inventory', 'pending_approval'], true)): ?>
     <form method="post" action="/listings/<?= esc($listing['id']) ?>/media" enctype="multipart/form-data" style="margin:10px 0 20px;">
       <input type="file" name="photos[]" multiple accept="image/jpeg,image/png,image/webp" required

@@ -296,4 +296,29 @@ class ListingController extends BaseController
         }
         return redirect()->to("/listings/{$result['newListing']['id']}")->with('error', 'Listing updated — this is a new listing record (archive-and-recreate per BR-13); any active bids on the old one were withdrawn and EMD released.');
     }
+
+    // BR-59/BR-61: CBS violations require manual flagging — automated
+    // stock-photo detection is confirmed out of scope (D-59). Available
+    // to the Tenant Admin for the listing's own tenant, or Super Admin.
+    public function flagCbsViolation(string $listingId)
+    {
+        $partyId = session()->get('logged_in_party_id');
+        if (!$partyId) return redirect()->to('/login');
+
+        $listing = $this->listingModel->find($listingId);
+        if (!$listing) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $authz = new \App\Libraries\AuthorizationService();
+        if (!$authz->isTenantAdminFor($partyId, $listing['tenant_id']) && !$authz->isSuperAdmin($partyId)) {
+            return redirect()->to("/listings/{$listingId}")->with('error', 'Only this listing\'s Tenant Admin or Super Admin may flag a CBS violation.');
+        }
+
+        $result = (new \App\Libraries\StandingReviewService())->recordCbsViolation($listing['seller_party_id'], $partyId, $listingId);
+
+        return redirect()->to("/listings/{$listingId}")->with('error',
+            "CBS violation logged — offense #{$result['offenseNumber']}, tier: {$result['tier']}."
+        );
+    }
 }

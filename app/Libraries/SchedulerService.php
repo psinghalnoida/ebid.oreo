@@ -142,6 +142,25 @@ class SchedulerService
     }
 
     // Runs everything in one pass — this is what the real cron entry calls.
+    // BR-61: checks every approved seller's annual Standing Review
+    // anniversary — a distinct trigger from the count-based one, which
+    // fires immediately via StandingReviewService::recordComplaint.
+    public function processStandingReviewAnniversaries(): array
+    {
+        $db = \Config\Database::connect();
+        $sellerIds = $db->table('seller_application')->distinct()->select('party_id')
+            ->where('status', 'approved')->get()->getResultArray();
+
+        $standingReview = new StandingReviewService();
+        $opened = [];
+        foreach ($sellerIds as $row) {
+            if ($standingReview->checkAnnualAnniversary($row['party_id'])) {
+                $opened[] = $row['party_id'];
+            }
+        }
+        return $opened;
+    }
+
     public function runAll(): array
     {
         $result = [
@@ -151,6 +170,7 @@ class SchedulerService
             'staleOffersLapsed' => $this->processStaleOffers(),
             'settlementsFlaggedStalled' => $this->processStalledSettlements(),
             'mediaWaiversLapsed' => (new TenantMediaWaiverService())->lapseExpired(),
+            'standingReviewAnniversariesOpened' => $this->processStandingReviewAnniversaries(),
         ];
 
         // BR-05: every scheduler run is a genuine "configuration/state

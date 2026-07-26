@@ -25,6 +25,7 @@ class PartyModel extends Model
         'crawl_back_active_seller', 'crawl_back_clean_required_seller', 'crawl_back_clean_completed_seller',
         'shadow_banned_at_buyer', 'shadow_banned_at_seller', 'deposit_override_amount',
         'seller_delisted_at', 'seller_delisted_reason', 'seller_delisted_by_party_id',
+        'standing_review_complaint_count', 'standing_review_cbs_offense_count', 'standing_review_next_annual_at',
         'forced_neutral_count_buyer', 'forced_neutral_count_seller',
         'updated_at',
     ];

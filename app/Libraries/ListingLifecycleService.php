@@ -64,6 +64,11 @@ class ListingLifecycleService
         }
         $result = $this->listingModel->transitionStatus($listingId, 'inventory', $reason);
         (new \App\Libraries\AuditLogService())->log('listing.rejected', $actorPartyId, ['listingId' => $listingId, 'reason' => $reason]);
+
+        // BR-61: "rejected auctions" is one of Standing Review's
+        // explicit complaint sources.
+        (new \App\Libraries\StandingReviewService())->recordComplaint($listing['seller_party_id'], "Listing rejected: {$reason}");
+
         return $result;
     }
 

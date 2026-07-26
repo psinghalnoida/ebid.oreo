@@ -133,6 +133,16 @@ class DisputeService
             'disputeId' => $disputeId, 'outcome' => $outcome, 'rationale' => $rationale, 'atFaultPartyId' => $atFaultPartyId,
         ]);
 
+        // BR-61: "disputed rulings" is one of Standing Review's explicit
+        // complaint sources — only when the at-fault party is genuinely
+        // the seller on this transaction (not the buyer being at fault).
+        if ($atFaultPartyId !== null && $outcome !== 'dismissed') {
+            $listing = $this->listingModel->find($saleEvent['listing_id']);
+            if ($listing && $listing['seller_party_id'] === $atFaultPartyId) {
+                (new StandingReviewService())->recordComplaint($atFaultPartyId, "Dispute ruled at-fault: {$rationale}");
+            }
+        }
+
         return $this->disputeModel->find($disputeId);
     }
 
