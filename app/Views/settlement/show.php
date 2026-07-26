@@ -91,5 +91,19 @@
       </form>
     </div>
   <?php endif; ?>
+
+  <?php if (!empty($invoices)): ?>
+    <h3 style="font-size:15px; margin-top:24px;">Invoices (BR-56)</h3>
+    <?php foreach ($invoices as $inv): ?>
+      <div style="border:1px solid var(--line); border-radius:12px; padding:16px; margin-top:10px;">
+        <p style="font-size:12px; color:var(--ink-3); margin:0 0 4px;"><?= esc($inv['invoice_number']) ?> — <?= esc(str_replace('_', ' ', $inv['invoice_type'])) ?></p>
+        <p style="font-size:13px; margin:0 0 4px;"><?= esc($inv['issued_by_name']) ?> → <?= esc($inv['issued_to_name']) ?></p>
+        <p style="font-size:13px; margin:0;">
+          ₹<?= number_format((float) $inv['base_amount'], 2) ?> + GST (<?= esc($inv['gst_rate_percent']) ?>%) ₹<?= number_format((float) $inv['gst_amount'], 2) ?>
+          = <strong>₹<?= number_format((float) $inv['total_amount'], 2) ?></strong>
+        </p>
+      </div>
+    <?php endforeach; ?>
+  <?php endif; ?>
 </main>
 <?= $this->endSection() ?>

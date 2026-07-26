@@ -31,9 +31,10 @@ class SettlementController extends BaseController
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
         $saleEvent = $this->saleEventModel->find($s['sale_event_id']);
+        $invoices = (new \App\Libraries\InvoiceService())->findForSettlement($settlementId);
         return view('settlement/show', [
             'title' => 'Settlement — eBid Hub', 'settlement' => $s, 'saleEvent' => $saleEvent,
-            'callerId' => $this->requireLogin(),
+            'callerId' => $this->requireLogin(), 'invoices' => $invoices,
         ]);
     }
 

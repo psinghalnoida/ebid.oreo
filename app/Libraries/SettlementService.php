@@ -127,11 +127,13 @@ class SettlementService
             $tenant = $this->tenantModel->find($saleEvent['tenant_id']);
             $hold = $this->emdHoldModel->findBySaleEventAndParty($settlement['sale_event_id'], $settlement['buyer_party_id']);
 
+            $feeWasSettled = false;
             if ($hold && $hold['status'] === 'held') {
                 $fees = EmdService::calculateSettlementFee(
                     (float) $settlement['final_price'], (float) $tenant['buyer_fee_percent'], (float) $hold['amount']
                 );
                 $this->emdHoldModel->markSettled($hold['id'], $fees['tenantAmount'], $fees['saasAmount'], $fees['buyerRefund']);
+                $feeWasSettled = true;
             }
 
             $this->settlementModel->update($settlementId, ['status' => 'completed', 'completed_at' => date('Y-m-d H:i:s')]);
@@ -148,6 +150,15 @@ class SettlementService
             // trigger, no tenant carve-outs, a single ₹10L threshold
             // applied uniformly.
             $this->maybeRecordHighValueDisposal($settlementId, $settlement);
+
+            // BR-56: automatic on Buy-Now, Express, Easy — explicitly
+            // excluded on Tender, which follows the seller's own custom
+            // terms instead (BR-56's own text).
+            if ($feeWasSettled && $saleEvent['sale_format'] !== 'tender') {
+                (new InvoiceService())->generateForSettlement(
+                    $settlementId, $settlement, $tenant, $fees['tenantAmount'], $fees['saasAmount']
+                );
+            }
         }
 
         return $this->settlementModel->find($settlementId);

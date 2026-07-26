@@ -3011,3 +3011,55 @@ regression itself failing to connect, restarted, and re-verified clean).
   Revision), BR-35 (full graduated event table, now correctly sized
   here rather than in Phase 1), BR-46 (blocked on a real Gemini key),
   BR-52 (blocked on the real payment gateway)
+---
+
+### D-57: BR-56 GST-compliant transaction invoicing — Phase 2, item 1
+
+**Decision:** Built BR-56's automatic invoice generation — two invoices
+per completed settlement, Tenant-to-Buyer (the commission-bearing
+service, Tenant as legal supplier) and SaaS-to-Tenant (SaaS's own 0.5%
+share, per BR-08). Explicitly excludes Tender, per BR-56's own text —
+Tender follows the seller's custom terms instead.
+
+**A real bug caught in my own first draft, before it ever ran**: the
+initial wiring checked `$hold['status'] !== 'held'` to detect whether a
+fee had just been settled — but `$hold` is a plain PHP array, copied by
+value at the point it was fetched, well before `markSettled()` runs.
+Checking its status afterward was checking a stale snapshot that could
+never reflect the update — this condition would have always evaluated
+incorrectly. Caught by tracing the actual variable lifecycle before
+running anything, not by a failed test. Fixed with an explicit
+`$feeWasSettled` boolean set inside the same block that calls
+`markSettled()`, rather than trying to re-derive state from a value that
+was never going to reflect it.
+
+**GST rate is a flagged placeholder (18%), not silently settled** — the
+project's own Fee & Charges Schedule document explicitly states the real
+rate needs tax-advisor confirmation before publication; this build
+follows that same instruction rather than treating 18% as final.
+
+**Verified over real HTTP with figures that independently confirm
+against the platform's own already-published Fee Schedule**: a real
+₹1,00,000 Buy-Now sale at the 5% default rate produced exactly ₹4,500
+Tenant / ₹500 SaaS before GST — the identical numbers in the Fee &
+Charges Schedule document's own worked example for this exact scenario.
+With 18% GST applied on top: ₹5,310 (Tenant invoice) and ₹590 (SaaS
+invoice), both genuinely stored and genuinely displayed on the real
+settlement page with real invoice numbers.
+
+**The Tender exclusion verified directly against the database, not
+assumed from the code**: confirmed zero invoice records exist for any
+Tender settlement, despite the full regression suite (`test:tenderreview`
+specifically) genuinely completing multiple Tender settlements — the
+exclusion holds in practice, not just in the conditional's logic.
+
+**Append-only at the database level**, same discipline as `audit_log`
+(D-45) and `consent_event` (D-56) — confirmed directly against the grant
+table, not assumed from the migration's SQL.
+
+**Full regression: 286 assertions across all seventeen engines, zero
+failures.**
+
+**Phase 2 progress**: BR-56 ✅ closed. BR-58 (audit trail export) and
+BR-60 (Tenant Media Waiver) remain, both independent of this and of
+each other.
