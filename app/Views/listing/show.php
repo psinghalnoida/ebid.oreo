@@ -359,5 +359,26 @@
     })();
   </script>
   <?php endif; ?>
+
+  <?php if (!empty($relatedListings)): ?>
+  <div style="margin-top:32px;">
+    <p style="font-size:14px; font-weight:700; margin-bottom:4px;">Related Auctions</p>
+    <p style="font-size:12px; color:var(--ink-3); margin-bottom:12px;">Part of the same lot — each item is a fully independent auction with its own bidding, EMD, and settlement.</p>
+    <div style="display:flex; gap:12px; overflow-x:auto; padding-bottom:8px;">
+      <?php foreach ($relatedListings as $r): ?>
+        <a href="/listings/<?= esc($r['id']) ?>" style="flex:0 0 160px; text-decoration:none; color:inherit;">
+          <div style="border:1px solid var(--line); border-radius:12px; overflow:hidden;">
+            <div style="height:100px; background:#F1F1EE; <?= $r['photo_path'] ? 'background-image:url(/'.esc($r['photo_path']).');background-size:cover;background-position:center;' : '' ?>"></div>
+            <div style="padding:10px;">
+              <p style="font-size:11px; color:var(--ink-3); margin:0 0 4px;"><?= esc($r['category']) ?></p>
+              <p style="font-size:13px; font-weight:700; margin:0;">₹<?= number_format((float) ($r['current_price'] ?? $r['reserve_value'] ?? $r['expected_value'] ?? 0), 0) ?></p>
+              <p style="font-size:10px; color:var(--ink-3); margin:4px 0 0; text-transform:uppercase;"><?= esc($r['status'] ?? 'unlisted') ?></p>
+            </div>
+          </div>
+        </a>
+      <?php endforeach; ?>
+    </div>
+  </div>
+  <?php endif; ?>
 </main>
 <?= $this->endSection() ?>

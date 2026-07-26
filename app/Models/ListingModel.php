@@ -17,6 +17,7 @@ class ListingModel extends Model
         'quantity', 'quantity_basis', 'make_model', 'yard_location_address',
         'yard_location_pin', 'inspector_party_id', 'inspector_contact_note',
         'surveyor_party_id', 'custodian_party_id',
+        'related_group_id', 'related_group_label',
         'status', 'rejection_reason', 'superseded_by_listing_id', 'archived_at', 'updated_at',
         'media_tier', 'media_count',
     ];

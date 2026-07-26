@@ -138,6 +138,30 @@ class SaleEventController extends BaseController
             }
         }
 
+        // BR-47: Related Auctions is available on Buy-Now, Easy, and
+        // Tender only — Express's fast/no-review nature doesn't suit
+        // grouped browsing. Also: every item in a group must share the
+        // same format throughout.
+        if (!empty($listing['related_group_id'])) {
+            if ($format === 'express') {
+                return redirect()->to("/listings/{$listingId}")->with('error',
+                    'BR-47: Related Auctions is not available on Express — its fast, no-review format doesn\'t suit grouped browsing.'
+                );
+            }
+            $otherGroupMember = $this->listingModel
+                ->where('related_group_id', $listing['related_group_id'])
+                ->where('id !=', $listingId)
+                ->first();
+            if ($otherGroupMember) {
+                $otherSaleEvent = $this->saleEventModel->where('listing_id', $otherGroupMember['id'])->first();
+                if ($otherSaleEvent && $otherSaleEvent['sale_format'] !== $format) {
+                    return redirect()->to("/listings/{$listingId}")->with('error',
+                        "BR-47: every item in this related group must share the same sale format — the group is already using " . strtoupper($otherSaleEvent['sale_format']) . '.'
+                    );
+                }
+            }
+        }
+
         $saleEvent = $this->saleEventModel->createSaleEvent($data);
 
         // BR-13: listing moves to active once a sale system is attached

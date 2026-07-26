@@ -56,6 +56,10 @@
     <input type="text" name="custodian_mobile" placeholder="Physical Custodian mobile (optional)"
       style="display:block; width:100%; padding:10px; margin:4px 0 20px; border:1px solid var(--line); border-radius:8px; font-size:13px;">
 
+    <p style="font-size:12px; color:var(--ink-3); margin:16px 0 4px;">Related Auctions (BR-47) — optional. Use the same label across multiple listings to group them (e.g., a shared-origin lot). Not available on Express.</p>
+    <input type="text" name="related_group_label" placeholder="e.g. Flood-Affected Fleet — July 2026"
+      style="display:block; width:100%; padding:10px; margin:4px 0 20px; border:1px solid var(--line); border-radius:8px; font-size:13px;">
+
     <button type="submit" class="btn btn-emerald" style="width:100%;">Create Listing</button>
   </form>
 </main>

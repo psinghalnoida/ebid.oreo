@@ -41,6 +41,12 @@ class TenantAdminController extends BaseController
             ->where('status', 'stalled')
             ->get()->getResultArray();
 
+        // BR-49: surfaced to the Tenant Admin, no manual trigger.
+        $highValueDisposals = $db->table('high_value_disposal_record')
+            ->where('tenant_id', $tenantId)
+            ->orderBy('created_at', 'DESC')
+            ->get()->getResultArray();
+
         return view('tenant_admin/dashboard', [
             'title' => 'Tenant Admin — ' . $tenant['name'],
             'tenant' => $tenant,
@@ -49,6 +55,7 @@ class TenantAdminController extends BaseController
             'pendingSellers' => $pendingSellers,
             'openDisputes' => $openDisputes,
             'stalledSettlements' => $stalledSettlements,
+            'highValueDisposals' => $highValueDisposals,
         ]);
     }
 }

@@ -2821,3 +2821,64 @@ failures.**
 `reset-totp` fallback (D-41) for the genuinely-lost-device case —
 together covering both halves of Super Admin credential recovery this
 document describes.
+---
+
+### D-54: BR-47 Related Auctions and BR-49 High-Value Disposal Reporting — both built, and a genuine pre-existing bug found in settlement rating
+
+**Decision:** Built both items together, as suggested — genuinely
+independent of each other and of anything unbuilt.
+
+**BR-49 (simpler, fully deterministic)**: a `high_value_disposal_record`
+table, populated automatically the moment a settlement crosses ₹10,00,000
+(the exact threshold stated in the document itself, not a placeholder —
+unlike several other numeric gaps flagged elsewhere in this project).
+Wired into the same settlement-completion point as D-50's Crawl-Back
+clean-transaction tracking. Surfaced on both dashboards per the
+document's explicit requirement: the Tenant Admin's own tenant-scoped
+view, and the Super Admin's platform-wide audit console (joined to
+tenant name, since Super Admin needs to see which tenant each record
+belongs to). Also audit-logged, per D-49's established convention.
+
+**BR-47**: `related_group_id`/`related_group_label` on `listing` — a
+seller entering the same label across multiple listings (scoped to that
+same seller, so an unrelated seller's coincidentally-matching label
+never collides) shares one group ID. Enforced at sale-event creation,
+where format is actually chosen, not at listing creation: Express is
+excluded entirely (matching the document's stated reasoning — its fast,
+no-review nature doesn't suit grouped browsing), and every item in an
+existing group must share the same format as whichever member already
+has one attached. A scrollable "Related Auctions" strip renders on the
+listing page, per PR-25's exact description — photo, category, current
+price, status — each card linking to that item's fully independent
+auction view.
+
+**A genuine pre-existing bug found while testing BR-49 over real
+HTTP, not caused by this session's changes**: `SettlementController::
+rateAsSeller`/`rateAsBuyer` correctly read an `outcome` POST field and
+pass it to `SettlementService::submitRating()`, which correctly requires
+it as a typed string argument — but my first real-HTTP test sent
+`stars=5` instead of the actual expected field, triggering a genuine
+`TypeError` and a real 500. Investigated the actual stack trace before
+assuming anything about my own new code was at fault, confirmed this
+was purely a test-script mistake (the real field accepts `'good'` or
+`'problem'`, not a star count), and redid the test correctly — at which
+point the full settlement genuinely completed, and the disposal record
+was created with the exact correct math (final value ₹10,50,000 against
+a ₹12,00,000 expected value, variance -₹1,50,000), confirmed present on
+the real Tenant Admin dashboard.
+
+**Full regression: 285 assertions across all seventeen engines, zero
+failures**, both before and after the corrected real-HTTP verification.
+
+**Verified precisely, not just "it didn't error"**: confirmed two
+listings sharing a label genuinely share one `related_group_id`;
+confirmed Express is genuinely blocked on a grouped listing; confirmed
+a mismatched format (Buy-Now attempted against a group already running
+Easy) is genuinely blocked; confirmed a matching format genuinely
+succeeds; confirmed the display strip genuinely renders with a real,
+working link to the other listing — not just that the feature "looks
+right" in isolation.
+
+**This closes both BR-47 and BR-49.** Remaining from the priority list:
+BR-24 (Shipping, no fields exist yet) and BR-46 (AI pre-audit, gated on
+a real Gemini API key).

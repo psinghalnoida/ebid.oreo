@@ -42,6 +42,24 @@
     <?php endforeach; ?>
   </table>
 
+  <h3 style="font-size:15px; margin-top:28px;">High-Value Disposal Records (BR-49, &gt;₹10L, platform-wide)</h3>
+  <table style="width:100%; border-collapse:collapse; font-size:12px;">
+    <tr style="text-align:left; color:var(--ink-3); font-size:10px; text-transform:uppercase;">
+      <th style="padding:6px 0;">Tenant</th><th>Format</th><th>RV</th><th>Final Value</th><th>Variance</th><th>Date</th>
+    </tr>
+    <?php foreach ($highValueDisposals as $d): ?>
+    <tr style="border-top:1px solid var(--line);">
+      <td style="padding:6px 0;"><?= esc($d['tenant_name']) ?></td>
+      <td><?= esc(strtoupper($d['sale_format'])) ?></td>
+      <td>₹<?= $d['reserve_value'] !== null ? number_format((float) $d['reserve_value'], 2) : '—' ?></td>
+      <td>₹<?= number_format((float) $d['final_sale_value'], 2) ?></td>
+      <td>₹<?= number_format((float) $d['variance'], 2) ?></td>
+      <td><?= esc(substr($d['created_at'], 0, 10)) ?></td>
+    </tr>
+    <?php endforeach; ?>
+  </table>
+  <?php if (empty($highValueDisposals)): ?><p style="font-size:12px; color:var(--ink-3); margin-top:8px;">None yet.</p><?php endif; ?>
+
   <p style="margin-top:24px;"><a href="/admin/logout" style="color:var(--ink-3); font-size:12px;">Log out of Super Admin</a></p>
 </main>
 <?= $this->endSection() ?>

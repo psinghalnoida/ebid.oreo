@@ -16,6 +16,11 @@ class SettlementService
     // limit was in AuthService, not treated as a settled business rule.
     private const STALL_THRESHOLD_DAYS = 7;
 
+    // BR-49: explicitly stated in the document itself, not a placeholder
+    // — "a single ₹10 Lakh threshold applies uniformly across all
+    // tenants and sale formats — no tenant-specific carve-outs."
+    private const HIGH_VALUE_DISPOSAL_THRESHOLD = 1000000.0;
+
     private SettlementModel $settlementModel;
     private SaleEventModel $saleEventModel;
     private TenantModel $tenantModel;
@@ -138,9 +143,45 @@ class SettlementService
             $ratingService = new RatingService();
             $ratingService->recordCleanTransactionForCrawlBack($settlement['buyer_party_id'], 'star_rating');
             $ratingService->recordCleanTransactionForCrawlBack($settlement['seller_party_id'], 'seller_star_rating');
+
+            // BR-49: deterministic, non-discretionary — no manual
+            // trigger, no tenant carve-outs, a single ₹10L threshold
+            // applied uniformly.
+            $this->maybeRecordHighValueDisposal($settlementId, $settlement);
         }
 
         return $this->settlementModel->find($settlementId);
+    }
+
+    // BR-49/PR-27
+    private function maybeRecordHighValueDisposal(string $settlementId, array $settlement): void
+    {
+        $finalValue = (float) $settlement['final_price'];
+        if ($finalValue <= self::HIGH_VALUE_DISPOSAL_THRESHOLD) {
+            return;
+        }
+
+        $saleEvent = $this->saleEventModel->find($settlement['sale_event_id']);
+        $reserveValue = $saleEvent['reserve_value'] !== null ? (float) $saleEvent['reserve_value']
+            : ($saleEvent['expected_value'] !== null ? (float) $saleEvent['expected_value'] : null);
+        $variance = $reserveValue !== null ? round($finalValue - $reserveValue, 2) : 0.0;
+
+        $db = \Config\Database::connect();
+        $db->table('high_value_disposal_record')->insert([
+            'id' => Uuid::v4(),
+            'settlement_id' => $settlementId,
+            'sale_event_id' => $saleEvent['id'],
+            'tenant_id' => $saleEvent['tenant_id'],
+            'sale_format' => $saleEvent['sale_format'],
+            'reserve_value' => $reserveValue,
+            'final_sale_value' => $finalValue,
+            'variance' => $variance,
+        ]);
+
+        (new AuditLogService())->log('settlement.high_value_disposal_flagged', null, [
+            'settlementId' => $settlementId, 'saleEventId' => $saleEvent['id'],
+            'finalSaleValue' => $finalValue, 'reserveValue' => $reserveValue, 'variance' => $variance,
+        ]);
     }
 
     // BR-39: flags settlements stalled past the threshold. Callable now;

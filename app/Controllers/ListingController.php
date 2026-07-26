@@ -86,6 +86,21 @@ class ListingController extends BaseController
             $custodianPartyId = $party['id'] ?? null;
         }
 
+        // BR-47: a seller-provided label groups listings sharing a
+        // common origin — purely navigational, zero effect on any
+        // listing's own independent transaction. Matching is scoped to
+        // the SAME seller (a shared label from a different seller is a
+        // coincidence, not the same origin lot).
+        $relatedGroupId = null;
+        $relatedGroupLabel = trim((string) $this->request->getPost('related_group_label'));
+        if ($relatedGroupLabel !== '') {
+            $existingGroupMember = $this->listingModel
+                ->where('seller_party_id', $sellerId)
+                ->where('related_group_label', $relatedGroupLabel)
+                ->first();
+            $relatedGroupId = $existingGroupMember ? $existingGroupMember['related_group_id'] : \App\Libraries\Uuid::v4();
+        }
+
         try {
             $listing = $this->listingModel->createListing([
                 'tenant_id' => $tenantId,
@@ -102,6 +117,8 @@ class ListingController extends BaseController
                 'inspector_party_id' => $inspectorPartyId,
                 'surveyor_party_id' => $surveyorPartyId,
                 'custodian_party_id' => $custodianPartyId,
+                'related_group_id' => $relatedGroupId,
+                'related_group_label' => $relatedGroupLabel !== '' ? $relatedGroupLabel : null,
             ]);
         } catch (\Throwable $e) {
             return view('listing/create', [
@@ -161,12 +178,28 @@ class ListingController extends BaseController
             ];
         }
 
+        // BR-47: related items, if this listing is part of a group —
+        // purely a display concern, zero effect on this listing's own
+        // independent bidding/EMD/settlement.
+        $relatedListings = [];
+        if (!empty($listing['related_group_id'])) {
+            $db = \Config\Database::connect();
+            $relatedListings = $db->table('listing l')
+                ->select('l.id, l.category, l.subcategory, se.current_price, se.reserve_value, se.expected_value, se.status, se.sale_format, lm.file_path as photo_path')
+                ->join('sale_event se', 'se.listing_id = l.id', 'left')
+                ->join('listing_media lm', 'lm.listing_id = l.id AND lm.is_primary = true', 'left', false)
+                ->where('l.related_group_id', $listing['related_group_id'])
+                ->where('l.id !=', $listingId)
+                ->get()->getResultArray();
+        }
+
         return view('listing/show', [
             'title' => 'Listing — eBid Hub', 'listing' => $listing, 'saleEvent' => $saleEvent,
             'offers' => $offers, 'expressState' => $expressState, 'tenderState' => $tenderState, 'media' => $media,
             'isOwner' => session()->get('logged_in_party_id') === $listing['seller_party_id'],
             'minPhotos' => \App\Libraries\MediaService::minPhotos(),
             'settlementRecord' => $settlementRecord,
+            'relatedListings' => $relatedListings,
         ]);
     }
 

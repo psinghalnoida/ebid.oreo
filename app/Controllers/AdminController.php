@@ -14,11 +14,22 @@ class AdminController extends BaseController
         $disputeModel = new DisputeModel();
         $settlementModel = new SettlementModel();
 
+        // BR-49: "included in the Super Admin's audit console" —
+        // platform-wide, not scoped to any single tenant.
+        $db = \Config\Database::connect();
+        $highValueDisposals = $db->table('high_value_disposal_record hvdr')
+            ->select('hvdr.*, t.name as tenant_name')
+            ->join('tenant t', 't.id = hvdr.tenant_id')
+            ->orderBy('hvdr.created_at', 'DESC')
+            ->limit(50)
+            ->get()->getResultArray();
+
         return view('admin/dashboard', [
             'title' => 'Super Admin — eBid Hub',
             'tenants' => $tenantModel->findAll(),
             'openDisputes' => $disputeModel->whereIn('status', ['filed', 'evidence_window', 'appealed'])->countAllResults(),
             'stalledSettlements' => $settlementModel->where('status', 'stalled')->countAllResults(),
+            'highValueDisposals' => $highValueDisposals,
         ]);
     }
 }

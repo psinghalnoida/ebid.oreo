@@ -62,5 +62,18 @@
     </p>
   <?php endforeach; ?>
   <?php if (empty($stalledSettlements)): ?><p style="font-size:12px; color:var(--ink-3);">None</p><?php endif; ?>
+
+  <h3 style="font-size:15px; margin-top:20px;">High-Value Disposal Records (BR-49, &gt;₹10L)</h3>
+  <?php foreach ($highValueDisposals as $d): ?>
+    <p style="font-size:13px; padding:10px; border-bottom:1px solid var(--line);">
+      <a href="/settlements/<?= esc($d['settlement_id']) ?>">₹<?= number_format((float) $d['final_sale_value'], 2) ?></a>
+      <span style="color:var(--ink-3); font-size:11px;">
+        RV ₹<?= $d['reserve_value'] !== null ? number_format((float) $d['reserve_value'], 2) : '—' ?>
+        · Variance ₹<?= number_format((float) $d['variance'], 2) ?>
+        · <?= esc(strtoupper($d['sale_format'])) ?>
+      </span>
+    </p>
+  <?php endforeach; ?>
+  <?php if (empty($highValueDisposals)): ?><p style="font-size:12px; color:var(--ink-3);">None</p><?php endif; ?>
 </main>
 <?= $this->endSection() ?>
