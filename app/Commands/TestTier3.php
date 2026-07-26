@@ -162,6 +162,34 @@ class TestTier3 extends BaseCommand
         }
         $this->assert($offerBlocked, 'The conflict-of-interest block also applies to Buy-Now offer submission, not just Easy bidding');
 
+        CLI::write("\n=== PR-17: re-enrollment requires the isolated TOTP-gated session, not just regular login ===", 'yellow');
+        $superAdminAuth = new \App\Libraries\SuperAdminAuthService();
+        $pr17Party = $partyModel->createParty('+919222801009');
+        $roleModel->grantRole($pr17Party['id'], 'super_admin', null);
+
+        $firstSetup = $superAdminAuth->beginTotpSetup($pr17Party['id'], false);
+        $this->assert(!$firstSetup['isReEnrollment'], 'First-time setup is correctly NOT flagged as a re-enrollment');
+        $firstCode = $this->computeTotpCode($firstSetup['secret']);
+        $superAdminAuth->confirmTotpSetup($pr17Party['id'], $firstCode);
+
+        $blockedReEnrollment = false;
+        try {
+            $superAdminAuth->beginTotpSetup($pr17Party['id'], false);
+        } catch (\RuntimeException $e) {
+            $blockedReEnrollment = str_contains($e->getMessage(), 'PR-17');
+        }
+        $this->assert($blockedReEnrollment, 'Re-enrollment WITHOUT the isolated session is genuinely blocked — the real security fix, not just described');
+
+        $allowedReEnrollment = true;
+        $secondSetup = null;
+        try {
+            $secondSetup = $superAdminAuth->beginTotpSetup($pr17Party['id'], true);
+        } catch (\RuntimeException $e) {
+            $allowedReEnrollment = false;
+        }
+        $this->assert($allowedReEnrollment, 'Re-enrollment WITH the isolated session (proving you hold the old device) is correctly allowed');
+        $this->assert($secondSetup && $secondSetup['isReEnrollment'] === true, 'Re-enrollment is correctly flagged as such');
+
         CLI::write("\n" . ($this->fail === 0 ? "🎉 ALL {$this->pass} ASSERTIONS PASSED" : "❌ {$this->fail} FAILURES, {$this->pass} passed"), $this->fail === 0 ? 'green' : 'red');
     }
 

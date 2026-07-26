@@ -2753,3 +2753,71 @@ filter is currently informational only (no state/location field exists
 on a listing beyond the yard PIN code, which doesn't map cleanly to a
 state name) — flagged as a documented gap in the code itself, not a
 silent omission.
+---
+
+### D-53: PR-17 Super Admin credential recovery — a genuine, exploitable security gap found and fixed in already-shipped code
+
+**Decision:** Built PR-17's self-service TOTP re-enrollment — and in the
+process of pulling the exact spec, found that the existing
+`/admin/setup-totp` endpoint (D-29) had a real, exploitable gap that had
+been sitting in shipped code this entire time.
+
+**The gap, found before writing any new code**: `beginTotpSetup()`
+checked only whether the caller held the `super_admin` role — nothing
+checked whether a TOTP secret already existed, and the method
+immediately overwrote it with a fresh one regardless. This meant anyone
+with access to a Super Admin's *regular* session (the standard
+mobile+mPIN login every user has, not the isolated `/admin/login`
+TOTP-gated path) could silently generate and confirm a brand-new TOTP
+secret of their own choosing — hijacking the account's 2FA and locking
+out the real Super Admin — without ever needing to know or confirm the
+existing device. This is precisely the credential-hijack scenario
+PR-17/BR-20 exist to prevent, and it was live in the shipped codebase,
+not a hypothetical.
+
+**Fixed by distinguishing two genuinely different cases, not by
+blocking re-enrollment outright**: first-time setup (no confirmed
+secret exists yet) is unchanged — a genuinely new Super Admin has no
+old device to confirm with, matching D-29's original bootstrap intent.
+Re-enrollment (a confirmed secret already exists) now requires the
+caller to have already passed through the isolated `/admin/login`
+TOTP-gated session — the same `super_admin_totp_verified_at` marker
+`SuperAdminFilter` already checks elsewhere — not just the standard
+session. This is exactly PR-17's own described flow: "Standard SMS-OTP/
+self-service channels are bypassed entirely... routes to the isolated
+TOTP/MFA verification path... requires successful TOTP confirmation
+before it is authorized." If a device is genuinely lost entirely (no
+old TOTP available at all), the existing CLI `reset-totp` path (D-41)
+remains the correct fallback — this fix specifically closes the
+self-service "I still have my old device, let me switch to a new one"
+gap that was previously unbuilt.
+
+**Audit logging added**, matching PR-17's own explicit final step
+("logs the credential change in the immutable audit registry") and this
+project's established convention — distinguishing
+`admin.totp_first_enrolled` from `admin.totp_reenrolled` as genuinely
+different event types, not conflated into one.
+
+**Verified with a dedicated test proving the fix actually blocks the
+real attack, not just that it's described**: a fresh Super Admin
+completes first-time setup normally, then a second `beginTotpSetup`
+call *without* the isolated session is confirmed to genuinely throw
+(not just documented as should-throw), while the same call *with* the
+isolated session succeeds and is correctly flagged as a re-enrollment.
+18 assertions in the extended `test:tier3` suite, all passing.
+
+**Verified over real HTTP too, checking the actual database state, not
+just a redirect**: a real Super Admin completed first-time setup, then
+attempted re-enrollment using only the regular session. Confirmed the
+redirect matched the error path (not the success view), and — the
+definitive proof — confirmed directly in the database that the
+original TOTP secret was genuinely never overwritten by the blocked
+attempt, still marked `enabled=true`.
+
+**Full regression: 285 assertions across all seventeen engines, zero
+failures.**
+
+**This closes PR-17 completely**, alongside the existing CLI
+`reset-totp` fallback (D-41) for the genuinely-lost-device case —
+together covering both halves of Super Admin credential recovery this
+document describes.

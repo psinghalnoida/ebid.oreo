@@ -26,8 +26,13 @@ class SuperAdminAuthController extends BaseController
         $partyId = $this->requireLogin();
         if (!$partyId) return redirect()->to('/login');
 
+        // PR-17: was the caller genuinely authenticated via the
+        // isolated /admin/login TOTP-gated path (proving they hold the
+        // CURRENT device), not just the regular mobile+mPIN session?
+        $isolatedVerified = session()->get('super_admin_totp_verified_at') !== null;
+
         try {
-            $setup = $this->auth->beginTotpSetup($partyId);
+            $setup = $this->auth->beginTotpSetup($partyId, $isolatedVerified);
         } catch (\RuntimeException $e) {
             return redirect()->to('/')->with('error', $e->getMessage());
         }
