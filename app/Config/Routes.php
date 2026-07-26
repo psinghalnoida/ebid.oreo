@@ -107,6 +107,11 @@ $routes->get('/admin/audit-log', 'AuditLogController::index', ['filter' => 'supe
 $routes->get('/admin/audit-log/verify', 'AuditLogController::verifyIntegrity', ['filter' => 'superAdmin']);
 $routes->get('/admin/audit-log/export', 'AuditLogController::exportForm', ['filter' => 'superAdmin']);
 $routes->get('/admin/audit-log/export/download', 'AuditLogController::export', ['filter' => 'superAdmin']);
+$routes->get('/tenants/(:segment)/media-waiver', 'TenantMediaWaiverController::requestForm/$1');
+$routes->post('/tenants/(:segment)/media-waiver', 'TenantMediaWaiverController::requestSubmit/$1');
+$routes->get('/admin/media-waivers', 'TenantMediaWaiverController::pendingList', ['filter' => 'superAdmin']);
+$routes->post('/admin/media-waivers/(:segment)/decide', 'TenantMediaWaiverController::decide/$1', ['filter' => 'superAdmin']);
+$routes->post('/admin/media-waivers/(:segment)/revoke', 'TenantMediaWaiverController::revoke/$1', ['filter' => 'superAdmin']);
 $routes->get('/admin/delist-seller', 'SellerDelistingController::form', ['filter' => 'superAdmin']);
 $routes->post('/admin/delist-seller', 'SellerDelistingController::submit', ['filter' => 'superAdmin']);
 $routes->get('/preferences', 'PreferencesController::form');

@@ -113,6 +113,24 @@ class ListingController extends BaseController
             ]);
         }
 
+        // BR-60: representative imagery can only be selected under a
+        // genuinely active, approved waiver for this tenant+category —
+        // checked server-side, not trusted from the form.
+        $category = $this->request->getPost('category');
+        $wantsRepresentativeMedia = $this->request->getPost('media_is_representative_under_waiver') === '1';
+        $representativeMediaFlag = false;
+        if ($wantsRepresentativeMedia) {
+            $hasWaiver = (new \App\Libraries\TenantMediaWaiverService())->isCbsProhibitionWaived($tenantId, $category);
+            if (!$hasWaiver) {
+                return view('listing/create', [
+                    'title' => 'List an Asset — eBid Hub',
+                    'tenants' => $this->tenantModel->findAll(),
+                    'error' => 'BR-60: this tenant has no active media waiver for this category — representative imagery cannot be used.',
+                ]);
+            }
+            $representativeMediaFlag = true;
+        }
+
         try {
             $listing = $this->listingModel->createListing([
                 'tenant_id' => $tenantId,
@@ -135,6 +153,7 @@ class ListingController extends BaseController
                 'shipping_cost_type' => $shippingCostType,
                 'shipping_fixed_cost' => $shippingCostType === 'fixed' ? (float) $this->request->getPost('shipping_fixed_cost') : null,
                 'shipping_variable_rate_per_km' => $shippingCostType === 'variable' ? (float) $this->request->getPost('shipping_variable_rate_per_km') : null,
+                'media_is_representative_under_waiver' => $representativeMediaFlag,
             ]);
         } catch (\Throwable $e) {
             return view('listing/create', [

@@ -3101,3 +3101,65 @@ failures.**
 
 **Phase 2 complete**: BR-56 (D-57) and BR-58 (this decision) are both
 closed. BR-60 (Tenant Media Waiver) is the one remaining Phase 2 item.
+---
+
+### D-59: BR-60 Tenant Media Waiver — Phase 2 closed
+
+**Decision:** Built BR-60's complete lifecycle — a Tenant Admin requests
+a waiver scoped to one category with a business justification, Super
+Admin reviews and approves (12-month expiry from grant, per the
+document's exact language) or declines, and can revoke immediately for
+a serious issue independent of the normal cycle. Auto-lapse on
+inactivity is wired into the scheduler, since the document is explicit
+that "inaction results in lapse, not continuation."
+
+**Two real bugs caught before they ever ran, not after:**
+1. `lapseExpired()` originally returned a bare integer count. Every
+   other scheduler method returns an array of affected IDs, and
+   `runAll()`'s own summary logic calls `count()` on every result —
+   calling `count()` on an integer is a genuine PHP 8 `TypeError`. This
+   would have crashed *every single scheduler run* the moment this
+   method got wired in. Caught by checking the established pattern
+   before assuming a different return type was fine, not by running the
+   code and watching it fail.
+2. The waiver *request* form's controller originally accepted any
+   logged-in party, not just the tenant's actual Tenant Admin — checked
+   before considering the controller complete, and fixed using the
+   existing `AuthorizationService::isTenantAdminFor` check already
+   established elsewhere in this codebase, rather than writing a new,
+   parallel check.
+
+**The real, buildable enforcement point, chosen deliberately given a
+documented, pre-existing limitation**: `MediaService`'s own comments
+already state that actual stock-photo detection is explicitly out of
+scope in this codebase (would require computer vision) and that CBS
+compliance is "a trust/audit-time concern, not a code-enforced one."
+Given that, BR-60's genuinely buildable system effect is the disclosure
+requirement itself: a seller can only mark a listing's media as
+"representative" if their tenant genuinely holds an active, approved
+waiver for that listing's category — checked server-side against the
+real waiver table, not trusted from the form — and that disclosure is
+then shown prominently to buyers, matching the document's explicit
+"must visibly disclose" requirement. Used the same safe boolean-cast
+pattern already established from D-55's fix, applied proactively this
+time rather than found as a bug afterward.
+
+**Verified over real HTTP across the entire lifecycle in one
+continuous test**: an unauthorized user's request attempt genuinely
+created nothing — confirmed directly against the database (exactly one
+waiver record exists, and it traces back to the real Tenant Admin's own
+mobile number, not the unauthorized attempt) rather than trusting a
+flash-message grep that came back empty for the now-familiar reason
+(the redirect target doesn't render flash messages, same pattern as
+D-51/D-53 — checked the authoritative source instead of assuming
+failure). A listing attempt to use representative imagery before
+approval is genuinely blocked; the identical attempt after a real Super
+Admin approval (genuine TOTP login) genuinely succeeds, with the
+required disclosure genuinely visible on the real listing page.
+
+**Full regression: 286 assertions across all seventeen engines, zero
+failures.**
+
+**This closes Phase 2 completely** — BR-56 (D-57), BR-58 (D-58), and
+BR-60 (this decision) are all built and verified. `docs/BR_PR_AUDIT.md`
+updated accordingly.

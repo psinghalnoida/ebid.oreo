@@ -78,6 +78,11 @@
         style="display:block; width:100%; padding:10px; margin:8px 0; border:1px solid var(--line); border-radius:8px;">
     </div>
 
+    <label style="display:block; font-size:13px; padding:4px 0 16px;">
+      <input type="checkbox" name="media_is_representative_under_waiver" value="1">
+      Use representative imagery under an active BR-60 Tenant Media Waiver (only works if your tenant has one approved for this category)
+    </label>
+
     <button type="submit" class="btn btn-emerald" style="width:100%;">Create Listing</button>
   </form>
 </main>

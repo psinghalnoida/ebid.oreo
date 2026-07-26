@@ -19,6 +19,7 @@ class ListingModel extends Model
         'surveyor_party_id', 'custodian_party_id',
         'related_group_id', 'related_group_label',
         'shipping_enabled', 'shipping_cost_type', 'shipping_fixed_cost', 'shipping_variable_rate_per_km',
+        'media_is_representative_under_waiver',
         'status', 'rejection_reason', 'superseded_by_listing_id', 'archived_at', 'updated_at',
         'media_tier', 'media_count',
     ];

@@ -60,6 +60,12 @@
     <tr><td style="padding:8px 0; color:var(--ink-3);">Quantity</td><td><?= esc($listing['quantity']) ?> (<?= esc($listing['quantity_basis']) ?>)</td></tr>
     <tr><td style="padding:8px 0; color:var(--ink-3);">Make/Model</td><td><?= esc($listing['make_model'] ?? '—') ?></td></tr>
     <tr><td style="padding:8px 0; color:var(--ink-3);">Location</td><td><?= esc($listing['yard_location_address']) ?> — <?= esc($listing['yard_location_pin']) ?></td></tr>
+    <?php if (in_array($listing['media_is_representative_under_waiver'], [true, 't', 1, '1'], true)): ?>
+    <tr>
+      <td style="padding:8px 0; color:var(--ink-3);">Images</td>
+      <td style="color:#9C5B1F;">⚠️ Representative imagery only (BR-60 Tenant Media Waiver) — not item-specific photographs.</td>
+    </tr>
+    <?php endif; ?>
     <tr>
       <td style="padding:8px 0; color:var(--ink-3);">Shipping</td>
       <td>

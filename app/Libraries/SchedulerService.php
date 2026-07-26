@@ -150,6 +150,7 @@ class SchedulerService
             'easyAuctionsClosed' => $this->processExpiredEasyAuctions(),
             'staleOffersLapsed' => $this->processStaleOffers(),
             'settlementsFlaggedStalled' => $this->processStalledSettlements(),
+            'mediaWaiversLapsed' => (new TenantMediaWaiverService())->lapseExpired(),
         ];
 
         // BR-05: every scheduler run is a genuine "configuration/state

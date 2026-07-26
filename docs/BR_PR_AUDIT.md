@@ -126,8 +126,15 @@ The transactional core remains genuinely solid — this deeper pass didn't find 
 
 **BR-35 was found to be far larger than originally scoped** — pulling the actual document revealed roughly 28 individually-named, individually-weighted graduated rating events, several depending on infrastructure that doesn't exist at all (participation streaks, fishing detection). Only one generic call site exists today. Rather than build a partial subset and call it addressed, this has been moved to Phase 4 as its own dedicated item, sized comparably to BR-38 and BR-61.
 
+## Phase 2 closure (D-57, D-58, D-59) — ✅ complete
+
+**✅ BR-56 (GST-compliant invoicing)** — automatic on Buy-Now/Easy/Express, explicitly excluded on Tender per the document's own text. Verified against the platform's own published Fee Schedule worked example.
+
+**✅ BR-58 (statutory audit trail export)** — a CSV export layered on the existing hash-chained trail (D-45–49), Super Admin only, hot tier only (cold tier remains blocked on real GCS credentials, unchanged since D-45).
+
+**✅ BR-60 (Tenant Media Waiver)** — full request/approve/decline/revoke/auto-lapse lifecycle, verified end-to-end over real HTTP including the unauthorized-request block and the disclosure requirement.
+
 **Revised remaining phases:**
-- **Phase 2** (next): BR-56 (GST invoicing), BR-58 (audit trail export), BR-60 (Tenant Media Waiver)
-- **Phase 3**: BR-61 (Standing Review), BR-54 (AML monitoring), BR-50 (payout change control process)
+- **Phase 3** (next): BR-61 (Standing Review), BR-54 (AML monitoring), BR-50 (payout change control process)
 - **Phase 4**: PR-04 (Sovereign Rule Revision), BR-35 (full graduated event table), BR-46 (gated on a Gemini key), BR-52 (gated on the real payment gateway)
 

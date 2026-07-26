@@ -27,6 +27,7 @@
   <a href="/admin/delist-seller" class="btn btn-ghost" style="margin-left:8px;">Delist Seller (Confirmed Fraud)</a>
   <a href="/admin/audit-log" class="btn btn-ghost" style="margin-left:8px;">Audit Log</a>
   <a href="/admin/audit-log/export" class="btn btn-ghost" style="margin-left:8px;">Statutory Export</a>
+  <a href="/admin/media-waivers" class="btn btn-ghost" style="margin-left:8px;">Media Waivers</a>
 
   <h3 style="font-size:16px; margin-top:28px;">Tenants</h3>
   <table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:13px;">
