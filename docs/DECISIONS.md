@@ -2882,3 +2882,58 @@ right" in isolation.
 **This closes both BR-47 and BR-49.** Remaining from the priority list:
 BR-24 (Shipping, no fields exist yet) and BR-46 (AI pre-audit, gated on
 a real Gemini API key).
+---
+
+### D-55: BR-24 Shipping Attribution — built, and the recurring Postgres boolean bug caught for what may be the last easily-preventable time
+
+**Decision:** Built BR-24's shipping declaration — a seller toggle at
+listing time, Fixed or Variable (per-km) cost if enabled, and the
+buyer's self-collection path always available regardless. `shipping_
+enabled`/`shipping_cost_type`/`shipping_fixed_cost`/`shipping_variable_
+rate_per_km` added to `listing`. CLV budget-matching (D-52) already
+correctly evaluates strictly on Basic Cost — it was never touched by
+shipping data in the first place, so BR-24's explicit requirement on
+that point was satisfied by construction, not by additional work.
+
+**Explicitly scoped down, not silently assumed**: "Variable (distance-
+based) Cost" is captured as the seller's declared per-km rate — actually
+computing a specific buyer's landed shipping cost would need real
+distance calculation against a buyer's address, which needs BR-18's
+multi-address schema (not yet built, flagged in `docs/BR_PR_AUDIT.md`).
+Flagged directly in the migration's own comments, not left as a silent
+gap discovered later.
+
+**The exact recurring Postgres boolean bug, caught again**: `shipping_
+enabled` correctly stored `'f'` for a non-shipping listing, but
+`listing/show.php`'s display check (`if ($listing['shipping_enabled'])`)
+evaluated the string `'f'` as truthy — the *fourth* distinct time this
+exact category of bug has been found and fixed in this project (D-33's
+landing page join, D-46's payload/timestamp fixes are a different flavor
+of the same underlying "PostgreSQL driver returns non-native types"
+class of issue, and D-50 hit the identical boolean case three times in
+one file). Caught the same way every time: by actually testing a
+*negative* case over real HTTP rather than only the positive one — the
+shipping-enabled listing displayed correctly on the first try, and only
+checking the **no-shipping** listing surfaced that it incorrectly showed
+"Available" data instead of "Self-collection only." Fixed with the same
+established `in_array($value, [true, 't', 1, '1'], true)` cast pattern
+already used everywhere else this bug has been found. No other call
+site referenced this field from a database row (the creation controller
+only ever compares a raw POST string, which doesn't carry this risk).
+
+**Verified over real HTTP for both cases, not just the one that worked
+first**: a shipping-enabled listing genuinely shows its fixed cost and
+the self-collect note; a no-shipping listing genuinely shows
+"Self-collection only" — confirmed only after the fix, with the actual
+page content checked directly rather than assumed from the database
+value alone.
+
+**Full regression: 285 assertions across all seventeen engines, zero
+failures.**
+
+**This closes BR-24 and, with it, every item from `docs/BR_PR_AUDIT.md`'s
+originally-flagged "major gaps" list except BR-46 (AI pre-audit,
+genuinely blocked on a real Gemini API key — the same category of gap as
+the payment gateway and SMS provider, not a build-effort gap) and cold-
+tier audit archival (blocked on real Google Cloud credentials, same
+category).**

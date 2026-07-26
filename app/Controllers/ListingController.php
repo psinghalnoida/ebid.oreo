@@ -101,6 +101,18 @@ class ListingController extends BaseController
             $relatedGroupId = $existingGroupMember ? $existingGroupMember['related_group_id'] : \App\Libraries\Uuid::v4();
         }
 
+        // BR-24: shipping is always optional for the buyer regardless
+        // of this setting — a self-collection path is never removed.
+        $shippingEnabled = $this->request->getPost('shipping_enabled') === '1';
+        $shippingCostType = $shippingEnabled ? $this->request->getPost('shipping_cost_type') : null;
+        if ($shippingEnabled && !in_array($shippingCostType, ['fixed', 'variable'], true)) {
+            return view('listing/create', [
+                'title' => 'List an Asset — eBid Hub',
+                'tenants' => $this->tenantModel->findAll(),
+                'error' => 'BR-24: choose either a Fixed or Variable shipping cost if shipping is enabled.',
+            ]);
+        }
+
         try {
             $listing = $this->listingModel->createListing([
                 'tenant_id' => $tenantId,
@@ -119,6 +131,10 @@ class ListingController extends BaseController
                 'custodian_party_id' => $custodianPartyId,
                 'related_group_id' => $relatedGroupId,
                 'related_group_label' => $relatedGroupLabel !== '' ? $relatedGroupLabel : null,
+                'shipping_enabled' => $shippingEnabled,
+                'shipping_cost_type' => $shippingCostType,
+                'shipping_fixed_cost' => $shippingCostType === 'fixed' ? (float) $this->request->getPost('shipping_fixed_cost') : null,
+                'shipping_variable_rate_per_km' => $shippingCostType === 'variable' ? (float) $this->request->getPost('shipping_variable_rate_per_km') : null,
             ]);
         } catch (\Throwable $e) {
             return view('listing/create', [

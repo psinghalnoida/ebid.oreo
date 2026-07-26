@@ -18,6 +18,7 @@ class ListingModel extends Model
         'yard_location_pin', 'inspector_party_id', 'inspector_contact_note',
         'surveyor_party_id', 'custodian_party_id',
         'related_group_id', 'related_group_label',
+        'shipping_enabled', 'shipping_cost_type', 'shipping_fixed_cost', 'shipping_variable_rate_per_km',
         'status', 'rejection_reason', 'superseded_by_listing_id', 'archived_at', 'updated_at',
         'media_tier', 'media_count',
     ];

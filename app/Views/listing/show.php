@@ -60,6 +60,21 @@
     <tr><td style="padding:8px 0; color:var(--ink-3);">Quantity</td><td><?= esc($listing['quantity']) ?> (<?= esc($listing['quantity_basis']) ?>)</td></tr>
     <tr><td style="padding:8px 0; color:var(--ink-3);">Make/Model</td><td><?= esc($listing['make_model'] ?? '—') ?></td></tr>
     <tr><td style="padding:8px 0; color:var(--ink-3);">Location</td><td><?= esc($listing['yard_location_address']) ?> — <?= esc($listing['yard_location_pin']) ?></td></tr>
+    <tr>
+      <td style="padding:8px 0; color:var(--ink-3);">Shipping</td>
+      <td>
+        <?php if (in_array($listing['shipping_enabled'], [true, 't', 1, '1'], true)): ?>
+          <?php if ($listing['shipping_cost_type'] === 'fixed'): ?>
+            Available — ₹<?= number_format((float) $listing['shipping_fixed_cost'], 2) ?> flat
+          <?php else: ?>
+            Available — ₹<?= number_format((float) $listing['shipping_variable_rate_per_km'], 2) ?>/km (distance-based)
+          <?php endif; ?>
+          <span style="color:var(--ink-3); font-size:12px;"> · or self-collect free</span>
+        <?php else: ?>
+          Self-collection only — no shipping offered
+        <?php endif; ?>
+      </td>
+    </tr>
     <?php if ($listing['rejection_reason']): ?>
     <tr><td style="padding:8px 0; color:var(--ink-3);">Rejection Reason</td><td style="color:#B5482F;"><?= esc($listing['rejection_reason']) ?></td></tr>
     <?php endif; ?>

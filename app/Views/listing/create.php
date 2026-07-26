@@ -60,6 +60,24 @@
     <input type="text" name="related_group_label" placeholder="e.g. Flood-Affected Fleet — July 2026"
       style="display:block; width:100%; padding:10px; margin:4px 0 20px; border:1px solid var(--line); border-radius:8px; font-size:13px;">
 
+    <p style="font-size:12px; color:var(--ink-3); margin:16px 0 4px;">Shipping (BR-24) — always optional for the buyer, who can self-collect for free regardless.</p>
+    <label style="display:block; font-size:13px; padding:4px 0 10px;">
+      <input type="checkbox" name="shipping_enabled" value="1" id="shipping-toggle" onchange="document.getElementById('shipping-options').style.display = this.checked ? 'block' : 'none';">
+      I can also offer to ship this item
+    </label>
+    <div id="shipping-options" style="display:none; margin-bottom:16px;">
+      <label style="font-size:12px; color:var(--ink-3);">
+        <input type="radio" name="shipping_cost_type" value="fixed" checked> Fixed Cost
+      </label>
+      <label style="font-size:12px; color:var(--ink-3); margin-left:16px;">
+        <input type="radio" name="shipping_cost_type" value="variable"> Variable (distance-based)
+      </label>
+      <input type="number" name="shipping_fixed_cost" placeholder="Fixed cost (₹)"
+        style="display:block; width:100%; padding:10px; margin:8px 0; border:1px solid var(--line); border-radius:8px;">
+      <input type="number" name="shipping_variable_rate_per_km" placeholder="Rate per km (₹)"
+        style="display:block; width:100%; padding:10px; margin:8px 0; border:1px solid var(--line); border-radius:8px;">
+    </div>
+
     <button type="submit" class="btn btn-emerald" style="width:100%;">Create Listing</button>
   </form>
 </main>
