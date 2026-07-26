@@ -110,6 +110,10 @@ $routes->post('/admin/delist-seller', 'SellerDelistingController::submit', ['fil
 $routes->get('/preferences', 'PreferencesController::form');
 $routes->post('/preferences', 'PreferencesController::submit');
 $routes->get('/ticker-feed', 'LiveTickerController::feed');
+$routes->get('/sale-events/(:segment)/emd-consent/(:segment)', 'EmdConsentController::form/$1/$2');
+$routes->post('/sale-events/(:segment)/emd-consent/(:segment)/confirm', 'EmdConsentController::confirm/$1/$2');
+$routes->get('/sale-events/(:segment)/defect-disclosure', 'SaleEventController::defectDisclosureForm/$1');
+$routes->post('/sale-events/(:segment)/defect-disclosure', 'SaleEventController::defectDisclosureSubmit/$1');
 $routes->get('/admin/tenants/(:segment)', 'TenantController::view/$1', ['filter' => 'superAdmin']);
 $routes->post('/admin/tenants/(:segment)/edit', 'TenantController::editSubmit/$1', ['filter' => 'superAdmin']);
 $routes->get('/tenants', 'TenantController::directory');

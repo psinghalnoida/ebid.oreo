@@ -1,67 +1,58 @@
 # eBid Hub — Complete BR/PR Audit (Phase 1 Scope)
 
-Cross-referenced against the full BR-01 to BR-61 / PR-01 to PR-31+ document and everything actually built (D-01 through D-43). Organized by what actually matters most first.
+Cross-referenced against the full BR-01 to BR-61 / PR-01 to PR-36 document and everything actually built (D-01 through D-55). Organized by what actually matters most first.
+
+**Note on this document's history**: Section 1 below was the original audit (D-43). Several items it originally listed as major gaps have since been closed — kept here with a clear ✅ marker and a pointer to the decision that closed them, rather than deleted, so the history of what was found and when stays intact. A second, deeper pass through BR-50–BR-61 specifically (which the original audit under-covered) is appended near the end of this document under "Update — second full pass."
 
 ---
 
-## 1. Genuinely major gaps — not built at all
+## 1. Genuinely major gaps at the time of the original audit — current status
 
-### BR-05 / PR-05 — Immutable Audit Trail (hot/cold tiering, hash-chaining, Log Reader)
-**What's specified**: An append-only, tamper-evident audit trail — every record cryptographically hash-chained to the previous one, so retroactive tampering is detectable even with raw database access. Logs under 1 year stay "hot" in Postgres; older logs compress and move to "cold" cloud storage, retained 5 years minimum. A unified Log Reader merges both tiers, visible to Super Admin only.
-**What exists**: Ordinary `created_at`/`updated_at` timestamps on individual tables. No dedicated audit_log table, no hash chaining, no hot/cold tiering, no Log Reader UI, no 5-year retention policy.
-**Why it matters**: This underpins BR-58's statutory bookkeeping export too — that's blocked until this exists.
+### ✅ BR-05 / PR-05 — Immutable Audit Trail — **CLOSED (D-45 through D-49)**
+Hash-chained, tamper-evident, verified against a genuine simulated attack (a raw superuser bypassing the application entirely). Wiring covers authentication, bidding, listing decisions, settlements, disputes, admin actions, the full EMD lifecycle, emergency stops, and scheduler runs. **Still open**: cold-tier archival (blocked on real Google Cloud credentials) and the export capability described in BR-58 (see the second-pass section below).
 
-### BR-38 — Crawl-Back & Shadow Banning (rehabilitation system)
-**What's specified**: A buyer below 2★ enters Crawl-Back — restricted to a tenant's "Low" value bracket until a defined number of clean transactions restores 3★. Below a further threshold, graduated visibility suppression (Shadow Banning) applies — not a hard block, just reduced platform-driven visibility. A platform-wide 1★ floor applies, raisable via a standing-deposit formula.
-**What exists**: A single placeholder threshold value (D-08, still unconfirmed) sitting unused in `RatingService`. No value-bracket restriction, no visibility suppression, no standing-deposit formula — this entire rehabilitation mechanism is unbuilt.
+### ✅ BR-38 — Crawl-Back & Shadow Banning — **CLOSED (D-50, D-51)**
+Full rehabilitation ladder built and enforced — not just tracked: a restricted buyer is genuinely blocked from bidding above their Low bracket, Shadow Banned sellers are genuinely excluded from Browse, and confirmed-fraud delisting is a real, platform-wide, Super-Admin-only action.
 
-### BR-23 / CLV Matching — buyer preferences and filtering
-**What's specified**: Buyers set preferred categories, comfort inspection locations, and a budget range — driving personalized recommendations and notifications.
-**What exists**: Nothing — no preference storage, no filtering beyond the basic category/format filters added in D-40's Browse page.
+### ✅ BR-23 / CLV Matching — **CLOSED (D-52)**
+Buyer preferences (categories, comfort states, budget range) built and driving real match computation.
 
-### BR-48 / PR-26 — Live Ticker
-**What's specified**: A personalized, WebSocket-driven scrolling feed — a fixed panel showing the buyer's EMD balance, prioritizing their own active bids, filling remaining space with CLV interest matches, with Shadow Ban-aware behavior.
-**What exists**: D-42 built genuine real-time *price updates on a listing page* — a real and working piece of the underlying mechanism — but not this specific personalized, cross-auction ticker experience. Depends on BR-23 (unbuilt) for the interest-match half anyway.
+### ✅ BR-48 / PR-26 — Live Ticker — **CLOSED (D-52)**
+A genuine global sidebar with a real WebSocket architecture extension (buyer-scoped rooms, distinct from D-42's original sale-event rooms) — verified with a real bid producing a real live push to a buyer's own ticker.
 
-### PR-04 — Sovereign Rule Revision (live rules engine)
+### PR-04 — Sovereign Rule Revision (live rules engine) — **still open**
 **What's specified**: A Super Admin UI to view, edit, and version business rules/thresholds directly, with a mandatory audit comment per change, live-updating application behavior.
-**What exists**: Every business rule is hardcoded in PHP. Changing any threshold (the 150% ceiling, the 10% EMD baseline, anything) requires a code change and redeploy, not an admin action.
+**What exists**: Every business rule is hardcoded in PHP. Changing any threshold (the 150% ceiling, the 10% EMD baseline, anything) requires a code change and redeploy, not an admin action. Genuinely large — this is closer to a rules-engine rewrite than a feature addition, and hasn't been attempted.
 
-### BR-47 / PR-25 — Related Auctions
-**What's specified**: Sellers group multiple independent listings sharing an origin (e.g., a flood-affected lot) into a browsable strip, each item still fully independent transactionally.
-**What exists**: Nothing.
+### ✅ BR-47 / PR-25 — Related Auctions — **CLOSED (D-54)**
+Listings grouped by seller-chosen label, format-constrained (no Express, must match the group's existing format), a real display strip verified with a working link between grouped items.
 
-### BR-49 / PR-27 — High-Value Disposal Reporting
-**What's specified**: Any completed sale over ₹10,00,000 automatically generates an RV-vs-final-price variance record, surfaced to both Tenant Admin and Super Admin, no manual trigger.
-**What exists**: Nothing — no threshold check, no auto-generated record.
+### ✅ BR-49 / PR-27 — High-Value Disposal Reporting — **CLOSED (D-54)**
+Deterministic, non-discretionary — fires automatically at the exact ₹10L threshold stated in the document, surfaced on both the Tenant Admin and Super Admin dashboards.
 
-### BR-46 / PR-10 — AI Listing Pre-Audit (Gemini)
-**What's specified**: An optional, advisory Gemini-powered check before submission — completeness score, title suggestions, missing B2B metadata flags.
-**What exists**: Nothing.
+### BR-46 / PR-10 — AI Listing Pre-Audit (Gemini) — **still open, gated on you**
+Needs a real Gemini API key — same category as the payment gateway and SMS provider. No build-effort blocker, just an external account that doesn't exist yet.
 
-### BR-24 — Shipping attribution
-**What's specified**: Seller toggles shipping on/off at listing time, sets Fixed or Variable cost; buyer can always self-collect at no shipping cost.
-**What exists**: Nothing — no shipping fields anywhere on a listing.
+### ✅ BR-24 — Shipping attribution — **CLOSED (D-55)**
+Fixed or Variable cost declaration, buyer self-collection always available regardless, correctly kept separate from CLV's Basic-Cost-only matching.
 
-### BR-61 — Seller Standing Review
-**Known and already flagged** (D-23/D-30) as deferred to Tier 4. Confirmed still unbuilt — the system-initiated review consolidating CBS violations and dispute outcomes into one periodic case.
+### BR-61 — Seller Standing Review — **still open, now understood far more precisely**
+See the second-pass section below — this turned out to be a genuinely distinct, much more detailed mechanism than the original audit captured.
 
-### PR-28/29/30/31 — Payout verification, Terms/consent audit trail, chargeback representment, AML monitoring
-All four unbuilt. PR-29's per-pledge consent logging in particular is worth flagging — right now there's no recorded acknowledgment of the specific forfeiture consequence at the moment a buyer pledges EMD.
+### PR-28/29/30/31 — Payout verification, consent audit trail, chargeback representment, AML monitoring — **still open**
+See the second-pass section below for the accurate, expanded detail on each.
 
 ---
 
-## 2. Built, but narrower than the actual spec — needs correction, not new construction
+## 2. Built, but narrower than the actual spec at the time — current status
 
-### BR-21 / PR-18 — Asset-level role exclusion
-**Spec**: blocks three *distinct* bound roles — Surveyor, Yard Inspector, and Physical Custodian — any of whom could be a different person from the others.
-**Built**: only a single `inspector_party_id` field is checked. If a listing has a separate surveyor or custodian bound to it, they are currently **not** blocked from bidding. This is a real conflict-of-interest gap, not just a naming mismatch.
+### ✅ BR-21 / PR-18 — Asset-level role exclusion — **CLOSED (D-44)**
+All three distinct bound roles (Surveyor, Yard Inspector, Physical Custodian) are now genuinely checked, each independently, verified over real HTTP with a real bound surveyor blocked from a real offer.
 
-### PR-17 — Super Admin's own TOTP re-enrollment (self-service)
-**Spec**: Super Admin submits a credential-change request while their *current* TOTP still works, confirms with it, and re-enrolls a new device — no server access needed.
-**Built** (D-43... actually D-29/D-41): only the "device is already lost, no working TOTP at all" fallback via `reset-totp` (CLI, requires Arpit). The self-service "I still have my old device, let me switch to a new one" path was never built — every TOTP change currently requires server access, even routine ones.
+### ✅ PR-17 — Super Admin's own TOTP re-enrollment — **CLOSED (D-53)**
+Genuinely closed a real, exploitable credential-hijack gap in already-shipped code, not just the originally-scoped self-service convenience — a regular session could previously overwrite an existing Super Admin's TOTP secret with zero confirmation of the old device.
 
-### BR-35 — Graduated rating event tables
+### BR-35 — Graduated rating event tables — still open, unverified
 **Spec**: a detailed table of named events, each with a specific point value (small 0.1-0.3★, moderate 0.4-0.7★, large 0.8★+), asymmetric caps (positive movement capped lower than negative).
 **Built**: `RatingService` has upgrade/downgrade/approval-gating logic, but I have not verified it implements this *specific, granular table* of named events rather than simpler fixed increments — worth a dedicated review pass against the actual table.
 
@@ -89,8 +80,54 @@ Auth (BR-02/03), Tenant Admin delegation (BR-09) including the seller-suspension
 
 ---
 
-## Honest summary
+## Honest summary (as of the original audit — see below for current status)
 
-The **transactional core is genuinely solid** — everything money touches (EMD, cascade, settlement, disputes, ratings' approval gates) matches the spec closely. The gaps cluster in two places: **trust/safety mechanisms that only bite at scale** (audit trail, Shadow Banning, Standing Review — things that matter more once there's real transaction volume to police) and **discovery/convenience features** (CLV matching, Live Ticker, Related Auctions, AI pre-audit — things that make the platform pleasant to use, not things that make a transaction fail if missing).
+At the time of the original audit, the transactional core was genuinely solid while a cluster of trust/safety and discovery features remained unbuilt. **Every item flagged in this original section has since closed**, except PR-04 (Sovereign Rule Revision), BR-46 (gated on a real Gemini API key), and BR-61 (Seller Standing Review, now far better understood — see below). See the CLOSED markers above for exactly which decision closed each one.
 
-If I had to pick where real risk sits: **BR-05's audit trail** is the one I'd prioritize first among the unbuilt items — everything else in this list is either a UX gap or a growth-stage safety net, but a tamper-evident audit trail is the kind of thing that's much harder to retrofit convincingly after real transactions have already happened without it.
+---
+
+## Update — second full pass (this session)
+
+The first audit above was built by searching the document broadly, and it under-covered BR-50 through BR-61 specifically — that range barely featured. A second, deliberately deeper pass through that section found a genuinely substantial amount of scope that was previously either unflagged or flagged with far less detail than the document actually specifies. Everything below is newly captured, not previously listed.
+
+### Genuinely new major gaps — not built, not previously flagged in detail
+
+**BR-51 / PR-29 — Consent Capture & Audit Trail.** The document requires *discrete, timestamped* consent events — not one signup-time checkbox — specifically: registration Terms acceptance, KYC consent, and critically, **a specific forfeiture acknowledgment shown immediately before every single EMD pledge**, naming the exact deposit amount and consequence, that the buyer must explicitly confirm. None of this exists. Every EMD pledge on the platform today happens via a plain "fund EMD" button with no acknowledgment step at all. This is a real gap given how much weight the document places on it as the platform's actual evidentiary defense in a dispute or chargeback.
+
+**BR-56 / PR-32 — Mandatory Transaction Invoicing.** No invoice — GST-compliant or otherwise — is generated anywhere on settlement completion, for any format. The document treats this as automatic and non-optional on Buy-Now, Express, and Easy.
+
+**BR-57 / PR-33 — Express Auction Defect Disclosure.** A mandatory structured checklist (known damage, missing components, non-functional aspects) is supposed to block Express listing submission entirely until completed, specifically *because* Express has no inspection window. No such checklist exists anywhere in the Express listing flow today — a seller can currently list on Express with zero disclosure of any kind.
+
+**BR-61 / PR-36 — Seller Standing Review.** This is a distinct, much broader mechanism than D-51's confirmed-fraud delisting, and genuinely unbuilt as its own thing: every CBS violation, dispute outcome, and rejected auction is supposed to accumulate toward a periodic review — triggered by either an annual anniversary *or* crossing 10 complaints, whichever comes first — with a specific graduated CBS-offense ladder (1st/2nd warning only, 3rd/4th Tenant Admin discretion with mandatory SaaS Admin visibility, 5th+ SaaS Admin exclusive authority), dual Tenant/SaaS review, and three possible outcomes including suspension. None of this accumulation, triggering, or review logic exists. D-51's delisting is correctly scoped to confirmed fraud only and doesn't attempt to cover this.
+
+**BR-60 / PR-35 — Tenant Media Waiver.** The CBS "no stock photography" rule (BR-59, built) has a defined exception path — a Tenant can apply to SaaS Admin for a category-specific waiver, reviewed, 12-month expiry with mandatory active renewal. No request/approval mechanism exists; the CBS prohibition is currently absolute with no waiver path at all.
+
+**BR-58 — Statutory Books Export.** The audit trail itself (BR-05) is genuinely built and tamper-evident (D-45–49) — but the document's actual requirement is an *export* capability for statutory bookkeeping, and no export function of any kind exists yet. The data is there; nothing extracts it.
+
+**BR-50 / PR-28 — Payout Account Change Control.** No payout mechanism exists at all yet (payment gateway is stubbed), so this is adjacent to that larger gap — but worth naming specifically, since the document treats the *control process itself* (OTP re-verification, a mandatory 24-hour cooling-off period, before/after audit logging) as a distinct requirement independent of which gateway eventually gets connected.
+
+**BR-54 / PR-31 — AML Transaction Monitoring.** No pattern detection exists for the specific behaviors named (rapid deposit-then-refund cycles, deposits inconsistent with KYC profile, multiple accounts funding from one external account). Genuinely distinct from the fishing/circumvention monitoring mentioned elsewhere in the document, which addresses a different risk.
+
+**PR-04 — Sovereign Rule Revision.** Confirmed still unbuilt, carried over from the original audit — every business rule remains hardcoded in PHP, not editable through any admin UI.
+
+### Confirmed correctly deferred, not oversights
+
+**BR-52 / PR-30 (Chargeback Mitigation)** and parts of **BR-55 (enhanced due diligence)** are genuinely blocked on the real payment gateway being connected — the same category as the payment gateway itself, not a build-effort gap. **BR-53 (TDS)** explicitly states its own rate needs confirmation from a tax advisor before implementation — the document itself defers this, not a gap in this build. **BR-55's base KYC requirement** depends on BR-17/18 (KYC), already known and explicitly deferred to Tier 4 since early in this project.
+
+### Honest summary of this pass
+
+The transactional core remains genuinely solid — this deeper pass didn't find anything wrong with what's built, only additional scope that was never built in the first place. The new gaps cluster almost entirely around **compliance and accountability infrastructure that only matters at real operating scale** — invoicing, consent evidencing, the Standing Review pattern-detection system, AML monitoring — rather than anything a single transaction today would actually fail without. If prioritizing from this new list specifically, **BR-51's per-pledge consent capture** is the one I'd flag first: it's small to build, and the document is explicit that it's the platform's actual evidentiary defense in a real dispute — a gap here has real consequences the moment a contested forfeiture happens, not just at scale.
+
+---
+
+## Phase 1 closure (D-56) — ✅ BR-51, ✅ BR-57, BR-35 re-scoped
+
+**✅ BR-51 (consent capture)** and **✅ BR-57 (Express defect disclosure)** are closed — see D-56 for the full detail, including real HTTP verification of both the block and the success path.
+
+**BR-35 was found to be far larger than originally scoped** — pulling the actual document revealed roughly 28 individually-named, individually-weighted graduated rating events, several depending on infrastructure that doesn't exist at all (participation streaks, fishing detection). Only one generic call site exists today. Rather than build a partial subset and call it addressed, this has been moved to Phase 4 as its own dedicated item, sized comparably to BR-38 and BR-61.
+
+**Revised remaining phases:**
+- **Phase 2** (next): BR-56 (GST invoicing), BR-58 (audit trail export), BR-60 (Tenant Media Waiver)
+- **Phase 3**: BR-61 (Standing Review), BR-54 (AML monitoring), BR-50 (payout change control process)
+- **Phase 4**: PR-04 (Sovereign Rule Revision), BR-35 (full graduated event table), BR-46 (gated on a Gemini key), BR-52 (gated on the real payment gateway)
+

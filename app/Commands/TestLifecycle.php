@@ -92,6 +92,20 @@ class TestLifecycle extends BaseCommand
             'listing_id' => $expressListing['id'], 'tenant_id' => $tenant['id'], 'ern' => 'TEST-LIFECYCLE-EXPRESS-001',
             'sale_format' => 'express', 'reserve_value' => 30000, 'status' => 'pending_approval',
         ]);
+
+        // BR-57: mandatory before an Express sale event can be approved.
+        $blockedWithoutDisclosure = false;
+        try {
+            $lifecycle->approveSaleEvent($expressEvent['id']);
+        } catch (\RuntimeException $e) {
+            $blockedWithoutDisclosure = str_contains($e->getMessage(), 'BR-57');
+        }
+        $this->assert($blockedWithoutDisclosure, 'BR-57: an Express sale event cannot be approved without the defect disclosure completed');
+
+        $saleEventModel->update($expressEvent['id'], [
+            'defect_disclosure_known_damage' => 'None.', 'defect_disclosure_missing_components' => 'None.',
+            'defect_disclosure_nonfunctional_aspects' => 'None.', 'defect_disclosure_completed_at' => date('Y-m-d H:i:s'),
+        ]);
         $approvedExpress = $lifecycle->approveSaleEvent($expressEvent['id']);
         $this->assert($approvedExpress['status'] === 'active', 'BR-14: Express skips grace period, goes straight to active');
         $this->assert($approvedExpress['grace_period_ends_at'] === null, 'Express has no grace_period_ends_at set');

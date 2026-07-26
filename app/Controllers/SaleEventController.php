@@ -174,9 +174,49 @@ class SaleEventController extends BaseController
     // route filter (resource type 'saleEvent').
     public function approve(string $saleEventId)
     {
-        $this->lifecycle->approveSaleEvent($saleEventId);
+        try {
+            $this->lifecycle->approveSaleEvent($saleEventId);
+        } catch (\RuntimeException $e) {
+            $saleEvent = $this->saleEventModel->find($saleEventId);
+            return redirect()->to("/listings/{$saleEvent['listing_id']}")->with('error', $e->getMessage());
+        }
         $saleEvent = $this->saleEventModel->find($saleEventId);
         return redirect()->to("/listings/{$saleEvent['listing_id']}");
+    }
+
+    // BR-57: mandatory for Express specifically, since no inspection
+    // window exists — the seller's only accountability mechanism.
+    public function defectDisclosureForm(string $saleEventId)
+    {
+        $sellerId = session()->get('logged_in_party_id');
+        if (!$sellerId) return redirect()->to('/login');
+
+        $saleEvent = $this->saleEventModel->find($saleEventId);
+        if (!$saleEvent || $saleEvent['sale_format'] !== 'express') {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        return view('sale_event/defect_disclosure', ['title' => 'Defect Disclosure — eBid Hub', 'saleEvent' => $saleEvent]);
+    }
+
+    public function defectDisclosureSubmit(string $saleEventId)
+    {
+        $sellerId = session()->get('logged_in_party_id');
+        if (!$sellerId) return redirect()->to('/login');
+
+        $saleEvent = $this->saleEventModel->find($saleEventId);
+        $this->saleEventModel->update($saleEventId, [
+            'defect_disclosure_known_damage' => $this->request->getPost('known_damage') ?: 'None disclosed.',
+            'defect_disclosure_missing_components' => $this->request->getPost('missing_components') ?: 'None disclosed.',
+            'defect_disclosure_nonfunctional_aspects' => $this->request->getPost('nonfunctional_aspects') ?: 'None disclosed.',
+            'defect_disclosure_completed_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        (new \App\Libraries\AuditLogService())->log('sale_event.defect_disclosure_completed', $sellerId, [
+            'saleEventId' => $saleEventId,
+        ]);
+
+        return redirect()->to("/listings/{$saleEvent['listing_id']}")->with('error', 'Defect disclosure completed — the listing can now be approved.');
     }
 
     // ⚠️ DEV-ONLY: BR-14's real 60-minute grace window can't be waited out

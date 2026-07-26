@@ -2937,3 +2937,77 @@ genuinely blocked on a real Gemini API key — the same category of gap as
 the payment gateway and SMS provider, not a build-effort gap) and cold-
 tier audit archival (blocked on real Google Cloud credentials, same
 category).**
+---
+
+### D-56: Phase 1 closure — BR-51 consent capture, BR-57 defect disclosure, and an honest re-scoping of BR-35
+
+**Decision:** Following the second BR/PR audit pass, began systematic
+closure organized into four phases. Phase 1 targeted the smallest,
+highest-value, dependency-free items.
+
+**BR-51 — Per-pledge consent capture, the priority item.** A real
+`consent_event` table, append-only at the database level (same lockdown
+discipline as `audit_log`, D-45) — confirmed via the actual grant table,
+not assumed. Every EMD funding path — Easy/Tender's flat fund, Buy-Now's
+offer fund, Express's pledge — now routes through a genuine confirmation
+page naming the exact deposit amount and forfeiture consequence, with an
+explicit checkbox required before the pledge proceeds. Verified over
+real HTTP in both directions: an unconfirmed attempt genuinely creates
+zero EMD holds; a genuine confirmation creates both the hold and the
+consent record together, with the correct amount and the sale event as
+the reference. The old direct-fund routes remain intact and unchanged
+for the existing test suite, which still exercises the underlying
+funding logic directly — only the real user-facing path now requires
+consent first.
+
+**BR-57 — Express defect disclosure.** A mandatory checklist (known
+damage, missing components, non-functional aspects) now genuinely
+blocks Express approval — a real `RuntimeException` in
+`ListingLifecycleService::approveSaleEvent`, not a UI suggestion.
+Displayed to buyers on the listing page once completed, per the
+document's explicit requirement that it accompany the listing
+throughout the live auction.
+
+**A real regression, caught and fixed correctly, not worked around**:
+the existing `test:lifecycle` suite had an Express fixture that never
+completed the disclosure, so the new block correctly fired against it.
+Fixed by making the test complete the disclosure first — matching the
+new real requirement — rather than weakening the rule to make the old
+test pass. Checked every other test file for the same pattern before
+considering this closed; only one other file called
+`approveSaleEvent` on an Express event, and it turned out to be an Easy
+event genuinely unaffected.
+
+**BR-35 — re-scoped honestly, not partially built and called done.**
+The original phase plan treated this as a small verification task.
+Pulling the actual document text revealed a genuinely large graduated
+event table — roughly 28 distinct, individually-named, individually-
+weighted events across both buyer and seller ratings (Prompt NOC
+Confirmation +0.1★, Sustained Clean Streak +0.6★, Confirmed Fishing
+Pattern −1.5★, and so on). Checked what's actually wired today before
+estimating anything: exactly one generic call site exists
+(`SettlementService::submitRating`'s flat +0.1 for any "good" outcome).
+Several of the specific named events depend on infrastructure that
+doesn't exist at all yet — participation-streak counters, off-platform
+solicitation ("fishing") detection, defect-disclosure-dishonesty
+detection tied to a dispute outcome. Rather than build a partial,
+arbitrary subset of these 28 events and represent BR-35 as addressed,
+this is being explicitly re-scoped into its own dedicated phase — the
+same treatment BR-38 (Crawl-Back) and BR-61 (Standing Review) received,
+given it's genuinely comparable in size.
+
+**Full regression: 286 assertions across all seventeen engines, zero
+failures**, confirmed in a fully continuous pass after fixing an
+unrelated environment hiccup (Postgres wasn't running at one point mid-
+session — a sandbox reset, not a code issue — caught immediately by the
+regression itself failing to connect, restarted, and re-verified clean).
+
+**Revised phase plan, reflecting BR-35's true size:**
+- **Phase 2** (next, no dependencies): BR-56 (GST invoicing), BR-58
+  (audit trail export), BR-60 (Tenant Media Waiver)
+- **Phase 3** (larger, more design surface): BR-61 (Standing Review),
+  BR-54 (AML monitoring), BR-50 (payout account change control process)
+- **Phase 4** (very large or genuinely blocked): PR-04 (Sovereign Rule
+  Revision), BR-35 (full graduated event table, now correctly sized
+  here rather than in Phase 1), BR-46 (blocked on a real Gemini key),
+  BR-52 (blocked on the real payment gateway)

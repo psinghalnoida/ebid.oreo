@@ -164,6 +164,19 @@
       <?php elseif ($saleEvent['sale_format'] === 'express'): ?>
         <p id="live-price" style="font-size:32px; font-weight:800; margin:4px 0;">₹<?= number_format((float)($saleEvent['current_price'] ?? $saleEvent['reserve_value']), 2) ?></p>
         <p style="font-size:12px; color:var(--ink-3);">Reserve: ₹<?= number_format((float) $saleEvent['reserve_value'], 2) ?> · EMD required: ₹<?= number_format((float) $saleEvent['reserve_value'] * 0.10, 2) ?></p>
+
+        <?php if ($saleEvent['defect_disclosure_completed_at']): ?>
+          <div style="background:var(--line-soft); padding:14px; border-radius:10px; margin-top:14px;">
+            <p style="font-size:12px; font-weight:700; margin:0 0 8px;">Seller's Defect Disclosure (BR-57)</p>
+            <p style="font-size:12px; margin:0 0 4px;"><strong>Known damage:</strong> <?= esc($saleEvent['defect_disclosure_known_damage']) ?></p>
+            <p style="font-size:12px; margin:0 0 4px;"><strong>Missing components:</strong> <?= esc($saleEvent['defect_disclosure_missing_components']) ?></p>
+            <p style="font-size:12px; margin:0;"><strong>Non-functional aspects:</strong> <?= esc($saleEvent['defect_disclosure_nonfunctional_aspects']) ?></p>
+          </div>
+        <?php elseif ($isOwner): ?>
+          <a href="/sale-events/<?= esc($saleEvent['id']) ?>/defect-disclosure" class="btn btn-ghost" style="margin-top:14px; display:inline-block;">
+            Complete Required Defect Disclosure (BR-57)
+          </a>
+        <?php endif; ?>
       <?php else: ?>
         <p id="live-price" style="font-size:32px; font-weight:800; margin:4px 0;">₹<?= number_format((float)($saleEvent['current_price'] ?? $saleEvent['reserve_value']), 2) ?></p>
         <p style="font-size:12px; color:var(--ink-3);">Reserve: ₹<?= number_format((float) $saleEvent['reserve_value'], 2) ?> · EMD required: ₹<?= number_format((float) $saleEvent['reserve_value'] * 0.10, 2) ?></p>
@@ -185,10 +198,10 @@
       <?php endif; ?>
 
       <?php if ($saleEvent['status'] === 'active' && $saleEvent['sale_format'] === 'easy'): ?>
-        <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/dev-fund-emd" style="margin-top:16px;">
-          <p style="font-size:12px; color:var(--ink-3);">⚠️ Dev-only: simulates cleared EMD payment (no payment gateway connected yet)</p>
-          <button type="submit" class="btn btn-ghost">Fund EMD (dev)</button>
-        </form>
+        <a href="/sale-events/<?= esc($saleEvent['id']) ?>/emd-consent/easy_or_tender" class="btn btn-ghost" style="margin-top:16px; display:inline-block;">
+          Fund EMD — Confirm & Pledge
+        </a>
+        <p style="font-size:11px; color:var(--ink-3); margin-top:4px;">⚠️ Dev-only: simulates cleared EMD payment (no payment gateway connected yet)</p>
         <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/bid" style="margin-top:10px; display:flex; gap:8px;">
           <input type="number" name="amount" placeholder="Bid amount" required step="0.01"
             style="flex:1; padding:12px; border:1px solid var(--line); border-radius:10px;">
@@ -197,10 +210,10 @@
       <?php endif; ?>
 
       <?php if ($saleEvent['status'] === 'active' && $saleEvent['sale_format'] === 'buy_now'): ?>
-        <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/dev-fund-emd-offer" style="margin-top:16px;">
-          <p style="font-size:12px; color:var(--ink-3);">⚠️ Dev-only: simulates cleared EMD payment (no payment gateway connected yet)</p>
-          <button type="submit" class="btn btn-ghost">Fund EMD (dev)</button>
-        </form>
+        <a href="/sale-events/<?= esc($saleEvent['id']) ?>/emd-consent/buy_now" class="btn btn-ghost" style="margin-top:16px; display:inline-block;">
+          Fund EMD — Confirm & Pledge
+        </a>
+        <p style="font-size:11px; color:var(--ink-3); margin-top:4px;">⚠️ Dev-only: simulates cleared EMD payment (no payment gateway connected yet)</p>
         <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/offers" style="margin-top:10px; display:flex; gap:8px;">
           <input type="number" name="amount" placeholder="Offer amount" required step="0.01"
             style="flex:1; padding:12px; border:1px solid var(--line); border-radius:10px;">
@@ -239,10 +252,10 @@
           <?php endif; ?>
         </div>
 
-        <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/pledge" style="margin-top:12px;">
-          <p style="font-size:12px; color:var(--ink-3);">⚠️ Dev-only: simulates cleared EMD payment. The pledge-count/trigger logic itself is real.</p>
-          <button type="submit" class="btn btn-ghost">Pledge Reserve (fund EMD)</button>
-        </form>
+        <a href="/sale-events/<?= esc($saleEvent['id']) ?>/emd-consent/express" class="btn btn-ghost" style="margin-top:12px; display:inline-block;">
+          Pledge Reserve — Confirm & Fund EMD
+        </a>
+        <p style="font-size:11px; color:var(--ink-3); margin-top:4px;">⚠️ Dev-only: simulates cleared EMD payment. The pledge-count/trigger logic itself is real.</p>
 
         <?php if ($expressState['biddingOpen']): ?>
         <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/express-bid" style="margin-top:10px; display:flex; gap:8px;">

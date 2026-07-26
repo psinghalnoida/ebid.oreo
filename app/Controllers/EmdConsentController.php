@@ -1,0 +1,95 @@
+<?php
+
+namespace App\Controllers;
+
+use App\Libraries\EmdService;
+use App\Libraries\ConsentService;
+use App\Models\SaleEventModel;
+use App\Models\EmdHoldModel;
+
+class EmdConsentController extends BaseController
+{
+    private SaleEventModel $saleEventModel;
+
+    public function __construct()
+    {
+        $this->saleEventModel = new SaleEventModel();
+    }
+
+    public function form(string $saleEventId, string $action)
+    {
+        $partyId = session()->get('logged_in_party_id');
+        if (!$partyId) return redirect()->to('/login');
+
+        $saleEvent = $this->saleEventModel->find($saleEventId);
+        if (!$saleEvent) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $baseline = EmdService::calculateBaselineEmd(
+            $saleEvent['sale_format'],
+            $saleEvent['expected_value'] !== null ? (float) $saleEvent['expected_value'] : null,
+            $saleEvent['reserve_value'] !== null ? (float) $saleEvent['reserve_value'] : null
+        );
+
+        return view('emd/consent', [
+            'title' => 'Confirm Your Deposit — eBid Hub',
+            'saleEvent' => $saleEvent, 'amount' => $baseline, 'action' => $action,
+        ]);
+    }
+
+    public function confirm(string $saleEventId, string $action)
+    {
+        $partyId = session()->get('logged_in_party_id');
+        if (!$partyId) return redirect()->to('/login');
+
+        if ($this->request->getPost('confirmed') !== '1') {
+            return redirect()->to("/sale-events/{$saleEventId}/emd-consent/{$action}")
+                ->with('error', 'You must explicitly confirm before your deposit is pledged.');
+        }
+
+        $saleEvent = $this->saleEventModel->find($saleEventId);
+        $baseline = EmdService::calculateBaselineEmd(
+            $saleEvent['sale_format'],
+            $saleEvent['expected_value'] !== null ? (float) $saleEvent['expected_value'] : null,
+            $saleEvent['reserve_value'] !== null ? (float) $saleEvent['reserve_value'] : null
+        );
+
+        $forfeitureText = 'if the auction closes and you fail to complete your obligation, this deposit is forfeited — allocated to the Tenant, SaaS, and (where applicable) the seller per the platform\'s standard forfeiture rules.';
+
+        (new ConsentService())->recordEmdPledgeConsent(
+            $partyId, $saleEventId, $baseline, $forfeitureText, $this->request->getIPAddress()
+        );
+
+        match ($action) {
+            'easy_or_tender' => $this->fundStandard($saleEventId, $partyId, $baseline),
+            'buy_now' => $this->fundOffer($saleEventId, $partyId, $baseline),
+            'express' => $this->fundExpress($saleEventId, $partyId),
+            default => throw new \RuntimeException("Unknown consent action: {$action}"),
+        };
+
+        return redirect()->to("/listings/{$saleEvent['listing_id']}");
+    }
+
+    private function fundStandard(string $saleEventId, string $partyId, float $baseline): void
+    {
+        $emdHoldModel = new EmdHoldModel();
+        $existing = $emdHoldModel->findBySaleEventAndParty($saleEventId, $partyId);
+        if (!$existing || $existing['status'] !== 'held') {
+            $emdHoldModel->createHold($saleEventId, $partyId, 'van', $baseline);
+            (new \App\Libraries\AuditLogService())->log('emd.held', $partyId, [
+                'saleEventId' => $saleEventId, 'amount' => $baseline, 'channel' => 'van',
+            ], $this->request->getIPAddress(), (string) $this->request->getUserAgent());
+        }
+    }
+
+    private function fundOffer(string $saleEventId, string $partyId, float $baseline): void
+    {
+        $this->fundStandard($saleEventId, $partyId, $baseline);
+    }
+
+    private function fundExpress(string $saleEventId, string $partyId): void
+    {
+        (new \App\Libraries\ExpressAuctionService())->pledgeReserve($saleEventId, $partyId);
+    }
+}

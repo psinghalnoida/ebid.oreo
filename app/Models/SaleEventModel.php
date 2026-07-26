@@ -22,6 +22,8 @@ class SaleEventModel extends Model
         'tender_increment', 'tender_increment_halved', 'tender_increment_halving_minutes',
         'actual_closed_at', 'rejection_reason',
         'emergency_stopped_at', 'emergency_stop_reason', 'updated_at',
+        'defect_disclosure_known_damage', 'defect_disclosure_missing_components',
+        'defect_disclosure_nonfunctional_aspects', 'defect_disclosure_completed_at',
     ];
 
     public function createSaleEvent(array $data): array

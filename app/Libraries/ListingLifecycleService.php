@@ -134,6 +134,13 @@ class ListingLifecycleService
             throw new \RuntimeException('Sale event must be pending_approval to approve');
         }
 
+        // BR-57: Express has no inspection window, so the seller's
+        // defect disclosure is the only accountability mechanism
+        // available — approval is blocked entirely without it.
+        if ($saleEvent['sale_format'] === 'express' && $saleEvent['defect_disclosure_completed_at'] === null) {
+            throw new \RuntimeException('BR-57: this Express Auction cannot be approved until the seller completes the mandatory defect disclosure checklist.');
+        }
+
         if (in_array($saleEvent['sale_format'], ['easy', 'buy_now'], true)) {
             $graceEndsAt = (new \DateTimeImmutable())->modify('+60 minutes');
             $this->saleEventModel->update($saleEventId, [
