@@ -105,6 +105,8 @@ $routes->post('/listings/(:segment)/edit', 'ListingController::editSubmit/$1');
 $routes->post('/sale-events/(:segment)/emergency-stop', 'SaleEventController::emergencyStop/$1', ['filter' => 'tenantAdmin:saleEvent']);
 $routes->get('/admin/audit-log', 'AuditLogController::index', ['filter' => 'superAdmin']);
 $routes->get('/admin/audit-log/verify', 'AuditLogController::verifyIntegrity', ['filter' => 'superAdmin']);
+$routes->get('/admin/audit-log/export', 'AuditLogController::exportForm', ['filter' => 'superAdmin']);
+$routes->get('/admin/audit-log/export/download', 'AuditLogController::export', ['filter' => 'superAdmin']);
 $routes->get('/admin/delist-seller', 'SellerDelistingController::form', ['filter' => 'superAdmin']);
 $routes->post('/admin/delist-seller', 'SellerDelistingController::submit', ['filter' => 'superAdmin']);
 $routes->get('/preferences', 'PreferencesController::form');

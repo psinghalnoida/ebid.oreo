@@ -3063,3 +3063,41 @@ failures.**
 **Phase 2 progress**: BR-56 ✅ closed. BR-58 (audit trail export) and
 BR-60 (Tenant Media Waiver) remain, both independent of this and of
 each other.
+---
+
+### D-58: BR-58 statutory audit trail export — Phase 2, item 2
+
+**Decision:** Built the export capability BR-58 actually asks for —
+its own text is explicit that this is "a reporting/export capability
+layered on the existing audit trail, not a separate data-capture
+requirement," so no new schema was needed; D-45 through D-49 already
+built the hash-chained data itself. A CSV export, gated to Super Admin
+(the same access level as the existing Log Reader, D-45), covering
+sequence number, timestamp, event type, actor (joined to their real
+mobile number), IP address, payload, and both hash fields — enough for
+the finance function to use directly, and enough to independently
+re-verify the chain from the exported file alone if needed.
+
+**Scoped honestly, not silently**: this covers the hot tier only.
+Cold-tier archival remains exactly where it's been since D-45 — blocked
+on real Google Cloud credentials, the same category of gap as the
+payment gateway. Stated plainly on the export page itself, not just in
+this log.
+
+**Verified over real HTTP, both the access control and the actual
+content**: a regular user genuinely cannot reach the export (redirected
+to the Super Admin login, same as every other admin-only route);
+the real Super Admin (genuine TOTP login) downloaded a genuine CSV.
+Caught my own test artifact before treating it as a bug — an initial
+capture accidentally included HTTP headers in the file due to a curl
+flag combination on my end, not the actual response; recaptured cleanly
+and confirmed the real file: a correct header row, properly CSV-escaped
+JSON payloads (embedded quotes doubled per CSV convention, not broken),
+a genuine record hash chaining from the actual genesis hash, and 109
+real rows drawn from real test data.
+
+**Full regression: 286 assertions across all seventeen engines, zero
+failures.**
+
+**Phase 2 complete**: BR-56 (D-57) and BR-58 (this decision) are both
+closed. BR-60 (Tenant Media Waiver) is the one remaining Phase 2 item.
