@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\TenantModel;
 use App\Models\DisputeModel;
 use App\Models\SettlementModel;
+use App\Models\AmlFlagModel;
 
 class AdminController extends BaseController
 {
@@ -13,6 +14,7 @@ class AdminController extends BaseController
         $tenantModel = new TenantModel();
         $disputeModel = new DisputeModel();
         $settlementModel = new SettlementModel();
+        $amlFlagModel = new AmlFlagModel();
 
         // BR-49: "included in the Super Admin's audit console" —
         // platform-wide, not scoped to any single tenant.
@@ -29,6 +31,7 @@ class AdminController extends BaseController
             'tenants' => $tenantModel->findAll(),
             'openDisputes' => $disputeModel->whereIn('status', ['filed', 'evidence_window', 'appealed'])->countAllResults(),
             'stalledSettlements' => $settlementModel->where('status', 'stalled')->countAllResults(),
+            'openAmlFlags' => $amlFlagModel->where('status', 'open')->countAllResults(),
             'highValueDisposals' => $highValueDisposals,
         ]);
     }

@@ -3307,3 +3307,96 @@ folder explains what each document is and why it's there; the main
 
 **No code changes in this decision** — purely a durability and
 continuity improvement for the project's own foundation.
+
+---
+
+### D-62: BR-54/PR-31 AML Monitoring — built literally to the governing text, not the larger platform separately discussed
+
+**Decision:** The project owner brought a much larger AML/fraud-risk
+platform concept to discuss first (a 0–100 risk-scoring engine, device/
+browser fingerprinting, VPN/emulator/root detection, case management,
+watchlists, a full dashboard). Before building anything, the actual
+governing text was pulled and quoted directly from
+`eBid_Hub_Unified_BR_PR.docx` — consistent with BR-01's own discuss-
+first discipline, and with the "no deviation" instruction this project
+has held to since D-31. BR-54's actual scope is far narrower: three
+named patterns (rapid deposit-then-refund cycling with no genuine
+bidding activity, deposits inconsistent with declared KYC profile,
+multiple accounts funding/funded from the same external bank account),
+reviewed exclusively by SaaS Admin (never Tenant Admin, never the User —
+PR-31's explicit text), with a Suspicious-Transaction-Report filing
+decision and full audit logging. The project owner confirmed building
+BR-54 exactly as governed now, with the larger platform concept left
+undecided as a separate, future item rather than folded into this BR.
+
+**Two of the three patterns are honestly, not silently, limited by data
+that doesn't exist yet elsewhere in this codebase — flagged in code
+comments, not just here:**
+1. **KYC-inconsistent deposits** checks a real column
+   (`party.org_annual_turnover`) against real deposit amounts — but no
+   KYC data-entry flow exists yet (BR-17/18, deferred to Tier 4), so
+   this column is null for virtually every party today. The logic is
+   real and will fire correctly the moment that data exists; it just
+   realistically flags nothing yet.
+2. **Shared external funding source** checks `emd_hold.gateway_reference`
+   — confirmed by grepping every `createHold()` call site in this
+   codebase that nothing ever populates this column, since the payment
+   gateway itself remains stubbed (deferred post-deployment, D-23).
+   Building a detector against a column nothing writes real values into
+   would be security theater, not a real control — same honesty
+   standard as BR-59's stock-photo detection being out of scope. The
+   query is correct and will catch real collisions the moment a real
+   gateway populates this field.
+
+**The one pattern with real, populated data today — deposit-then-refund
+cycling — is genuinely wired**: an `emd_hold` that was funded and later
+released without the funding party ever placing a bid or offer on that
+sale_event counts as a zero-participation cycle; three or more within a
+rolling 14-day window raises a flag. Genuine losing bidders (who did
+bid/offer but lost) are correctly never counted, no matter how many
+times their EMD is released.
+
+**New pieces:** `aml_flag` table, `AmlFlagModel`, `AmlMonitoringService`
+(the three detectors plus SaaS Admin's `reviewFlag`), `AmlController`
+gated entirely behind the existing `superAdmin` filter (`/admin/aml`),
+wired into `SchedulerService::runAll()` so screening is genuinely
+continuous per PR-31's text ("System continuously screens... activity"),
+and a new stat tile + link on the Super Admin dashboard.
+
+**Verified with a dedicated test (`spark test:aml`, 16 assertions)**,
+including the two honest limitations proven directly rather than
+assumed: a party with no declared turnover is confirmed never flagged
+however large the deposit; a hold created through this codebase's real
+`createHold()` path is confirmed to have a null `gateway_reference`.
+Also verified: the idempotency guard (repeated scheduler runs don't
+duplicate an already-open flag), the STR-reference-mandatory-when-
+filing rule, rejection of re-reviewing an already-decided flag, and
+that both the flag-raised and flag-reviewed events land in the
+existing hash-chained audit trail (BR-05).
+
+**Verified over real HTTP, not just spark tests**: an unauthenticated
+request to `/admin/aml` and to its review POST endpoint both correctly
+redirect to `/admin/login`, identical to every other `superAdmin`-gated
+route — confirming PR-31's "visible only to SaaS Admin" requirement
+actually holds at the HTTP layer, not just in application logic.
+
+**Full regression: 302 assertions across all eighteen engines (seventeen
+existing plus the new `test:aml`), zero failures**, run on a genuinely
+freshly-migrated database (all 44 migrations from zero).
+
+**A pre-existing, unrelated issue found and flagged, not fixed (out of
+this decision's scope)**: `TestAuditLog.php`'s tampering-simulation step
+shells out to `psql -d ebidhub_ci4`, a hardcoded database name that
+doesn't match `SETUP.md`'s own documented convention (`ebidhub`) — this
+predates this decision entirely and fails in any environment configured
+per `SETUP.md`'s own instructions. Confirmed unrelated to this build by
+running `test:auditlog` in isolation, before any AML code existed in
+the running process. Left as-is since fixing a hardcoded value in an
+unrelated test file wasn't part of what was asked here — noted so it
+isn't mistaken for something this decision broke.
+
+**What's still not decided**: the larger Risk & Compliance platform
+(scoring engine, device intelligence, case management, watchlists,
+dashboard) the project owner originally described remains a real,
+separate, unscheduled item — not part of D-56's revised phase plan,
+and not attempted here.

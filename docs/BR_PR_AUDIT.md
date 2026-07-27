@@ -106,7 +106,7 @@ The first audit above was built by searching the document broadly, and it under-
 
 **BR-50 / PR-28 — Payout Account Change Control.** No payout mechanism exists at all yet (payment gateway is stubbed), so this is adjacent to that larger gap — but worth naming specifically, since the document treats the *control process itself* (OTP re-verification, a mandatory 24-hour cooling-off period, before/after audit logging) as a distinct requirement independent of which gateway eventually gets connected.
 
-**BR-54 / PR-31 — AML Transaction Monitoring.** No pattern detection exists for the specific behaviors named (rapid deposit-then-refund cycles, deposits inconsistent with KYC profile, multiple accounts funding from one external account). Genuinely distinct from the fishing/circumvention monitoring mentioned elsewhere in the document, which addresses a different risk.
+**✅ BR-54 / PR-31 — AML Transaction Monitoring — CLOSED (D-62).** Built literally to the governing text after the project owner brought a much larger risk/compliance platform concept to discuss first — confirmed as a genuine deviation from this BR's actual scope and left as a separate, unscheduled item rather than built here. All three named patterns are wired against real detection logic; the deposit-then-refund cycling pattern is fully live today, while the KYC-inconsistency and shared-funding-source patterns are honestly limited by upstream data that doesn't exist yet (no KYC data-entry flow, no real payment gateway) — flagged explicitly in code, not silently faked. Flags are visible/reviewable by SaaS Admin only, per PR-31's text, verified at the HTTP layer.
 
 **PR-04 — Sovereign Rule Revision.** Confirmed still unbuilt, carried over from the original audit — every business rule remains hardcoded in PHP, not editable through any admin UI.
 
@@ -135,6 +135,6 @@ The transactional core remains genuinely solid — this deeper pass didn't find 
 **✅ BR-60 (Tenant Media Waiver)** — full request/approve/decline/revoke/auto-lapse lifecycle, verified end-to-end over real HTTP including the unauthorized-request block and the disclosure requirement.
 
 **Revised remaining phases:**
-- **Phase 3** (next): BR-61 (Standing Review), BR-54 (AML monitoring), BR-50 (payout change control process)
+- **Phase 3** (in progress): ✅ BR-61 (Standing Review, D-60), ✅ BR-54 (AML monitoring, D-62) — **BR-50 (payout account change control process) is the one remaining item.**
 - **Phase 4**: PR-04 (Sovereign Rule Revision), BR-35 (full graduated event table), BR-46 (gated on a Gemini key), BR-52 (gated on the real payment gateway)
 

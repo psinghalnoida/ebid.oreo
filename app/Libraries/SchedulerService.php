@@ -161,6 +161,19 @@ class SchedulerService
         return $opened;
     }
 
+    // BR-54/PR-31: "System continuously screens deposit, refund, and
+    // transfer activity against defined AML pattern rules" — this is
+    // what makes that screening actually continuous rather than a
+    // one-off manual run. Flattened to a single list of flagged party
+    // IDs (rather than AmlMonitoringService::runAll()'s per-pattern
+    // breakdown) so it fits the same count()-based summary every other
+    // scheduler method already returns.
+    public function processAmlMonitoring(): array
+    {
+        $byPattern = (new \App\Libraries\AmlMonitoringService())->runAll();
+        return array_merge(...array_values($byPattern));
+    }
+
     public function runAll(): array
     {
         $result = [
@@ -171,6 +184,7 @@ class SchedulerService
             'settlementsFlaggedStalled' => $this->processStalledSettlements(),
             'mediaWaiversLapsed' => (new TenantMediaWaiverService())->lapseExpired(),
             'standingReviewAnniversariesOpened' => $this->processStandingReviewAnniversaries(),
+            'amlFlagsRaised' => $this->processAmlMonitoring(),
         ];
 
         // BR-05: every scheduler run is a genuine "configuration/state
