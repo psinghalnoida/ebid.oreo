@@ -27,6 +27,8 @@ class PartyModel extends Model
         'seller_delisted_at', 'seller_delisted_reason', 'seller_delisted_by_party_id',
         'standing_review_complaint_count', 'standing_review_cbs_offense_count', 'standing_review_next_annual_at',
         'forced_neutral_count_buyer', 'forced_neutral_count_seller',
+        'payout_bank_account_number', 'payout_bank_ifsc', 'payout_bank_updated_at',
+        'payout_bank_pending_account_number', 'payout_bank_pending_ifsc', 'payout_bank_pending_activates_at',
         'updated_at',
     ];
 

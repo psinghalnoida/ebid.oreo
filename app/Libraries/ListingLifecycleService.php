@@ -223,9 +223,11 @@ class ListingLifecycleService
     private function releaseAllHoldsForSaleEvent(string $saleEventId): int
     {
         $count = 0;
+        $payoutControl = new \App\Libraries\PayoutControlService();
         foreach ($this->emdHoldModel->findAllBySaleEvent($saleEventId) as $hold) {
-            $this->emdHoldModel->markReleased($hold['id']);
-            $count++;
+            if ($payoutControl->guardedRelease($hold['id'])) {
+                $count++;
+            }
         }
         return $count;
     }

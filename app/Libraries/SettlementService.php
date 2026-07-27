@@ -132,8 +132,14 @@ class SettlementService
                 $fees = EmdService::calculateSettlementFee(
                     (float) $settlement['final_price'], (float) $tenant['buyer_fee_percent'], (float) $hold['amount']
                 );
-                $this->emdHoldModel->markSettled($hold['id'], $fees['tenantAmount'], $fees['saasAmount'], $fees['buyerRefund']);
-                $feeWasSettled = true;
+                // BR-50: a high-value refund to a recently-changed bank
+                // account is deferred to Tenant/SaaS Admin review instead
+                // of settling immediately — $feeWasSettled correctly
+                // reflects that, so the invoice below isn't generated
+                // for a fee that hasn't actually been deducted yet.
+                $feeWasSettled = (new PayoutControlService())->guardedSettle(
+                    $hold['id'], $fees['tenantAmount'], $fees['saasAmount'], $fees['buyerRefund']
+                );
             }
 
             $this->settlementModel->update($settlementId, ['status' => 'completed', 'completed_at' => date('Y-m-d H:i:s')]);

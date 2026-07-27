@@ -3400,3 +3400,105 @@ isn't mistaken for something this decision broke.
 dashboard) the project owner originally described remains a real,
 separate, unscheduled item — not part of D-56's revised phase plan,
 and not attempted here.
+
+---
+
+### D-63: BR-50/PR-28 Payout Account Change Control — Phase 3 fully closed
+
+**Decision:** Built BR-50 literally to the governing text: "(a) OTP
+re-verification of the account holder, (b) a mandatory 24-hour
+cooling-off period before the new account becomes active for any
+payout, and (c) the change is logged with before/after values,
+timestamp, and initiating party. High-value pending payouts
+additionally require Tenant Admin or SaaS Admin review before release
+to a newly-changed account." This closes the last remaining Phase 3
+item (D-23's re-scoped gate) — Phase 3 (BR-61, BR-54, BR-50) is now
+fully complete.
+
+**One bank-details field per party, confirmed with the project owner
+before building anything**: a Seller is a Buyer upgraded on a tenant
+(BR-09) — the same party — so `party.payout_bank_account_number`/`_ifsc`
+serves both a buyer's EMD refund destination (real, and the only
+payout channel this platform actually moves money through today) and a
+future seller settlement payout (currently offline per BR-10.1/D-25),
+rather than two parallel, duplicated fields.
+
+**Design carried the 24-hour cooling-off for free, rather than needing
+extra gating logic**: the newly-requested account is staged in
+`payout_bank_pending_*` columns, never touching the active
+`payout_bank_account_number`/`_ifsc` fields until a scheduler pass
+(`SchedulerService::processPendingPayoutBankChanges`, same timer
+pattern as every other BR-14/Express/offer-lapse mechanic on this
+platform) promotes it — so any payout attempted during the window
+automatically keeps using the still-active OLD account with no special
+"is this still cooling off" check needed anywhere else.
+
+**The high-value review gate required a real architectural decision**:
+five separate call sites across four services
+(`OfferService` ×2, `ListingLifecycleService`, `TenderReviewService`,
+`SettlementService`) called `EmdHoldModel::markReleased`/`markSettled`
+directly, with no shared choke point. Rather than duplicate the gate
+five times, all five now route through a new `PayoutControlService::
+guardedRelease`/`guardedSettle` — the same "one shared choke point, not
+duplicated per caller" pattern already established by
+`BiddingService::placeBid` for real-time broadcasts (D-42). A deferred
+release leaves the underlying `emd_hold` genuinely `held`, not released
+— confirmed directly at the database level, not assumed from a status
+label.
+
+**New pieces**: `payout_release_review` table, `PayoutReleaseReviewModel`,
+`PayoutControlService`, `PayoutBankController` (party-facing request/
+OTP-confirm flow, mirroring `AuthController`'s existing multi-step
+session-staged pattern rather than a new one), `PayoutReviewController`
+at `/admin/payout-reviews` — deliberately reachable by **either** Tenant
+Admin (scoped to only the tenants they actually administer,
+`PartyRoleModel::findAdministeredTenantIds`) or Super Admin (via the
+real TOTP session, not just role membership), since BR-50's text names
+both as valid reviewers, unlike BR-54's SaaS-Admin-only restriction.
+
+**A real gap caught and fixed before it shipped, not after**: the
+first draft of `PayoutReviewController::index()` only checked that
+someone was logged in, not that they actually held Tenant Admin or
+Super Admin authority — meaning any ordinary buyer could have viewed
+the pending high-value review queue. Caught by re-reading the
+controller against BR-50's actual authorization requirement before
+considering it done, not by a failing test (the spark test suite
+exercises `PayoutControlService` directly and wouldn't have caught an
+HTTP-layer authorization gap on its own) — fixed by scoping `index()`
+per-identity and verified over real HTTP afterward specifically because
+of this.
+
+**Verified with a dedicated test (`spark test:payoutcontrol`, 25
+assertions)**: OTP mismatch correctly blocks a change; the confirmed
+change is genuinely staged pending, not active; the scheduler promotes
+it once (a backdated) 24 hours have passed; an ordinary low-value
+release is completely unaffected; a high-value release to a
+recently-changed account is genuinely deferred (hold stays `held`, a
+real pending review row exists) and does not duplicate on a repeated
+call; the 30-day recency window (not specified by BR-50's text — a
+flagged default, same discipline as the settlement-stall and OTP-limit
+thresholds elsewhere) genuinely expires rather than protecting forever;
+a party who never changed their bank details is never gated however
+large the payout; approving a review genuinely executes the withheld
+release; declining one genuinely leaves the hold untouched; and both
+the bank-change request/activation and the review decision are logged
+to the existing hash-chained audit trail (BR-05).
+
+**Verified over real HTTP, not just spark tests**: unauthenticated
+requests to `/payout-bank` and `/admin/payout-reviews` both redirect to
+`/login`; a genuine ordinary logged-in party (registered and logged in
+over real HTTP, not simulated) receives a real **403** on
+`/admin/payout-reviews` while still reaching their own `/payout-bank`
+page (**200**) — confirming the authorization fix above actually holds
+at the HTTP layer.
+
+**Full regression: 327 assertions across all nineteen engines
+(eighteen existing plus the new `test:payoutcontrol`), zero failures**,
+run on a genuinely freshly-migrated database (all 47 migrations from
+zero). The one unrelated `TestAuditLog.php` database-name issue noted
+in D-62 is unchanged by this decision.
+
+**This closes Phase 3 (D-56's revised phase plan) completely**: BR-61
+(D-60), BR-54 (D-62), and BR-50 (this decision). Remaining: Phase 4
+(PR-04 Sovereign Rule Revision, BR-35's full graduated event table,
+BR-46 gated on a Gemini key, BR-52 gated on the real payment gateway).
