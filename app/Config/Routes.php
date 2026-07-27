@@ -128,6 +128,10 @@ $routes->get('/admin/tenants/(:segment)', 'TenantController::view/$1', ['filter'
 $routes->post('/admin/tenants/(:segment)/edit', 'TenantController::editSubmit/$1', ['filter' => 'superAdmin']);
 $routes->get('/tenants', 'TenantController::directory');
 
+// AML Monitoring (BR-54/PR-31) — SaaS Admin only
+$routes->get('/admin/aml', 'AmlController::index', ['filter' => 'superAdmin']);
+$routes->post('/admin/aml/(:segment)/review', 'AmlController::review/$1', ['filter' => 'superAdmin']);
+
 // Legal documents (BR-01/D-15: reviewed structural content, pending fields flagged)
 $routes->get('/terms', 'LegalController::termsOfUsage');
 $routes->get('/privacy', 'LegalController::privacyPolicy');
