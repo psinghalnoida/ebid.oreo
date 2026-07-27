@@ -111,6 +111,7 @@ class AuthController extends BaseController
 
         if ($result['status'] === 'ok') {
             session()->set('logged_in_party_id', $result['party']['id']);
+            (new \App\Models\PartyModel())->update($result['party']['id'], ['last_login_at' => date('Y-m-d H:i:s')]);
             $audit->log('auth.login.success', $result['party']['id'], ['mobile' => $mobile], $ip, $userAgent);
             return view('auth/success', ['title' => 'Welcome back — eBid Hub']);
         }

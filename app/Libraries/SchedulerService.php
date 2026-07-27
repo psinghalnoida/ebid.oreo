@@ -181,6 +181,31 @@ class SchedulerService
         return (new \App\Libraries\PayoutControlService())->promoteDuePendingChanges();
     }
 
+    // Phase 3A: account deletion — genuinely archives (the existing
+    // BR-05 logical-archive mechanism) once the 30-day grace period has
+    // passed, never before, and never if the party cancelled in the
+    // meantime (deletion_requested_at would be null by then).
+    public function processAccountDeletions(): array
+    {
+        $db = \Config\Database::connect();
+        $due = $db->table('party')
+            ->where('deletion_requested_at IS NOT NULL')
+            ->where('deletion_requested_at <=', date('Y-m-d H:i:s', strtotime('-30 days')))
+            ->where('archived_at', null)
+            ->get()->getResultArray();
+
+        $partyModel = new \App\Models\PartyModel();
+        $archived = [];
+        foreach ($due as $party) {
+            $partyModel->update($party['id'], ['archived_at' => date('Y-m-d H:i:s')]);
+            (new \App\Libraries\AuditLogService())->log('account.deletion_finalized', null, [
+                'partyId' => $party['id'], 'reason' => $party['deletion_reason'],
+            ]);
+            $archived[] = $party['id'];
+        }
+        return $archived;
+    }
+
     public function runAll(): array
     {
         $result = [
@@ -193,6 +218,7 @@ class SchedulerService
             'standingReviewAnniversariesOpened' => $this->processStandingReviewAnniversaries(),
             'amlFlagsRaised' => $this->processAmlMonitoring(),
             'payoutBankChangesActivated' => $this->processPendingPayoutBankChanges(),
+            'accountsArchived' => $this->processAccountDeletions(),
         ];
 
         // BR-05: every scheduler run is a genuine "configuration/state

@@ -3759,3 +3759,122 @@ change/deletion, marketplace browse/search/filter, favorites/saved
 searches, `/admin/users`, backup TOTP codes — none of which were
 started this pass, per the project owner's explicit choice to do the
 smallest slice first.
+
+---
+
+### D-66: Phase 3A — account management + real transaction pages
+
+**Decision:** Built the genuinely-missing half of Phase 3A: account
+edit, mPIN change, account deletion (soft, 30-day grace with
+cancellation), an earnings summary, and dedicated, paginated,
+filterable "My Bids" / "My Offers" / "My Purchases" / "My Sales" pages
+— replacing the pending-work document's unpaginated combined
+`/my-activity` page as the real answer for each, while leaving
+`/my-activity` itself untouched for backward compatibility.
+
+**A design question checked against the actual source text before
+building anything**: the document's mockups showed counter-party
+identity masked ("Seller #12345"). BR-16 ("Double-Blind Market Privacy
+& Visibility Matrix") was pulled directly — it specifies full
+anonymity only *during live bidding*; **after close**, the seller
+genuinely sees the H1 winner's real name and details, and in Buy-Now
+each side's real identity unlocks on EMD pledge / offer acceptance.
+Since a settlement only exists post-close, masking on My
+Purchases/Sales would over-anonymize beyond what BR-16 actually
+specifies — these pages show the real counter-party mobile number, not
+a masked placeholder.
+
+**A real bug caught and fixed before it ever ran**: the first draft of
+every new filtered query used a Laravel-style `->when($cond, fn($q) =>
+...)` conditional — CodeIgniter's query builder has no such method.
+Caught by grepping for the pattern across every file touched before
+running anything, not by a failed HTTP request; rewritten as plain
+`if` statements around `$q->where(...)`, the established convention
+already used elsewhere in this codebase (e.g. `AuditLogController`).
+
+**A second real bug caught the same way**: the first draft of
+`myPurchases()` tried to look up each row's dispute via
+`$db->table('dispute')->where('sale_event_id', <a QueryBuilder
+object>)` — not a real subquery in CI4, just a broken comparison.
+Fixed by collecting the page's `sale_event_id`s first and looking up
+disputes in one batched query, avoiding both the bug and an N+1 query
+pattern.
+
+**A genuine schema check before writing the earnings/My Sales
+queries**: the platform's fee split (BR-33) lives on `emd_hold`
+(`forfeited_to_tenant_amount`/`_saas_amount`, reused via `markSettled`,
+D-25), not on `settlement` itself — confirmed by reading the actual
+migration rather than assuming a column name. The join is deliberately
+`LEFT JOIN`: Tender sales use a separate `tender_emd_log` with no
+platform fee deduction at all (BR-56 explicitly excludes Tender), so a
+Tender sale correctly counts toward the sale total while contributing
+exactly zero to the fee total — verified directly, not assumed, since
+an `INNER JOIN` here would have silently dropped every Tender sale from
+"My Sales" entirely.
+
+**Account edit deliberately excludes every BR-17 KYC-verification
+field** (PAN, Aadhaar, CIN, GSTIN, MSME/UDYAM registration, date of
+birth) — those should only change through a real KYC re-verification
+flow (not built, Tier 4), not a casual self-service form. Only
+`full_name`, `recovery_email`, `occupation`, and (for organizations)
+the descriptive business fields are editable. Verified directly that
+the edit path never even reads PAN from the request, let alone writes
+it.
+
+**Account deletion reuses the existing `archived_at` logical-archive
+mechanism** (already governing login eligibility via
+`findByMobile`/`findActiveById`) rather than a new deletion status —
+staged through new `deletion_requested_at`/`deletion_reason` columns
+and a scheduler job, the same "stage now, scheduler finalizes later"
+pattern BR-50's payout cooling-off already established. A cancelled
+request is verified to never finalize; a genuinely 30-days-elapsed
+request is verified to finalize and the party becomes genuinely
+unreachable by mobile lookup afterward — not merely flagged.
+
+**mPIN change is OTP-gated even though the caller is already logged
+in** — a hijacked session cookie alone shouldn't be able to change the
+credential without also controlling the registered mobile. Verified
+over real HTTP, not just the service layer: requested the OTP,
+confirmed with it, then logged out and back in with the *new* mPIN
+successfully — proving the change genuinely took effect, not just that
+the endpoint returned success.
+
+**Settlement detail page extended** with a dispute link (if one exists
+for that sale event) and a real audit-trail section scoped to that
+specific transaction — surfacing BR-05's existing hash-chained data
+per-transaction rather than only via the platform-wide `/admin/audit-log`.
+**Not built this pass**: a full bid-by-bid narrative timeline (bid
+placed → EMD topped up → NOC → rated) — the existing 4-step BR-33
+tracker and the new dispute/audit additions cover most of what was
+asked; a genuinely reconstructed event-by-event timeline is a larger,
+separate visualization task, flagged rather than half-attempted.
+
+**Verified with a dedicated test (`spark test:phase3a`, 17
+assertions)**: pagination math; a cancelled deletion request never
+finalizes while a genuinely-elapsed one does, with the party
+confirmed unreachable by mobile afterward; the Tender/Buy-Now fee-join
+distinction at both the aggregate and per-row level; and account edit
+never touching PAN.
+
+**Verified over real HTTP across every new route**: unauthenticated
+requests to all nine new pages redirect to login; a genuinely
+registered, logged-in party reaches all of them (200) including with
+realistic filter/pagination query strings (format, status, sort, date
+range, page, per_page — exactly the parameter combinations that would
+have caught the `->when()` bug had it shipped); the CSV export
+produces a real, correctly-headered file; and the full write-path
+cycle (edit account → change mPIN → log out → log back in with the
+new mPIN → request deletion → cancel it) was run end-to-end, not just
+individually.
+
+**Full regression: 381 assertions across all twenty-two engines
+(twenty-one existing plus the new `test:phase3a`), zero failures**,
+run on a genuinely freshly-migrated database (all 49 migrations from
+zero).
+
+**What remains of Phase 3A**: "My Settlements" as its own page (largely
+redundant with the union of My Purchases + My Sales, not built
+separately); a generalized amount-range filter and per-tenant filter
+(lower value than date/format/status, not built); saved searches;
+favorites/watchlist (that's Phase 3C territory). Everything else in
+the original acceptance criteria for this phase is now real.
