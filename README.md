@@ -49,6 +49,11 @@ merge needs to happen first — check with Piyush.
 - **`docs/BR_PR_AUDIT.md`** — a full cross-reference of every business
   rule and process workflow against what's actually built, with what
   remains prioritized.
+- **`docs/source-documents/`** — the original governing documents this
+  entire project is built against, including `eBid_Hub_Unified_BR_PR.docx`
+  itself (the canonical BR-01–61/PR-01–36 specification every business
+  rule in this codebase traces back to). Not generated from the code —
+  the other way around.
 - **The deployment guide below** — for putting this on the actual i2k2
   server.
 

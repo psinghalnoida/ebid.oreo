@@ -1,0 +1,160 @@
+eBid Hub — Fee & Charges Schedule
+
+eBid Hub
+
+*Fee **&** Charges Schedule*
+
+Consolidated from eBid Hub's finalized Business Rules — reflects the current, active fee model for Buyers, Sellers, Tenants, and SaaS.
+
+**  NOTE: This schedule states the GST policy (always added on top of stated fees) but not the exact applicable rate or invoicing mechanics — these should be confirmed with a tax advisor before publication.  **
+
+# 1. Overview — Who Pays What
+
+eBid Hub operates a zero-seller-fee model on Buy-Now, Express, and Easy: all platform commission on these formats is funded by the buyer, deducted from their refundable security deposit at settlement. Tender Auction is the one exception — see Section 3.
+
+| **Party** | **Pays / Earns** | **When** |
+| --- | --- | --- |
+| Buyer | Buy-Now/Express/Easy: Security Deposit (EMD, 10% of item value, refundable) and a Transaction Fee defaulting to 5% (tenant-adjustable). Tender Auction: whatever fee, if any, the seller has set as part of that auction's own custom terms. | Deposit pledged at bid/offer time. Fee deducted from the deposit at settlement, or per Tender's own terms. |
+| Seller | Nothing on Buy-Now, Express, or Easy. On Tender Auction: whatever the seller has set for that specific auction — the seller may charge the buyer, absorb a fee themselves, or split it, entirely at their own discretion. | N/A, except Tender — per the seller's own arrangement for that specific auction. |
+| Tenant (Shop) | Earns the majority of the applicable transaction fee (default rate minus SaaS's 0.5% share). | At settlement, from whichever party's fee applies (or per Tender's own terms). |
+| SaaS (Platform) | Earns a flat 0.5% of final sale value, carved from the applicable fee. | At settlement, from whichever party's fee applies (or per Tender's own terms). |
+
+# 2. Security Deposit (EMD)
+
+Every buyer must pledge a refundable security deposit before placing a bid or offer. This deposit is not a fee — it is returned in full unless the buyer wins and then fails to complete the purchase (see Section 5).
+
+| **Sale Format** | **Deposit Required** |
+| --- | --- |
+| Buy-Now | 10% of the seller's Expected Value (EV). |
+| Express Auction | 10% of the Reserve Value (RV). |
+| Easy Auction | 10% of the Reserve Value (RV). |
+| Tender Auction | Set entirely by the seller for that specific auction — may be a custom percentage, or waived for a specific participant at the seller's own discretion and risk. |
+
+- **If the final price exceeds the value the deposit was calculated on: **the buyer must top up their deposit to 10% of the actual final price before the win is confirmed. A win is never confirmed without the full deposit in place.
+
+- **If a buyer is outbid or not selected: **their deposit is released back to their unpledged funds automatically, with no fixed processing delay — each deposit is held as a segregated holding tied to that specific bid, not a spendable pooled balance.
+
+- **Deposits are held in a segregated escrow arrangement, **never pooled with other buyers' funds.
+
+**Payment gateway charges: **if your payment method (e.g., card) carries a collection charge from the payment gateway, this is added on top of the stated deposit amount, shown clearly before you pay — so the full deposit is what actually gets held, never reduced by this charge. Bank transfer / UPI methods generally carry little to no such charge.
+
+# 3. Seller Fees
+
+Sellers pay nothing to list an item, run a sale, or complete a transaction, on Buy-Now, Express, and Easy — this applies uniformly across all three, with no listing fee, no success fee, and no hidden deduction from the sale proceeds a seller receives on those formats.
+
+- **Tender Auction is the exception: **because it is a fully bespoke, concierge-run sale curated at the seller's own direction — the seller decides participation, qualification, timing, and terms — fees follow the same pattern. The seller sets, for that specific auction, whether the buyer is charged, whether the seller absorbs a fee themselves, or whether it's split between them, entirely at their own discretion.
+
+On Buy-Now, Express, and Easy, a seller receives 100% of the agreed sale price directly from the buyer, with the platform never taking a share of that amount.
+
+**Verified listing inspection fee: **the one exception to the zero-seller-fee model outside Tender. A seller who chooses a Verified listing — where eBid Hub's own inspection team visits the item and captures the photos themselves — pays an inspection fee, charged at a rate published in the app, before the inspection is scheduled. Certified by Seller (CBS) listings, where the seller captures their own photos by any method, remain free, same as any other listing.
+
+# 4. Buyer Transaction Fee & Platform Fee Split
+
+- On Buy-Now and Easy Auctions, the buyer's transaction fee defaults to 5% of the final sale value. Each Tenant (shop) may adjust this rate within a fixed band: a floor of 0.5% (plus GST) — the same rate SaaS itself earns, so the Tenant can discount all the way to zero margin for itself but never below what SaaS is owed — and a ceiling of 5% (plus GST), which may never be exceeded. Express Auctions and Tender Auctions are not part of this band: Express's fee is not tenant-adjustable, and Tender's fee terms are fully custom per auction, set by the seller.
+
+- This fee is not collected as a separate charge — it is calculated and deducted directly from the buyer's held deposit at the point of settlement.
+
+- Of the total transaction fee collected, a flat 0.5% of the final sale value is retained by the platform (SaaS); the remainder is retained by the Tenant.
+
+Worked example: if a Tenant's rate is the 5% default and an item sells for ₹1,50,000 — the total fee is ₹7,500. Of that, ₹750 (0.5% of ₹1,50,000) goes to SaaS, and the remaining ₹6,750 goes to the Tenant.
+
+Worked example — floor rate: if a Tenant instead sets the minimum allowed rate of 0.5% on the same ₹1,50,000 sale, the total fee is ₹750 — all of which goes to SaaS. The Tenant earns nothing extra on this sale, but has offered the buyer the lowest possible fee the platform permits.
+
+# 5. GST on Platform Fees
+
+Goods and Services Tax (GST) applies on top of every fee charged by the platform — it is never absorbed into the stated percentage. The buyer transaction fee, the Tenant's share, SaaS's 0.5% share, and the Tender service fee are all quoted exclusive of GST; the applicable GST rate is added at the time the fee is charged.
+
+- **Buyer transaction fee (Buy-Now, Express, Easy): **GST is added on top of the stated fee (default 5%), and the combined amount — fee plus GST — is what is deducted from the buyer's held deposit at settlement.
+
+- **SaaS's 0.5% share: **GST is added on top of this amount as well, consistent with the same on-top principle applied throughout.
+
+- **Tender Auction service fee: **GST is added on top of whatever fee is charged under that auction's own custom terms, regardless of whether the buyer, the seller, or both are the party invoiced.
+
+Worked example: on the ₹1,50,000 sale from Section 4 (₹7,500 total fee, ₹750 SaaS / ₹6,750 Tenant), GST at 18% would add a further ₹1,350 on top of the ₹7,500 fee — meaning ₹8,850 is actually deducted from the buyer's deposit, not ₹7,500.
+
+[Note: the applicable GST rate and its precise invoicing treatment (e.g., whether the platform issues a GST invoice directly, or the Tenant does, as the entity receiving the larger share) should be confirmed with a tax advisor before this schedule is published.]
+
+# 6. Fee & Deposit Summary by Sale Format
+
+| **Format** | **Deposit Basis** | **Commission Funded From** | **Notes** |
+| --- | --- | --- | --- |
+| Buy-Now | 10% of EV | Buyer's deposit, at settlement (fee + GST) | Seller may accept a non-highest offer; the transaction fee still applies to the accepted price. Tenant may adjust the fee rate between 0.5% and 5% (plus GST). |
+| Express Auction | 10% of RV | Buyer's deposit, at settlement (fee + GST) | Fully automated close; the 5% fee rate is fixed and not tenant-adjustable, unlike Buy-Now/Easy. |
+| Easy Auction | 10% of RV | Buyer's deposit, at settlement (fee + GST) | Same deposit/fee mechanics as Express, but the fee rate follows Buy-Now's adjustable band (0.5%-5% + GST); seller may also require approval before the sale is confirmed. |
+| Tender Auction | Seller-defined, may be waived | Whichever party the seller's terms specify — buyer, seller, or split (fee + GST) | Available only on the platform's own operated storefront. As a concierge service curated by the seller, who pays the service fee — and how — is set as part of that auction's own custom terms, not a platform default. |
+
+# 7. What Happens If a Buyer Doesn't Pay
+
+If a buyer wins and then fails to complete payment within the required window, their deposit is forfeited. What happens to that forfeited amount depends on the situation:
+
+## 6.1 Standard Default
+
+A single buyer defaults, and the item is still successfully sold to someone else (or the format doesn't cascade further). The forfeited deposit is applied first to the Tenant's and SaaS's commission, and the remainder is paid to the seller as compensation for the disrupted sale.
+
+**  Example — Standard Default**
+
+  Item sells for ₹1,00,000. Winning buyer's deposit: ₹10,000 (10%).
+
+  Buyer fails to pay. Deposit is forfeited.
+
+  Commission on ₹1,00,000 at the 5% default rate = ₹5,000 (SaaS ₹500 / Tenant ₹4,500).
+
+  Remaining ₹5,000 is paid to the seller as compensation.
+
+ 
+
+## 6.2 Full Cascade Failure (Express & Easy Auctions only)
+
+If the winning bidder defaults, the next-highest bidder is offered the win at their own price, within a further payment window. This can happen up to two more times. If every eligible bidder defaults in sequence, the auction is cancelled outright — and in this specific case only, the seller receives none of the forfeited deposits.
+
+| **Format** | **1st Bidder's Window** | **2nd Bidder's Window** | **3rd Bidder's Window** | **If All Default** |
+| --- | --- | --- | --- | --- |
+| Express Auction | 2 hours | Next 2 hours (hour 2–4) | Next 2 hours (hour 4–6) | Auction cancelled |
+| Easy Auction | 24 hours | Next 24 hours (hr 24–48) | Next 24 hours (hr 48–72) | Auction cancelled |
+
+**  Example — Full Cascade Failure**
+
+  Express Auction. H1 bids ₹1,00,000 and defaults after 2 hours — forfeits their ₹10,000 deposit.
+
+  H2 (bid ₹90,000) is offered the win, also defaults after their own 2-hour window — forfeits their ₹9,000 deposit.
+
+  H3 (bid ₹85,000) is offered the win, also defaults — forfeits their ₹8,500 deposit.
+
+  All three deposits (₹27,500 total) are retained by the Tenant and SaaS, split per the standard commission ratio.
+
+  The seller receives none of this — only the right to relist the item.
+
+  This rule exists specifically so a seller has no incentive to set unrealistic terms purely to collect forfeited deposits.
+
+ 
+
+# 8. Optional Costs — Shipping
+
+Shipping is never a platform fee. A seller may optionally offer shipping at a fixed or distance-based cost, disclosed on the listing — but a buyer can always choose to collect the item themselves at no shipping cost at all.
+
+# 9. Tenant Discretion & Limits
+
+- Each Tenant sets its own buyer transaction fee rate (the platform default is 5%), within limits set at the platform level.
+
+- Whatever rate a Tenant sets, SaaS's 0.5% share of final sale value is always carved out of that same fee — it is never charged separately or in addition.
+
+- Sellers pay 0% on every Tenant's storefront — this is a platform-wide rule, not something an individual Tenant can change.
+
+- A Tenant may also set its own default/timing policies within CVC-aligned platform floors (for example, grace periods), which can affect when a deposit is forfeited but not the fee structure itself.
+
+# 10. Quick Reference
+
+| **Question** | **Answer** |
+| --- | --- |
+| Do sellers pay anything? | No, on Buy-Now, Express, and Easy — 0% fee. On Tender, it depends entirely on the terms the seller sets for that specific auction. |
+| How much does a Verified inspection cost? | A published, app-set rate — final figure to be confirmed. CBS listings, where you take your own photos, remain free. |
+| What deposit does a buyer need? | 10% of EV (Buy-Now) or RV (Express/Easy); seller-defined for Tender. |
+| What's the default buyer fee? | 5% default on Buy-Now/Easy, adjustable by the Tenant between 0.5% and 5% (plus GST). Fixed (non-adjustable) on Express. Fully custom, seller-set on Tender. |
+| How much does SaaS earn? | A flat 0.5% of final sale value, carved from the applicable fee, plus GST on top. |
+| Is GST included in the stated fee percentages? | No — GST is always added on top of the fee charged, on every format. |
+| Is the deposit refundable? | Yes, in full, unless the buyer wins and fails to pay. |
+| Do I pay extra if I use a card or gateway with a fee? | Yes — any payment gateway collection charge for your chosen method is added on top of the deposit, shown before you pay, so your actual deposit is never reduced by it. |
+| What if a buyer defaults? | Deposit is forfeited — to the seller in a standard default, to the platform only in a full cascade failure. |
+| Is shipping a platform fee? | No — it's an optional, seller-set cost; buyers can always self-collect for free. |
+
+Page  of

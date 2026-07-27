@@ -3277,3 +3277,33 @@ automatically scoping to only tenants that Tenant Admin actually
 administers — a real-HTTP verification pass and a tighter tenant-scoping
 check are the natural next increment on this feature, not attempted in
 this already-substantial session.
+---
+
+### D-61: Source governing documents added to the repository itself
+
+**Decision:** Copied all 17 original source documents — most
+importantly `eBid_Hub_Unified_BR_PR.docx`, the canonical BR-01–61/
+PR-01–36 specification this entire project is built against — directly
+into `docs/source-documents/` in the repository, rather than leaving
+them living only in the Claude project's knowledge base.
+
+**Why this matters**: every business rule cited throughout
+`docs/DECISIONS.md` traces back to this document. Until now, that
+foundation was real but not durable outside this specific project
+environment — a new collaborator, a fresh clone, a different AI
+session, or a different account had no direct access to the actual
+source of truth, only to `DECISIONS.md`'s summaries of it. Copying the
+documents themselves into version control means the whole basis for
+this project now travels with the codebase, not just Claude's working
+memory of it.
+
+**Verified byte-for-byte**: all 17 files (the BR/PR document, the
+Vision Document, the Tech Stack Specification, the Fee & Charges
+Schedule, five legal/policy drafts, and five buyer/seller-facing JSX
+content components) copied with identical file sizes to the originals,
+confirmed directly rather than assumed. A `README.md` inside the new
+folder explains what each document is and why it's there; the main
+`README.md`'s "Start Here" section now points to it explicitly.
+
+**No code changes in this decision** — purely a durability and
+continuity improvement for the project's own foundation.

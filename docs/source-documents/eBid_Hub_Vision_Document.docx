@@ -1,0 +1,77 @@
+eBid Hub — Vision Document
+
+eBid Hub
+
+*Vision Document*
+
+Internal — basis for the public "About Us" page
+
+Status: Working draft.
+
+# The Problem We Set Out to Solve
+
+*Salvage, surplus, and repossessed assets change hands every day in India — almost never through a process anyone would call transparent.*
+
+This part of the economy has run on relationships, not rules. The buyer segment has traditionally been unorganised, and that gap gets filled by middlemen: salvage bought under-priced, given a cosmetic fix, and resold to an unsuspecting buyer as sound — the exact pattern behind the counter-warranty disputes and legal exposure that make sellers and buyers equally wary. Sellers get no standardised audit trail or defensible pricing record; buyers get no confidence the process was fair, and often no recourse if the item doesn't match what they were shown.
+
+This isn't a first attempt at fixing that. Our team's experience in salvage settlement goes back to 2005 — nearly two decades as an approved auctioneer and salvaging agency, authorised by underwriters, working with IRDA-regulated surveyors pan-India. Long before compliance became a platform feature, it was our earned claim: one of the few salvage auction agencies genuinely aligned with CVC guidelines. eBid Hub carries that discipline forward, rebuilt so the software itself enforces it.
+
+# Mission & Vision
+
+*To make the disposal of salvaged, surplus, and repossessed assets in India fast, fair, and fully accountable — for every seller and every buyer, without exception.*
+
+We want eBid Hub to be the default answer when an asset needs to be sold quickly and defensibly — not because we say we're trustworthy, but because the mechanics of the platform leave very little room to be anything else.
+
+# What We Believe
+
+Not aspirations sitting apart from the product — each one is something the platform mechanically does.
+
+- **Fairness is engineered, not promised — **No bidder sees who else is bidding; not even our own top administrator can see a live auction while it's happening. A bid can never jump more than 150% above the current price.
+
+- **Every decision comes with a reason, on record — **Rejections, dispute rulings, and rating downgrades are all logged with a stated reason, and always carry a right to appeal — nothing here is automatic or unexplained.
+
+- **Selling should cost nothing — **Sellers pay no fee to list or sell on any standard format. The platform is funded by a small buyer-side commission instead.
+
+- **Trust is earned gradually, and it can be rebuilt — **Ratings move in small steps for small things and larger steps for serious ones. A bad moment isn't permanent — there's a real, defined path back, with hard consequences reserved for confirmed fraud alone.
+
+- **What you see should be real — **Every listing is backed by genuine evidence of the actual item, never stock photography. Where it matters most, our own inspection team can verify it directly.
+
+- **Built for India, on India****'****s own rails — **Every transaction is in rupees, every identity is KYC-verified, every deposit moves through India's own banking infrastructure — never an unlicensed pooled wallet.
+
+- **Governance without self-interest — **Whoever oversees the platform never buys, sells, or gains insider advantage, and is never publicly named — so neutrality can never be undermined by influence over a known individual.
+
+# Compliance & Governance
+
+The same discipline our team has operated under since day one, now built directly into the platform.
+
+- **CVC alignment — **Every rejection, forfeiture, and dispute ruling carries a stated, permanently logged reason. High-value disposals auto-generate a reserve-vs-sale-price record — exactly the evidence an institutional vigilance function expects.
+
+- **RBI compliance — **Deposits are segregated per transaction, never pooled — avoiding any unlicensed wallet/PPI classification. Funds move through India's banking rails via a licensed payment aggregator, never cash. No interest is paid on held funds.
+
+- **KYC ****&**** AML — **Identity verification has never been optional, going back to our earliest operations. Continuous monitoring watches for patterns like rapid deposit-and-refund cycles, distinct from ordinary fraud detection.
+
+- **Tax compliance — **Every fee is disclosed with GST shown separately, never folded into a headline number. Tax deduction obligations on facilitated sales are handled as a standard part of settlement.
+
+- **Data protection ****&**** recourse — **Sensitive identity data is encrypted and tokenised. Every user has a clear grievance channel, a defined escalation path, and an explicit right to external recourse we never attempt to override.
+
+- **A tamper-evident record — **Every action is permanently logged and cannot be edited by anyone, including our own administrators. The platform undergoes independent, third-party security review — not just self-certification.
+
+# Who We Serve
+
+An individual clearing a single salvaged item. A business disposing of surplus inventory. A bank or insurer managing repossessed or claims-related assets at scale. Buyers from casual purchasers to institutional bidders. Every one of them operates under the same rules — no lighter fairness for a smaller seller, no quieter accountability for a larger one.
+
+- **For insurers — **Every high-value disposal auto-generates a reserve-vs-sale-price record — ready-made evidence for an insurer's own audit function — and a recurring buyer's track record is visible before a sale is even accepted.
+
+- **For banks — **Repossession disposal is heavily scrutinised. Double-blind bidding and the administrator's own zero live-visibility are the actual answer to "how do we know this wasn't arranged," not just an assertion.
+
+- **For large organisations — **A branded storefront, grouped listings for multi-item disposals, and category-specific accommodations for goods that don't photograph conventionally — built so scale doesn't come at the cost of care.
+
+# Why Tender Auctions Stand Out
+
+Not every disposal belongs in an open marketplace. Tender Auctions — our fully bespoke, concierge-run format — put the seller in direct control of who participates, what qualification they must clear, whether bidding is open or sealed, and their own timing, including waiving the deposit for a specific known party, such as an insured owner buying back their own salvaged asset. It's the same rigorous, invitation-led process institutions already run internally, digitised with the same accountability trail as every other format — settled by direct invoice, the way institutional buyers already expect to be billed.
+
+# Looking Ahead
+
+What exists today is deliberately Phase 1: a complete marketplace for selling salvaged, surplus, and repossessed assets, built fully before we expand scope. A procurement capability and a market-intelligence layer are already designed and waiting their turn. We'd rather grow deliberately than quickly — every rule here was discussed and decided before it was built, and that won't change as we grow.
+
+Page  of

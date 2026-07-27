@@ -1,0 +1,73 @@
+eBid Hub — Dispute Resolution Process (DRAFT)
+
+eBid Hub
+
+*Dispute Resolution Process — A Plain-Language Guide*
+
+**  NOTICE: This is a plain-language companion to the platform****'****s formal Dispute Resolution Framework. One open question on the filing window and one on maximum resolution time are flagged for confirmation before publication.  **
+
+Effective Date: [to be inserted upon publication]
+
+Contact: [to be inserted]
+
+# 1. What This Covers
+
+This document explains, in plain language, how a disagreement about a specific transaction gets reviewed and resolved on eBid Hub. It applies to Buy-Now, Express, and Easy Auctions. Tender Auctions are excluded, since they run entirely on terms set directly by the seller.
+
+# 2. What Can Be Disputed
+
+- **Payment Dispute: **one side says money was paid or received when the other side disagrees.
+
+- **Condition/Delivery Dispute: **the item received doesn't genuinely match what was described or shown.
+
+- **Non-Lifting/Collection Dispute: **a buyer won't collect an item, or a seller is blocking collection.
+
+- **Auction Rejection Dispute: **a seller rejected a winning result and you believe the reason given doesn't hold up.
+
+- **Buyer Non-Response Dispute: **a buyer has gone silent on confirming or rating, holding up a seller's settlement.
+
+A sixth, internal process — Standing Review — looks at a seller's overall pattern of conduct over time. This isn't something you file; it happens automatically based on accumulated history, and is explained in our governance documentation rather than here.
+
+# 3. How to File
+
+**3.1. **Open the transaction in question and select "Raise a Dispute." Choose the category that best matches your situation and provide a clear description.
+
+**3.2. **Disputes must be filed within 7 days of the event that triggered them (for example, within 7 days of the expected delivery date, or of a rejected result).
+
+*[Drafting note: the 7-day filing window reflects the figure originally proposed during this platform**'**s specification and was not independently reconfirmed. Please confirm this is the final figure before publication.]*
+
+# 4. Evidence
+
+**4.1. **Once filed, both sides have a window to upload supporting evidence — photographs, messages, delivery records, payment proof, or anything else relevant.
+
+**4.2. **A ruling is based only on the evidence submitted within this window, so it's worth submitting everything relevant promptly rather than waiting.
+
+# 5. Who Decides
+
+**5.1. **Most disputes are reviewed and ruled on by your Tenant's own admin team, since they're closest to that shop's transactions.
+
+**5.2. **Disputes specifically about buyer non-response are reviewed directly by our platform-level team.
+
+**5.3. **Every ruling comes with a stated reason — you'll always know why a decision was made, not just what the decision was.
+
+# 6. Timelines
+
+**6.1. **We aim to resolve every dispute as quickly as the evidence allows, rather than holding it for a fixed period even once a decision is clear.
+
+*[Drafting note: no fixed maximum resolution time is currently defined — the platform**'**s underlying rule deliberately favours speed over a rigid timeline. Consider whether a maximum outer limit (e.g., **'**no later than X days**'**) should be added here for user expectation-setting, even if most cases resolve faster.]*
+
+# 7. What Happens While a Dispute Is Open
+
+**7.1. **A previously approved forfeiture or refund is not automatically paused just because a dispute has been filed against it — it proceeds on schedule. If the dispute is later decided in your favour, the outcome is corrected retroactively.
+
+# 8. Appeal
+
+**8.1. **If your dispute was decided by a Tenant, you may appeal once, directly to our platform-level team, whose decision is final.
+
+**8.2. **Disputes decided directly by our platform-level team are final and not open to further appeal within this process — though your right to seek external recourse (see our Grievance Redressal Policy) is unaffected.
+
+# 9. Filing in Bad Faith
+
+**9.1. **A pattern of repeated, unsubstantiated disputes is tracked and may itself lead to a consequence for the account filing them.
+
+Page  of

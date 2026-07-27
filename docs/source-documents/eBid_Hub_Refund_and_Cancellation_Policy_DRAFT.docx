@@ -1,0 +1,65 @@
+eBid Hub — Refund & Cancellation Policy (DRAFT)
+
+eBid Hub
+
+*Refund **&** Cancellation Policy — DRAFT for Legal Review*
+
+**  NOTICE: This is a structural draft built directly from eBid Hub****'****s finalized Business Rules and Fee ****&**** Charges Schedule. Several points are flagged as open questions requiring a decision before this can be finalized — see notes in orange throughout. Not for publication until reviewed by qualified counsel.  **
+
+Effective Date: [to be inserted upon publication]
+
+Contact: [to be inserted]
+
+# 1. Scope
+
+**1.1. **This Policy explains when a Security Deposit (EMD) is refunded, when it is forfeited, and how listing or Sale Event cancellations are handled on eBid Hub. It should be read together with the Fee & Charges Schedule and the Terms of Usage.
+
+# 2. Security Deposit (EMD) Refunds
+
+**2.1. **An EMD pledged on a bid or offer is refunded in full, automatically, the moment it is no longer required — for example, when a buyer is outbid, not selected, or a transaction formally closes with a balance remaining.
+
+**2.2. **Refunds are processed as soon as operationally possible. No fixed turnaround time is guaranteed, though refunds are not intentionally delayed.
+
+**2.3. **Any Payment Gateway collection charge added at the time of deposit (per the Fee & Charges Schedule) is not itself refunded, as it is a pass-through charge levied by the Payment Gateway for processing the original transaction, not a platform fee.
+
+*[Drafting note: confirm with the Payment Gateway (SabPaisa) whether their own collection charge is ever partially refundable on their end, so this clause can be stated with certainty rather than as a default assumption.]*
+
+# 3. Forfeiture (When a Deposit Is Not Refunded)
+
+**3.1. **If a winning Buyer fails to complete payment within the applicable window, their EMD is forfeited in full — this is not a refundable event.
+
+**3.2. **In a standard default, the forfeited amount is applied first to platform/Tenant commission, with the remainder passed to the Seller as compensation.
+
+**3.3. **In a full cascade failure on Express or Easy Auctions (where the winning bidder and up to two subsequent bidders all default in sequence), all forfeited amounts are retained by the platform; none is passed to the Seller. Full detail and worked examples appear in the Fee & Charges Schedule.
+
+# 4. Withdrawing an Offer or Bid
+
+**4.1. **Buy-Now: an offer may be withdrawn before the Seller accepts it, provided the Buyer states a reason from the list provided in-app. No reason is required if the offer simply lapses unactioned after 3 days.
+
+**4.2. **Easy and Express Auctions: once a bid is placed and the required EMD is pledged, it stands for the remainder of that auction. There is no separate mid-auction bid withdrawal mechanism distinct from being outbid.
+
+*[Drafting note: this is a genuine open question, not a settled rule: should a buyer on Easy/Express be permitted to withdraw a standing bid before being outbid (e.g., discovering a genuine issue with the listing), and if so, under what conditions and with what accountability (comparable to Buy-Now**'**s reason-required withdrawal)? Currently no such mechanism has been defined, meaning a bid on these formats is effectively irrevocable once placed, other than by being outbid. This should be confirmed as intentional before publication.]*
+
+**4.3. **Tender Auction: withdrawal and its consequences are entirely as set by the Seller for that specific auction.
+
+# 5. Listing & Sale Event Cancellation
+
+**5.1. **A Seller may request a change to an approved listing at any time; if an active Sale Event is attached, that event is cancelled and all active bids/deposits on it are refunded in full, with bidders notified. The listing itself is then archived and a new version re-enters the approval process.
+
+**5.2. **Once a Sale Event is live, it cannot be cancelled by the Seller directly (Express Auctions cannot be cancelled by the Seller at all). The Tenant Admin or Super Admin may terminate any live event via an Emergency Stop, with a mandatory, logged reason, in which case all active bids/deposits are refunded in full.
+
+# 6. Verified Listing Inspection Fee
+
+**6.1. **The inspection fee for a Verified listing is payable before inspection is scheduled.
+
+*[Drafting note: refundability of this fee has not yet been settled — e.g., if the seller cancels before the inspection takes place, if the inspection cannot be completed for a reason outside the seller**'**s control, or if the item is found ineligible for listing after inspection. A specific refund/non-refund rule is needed here before this Policy can be finalised.]*
+
+# 7. How Refunds Are Paid
+
+**7.1. **Refunds are paid to the account originally used to fund the deposit. A different payout account may only be used if it has been formally verified and any required cooling-off period has elapsed, per the Terms of Usage.
+
+# 8. Contact
+
+Questions about a specific refund or forfeiture should be raised through Dispute Resolution (see our separate Dispute Resolution Process document) or directly with your Tenant's support channel.
+
+Page  of

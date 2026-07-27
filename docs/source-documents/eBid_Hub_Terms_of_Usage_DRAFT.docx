@@ -1,0 +1,259 @@
+eBid Hub — Terms of Usage (DRAFT)
+
+eBid Hub
+
+*Terms of Usage — DRAFT for Legal Review*
+
+**  NOTICE: This is a structural draft prepared directly from eBid Hub's finalized business rules. It is NOT a substitute for review by a qualified lawyer, and must not be published or relied upon as a binding legal instrument until reviewed for enforceability, jurisdiction-specific wording, and compliance with applicable Indian law (including the Information Technology Act 2000, IT Rules 2021, and Consumer Protection (E-Commerce) Rules 2020) by qualified counsel.  **
+
+Operator: [eBid Hub SaaS entity name — to be inserted]
+
+Effective Date: [to be inserted upon publication]
+
+Contact: [grievance/support contact — to be inserted]
+
+# 1. Introduction & Acceptance
+
+**1.1. **eBid Hub ("the Platform", "we", "us") is a multi-tenant online marketplace that enables the sale of salvaged, surplus, repossessed, used, and specialised assets between registered Sellers and registered Buyers, operating through individually branded storefronts ("Tenants" or "Shops").
+
+**1.2. **By registering an account, browsing listings, placing a bid or offer, or otherwise using the Platform, you agree to be bound by these Terms of Usage ("Terms"), our Privacy Policy, and any additional terms published by the specific Tenant/Shop through which you transact.
+
+**1.3. **If you do not agree to these Terms, you must not register for or use the Platform.
+
+**1.4. **These Terms apply to all users of the Platform, including Buyers, Sellers, and Tenant Administrators, collectively referred to as "Users" or "you."
+
+# 2. Definitions
+
+**"Platform": **The eBid Hub website, mobile-responsive application, and all associated services.
+
+**"Super Admin": **The sovereign administrator of the Platform, who does not participate as a Buyer, Seller, or Tenant Administrator in any transaction.
+
+**"Tenant / Shop": **A whitelisted storefront operating on the Platform under its own branding, administered by a Tenant Administrator.
+
+**"Tenant Administrator": **A person authorised by a Tenant's company, under formal agreement with eBid Hub, to administer that Tenant's storefront.
+
+**"Buyer": **A registered User who bids on, offers for, or purchases a listed item.
+
+**"Seller": **A registered User approved by a specific Tenant to list items for sale on that Tenant's storefront.
+
+**"Listing": **A cataloged item and its associated description, media, and condition information.
+
+**"Sale System": **The transactional format under which a Listing is offered for sale — Buy-Now, Express Auction, Easy Auction, or Tender Auction.
+
+**"EMD (Earnest Money Deposit)": **A refundable security deposit pledged by a Buyer to participate in a bid or offer, calculated as 10% of the applicable value.
+
+**"PC / Money Points": **The Platform's internal representation of a Buyer's deposited funds, held at 1:1 parity with the deposited amount, and maintained as segregated, per-pledge escrow holdings rather than a pooled or freely spendable wallet balance. Funds are 'unpledged' until committed to a specific bid or offer, at which point they become a distinct holding tied to that transaction. PC/Money Points is never used to pay for goods directly and functions solely as a security deposit mechanism.
+
+**"RV / EV": **Reserve Value and Expected Value — the floor and target prices set by a Seller for a Listing.
+
+**"NOC": **A digital No Objection Certificate confirming, respectively, receipt of funds (by the Seller) or receipt of goods (by the Buyer).
+
+**"Star Rating": **The Platform's dual, independent reputation scores — starRating (Buyer) and sellerStarRating (Seller) — reflecting a User's transaction history.
+
+# 3. Eligibility & Registration
+
+**3.1. **You must be at least 18 years of age and capable of entering into a legally binding contract under Indian law to register for or use the Platform.
+
+**3.2. **Registration requires a valid 10-digit Indian mobile number, verified by One-Time Password (OTP). You are responsible for maintaining the confidentiality of your account credentials, including your 4-digit mPIN.
+
+**3.3. **Each User may hold only one account, uniquely tied to their verified mobile number. Creating multiple accounts, or registering on behalf of another person without authorisation, is prohibited.
+
+**3.4. **You agree to provide accurate, current, and complete information during registration and Know Your Customer (KYC) verification, and to promptly update such information if it changes.
+
+**3.5. **Business/organisational Users must additionally provide corporate verification details (including CIN, GSTIN, and company PAN) as prescribed by the Platform's KYC requirements.
+
+# 4. Account Security
+
+**4.1. **You are solely responsible for all activity that occurs under your account, whether or not authorised by you, except where such activity results from the Platform's own security failure.
+
+**4.2. **You must notify the Platform immediately if you suspect unauthorised access to your account.
+
+**4.3. **Three consecutive failed mPIN attempts will trigger a mandatory OTP verification step before further access is permitted.
+
+# 5. Nature of the Platform
+
+**5.1. **eBid Hub is a marketplace facilitator only. We are not a party to, and assume no responsibility for, the underlying sale contract formed between a Buyer and a Seller. Title to any item transfers directly between Buyer and Seller, not through the Platform.
+
+**5.2. **The Platform does not take custody of, inspect, or guarantee the condition, legality, or authenticity of any listed item, except to the extent expressly stated in these Terms (e.g., mandatory listing media requirements under Section 9).
+
+**5.3. **100% of the sale value for any completed transaction is settled directly and offline between Buyer and Seller. The Platform at no point holds, transmits, or has custody of the full sale value — only the EMD (where applicable) is held via the Platform's payment mechanisms, as described in Section 10.
+
+**5.4. **The Super Admin does not participate as a Buyer, Seller, or Tenant Administrator in any transaction on the Platform, and has no visibility into live bidding activity while it is in progress.
+
+# 6. Tenants & Shops
+
+**6.1. **Each Tenant operates its own branded storefront under an agreement with eBid Hub, and is administered by a Tenant Administrator authorised by the Tenant's company.
+
+**6.2. **A Tenant Administrator has authority to approve or reject Listings and Sale Events on their storefront, set local commission and fee terms within Platform-wide limits, and approve or suspend Sellers on their storefront.
+
+**6.3. **Approval to sell on one Tenant's storefront does not extend to any other Tenant's storefront. A Seller must separately apply to and be approved by each Tenant on whose storefront they wish to list items.
+
+**6.4. **A Tenant may restrict or suspend a Seller's or Buyer's access to its own storefront at its discretion. Such restriction is limited to that Tenant's storefront and does not, by itself, affect the User's Star Rating or ability to transact on other Tenants' storefronts.
+
+# 7. Listings
+
+**7.1. **Only salvaged, claims-related, surplus, repossessed, used, or specialised assets may be listed on the Platform. New retail-consumer goods are prohibited.
+
+**7.2. **Every Listing must include a minimum of 5 and a maximum of 50 seller-uploaded photographs of the actual item, with one designated as the primary display photograph. Stock photography, placeholder images, or auto-generated fallbacks are strictly prohibited.
+
+**7.3. **Sellers warrant that all information provided in a Listing — including condition, quantity, and specifications — is accurate to the best of their knowledge. Material misrepresentation may result in Listing removal, Seller rating penalties, and/or account suspension.
+
+**7.4. **Once a Listing is live and attached to an active Sale Event, its parameters cannot be altered directly. Any requested change follows the Platform's edit-request process, which may result in the original Listing being archived and a new Listing created.
+
+# 8. Sale Formats
+
+**8.1. **The Platform supports four Sale Systems: Buy-Now (negotiated offers, Seller selects the winning offer at their discretion), Express Auction (automated rapid bidding, triggered once three Buyers pledge EMD), Easy Auction (scheduled bidding with a Seller-defined inspection window), and Tender Auction (private, invitation-only, fully Seller-curated, available only on the Platform's own operated storefront).
+
+**8.2. **Each Sale Format's specific mechanics — including bidding increments, timing windows, and inspection availability — are as published on the Platform at the time of listing and may vary by format.
+
+**8.3. **In Buy-Now transactions, the Seller retains full discretion to accept any offer, including one that is not the highest received, taking into account factors such as the Buyer's Star Rating.
+
+**8.4. **Bidding on Easy and Express Auction formats constitutes an acknowledgment that you have had a reasonable opportunity to review the Listing and, where applicable, inspect the item, and a waiver of the right to dispute the item's general condition post-sale, save for cases of fraud or material misrepresentation.
+
+# 9. Bidding, Offers & Earnest Money Deposit (EMD)
+
+**9.1. **A Buyer must pledge an EMD of 10% of the applicable Reserve Value or Expected Value before a bid or offer will be accepted. This requirement is verified at the time of every bid, not solely at auction close. Where the Buyer's chosen payment method carries a payment gateway collection charge, that charge is payable by the Buyer in addition to the EMD amount, disclosed prior to payment, so that the full EMD is what is held in escrow.
+
+**9.2. **Where a winning bid or accepted offer exceeds the value against which the initial EMD was calculated, the Buyer must remit the balance EMD within the timeframe specified for the applicable Sale Format, failing which the Buyer will be treated as in default.
+
+**9.3. **In the event of Buyer default following a win, the Platform's cascading default process (Section 12) applies.
+
+**9.4. **EMD funds are held via a segregated escrow mechanism, in compliance with applicable Reserve Bank of India regulations. No pooled or wallet-style balance is maintained.
+
+**9.5. **Unused EMD is released back to the Buyer's account upon the earlier of: non-selection as the winning bidder, or completion of settlement per Section 11.
+
+# 10. Payment & Settlement
+
+**10.1. **Upon a successful sale, the Buyer shall pay 100% of the agreed sale value directly to the Seller, through an offline payment method mutually agreed between them. The Platform is not a party to, and bears no liability for, this payment.
+
+**10.2. **A transaction is deemed formally closed only once all of the following are complete: (a) the Seller has registered a digital NOC confirming receipt of full payment; (b) the Buyer has registered a digital NOC confirming receipt of the goods; (c) the Buyer has submitted a mandatory Star Rating of the Seller; and (d) the Seller has submitted a mandatory Star Rating of the Buyer.
+
+**10.3. **Where a party fails to complete their obligation under Section 10.2 within the Platform's prescribed timeframe, the Platform's stall-resolution process applies, which may include a time-bound reminder followed by administrative intervention as described in Section 14.
+
+**10.4. **Following formal closure of a transaction, applicable commission and Platform fees are deducted from the Buyer's held EMD, and the remaining balance, if any, is released to the Buyer.
+
+# 11. Fees & Commission
+
+**11.1. **Sellers are not charged any fee to list or sell items on the Platform.
+
+**11.2. **A transaction fee is charged to the Buyer, at a rate determined by the relevant Tenant (subject to Platform-wide limits), and deducted from the Buyer's held EMD at settlement.
+
+**11.3. **eBid Hub charges each Tenant a platform usage fee of 0.5% of final sale turnover on transactions completed through that Tenant's storefront.
+
+**11.4. **All applicable fees will be disclosed to the Buyer prior to the placement of a bid or offer.
+
+# 12. Cancellations, Defaults & Forfeiture
+
+**12.1. **If a winning Buyer fails to complete payment of the required EMD balance within the applicable timeframe, they are deemed in default, and their pledged EMD is forfeited in full.
+
+**12.2. **For Express and Easy Auctions, a cascading default process applies: upon the winning Buyer's default, the next-highest Bidder is offered the win at their own bid price, subject to the same payment timeframe and default consequence. This process continues through up to two further Bidders. If all eligible Bidders default, the auction is cancelled and the Seller must relist the item.
+
+**12.3. **Forfeited EMD is applied first towards applicable Tenant commission and Platform fees, with any remainder credited to the Seller as compensation for the failed transaction — save that, where an auction is cancelled due to full cascading default under Section 12.2, no portion of the forfeited EMD is credited to the Seller.
+
+**12.4. **The Platform reserves the right to record a User's default history and reflect it in that User's Star Rating in accordance with Section 13.
+
+# 13. Star Ratings
+
+**13.1. **Every User is assigned two independent Star Ratings upon completion of their profile: one reflecting their conduct as a Buyer, and one reflecting their conduct as a Seller, each beginning at a neutral rating of 3.0 out of 5.0.
+
+**13.2. **Star Ratings are adjusted based on transaction conduct, including timeliness of payment, accuracy of Listings, and any recorded defaults or disputes, in accordance with criteria published on the Platform.
+
+**13.3. **A significant reduction in a User's Star Rating requires review and approval as prescribed by the Platform's internal governance process, and carries a right of appeal for the affected User.
+
+**13.4. **Users whose Star Rating falls below defined thresholds may be subject to transaction-value restrictions or reduced visibility on the Platform, as further described in the Platform's published rating policy. Such measures are graduated and reversible through continued good conduct, save in cases of confirmed fraud.
+
+**13.5. **Star Ratings, and associated dispute history, are tied to a User's single global account and persist across all Tenants on the Platform.
+
+# 14. Disputes
+
+**14.1. **Disputes concerning payment, item condition, delivery/collection, or a Tenant's rejection of an auction result may be raised by either party against a specific transaction within the timeframe published on the Platform.
+
+**14.2. **Both parties to a dispute will be given an opportunity to submit supporting evidence within a defined window.
+
+**14.3. **Disputes are reviewed and ruled upon by the relevant Tenant Administrator or, where the dispute concerns Buyer conduct, by the Super Admin. Every ruling will be accompanied by a stated rationale.
+
+**14.4. **A ruling made by a Tenant Administrator may be appealed once to the Super Admin, whose decision on appeal is final. Rulings made directly by the Super Admin are final and not subject to further appeal.
+
+**14.5. **The Platform reserves the right to take action, including rating adjustment or account restriction, against a User found to have engaged in a pattern of repeated, baseless dispute filing.
+
+# 15. Prohibited Conduct
+
+You agree that you will not:
+
+- List any item outside the Platform's permitted categories, or misrepresent an item's condition, quantity, or authenticity.
+
+- Attempt to circumvent the Platform to complete a transaction directly with a counterparty discovered through the Platform, in order to avoid applicable fees.
+
+- Place a bid or offer without a genuine intention to complete the transaction, or engage in any pattern of behaviour designed to inflate, manipulate, or disrupt fair price discovery.
+
+- Attempt to access, bid on, or influence a Sale Event where you hold a conflicting role (e.g., as an assigned Inspector, Surveyor, or Custodian of the relevant Listing).
+
+- Use the Platform for any unlawful purpose, or in a manner that infringes the rights of any third party.
+
+- Attempt to interfere with, disable, or circumvent any security, verification, or audit mechanism of the Platform.
+
+Violation of this Section may result in Listing removal, rating penalties, transaction reversal, suspension, or permanent removal from the Platform, at the Platform's discretion and following the Platform's internal governance process.
+
+# 16. Shipping & Delivery
+
+**16.1. **Sellers may optionally offer shipping for a Listing, at either a fixed or distance-based cost, disclosed at the time of listing. Buyers always retain the right to self-collect an item at no shipping cost.
+
+**16.2. **Arrangements for shipping or collection are made directly between Buyer and Seller. The Platform is not responsible for the performance of any shipping or logistics arrangement.
+
+# 17. Content & Intellectual Property
+
+**17.1. **You retain ownership of any photographs, descriptions, and other content you upload to a Listing, but grant the Platform a non-exclusive, worldwide licence to host, display, reproduce, and distribute such content for the purpose of operating the Platform.
+
+**17.2. **You warrant that you own or have the necessary rights to any content you upload, and that such content does not infringe the intellectual property or other rights of any third party.
+
+**17.3. **The eBid Hub name, logo, and Platform design are the property of eBid Hub and may not be used without prior written consent.
+
+# 18. Data & Privacy
+
+**18.1. **Your personal data is collected, used, and stored in accordance with the Platform's Privacy Policy, which forms part of these Terms by reference.
+
+**18.2. **Sensitive identity data (including Aadhaar) is stored in tokenised/masked form. Transaction and audit records are retained in accordance with the Platform's data retention policy for a minimum period as required under applicable Indian law.
+
+# 19. Limitation of Liability
+
+**19.1. **The Platform is provided on an "as is" and "as available" basis. To the maximum extent permitted by applicable law, eBid Hub disclaims all warranties, whether express or implied, regarding the Platform's operation or the quality, safety, or legality of any listed item.
+
+**19.2. **eBid Hub's aggregate liability to any User arising from or relating to use of the Platform shall not exceed the total fees paid by that User to the Platform in the twelve (12) months preceding the event giving rise to the claim, save where such limitation is not permitted under applicable law.
+
+**19.3. **eBid Hub shall not be liable for any indirect, incidental, or consequential loss, including loss of profit or business opportunity, arising from use of the Platform.
+
+[Drafting note: liability caps and exclusions must be reviewed against the Consumer Protection Act 2019 and E-Commerce Rules 2020, which restrict certain exclusions for consumer transactions.]
+
+# 20. Indemnification
+
+**20.1. **You agree to indemnify and hold harmless eBid Hub, its officers, and the relevant Tenant, from any claim, loss, or liability arising from your breach of these Terms, your Listing content, or your conduct in any transaction.
+
+# 21. Suspension & Termination
+
+**21.1. **The Platform may suspend or terminate your account for breach of these Terms, following the Platform's internal governance and, where applicable, dispute resolution process.
+
+**21.2. **You may close your account at any time, subject to the completion of any pending transactions and settlement obligations.
+
+**21.3. **Provisions of these Terms that by their nature should survive termination (including Sections 17 through 20) shall survive.
+
+# 22. Governing Law & Jurisdiction
+
+**22.1. **These Terms are governed by the laws of India.
+
+**22.2. **Subject to the Platform's internal dispute resolution process (Section 14), any dispute arising from these Terms shall be subject to the exclusive jurisdiction of the courts at [city to be inserted].
+
+[Drafting note: jurisdiction clause and any arbitration mechanism should be finalised by counsel, with consideration of the Consumer Protection (E-Commerce) Rules 2020's requirements on grievance redressal.]
+
+# 23. Amendments
+
+**23.1. **eBid Hub may amend these Terms from time to time. Material changes will be notified to Users through the Platform. Continued use of the Platform following such notice constitutes acceptance of the amended Terms.
+
+# 24. Grievance Officer & Contact
+
+In accordance with the Information Technology Act 2000 and rules made thereunder, the details of the Grievance Officer are:
+
+[Name, designation, and contact details of Grievance Officer to be inserted]
+
+For all other queries, contact: [support contact to be inserted]
+
+Page  of

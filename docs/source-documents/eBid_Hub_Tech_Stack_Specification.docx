@@ -1,0 +1,243 @@
+eBid Hub — Technology Stack Specification
+
+eBid Hub
+
+*Technology Stack **&** System Architecture Specification*
+
+Prepared for: Piyush Singhal, Founder & Super Admin, eBid Hub
+
+Status: Finalized stack decisions, reconciled against platform business rules and the governance specification.
+
+*This document reflects settled technology decisions only. Items still under discussion are explicitly flagged as OPEN.*
+
+# Table of Contents
+
+1. Architecture Overview
+
+2. Frontend & Client Layer
+
+3. Real-Time Bidding Engine
+
+4. Data Storage & Persistence
+
+5. Authentication & Identity
+
+6. Payments, Escrow & Bank Verification
+
+7. Multi-Tenant Domain Routing
+
+8. Audit Trail & Long-Term Retention
+
+9. Media Storage & Delivery
+
+10. Background Job Processing
+
+11. Notifications & Alerts
+
+12. AI Listing Pre-Audit
+
+13. Deployment & Infrastructure
+
+14. Anti-Sniping — Reference Implementation
+
+15. Open Items
+
+# 1. Architecture Overview
+
+eBid Hub is a multi-tenant B2B/B2C salvage and surplus asset auction platform. The stack is chosen to satisfy three hard constraints established in the platform's business rules and governance specification: (a) strict ACID integrity for every EMD, commission, and settlement transaction; (b) sub-second real-time bid broadcasting across potentially thousands of concurrent bidders; and (c) full compliance with Indian payment/banking regulation, avoiding any unlicensed pooled-wallet (PPI) classification.
+
+| **Layer** | **Choice** |
+| --- | --- |
+| Frontend | Vite + React (TypeScript), mobile-responsive web |
+| Real-time server | Node.js (Express) + WebSockets / Socket.io |
+| Live bidding state | Redis (in-memory) |
+| Background job queue | BullMQ (Redis-backed) |
+| Primary database | PostgreSQL (Cloud SQL) |
+| Auth — Super Admin | Auth0 (OAuth 2.0, TOTP/MFA) — login + credential recovery only |
+| Auth — all other users | Custom mobile number + OTP + 4-digit mPIN flow |
+| SMS OTP provider | TBD |
+| Payments / Escrow (Indian PG) | TBD |
+| Bank verification / penny-drop | TBD |
+| KYC verification | Manual — BP Admin / Super Admin review, no automated vendor |
+| AI listing pre-audit | Gemini API (direct, server-side) |
+| Push/alert delivery | SMS + Web Push (dual channel) |
+| Email service | TBD |
+| Error monitoring | Sentry |
+| Secrets management | Google Secret Manager |
+| CI/CD | GitHub Actions → Cloud Build → Cloud Run |
+| Deployment | Docker containers on Google Cloud Run |
+| CDN | Cloudflare |
+| Cold storage / audit archive | Google Cloud Storage, 5-year lifecycle policy |
+
+# 2. Frontend & Client Layer
+
+- **Vite + React (TypeScript): **responsive, type-safe client application. Vite chosen over alternatives for fast dev-server startup and build times, important given the iterative, spec-heavy build cycle this platform is going through.
+
+- **Mobile-responsive web, not native apps: **a single responsive web application serves both desktop and mobile browsers. No dedicated iOS/Android app is being built at this stage.
+
+- **Reactive bidding state: **client subscribes to WebSocket channels per auction; UI updates (current price, H1/not-H1 status, countdown) are pushed, not polled.
+
+# 3. Real-Time Bidding Engine
+
+- **Node.js (Express) + WebSockets / Socket.io: **handles high-concurrency real-time bid broadcasts. Every live auction (Easy, Express, Reverse) and the Live Ticker (Section 7 of the Consolidated Specification) run over this same real-time layer.
+
+- **Redis: **in-memory store for live bidding-room state — current high bid, leading bidder reference, Dynamic Time countdown clock. Chosen specifically so high-frequency read/write during the final seconds of an auction never touches the relational database directly, protecting PostgreSQL from write contention during closing-window bid storms.
+
+- **Ticker subscription model: **the Live Ticker subscribes each buyer only to the auctions relevant to them (their active bids + their CAT-LOC-VAL match set) — not the platform's full activity stream — keeping WebSocket fan-out proportional to actual relevance, not total platform volume.
+
+# 4. Data Storage & Persistence
+
+- **PostgreSQL only: **single relational store for the EMD ledger, commission/settlement records, Star Rating history (all four scores), tenant configuration, and listing/sale-system state. Chosen over document-store alternatives (Firestore, Supabase) specifically because every financial event in this platform (EMD pledge, forfeiture, commission split, refund) requires strict ACID transactions — a document-model, eventually-consistent store is not an acceptable trade-off for ledger integrity.
+
+- **Schema boundary — Listing vs. Sale Event: **the database enforces the same architectural split as the governance rules — a Listing (physical/legal asset attributes) is a separate table/entity from a Sale Event (transactional protocol instance), consistent with the platform's decoupled catalog-vs-monetization design. Each Sale Event carries its own immutable reference number.
+
+- **Append-only audit table: **a dedicated, insert-only audit_log table, separate from transactional tables, captures every state change with microsecond-accurate UTC timestamps (see Section 8).
+
+# 5. Authentication & Identity
+
+## 5.1 Super Admin — Isolated Path
+
+- Auth0 (OAuth 2.0), scoped exclusively to the Super Admin identity — used for login and credential recovery only. Chosen over Firebase Auth specifically for its first-class, well-documented TOTP/MFA support.
+
+- Standard SMS-OTP / mPIN self-service flows are explicitly barred for the Super Admin identity. Credential changes (mPIN reset, mobile/email update) route through this isolated MFA path instead, preventing SIM-swap or front-end API injection attacks against the platform's highest-privilege account.
+
+- Daily login for the Super Admin additionally requires a dynamic mathematical CAPTCHA challenge alongside mobile number, mPIN, and secondary email — a lightweight, human-only check that resists automated brute-force attempts without adding meaningful daily friction.
+
+## 5.2 All Other Users — Custom Flow
+
+- Built directly (not via a third-party identity platform) as a mobile-number + OTP + 4-digit mPIN flow:
+
+- New user: OTP sent via SMS on registration; verified before profile creation is allowed.
+
+- Returning user: authenticates via 4-digit mPIN.
+
+- 3 consecutive failed mPIN attempts: system triggers an SMS OTP; user must verify device ownership via OTP before mPIN reset or re-authentication is permitted.
+
+- This flow underpins the platform's "one identity = one verified mobile number" principle, which the entire global PC balance / Star Rating / KYC model depends on.
+
+# 6. Payments, Escrow & Bank Verification
+
+Payment infrastructure is built around a segregated, per-channel escrow model rather than a pooled wallet balance — deliberately avoiding classification as an unlicensed Prepaid Payment Instrument (PPI) under RBI regulation. No automatic wallet-style fund pooling exists anywhere in the system.
+
+| **Sale Format** | **EMD Routing** |
+| --- | --- |
+| Tender | Manual offline bank transfer into the platform's corporate escrow account. No gateway. Refunds processed manually. |
+| Express & Buy-Now | Buyer's choice: Virtual Account Number (VAN) instant transfer, or Credit Card authorization hold. |
+| Easy | VAN only. Credit card authorization is barred, to avoid chargeback exposure on high-velocity commercial liquidations. |
+| Reverse (Procurement) | EMD and Performance Deposit routed via the same VAN mechanism as Easy, given its institutional-tenant, higher-value character. |
+
+- **Payment Gateway: **"Indian PG" — placeholder; specific aggregator (e.g., a licensed Indian payment aggregator or direct bank API) to be finalized.
+
+- **Bank account verification: **"Indian Bank" — placeholder; specific partner or penny-drop/account-verification API to be finalized. Serves the same function Plaid serves in US-market stacks, but must be an India-operating provider.
+
+- **OPEN: **Final naming of the Indian PG and Indian Bank partners — both currently placeholders pending commercial/technical evaluation.
+
+# 7. Multi-Tenant Domain Routing
+
+- Each whitelisted tenant is provisioned with a dedicated subdomain (e.g., pnb.ebidhub.com) or, where applicable, a custom domain (e.g., www.salvagemanagers.com).
+
+- On request, the edge layer (Cloudflare) inspects the incoming Host header, matches it against the whitelisted tenant registry, and routes to the correct tenant context.
+
+- The application layer then injects tenant-specific branding (logo, color palette, terms of use) and scopes all listing/discovery queries to that tenant's inventory and floor permissions (Section 1.3 of the Consolidated Specification).
+
+# 8. Audit Trail & Long-Term Retention
+
+Implements the platform's 5-year, tamper-resistant retention requirement using a hot/cold tiering pattern, built entirely on infrastructure already chosen elsewhere in this stack — no additional tooling required.
+
+## 8.1 Hot Tier
+
+- A dedicated, append-only PostgreSQL table (audit_log), separate from transactional tables — indexed on timestamp and entity type.
+
+- Holds all events under 1 year old. Every operational interaction (bids, deposits, logins, configuration changes) is captured here with microsecond-accurate UTC timestamps.
+
+- True physical deletion is never performed. Records are marked archived, not removed.
+
+## 8.2 Cold Tier
+
+- A scheduled monthly job (Cloud Scheduler) selects records older than 1 year, Gzip-compresses and encrypts them, and writes them to a dedicated Google Cloud Storage bucket.
+
+- The bucket carries a 5-year lifecycle policy — records are automatically and permanently purged only once they exceed the statutory retention period.
+
+## 8.3 Unified Log Reader
+
+- A thin internal service queries both the hot (PostgreSQL) and cold (GCS, via a per-batch manifest/index) tiers and merges results on a single timeline.
+
+- Exposed exclusively to the Super Admin's audit console — never to tenants, sellers, or buyers.
+
+# 9. Media Storage & Delivery
+
+- Photos, videos, and documents are compressed server-side on upload per the Consolidated Specification's Media Specifications (photos to 300KB, video to 720p/120s/4Mbps, documents to a 2MB consolidated cap).
+
+- Cloudflare CDN edge-caches all processed media and static frontend bundles, minimizing load times for high-resolution photo galleries and video across geographies.
+
+- The original, uncompressed upload is used only transiently during processing — the app-captured GPS/timestamp authenticity metadata is extracted and stored independently before compression runs. The original file itself is discarded once the compressed, authenticity-tagged version is generated and stored; it is not retained afterward.
+
+# 10. Background Job Processing
+
+- BullMQ (Redis-backed queue) — reuses the Redis instance already provisioned for live bidding state, avoiding a second piece of queue infrastructure.
+
+- Handles all asynchronous, non-request-path work: media compression (Section 9), the monthly cold-tier audit archival job (Section 8.2), and outbound notification dispatch (Section 11).
+
+- Jobs are retried with backoff on transient failure (e.g., a compression worker crash, a temporary SMS provider outage) rather than silently dropped.
+
+# 11. Notifications & Alerts
+
+Dual-channel delivery — SMS and Web Push — since the platform is mobile-responsive web with no native app, and a buyer who isn't actively looking at the screen still needs to be reachable for time-sensitive events (CAT-LOC-VAL matches, Dynamic Time "closing soon" nudges, H1/H2 baton-pass notices).
+
+- **SMS: **routed through the same provider selected for OTP delivery (Section 5.2), reused here rather than adding a second SMS vendor. Provider — TBD.
+
+- **Web Push: **browser push notifications for buyers who've granted permission — the always-available channel that needs no phone credits and works with the tab backgrounded.
+
+- **Email: **TBD provider — used for lower-urgency, record-keeping style communications (settlement confirmations, KYC status changes) rather than time-sensitive bidding alerts.
+
+- All three channels are dispatched via BullMQ jobs (Section 10), not synchronously in the request path.
+
+# 12. AI Listing Pre-Audit
+
+- Gemini API, called directly server-side — not through a third-party LLM-gateway wrapper — to minimize vendor dependencies.
+
+- Purely advisory: evaluates a seller's in-progress listing (title, description, category, uploaded media metadata) and returns a quality score, suggested title optimizations, and flags for missing B2B metadata (condition grading, GST HSN/SAC code, etc.).
+
+- Never gates or auto-approves a listing — the BP Admin's manual review (Section 5's KYC/listing approval flow) remains the sole approval authority. The AI pass exists only to reduce back-and-forth rejection cycles before a listing reaches that review.
+
+# 13. Deployment & Infrastructure
+
+- **Docker containers on Google Cloud Run: **serverless container execution, scaling to zero during low-traffic periods to minimize idle cost, scaling out automatically under bidding-driven traffic spikes (e.g., the closing minutes of a popular Easy Auction).
+
+- **Cloudflare: **sits in front of Cloud Run for CDN, edge caching, and tenant domain/Host-header routing (Section 7).
+
+- **Google Cloud Storage: **cold-tier audit archive (Section 8) and origin store for compressed media assets served via Cloudflare.
+
+- **Google Secret Manager: **secure storage for all third-party API credentials (Gemini, SMS provider, Payment Gateway, bank verification, Auth0) — never stored in environment files or source control.
+
+- **CI/CD: **GitHub Actions builds and tests on every push; Cloud Build packages the container image; deployment to Cloud Run is automated on merge to the main branch.
+
+- **Sentry: **error monitoring and observability across both the frontend (React) and backend (Node.js) — production errors are captured and alerted on, not silently lost.
+
+# 14. Anti-Sniping — Reference Implementation
+
+Implements the Dynamic Time / Intensity Mode rules already locked in the Consolidated Specification (Section 6.3): a 10-minute trigger window, 2-minute (120 second) extension, chaining on repeated late bids.
+
+- Lock the auction record (Redis-level lock, not a full database row lock, to avoid contention during high-frequency closing-window bidding).
+
+- Validate the incoming bid — must exceed current price by at least the required increment (halved during Dynamic Time, per Intensity Mode).
+
+- Record the new bid to PostgreSQL (the durable ledger) once validated.
+
+- If the bid landed inside the 10-minute trigger window, compute the new expiration time — extend by 120 seconds.
+
+- Broadcast the updated price/time state to every subscribed WebSocket client immediately (auction viewers, and the Live Ticker for any buyer with this auction in their active-bid set).
+
+Redis absorbs the high-frequency read/write load during the final contested seconds of an auction, so PostgreSQL — which remains the single source of truth for the durable ledger — is never a bottleneck during a bidding storm.
+
+# 15. Open Items
+
+- **OPEN: **SMS OTP provider — candidates: MSG91, Twilio, Fast2SMS, Textlocal.
+
+- **OPEN: **Indian Payment Gateway — candidates: Razorpay, Cashfree, Paytm, or a direct bank VAN integration (e.g., ICICI).
+
+- **OPEN: **Bank verification / penny-drop provider — candidates: Signzy, Digio, Setu, IDfy.
+
+- **OPEN: **Email service provider — candidates: SendGrid, Resend, AWS SES.
+
+Page  of

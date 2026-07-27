@@ -1,0 +1,184 @@
+eBid Hub — Privacy Policy (DRAFT)
+
+eBid Hub
+
+*Privacy Policy — DRAFT for Legal Review*
+
+**  NOTICE: This is a structural draft prepared directly from eBid Hub****'****s finalized business rules and technology architecture. It is NOT a substitute for review by a qualified lawyer, and must not be published or relied upon as a binding legal instrument until reviewed for compliance with the Digital Personal Data Protection Act 2023 (DPDP Act), the Information Technology Act 2000 and IT Rules 2021, and any other applicable data protection law, by qualified counsel.  **
+
+Data Fiduciary: [eBid Hub SaaS entity name — to be inserted]
+
+Effective Date: [to be inserted upon publication]
+
+Contact (Grievance / Data Protection queries): [to be inserted]
+
+# 1. Introduction & Scope
+
+**1.1. **This Privacy Policy describes how eBid Hub ("the Platform", "we", "us") collects, uses, discloses, and protects the personal data of registered Buyers, Sellers, and Tenant Administrators ("you") in connection with your use of the Platform.
+
+**1.2. **This Policy applies across all Tenant storefronts operating on the Platform. Individual Tenants may not collect or process your personal data outside the mechanisms described in this Policy without your separate consent.
+
+**1.3. **By registering for or using the Platform, you consent to the collection and processing of your personal data as described in this Policy.
+
+# 2. Data We Collect
+
+## 2.1 Identity & Contact Data
+
+- Mobile phone number (verified via OTP) — your unique platform identifier.
+
+- Full name, salutation, and date of birth.
+
+- Email address (where provided).
+
+## 2.2 KYC & Verification Data
+
+- Individual Users: PAN, Aadhaar (masked/tokenised), occupation.
+
+- Business/organisational Users: CIN, GSTIN, company PAN, MSME/UDYAM registration, company type, industry, and (optionally) annual turnover and employee count.
+
+- Supporting documents: PAN card, GST certificate, Aadhaar card, Certificate of Incorporation, Board Resolution, Power of Attorney, cancelled cheque, MSME certificate, as applicable to your account type.
+
+## 2.3 Address & Banking Data
+
+- Up to four address records (Registered, Billing, Correspondence, Site/Yard), including optional GPS coordinates.
+
+- Encrypted banking details: account holder name, bank name, branch, IFSC, account number, and optional UPI ID, for the purpose of processing refunds and settlements.
+
+## 2.4 Transactional Data
+
+- Listings, bids, offers, EMD pledges and refunds, settlement records, NOC confirmations, and Star Rating history.
+
+- Communications and disclosed reasons submitted in connection with withdrawals, rejections, disputes, or rating downgrades.
+
+## 2.5 Listing Media & Location Data
+
+- Photographs, videos, and documents uploaded for a Listing, including structured GPS and timestamp data captured at the moment of upload for authenticity verification.
+
+## 2.6 Device & Usage Data
+
+- IP address, browser/device type, session activity, and login timestamps, collected automatically for security and audit purposes.
+
+# 3. How We Use Your Data
+
+We use your personal data for the following purposes:
+
+- To create and authenticate your account, and verify your identity (KYC).
+
+- To operate the Platform's core functions: listings, bidding, EMD management, settlement, and Star Ratings.
+
+- To detect and prevent fraud, including fishing/circumvention monitoring, duplicate accounts, and bid manipulation.
+
+- To personalise your experience, including Category-Location-Value (CLV) matching and notification delivery.
+
+- To communicate with you regarding transactions, disputes, and account status.
+
+- To comply with applicable legal, tax, and regulatory obligations, including audit and retention requirements.
+
+- To generate aggregated, de-identified analytics (e.g., category pricing trends) that do not identify any individual User.
+
+# 4. Data Sharing & Disclosure
+
+## 4.1 Within the Platform
+
+| **Recipient** | **What They See** |
+| --- | --- |
+| Tenant Administrator | Listings, bid/offer history, and identity details of Users transacting on their own storefront, strictly as needed for approval, dispute, and compliance functions (per the Platform's visibility rules — e.g., bidder identity remains masked during live bidding). |
+| Seller (in a completed transaction) | The winning Buyer's identity and contact details, revealed only upon acceptance of an offer or close of an auction, as applicable to the sale format. |
+| Buyer (in a completed transaction) | The Seller's identity, location, and inspection contact details, revealed upon EMD pledge or offer acceptance, as applicable. |
+| Super Admin | Full transaction records for audit purposes, accessible only after an auction or sale event concludes — the Super Admin has no visibility into live bidding activity. |
+
+## 4.2 Third-Party Service Providers
+
+We share limited personal data with third-party service providers strictly as necessary to operate the Platform, including:
+
+- Identity/authentication providers, for Super Admin multi-factor authentication.
+
+- SMS and communication providers, for OTP delivery and transactional alerts.
+
+- Payment gateway and bank verification providers, for EMD processing and account verification.
+
+- Cloud infrastructure and storage providers, for hosting, media delivery, and backup.
+
+- AI service providers, for advisory listing-quality pre-checks (this processing is limited to listing content and does not include your personal KYC data).
+
+These providers are contractually bound to process your data only for the purposes specified by us, and are not permitted to use it for their own purposes. Ownership and control of your data remains with eBid Hub.
+
+## 4.3 Legal & Regulatory Disclosure
+
+**4.3.1. **We may disclose your personal data where required by law, regulation, court order, or governmental authority, including in connection with tax, anti-money-laundering, or vigilance/audit obligations applicable to the Platform or a Tenant.
+
+## 4.4 What We Do Not Do
+
+- We do not sell your personal data to any third party.
+
+- We do not share your KYC documents with any Tenant or other User; Tenant Administrators see only your verification status (Verified/Suspended), not your underlying documents.
+
+# 5. Data Security
+
+**5.1. **Aadhaar and other sensitive identity data are stored in masked/tokenised form and encrypted at rest.
+
+**5.2. **Banking details are encrypted and used solely for the purpose of processing refunds and settlements.
+
+**5.3. **All platform activity is recorded in a tamper-evident, append-only audit trail. Audit records cannot be altered, including by the Platform's own system administrators, and are cryptographically chained to detect any retroactive tampering.
+
+**5.4. **Changes to your registered banking details require OTP re-verification and are subject to a mandatory cooling-off period before taking effect, to protect against fraudulent account substitution.
+
+**5.5. **The Platform undergoes independent, third-party security audits, in addition to continuous automated monitoring.
+
+**5.6. **Despite these safeguards, no method of transmission or storage is completely secure, and we cannot guarantee absolute security of your data.
+
+# 6. Data Retention
+
+**6.1. **Transactional and audit records are retained for a minimum of 5 years from the date of the relevant event, in a hybrid "hot" (recent, under 1 year) and "cold" (archived, compressed) storage structure, to meet applicable Indian record-keeping requirements.
+
+**6.2. **Records are never physically deleted before the expiry of the applicable retention period; outdated records are archived, not erased, to preserve the integrity of the audit trail.
+
+**6.3. **Original, uncompressed media uploads are discarded once a compressed, authenticity-verified version has been generated and stored; only the processed version is retained.
+
+**6.4. **Upon expiry of the applicable retention period, and subject to Section 6.1, your data will be deleted or irreversibly anonymised, save where continued retention is required by law.
+
+# 7. Your Rights
+
+Subject to applicable law, you have the right to:
+
+- Access the personal data we hold about you.
+
+- Request correction of inaccurate or incomplete data.
+
+- Request erasure of your data, subject to our legal retention obligations (Section 6) and any pending transactions or disputes.
+
+- Withdraw consent for processing that is based on consent, without affecting the lawfulness of processing carried out before withdrawal.
+
+- Raise a grievance regarding the handling of your personal data with our Grievance Officer (Section 11).
+
+[Drafting note: this section must be finalised against the specific data-principal rights and timelines prescribed under the Digital Personal Data Protection Act 2023 once its implementing rules are in force.]
+
+# 8. Cookies & Similar Technologies
+
+**8.1. **The Platform uses session-based mechanisms necessary for authentication and functionality. We do not use browser local/session storage to persist sensitive data such as payment credentials.
+
+**8.2. **[Drafting note: to be expanded once the Platform's final analytics/cookie stack is confirmed, with a corresponding cookie-consent mechanism if any non-essential tracking is introduced.]
+
+# 9. Children's Data
+
+**9.1. **The Platform is not intended for use by individuals under 18 years of age, and we do not knowingly collect personal data from minors. If we become aware that we have inadvertently collected data from a minor, we will take steps to delete it.
+
+# 10. Data Storage & Localisation
+
+**10.1. **The Platform's operations, compliance, and data processing are currently scoped to India, consistent with the Platform's operational jurisdiction.
+
+**10.2. **Where any service provider processes data outside India (e.g., a global cloud infrastructure provider), such transfer will be made subject to appropriate contractual safeguards. [Drafting note: to be confirmed against final vendor selections and DPDP Act cross-border transfer provisions.]
+
+# 11. Grievance Officer & Contact
+
+In accordance with the Information Technology Act 2000 and rules made thereunder, the details of the Grievance Officer are:
+
+[Name, designation, and contact details of Grievance Officer to be inserted]
+
+For any privacy-related queries or to exercise the rights described in Section 7, contact: [privacy contact to be inserted]
+
+# 12. Changes to This Policy
+
+**12.1. **We may update this Privacy Policy from time to time. Material changes will be notified to Users through the Platform, and the "Effective Date" at the top of this Policy will be updated accordingly.
+
+Page  of

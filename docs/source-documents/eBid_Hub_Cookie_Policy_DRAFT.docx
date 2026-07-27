@@ -1,0 +1,47 @@
+eBid Hub — Cookie Policy (DRAFT)
+
+eBid Hub
+
+*Cookie Policy — DRAFT, Pending Final Tooling Decisions*
+
+**  NOTICE: This is a structural draft. The platform****'****s actual analytics/tracking tooling (if any) has not yet been selected — this Policy should be finalized, and specific tools named, only once that decision is made. Not for publication until reviewed by qualified counsel.  **
+
+Effective Date: [to be inserted upon publication]
+
+Contact: [to be inserted]
+
+# 1. What Are Cookies
+
+Cookies are small text files placed on your device when you use a website or app, used to remember information about your visit.
+
+# 2. Cookies We Use
+
+| **Category** | **Purpose** | **Can You Opt Out?** |
+| --- | --- | --- |
+| Strictly Necessary / Session | Keeps you logged in and your session secure while using the platform. | No — required for the platform to function. |
+| Functional | Remembers preferences such as your CAT-LOC-VAL discovery filters, so you don't have to reset them each visit. | Yes, though some convenience features may not work without them. |
+| Analytics | Helps us understand how the platform is used, to improve it over time. | Yes, where offered. |
+
+*[Drafting note: this table reflects a standard cookie taxonomy, not a confirmed technical decision. No analytics or marketing tooling has been formally selected as part of this platform**'**s build to date (unlike Auth0, Gemini, or SabPaisa, which were explicit vendor decisions) — this Policy should be finalised only once the actual analytics stack, if any, is chosen, since the specific tools used must be named here for the Policy to be accurate.]*
+
+# 3. What We Do Not Use Cookies For
+
+- We do not use cookies to store your banking details, EMD/deposit balance, or KYC documents — this data is held server-side, within our segregated escrow and encrypted storage systems, never in a browser cookie.
+
+- We do not use third-party advertising or ad-retargeting cookies.
+
+# 4. Third-Party Cookies
+
+**4.1. **Our Payment Gateway partner (SabPaisa) may set its own cookies during the payment/checkout process, governed by their own cookie and privacy practices, not this Policy.
+
+*[Drafting note: confirm directly with SabPaisa what cookies, if any, their checkout flow sets, so this section can be stated precisely rather than generically.]*
+
+# 5. Managing Your Preferences
+
+**5.1. **Most browsers let you block or delete cookies through their settings. Blocking strictly necessary cookies will prevent you from using core platform features, including logging in.
+
+# 6. Changes to This Policy
+
+**6.1. **We may update this Policy as our use of cookies changes. Material changes will be reflected in the "Effective Date" above.
+
+Page  of

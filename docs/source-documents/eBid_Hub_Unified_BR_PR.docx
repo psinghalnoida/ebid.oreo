@@ -1,0 +1,1373 @@
+eBid Hub — Unified Business Rules & Process Workflows
+
+eBid Hub
+
+*Unified Business Rules **&** Process Workflows*
+
+Super Admin: Piyush Singhal
+
+Contact: psinghalnoida@gmail.com
+
+Status: Fully reconciled — supersedes all prior governance drafts and the separately-issued Consolidated Specification.
+
+*This document is the single, absolute source of truth for eBid Hub's business rules (BR) and process workflows (PR). Every rule reflects a decision explicitly discussed and finalized with the Super Admin (BR-01). No item in this document is left ambiguous; where a decision is intentionally deferred, it is called out explicitly under Open Items.*
+
+# Table of Contents
+
+**SECTION 1 — BUSINESS RULES (BR-01 to BR-61)**
+
+**SECTION 2 — PROCESS WORKFLOWS (PR-01 to PR-36)**
+
+**SECTION 3 — TECHNOLOGY STACK**
+
+**SECTION 4 — PHASED ROADMAP**
+
+# SECTION 1: BUSINESS RULES (CONSTRAINTS)
+
+**BR-01: ****Discuss First ****&**** Rationale Archive**
+
+***Statement: ***Every business rule, process flow, and technological choice must be discussed, reviewed, and finalized with the Super Admin prior to any software development. The development agent must always halt and raise clarifying questions rather than making unilateral assumptions on ambiguous requirements. Every discussion and its resulting decision is preserved as a rationale record.
+
+***Logic / Rationale: ***Eliminates assumptions, prevents development drift, and guarantees stakeholder intent is strictly documented. The preserved rationale additionally serves as the raw material for future FAQs and deep user-facing documentation, since it captures not just what was decided but why.
+
+**BR-02: ****Patron Unique Phone Identification ****&**** Authentication**
+
+***Statement: ***Each platform patron (buyer or seller) is uniquely identified by a single verified mobile phone number. New users verify identity via OTP during registration before profile creation. Registered users authenticate via a secure 4-digit mPIN. On 3 consecutive failed mPIN attempts, an SMS OTP is triggered; the user must verify this OTP before mPIN reset or re-authentication.
+
+***Logic / Rationale: ***Mobile-number-as-primary-key minimizes duplicate accounts and spam bidders. OTP enforces device ownership at registration and recovery; mPIN gives a fast, passwordless path for ongoing use.
+
+**BR-03: ****Indian Localization ****&**** Jurisdiction Limits**
+
+***Statement: ***The platform's operational domain, compliance, and transactions are restricted to India. Mobile identification is restricted to 10-digit Indian numbers with '+91'. All transactions are valued and settled in Rupees. Application language is Indian English; location is governed by 6-digit Indian PIN codes. This is the platform's current scope, not a permanent architectural ceiling — it is explicitly revisitable if/when international expansion is pursued.
+
+***Logic / Rationale: ***Enforcing territorial boundaries ensures legal/tax compliance (GST), simplifies logistics via the Indian postal grid, and aligns with Indian banking rails (UPI/IMPS/VAN).
+
+**BR-04: ****SaaS Sovereign Administrative Control**
+
+***Statement: ***Piyush Singhal (contact: psinghalnoida@gmail.com) is the platform's Super Admin. Only the Super Admin holds sovereign, non-delegable authority to create, edit, suspend, or delete business rules, workflows, categories, commissions, or safety thresholds. Super Admin login uses TOTP-based multi-factor authentication (Google Authenticator / Microsoft Authenticator compatible, via Auth0), isolated from the standard user OTP/mPIN flow. The Super Admin's real identity (name, mobile, email) is never exposed publicly; every public-facing surface refers to this role only as "Super Admin."
+
+***Logic / Rationale: ***High-value asset platforms require a definitive, authenticated administrative anchor. TOTP/MFA via a specialized identity provider (rather than custom-built authentication) minimizes security risk for this single, highest-privilege account without adding unnecessary engineering overhead.
+
+**BR-05: ****Immutable Auditing, Logical Archiving ****&**** 5-Year Retention**
+
+***Statement: ***Every operational interaction, configuration change, and transactional action is tracked in an append-only, tamper-resistant audit trail with microsecond-accurate UTC timestamps. True physical deletion is prohibited. A hybrid hot/cold tiering structure is enforced: logs under 1 year old remain in the primary database ('Hot' tier); logs older than 1 year are compressed, encrypted, and offloaded to cold cloud object storage ('Cold' tier), retained for a minimum of 5 years. A unified Log Reader API retrieves and joins records across both tiers, exposed exclusively to the Super Admin.
+
+***Logic / Rationale: ***Enforces accountability and non-repudiation, satisfies Indian eCommerce retention law, prevents primary database bloat, and reduces storage cost.
+
+**BR-06: ****Federated SaaS Multi-Tenancy ****&**** Tenant Whitelisting**
+
+***Statement: ***The platform operates as a federated multi-tenant SaaS. Only the Super Admin can whitelist tenants. Each tenant is provisioned with a dedicated subdomain (e.g., pnb.ebidhub.com) or custom domain (e.g., www.salvagemanagers.com), instantly loading a white-labeled portal with the tenant's own branding and terms. Buyers are federated globally — one registered identity lets a buyer log in across any tenant domain and monitor all their activity from a single dashboard.
+
+***Logic / Rationale: ***Enables fast, zero-infrastructure onboarding for sellers/institutions while giving buyers a seamless, single-identity purchasing path across every tenant.
+
+**BR-07: ****Salvage Asset Categorization ****&**** Scope Restriction**
+
+***Statement: ***The platform is strictly a marketplace for salvaged, claims, surplus, repossessed, used, and specialized assets. New retail-consumer goods (Amazon-style) are explicitly prohibited. Permitted categories: Salvaged Claims Goods, Second-Hand/Used Goods, Abandoned Goods, Antiques, Repossessed Banking Assets, Industrial/Commercial Surplus, Custom/Confiscated Goods, and Lost-and-Found inventories.
+
+***Logic / Rationale: ***Positions the platform as a trusted, institutional-grade marketplace for non-new goods, preventing scope creep into general retail e-commerce.
+
+**BR-08: ****Turnover-Based SaaS Monetization**
+
+***Statement: ***SaaS earns a flat 0.5% fee of final successful sale turnover on every closed sale, funded from the buyer's EMD at settlement (see BR-32, BR-34).
+
+***Logic / Rationale: ***Aligns SaaS's commercial incentive directly with transaction volume, offering a low barrier to entry while scaling revenue with platform utility.
+
+**BR-09: ****Tenant Admin Delegated Administration**
+
+***Statement: ***Each whitelisted tenant is administered by exactly one Tenant Admin at a time — a specific person holding a normal buyer/seller account, additionally granted a time-bound admin role by formal agreement between the Super Admin and the tenant's company. The company designates (and may replace) whoever holds this post; it is never self-appointed. The Tenant Admin sets local commission/entry-fee terms (within platform floors), reviews and approves listings, and holds exclusive authority to upgrade a buyer to a Seller — scoped strictly to that tenant's own storefront. A seller upgraded on one tenant has no automatic selling rights on another. If a seller's account is suspended, all of their active listings on that tenant are instantly suspended pending review.
+
+***Logic / Rationale: ***Ensures tenant-isolated operations, prevents catalog contamination across tenants, and keeps listing/seller-conduct governance close to the institution actually running that storefront.
+
+**BR-10: ****Decoupled Architecture — Listing vs. Sale System**
+
+***Statement: ***A strict architectural boundary exists between a Listing (the physical/legal attributes of an asset — description, category, condition, quantity, location, inspector contact) and a Sale System (the transactional protocol used to sell it). Any approved Listing can be sequentially or dynamically mapped to different Sale Systems over time (e.g., an unsold Easy Auction re-attempted as a Buy-Now) without re-cataloging the physical asset.
+
+***Logic / Rationale: ***Maximizes catalog reuse, enables flexible recovery strategies for unsold assets, and keeps listing data clean for historical analytics.
+
+**BR-11: ****Universal Listing Metadata ****&**** Inspector Governance**
+
+***Statement: ***Every listing must specify Physical Condition, Category, Subcategory, Quantity, Make/Model, and Physical Yard Location. The listing must bind an inspection authority: for direct owner listings, the owner's own contact; for institutional repossessions, the authorized yard manager/custodian/agent. The Tenant Admin retains final approval authority over whether a listing is valid, accurate, and authorized for public exposure.
+
+***Logic / Rationale: ***Prevents catalog contamination, gives buyers transparency for physical inspection, and reduces post-sale disputes.
+
+**BR-12: ****Multi-Format Transactional Sale Systems**
+
+***Statement: ***The platform supports four sale systems: (1) Buy-Now — seller sets an Expected Value (EV); buyers offer at, above, or below it; seller reviews and selects by judgment, not automatic highest-price close. (2) Express Auctions — seller sets a Reserve Value (RV); once exactly 3 distinct buyers pledge EMD, the auction is scheduled and launched automatically; no inspection window exists at all; result is fully automatic. (3) Easy Auctions — scheduled open bidding at RV; result may be Instant Close or Approval Required (seller's choice at listing). (4) Tender Auctions — fully bespoke, invitation-only, seller-curated, restricted exclusively to the Company Shop.
+
+***Logic / Rationale: ***Provides a flexible suite of disposal mechanisms from hyper-rapid liquidity (Express) to maximum-value discovery (Easy) to fully bespoke concierge handling (Tender), while Buy-Now serves negotiated, judgment-based sales.
+
+**BR-13: ****Listing Lifecycle, Immutability ****&**** Safe-Edit Redirection**
+
+***Statement: ***Every listing follows: INVENTORY to PENDING_APPROVAL to UPCOMING to (seller assigns one Sale System, generating a new unique Sale-System ID) to ACTIVE to SOLD or CYCLE-ENDED-UNSOLD. Only one Sale-System instance may be ACTIVE per listing at a time. Once ACTIVE, no parameter can be changed directly. Any requested change is submitted as an edit request; on Tenant Admin approval, the original listing is archived (preserved for audit trail) and a new listing is created with a new unique ID, re-entering the lifecycle from UPCOMING. Edit-request review is tiered: material fields (RV, EV, unit/lot basis, quantity/tolerance, category, sale-system choice) trigger full re-review; non-material fields (description, media, minor detail) receive lighter-touch review. Any rejection — of an original listing, an edit-request draft, or a re-submission — requires the Tenant Admin to select a reason from a closed list and log it; the rejection and its stated reason are visible to the seller.
+
+***Logic / Rationale: ***Ensures catalog immutability during active sales, protects active bidders from bait-and-switch changes, and preserves a full audit trail across every relisting attempt. Mandating a logged reason on every rejection fixes accountability for the decision and gives the seller a documented, contestable basis rather than an unexplained refusal.
+
+**BR-14: ****Sale Event Edit/Freeze Lifecycle ****&**** Hold Times**
+
+***Statement: ***Post-approval editing is governed per format: Express Auctions are fully locked — no seller edits or cancellation once approved, though the Tenant Admin or Super Admin retains emergency-stop authority with a mandatory, audited reason. Easy Auctions and Buy-Now both allow direct seller edits within a 60-minute post-approval grace period, triggering a 'Quick Re-approval' workflow with a highlighted delta view for the Tenant Admin; after 60 minutes, all parameters freeze. Tender Auctions carry no fixed edit-hold window at all — timing is entirely the seller's own discretion, consistent with Tender's concierge model. Submitted bids, offers, or invitations are never silently migrated across an edit/duplication event — all active bids are cancelled and refunded, and bidders are notified to reconfirm.
+
+***Logic / Rationale: ***Builds buyer trust by preventing bait-and-switch mid-sale, gives sellers reasonable operational grace, and protects Express's automated speed from interference.
+
+**BR-15: ****Sovereign Isolation — Super Admin Non-Participation**
+
+***Statement: ***The Super Admin occupies an absolute, non-participatory regulatory role — strictly forbidden from acting as Buyer, Seller, Tenant Admin, Inspector, or any other platform participant, and structurally barred from listing assets, attaching Sale Events, or placing bids/offers under any circumstance. Sovereign authority is restricted to whitelisting tenants, appointing/removing Tenant Admins, auditing logs, and executing emergency global freezes.
+
+***Logic / Rationale: ***Guarantees neutral governance and eliminates any insider-trading risk at the platform-operator level.
+
+**BR-16: ****Double-Blind Market Privacy ****&**** Visibility Matrix**
+
+***Statement: ***During live bidding on any competitive-bid format (Easy, Express, Tender default): a bidder sees only their own running price and H1/not-H1 status, never other bidders' identity or amounts. The seller sees price movement only, no bidder identity, during the live event. After close, the seller sees only the H1 winner's score, name, and details; the Tenant Admin sees the full bid history plus H1/H2/H3 identity and amounts (not the full roster). In Buy-Now, full double-blind anonymity applies: the buyer does not know the seller's identity until EMD is pledged (which unlocks seller identity/location/inspection access), and the seller does not know the buyer's identity until they accept an offer. The Super Admin is fully blind to all of this during live events, by deliberate design — access unlocks only after close, same as every other viewer, preserving platform-operator neutrality.
+
+***Logic / Rationale: ***Deters bidding cartels, enforces objectivity in offer selection, and guarantees that even the platform operator has no live informational edge while a sale is in progress.
+
+**BR-17: ****Dual-Track Patron KYC Verification**
+
+***Statement: ***Individual KYC requires Full Name, PAN, Aadhaar (masked/tokenized), Date of Birth, and Occupation. Corporate/Organization KYC requires CIN, GSTIN, Company PAN, MSME Registration, UDYAM Number, Company Type, Industry, and optional Annual Turnover/Employee Count. Required document uploads: PAN Card, GST Certificate, Aadhaar Card, Certificate of Incorporation, Board Resolution, Power of Attorney, Cancelled Cheque, MSME Certificate. Any specific field's mandatory/optional status, or the addition/removal of a field, remains subject to BR-01 — this schema is a living structure, not permanently frozen by adoption. Transitioning a patron's KYC Status to Suspended requires the reviewing admin to select a reason from a closed list (e.g., document mismatch, expired ID, failed registry check) and log it; the patron is notified of both the suspension and its stated reason.
+
+***Logic / Rationale: ***Guarantees legally verified participants, prevents shell-company operation, and protects sensitive data (e.g., Aadhaar) via tokenization. A mandatory, logged reason for suspension fixes accountability for an adverse action and gives the patron a documented basis to correct or contest it.
+
+**BR-18: ****Multi-Address Schema ****&**** Encrypted Banking Verification**
+
+***Statement: ***Every patron maintains up to four address records: Registered, Billing, Correspondence, and Site/Yard — each capturing Address Line 1/2, City, District, State, Country, 6-digit PIN Code, and optional GPS coordinates. Patrons register encrypted banking details: Account Holder Name, Bank Name, Branch Name, IFSC, Account Number, and optional UPI ID.
+
+***Logic / Rationale: ***Enables precise state-specific GST calculation, exact yard-inspection location data, and secure, non-repudiative clearing of buyer/seller funds.
+
+**BR-19: ****Polymorphic Role Mapping**
+
+***Statement: ***A single verified Party (legal entity) may simultaneously hold one or more of the following operational roles across different tenants: Buyer, Seller, Bidder, Vendor, Customer, Auctioneer, Service Provider, Surveyor, and Financier. Roles are decoupled from the core Party record, so any verified Party can operate under multiple roles without duplicate registration.
+
+***Logic / Rationale: ***Prevents account redundancy, lets a single corporate entity operate in multiple capacities under one compliance umbrella, and supports automated cross-role lockout if a compliance flag is revoked.
+
+**BR-20: ****Super Admin Credential Isolation**
+
+***Statement: ***Super Admin credential changes (TOTP re-enrollment, email/mobile update) are strictly barred from the standard SMS-OTP/mPIN self-service channels used by all other patrons. These changes route exclusively through the isolated TOTP/MFA path established in BR-04.
+
+***Logic / Rationale: ***Eradicates SIM-swap and front-end injection risk against the platform's highest-privilege account.
+
+**BR-21: ****Asset-Level Transactional Role Exclusion**
+
+***Statement: ***A Party bound to a Listing as Surveyor, Yard Inspector, or Physical Custodian (BR-11) is algorithmically blocked from placing bids, submitting Buy-Now offers, or acting as Financier on any active Sale Event mapped to that specific listing — even though the same Party may hold buyer/seller roles freely elsewhere on the platform.
+
+***Logic / Rationale: ***Prevents collusive evaluation reports and conflicts of interest between physical assessors and financial participants.
+
+**BR-22: ****Tenant-Scope Bidding Suspension**
+
+***Statement: ***The moment a registered buyer is promoted to Tenant Admin for a specific tenant, their profile is immediately blocked from submitting bids or Buy-Now offers within that specific tenant's storefront. They remain fully free to bid on any other, independent tenant's storefront where they hold no administrative access.
+
+***Logic / Rationale: ***Guarantees institution employees with administrative oversight cannot bid on their own company's liquidations, while preserving their ability to transact elsewhere.
+
+**BR-23: ****Category-Location-Value (CLV) Matching**
+
+***Statement: ***Buyers are shown all listings by default, with persistent tools to fine-tune their feed: preferred categories, comfort inspection locations (specific states, or 'All India'), and a dual-slider budget range (min/max). This preference set drives personalized match suggestions and notification triggers, including the Live Ticker's 'sales of interest' feed (BR-48).
+
+***Logic / Rationale: ***Maximizes trading efficiency by filtering noise for active bidders and empowering self-curated deal sourcing.
+
+**BR-24: ****Shipping Attribution ****&**** Cost Transparency**
+
+***Statement: ***Every seller declares shipping eligibility at listing time (toggle). If enabled, the seller sets either a Fixed Cost or a Variable (distance-based) Cost. Shipping is always optional for the buyer — they may lift the asset themselves at no shipping cost. CLV budget-matching (BR-23) is evaluated strictly on the listing's Basic Cost, never the shipping-inclusive landed cost.
+
+***Logic / Rationale: ***Guarantees buyers can always choose the lower-cost self-collection path, and keeps CLV value-matching unaffected by shipping-cost variability.
+
+**BR-25: ****EMD Escrow Isolation**
+
+***Statement: ***To comply with RBI regulations prohibiting unlicensed private digital wallets, the platform holds Earnest Money Deposits as segregated, per-pledge escrow holdings — never a pooled, freely spendable wallet balance. A buyer's deposited funds are 'unpledged' until committed to a specific bid or offer; the moment they are pledged, that amount becomes a distinct, ring-fenced holding tied to that specific transaction, released or forfeited only according to that transaction's own outcome. What a buyer sees as their account 'balance' is a display total of unpledged funds plus their currently pledged holdings — not a single fungible pool they can freely draw down. No automatic cross-channel or cross-pledge fund pooling exists anywhere on the platform. Separately, and independently of this segregation, PC/Money Points is never used to pay for the underlying goods themselves — 100% of every sale value is settled directly between buyer and seller, offline; PC only ever secures a bid commitment, never functions as the payment instrument for a purchase.
+
+***Logic / Rationale: ***Ensures regulatory compliance, avoids classification as an unauthorized Prepaid Payment Instrument (PPI), and secures buyer/seller funds from operational commingling risk. Both safeguards are deliberate and independent: per-pledge segregation ensures no general-purpose spendable balance exists, while PC never being the instrument that pays for goods (only ever a security deposit) further distinguishes it from a wallet's core function. This framing is the platform's working position and should be confirmed by qualified legal counsel before being relied upon as a final compliance determination.
+
+**BR-26: ****Multi-Channel EMD Routing**
+
+***Statement: ***EMD validation routes differently per sale format: Tender Auctions — manual offline bank transfer into the platform's corporate escrow account; no gateway; manual refunds. Express Auctions and Buy-Now — buyer's choice of Virtual Account Number (VAN) instant transfer or Credit Card authorization hold. Easy Auctions — VAN only; credit card authorization is barred, to avoid chargeback exposure on high-velocity liquidations.
+
+***Logic / Rationale: ***Routes each channel through the transaction speed/risk profile appropriate to its format, keeping high-value legacy Tender transactions fully manual and insulated.
+
+**BR-27: ****EMD Baseline Calculation Protocol**
+
+***Statement: ***A flat 10% EMD is mandatory to place any bid or offer, calculated as: 10% of the seller's Expected Price (EV) for Buy-Now; 10% of the listing's Reserve Value (RV) for Express and Easy. No bid or offer is accepted without this baseline being pledged and available, checked live on every single bid, not only at close. Where the buyer's chosen payment method incurs a Payment Gateway collection charge, the buyer is charged that amount in addition to the stated EMD, calculated and disclosed at the point of payment, so that the full, undiminished 10% baseline is what actually lands in escrow — the collection charge is never deducted from the EMD itself.
+
+***Logic / Rationale: ***Establishes a uniform entry threshold for commitment, deterring frivolous bidding while satisfying escrow-holding requirements. Grossing up for the Payment Gateway's own collection charge keeps the escrowed amount mathematically exact at all times, which every downstream calculation (top-up, forfeiture, refund, commission deduction) depends on — a silently reduced escrow balance would compromise all of those figures.
+
+**BR-28: ****Cascading H1 to H2 to H3 Baton-Pass ****&**** Forfeiture**
+
+***Statement: ***If an auction closes above Reserve, the winning H1 bidder must top up their EMD to 10% of the actual closing value within a fixed window: 2 hours (Express) or 24 hours (Easy). If H1 fails to pay, they default and forfeit their EMD; the baton passes to H2, who now acts as H1 at H2's own bid price, with an equivalent window (Express: hours 2-4; Easy: 24-48hr). If H2 also defaults, the baton passes to H3 under the same terms (Express: hours 4-6; Easy: 48-72hr). If H3 also defaults, the auction is cancelled outright — it is not automatically relisted. On full cascade failure (all three defaulting), the seller receives zero share of any of the three forfeited EMDs; forfeited funds are retained entirely by the platform (Tenant + SaaS, per BR-34) specifically to remove any incentive for a seller to deliberately structure unreasonable/impossible sale terms to farm forfeiture revenue. Outside a full cascade (i.e., a single default that still results in a completed sale, or any other non-cascading default), the standard forfeiture destination in BR-34 applies. The seller's only recourse after a full-cascade cancellation is to relist the item under the standard archive-and-recreate lifecycle (BR-13).
+
+***Logic / Rationale: ***Maintains auction momentum, ensures full security coverage of the actual closing value, penalizes non-paying bidders sequentially at each price level, and removes the perverse incentive a zero-share rule would otherwise create for sellers to engineer guaranteed-default auctions.
+
+**BR-29: ****Buy-Now EMD Adjustment ****&**** Identity Masking**
+
+***Statement: ***If the final negotiated Buy-Now offer accepted by the seller is higher than the original Expected Price, the buyer must deposit the balance EMD to reach 10% of the final accepted price. If lower, any EMD held in excess is refunded immediately. Contact details and identities of both parties remain fully redacted until the full 10% EMD is cleared in escrow.
+
+***Logic / Rationale: ***Protects platform commission collection, prevents off-platform collusion, and protects user privacy during sensitive negotiation.
+
+**BR-30: ****Format-Specific Inspection Rules**
+
+***Statement: ***Express Auctions have no inspection window at all — buyers commit sight-unseen, consistent with the format's high-velocity design. Easy Auctions and Buy-Now instead use a fixed 60-minute post-approval edit/grace window (BR-14) rather than a multi-day physical inspection period; buyers rely on listing photos, video, and app-captured authenticity data (BR-45) at bid time. Bidding on any format constitutes a waiver of the right to dispute the item's general condition post-win, absent a valid dispute under BR-40 (fraud or material description deviation).
+
+***Logic / Rationale: ***Aligns each format's information availability with its own risk profile — Express prioritizes speed above all; Easy/Buy-Now provide a short parameter-correction window rather than a physical inspection period, placing appropriate reliance on listing accuracy and documented evidence.
+
+**BR-31: ****Dual-Fee Billing ****&**** Zero-Seller Model**
+
+***Statement: ***SaaS charges a flat 0.5% of final sale turnover, billed exclusively to the Tenant. Sellers participate on a strict 0% fee basis — they pay nothing to list or sell. On Buy-Now and Easy Auctions, the Tenant charges the buyer a transaction fee, defaulting to 5% of final sale value, adjustable at the Tenant Admin's discretion within a fixed band: a floor of 0.5% (plus GST) — matching SaaS's own share, below which the Tenant earns nothing on that sale but SaaS is still paid in full — and a ceiling of 5% (plus GST), which may never be exceeded. Express Auctions and Tender Auctions are excluded from this band: Express's fee structure is not tenant-tunable given its fully automated design, and Tender's fee terms remain entirely custom per auction, set by the seller (see BR-12).
+
+***Logic / Rationale: ***Ensures a zero-friction entry barrier for sellers, funding the platform via buyer-side commission with zero seller cost. The 0.5%-5% band gives Tenants real room to compete on price for volume while guaranteeing SaaS's share is never structurally undercut, since the floor is set exactly at what SaaS requires — a Tenant can discount all the way down to zero margin for itself, but never below the point where SaaS stops being paid in full.
+
+**BR-32: ****Adjustable Buyer Fee ****&**** Escrow Deduction**
+
+***Statement: ***The Tenant Admin holds sole discretion to adjust the buyer's transaction fee on any active listing. Since the buyer already holds an active EMD in escrow, this fee is calculated, locked, and deducted directly from the escrowed EMD at settlement, rather than collected via a separate charge.
+
+***Logic / Rationale: ***Streamlines cash flow and guarantees platform/tenant fee collection by netting directly from held escrow.
+
+**BR-33: ****Dual-Sided NOC ****&**** Mandatory Rating Settlement Gate**
+
+***Statement: ***Upon a successful sale, the buyer pays 100% of the sale value directly to the seller, offline, either after the seller ships the goods or the buyer lifts them from the yard. The platform never touches this 100% value — only the EMD is ever escrowed. A deal formally closes only once all four of the following are complete: (1) the seller registers a digital NOC confirming full fund clearance; (2) the buyer registers a digital NOC confirming goods received; (3) the buyer submits a mandatory star rating of the seller; and (4) the seller submits a mandatory star rating of the buyer. Only once all four are in does the platform release the buyer's unused EMD balance and deduct the final commission/SaaS fee from the held EMD.
+
+***Logic / Rationale: ***Guarantees each party independently attests to the fact only they can verify (money received / goods received), and guarantees the Star Rating system is fed by genuine transaction volume rather than optional, low-participation feedback.
+
+**BR-34: ****Forfeited EMD Allocation**
+
+***Statement: ***Outside a full cascade-failure scenario (BR-28), when a buyer defaults on their balance EMD, the escrowed EMD is fully forfeited. Standard allocation: Tenant commission and SaaS's 0.5% share are deducted first; the remainder passes to the seller as compensation for the failed deal. In a full-cascade scenario (BR-28), the seller is excluded from this compensation entirely — all forfeited funds are retained by the platform.
+
+***Logic / Rationale: ***Compensates the seller for a genuinely failed deal in the ordinary case, while the cascade-failure exception (BR-28) specifically prevents this compensation from creating a forfeiture-farming incentive.
+
+**BR-35: ****Default Star Rating Baseline ****&**** Event Tables**
+
+***Statement: ***Every user starts at a neutral 3.0-star rating on both independent scores — starRating (buyer) and sellerStarRating (seller) — triggered on profile completion. Inactivity never moves either score. Movement between whole stars is governed by a 10-point scale, where each 0.1★ increment is the base unit — small, routine behaviour moves the rating by a small amount (0.1★-0.3★), a genuine lapse or a genuinely consistent habit moves it by a moderate amount (0.4★-0.7★), and deliberate, severe, or repeated failure moves it by a large amount (0.8★ and above), including the possibility of crossing more than one full star in a single event where warranted. Positive movement is deliberately capped lower than negative movement can go — the largest single positive event is smaller than the largest single negative event — since trust is intended to build gradually across a pattern of good conduct, not be recovered in one favourable transaction. The full graduated event tables for both scores follow this Rule. Any case a user considers disproportionate may be raised through the standard appeal right (BR-36).
+
+***Logic / Rationale: ***Establishes a fair, consistent, and dual-independent reputation baseline that reflects genuine behavior rather than transaction frequency.
+
+**Buyer Rating (starRating) — Graduated Event Table**
+
+***Small (0.1★–0.3★) — routine behaviour, low stakes either way***
+
+| **Event** | **Points** |
+| --- | --- |
+| High Participation (5+ bids in 30 days) | +0.1★ |
+| Prompt seller-query responses during a live deal | +0.1★ |
+| Prompt NOC confirmation (goods-received, filed promptly) | +0.1★ |
+| Prompt rating submission of the seller | +0.1★ |
+| Successful Collection (clean handover) | +0.2★ |
+| Clean Inspection (no dispute after an Easy Auction win) | +0.3★ |
+| Repeated weak/unconvincing withdrawal reasons (pattern) | −0.2★ |
+
+***Medium (0.4★–0.7★) — a genuine lapse or a genuinely consistent habit***
+
+| **Event** | **Points** |
+| --- | --- |
+| Early Settlement (balance paid within 48 hours of H1) | +0.5★ |
+| Sustained clean streak (10 consecutive dispute-free transactions) | +0.6★ |
+| Late Payment (more than 7 days from H1) | −0.5★ |
+| Stalling pattern (5th forced-neutral-rating instance, per BR-39) | −0.5★ |
+| Repeated baseless dispute-filing pattern | −0.6★ |
+
+***Large (0.8★ and above) — deliberate, severe, or repeated failure***
+
+| **Event** | **Points** |
+| --- | --- |
+| Frivolous Dispute (baseless condition complaint after winning) | −1.5★ |
+| 1st Default (non-payment, non-lifting, disruptive conduct) | −1.0★ |
+| 2nd Default (within the 12-month window) | −1.5★ |
+| 3rd Default (within the same window) | −2.0★ or floor |
+| Disruptive conduct or harassment at handover | −1.5★ |
+| Confirmed fishing/circumvention pattern (reveal-then-abandon) | −1.5★ |
+| Chargeback filed against an already-approved, legitimate forfeiture | −2.0★ |
+| Confirmed false KYC information | Reset to 1★ |
+
+**Seller Rating (sellerStarRating) — Graduated Event Table**
+
+***Small (0.1★–0.3★) — routine behaviour, low stakes either way***
+
+| **Event** | **Points** |
+| --- | --- |
+| Prompt NOC confirmation (fund-clearance confirmed quickly) | +0.1★ |
+| Prompt rating submission of the buyer | +0.1★ |
+| Fulfilling promised shipping exactly as stated | +0.1★ |
+| Detailed Documentation (video + photos + location/map) | +0.2★ |
+| Rapid Handover (NOC/delivery within 24 hours of payment) | +0.3★ |
+
+***Medium (0.4★–0.7★) — a genuine lapse or a genuinely consistent habit***
+
+| **Event** | **Points** |
+| --- | --- |
+| Accurate Description (buyers consistently rate listing accuracy highly) | +0.4★ |
+| Sustained clean streak (10 consecutive transactions, zero disputes/rejections) | +0.6★ |
+| Delayed Collection (unreachable at handover) | −0.5★ |
+| Stalling pattern (5th forced-neutral-rating instance, per BR-39) | −0.5★ |
+| Repeated baseless Easy-Auction rejection pattern | −0.6★ |
+
+***Large (0.8★ and above) — deliberate, severe, or repeated failure***
+
+| **Event** | **Points** |
+| --- | --- |
+| Unprofessional Conduct (verified buyer complaint) | −1.0★ |
+| Data Mismatch (significant discrepancy) | −1.5★ |
+| Dishonest Express defect-disclosure (confirmed via dispute) | −1.5★ |
+| Confirmed off-platform solicitation (seller-side fishing) | −1.5★ |
+| Confirmed CBS violation (stock/fake photo, past warning stage) | −2.0★ |
+| Confirmed fraud (bid manipulation, deliberate misrepresentation) | Reset to 1★ |
+| Confirmed KYC fraud | Reset to 1★ |
+
+**BR-36: ****Rating Governance — Human-Approval-Gated Downgrades**
+
+***Statement: ***Star rating upgrades apply automatically. Downgrades, however, require explicit review: downgrades between 5.0 and 2.1 stars must be approved by the Tenant Admin; downgrades to 2.0 stars or below require joint approval from both the Tenant Admin and the Super Admin. Every downgrade carries an appeal right for the affected user.
+
+***Logic / Rationale: ***Protects users — particularly buyers, the platform's core patrons — from retaliatory or unfair rating manipulation, while ensuring dual sign-off before the most severe consequences take effect.
+
+**BR-37: ****Rating Portability Across Tenants**
+
+***Statement: ***Star ratings, dispute history, and behavioral records are permanently bound to a participant's single global identity across the entire platform, never local to one tenant. If a seller's approval is revoked by one tenant but they are later onboarded by a different tenant, their full historic rating and dispute ledger persists unchanged.
+
+***Logic / Rationale: ***Prevents a bad-actor operator from erasing their reputation by simply moving to a new tenant, protecting the integrity of the platform-wide trust system.
+
+**BR-38: ****Crawl-Back ****&**** Shadow Banning — Rehabilitation System**
+
+***Statement: ***Rather than an automatic hard suspension at any single threshold, a buyer whose starRating drops below 2 stars enters Crawl-Back: they are restricted to transacting only within that tenant's own defined 'Low' value bracket, with a defined number of consecutive clean transactions (escalating by offence count) required to restore 3 stars. Below a further threshold, both buyers and sellers enter Shadow Banning — a graduated suppression of platform-driven visibility (search, recommendations, ticker promotion) rather than an outright block; the user can still manually transact if they choose. A platform-wide, non-tenant-configurable floor applies at 1 star or below (a flat transaction ceiling), which can be raised via a published, SaaS-controlled standing-deposit formula. A mirrored flush-out ladder applies to sellers on sellerStarRating, ending in full delisting reserved strictly for confirmed fraud — never for accumulated ordinary poor ratings.
+
+***Logic / Rationale: ***Provides a real, achievable path back to good standing rather than a punitive dead end, while still containing risk to sellers/buyers during a user's rehabilitation period and reserving permanent removal for genuine fraud only.
+
+**BR-39: ****Stall Resolution — Forced Neutral Rating Mechanism**
+
+***Statement: ***If a party required to submit a mandatory settlement rating (BR-33) fails to act, the system sends a time-bound warning message. If they still do not respond, the relevant admin (Tenant Admin for a stalling seller; Super Admin for a stalling buyer) force-applies a neutral 3-star rating on the stalling party's behalf, unblocking deal closure. This forced rating is neutral, never punitive, since the admin cannot know what the missing party's genuine assessment would have been. A single instance of this carries no consequence to the stalling party; however, 5 such instances recorded against the same user (tracked independently per role — buyer or seller) constitutes a pattern that itself triggers a −0.5★ rating penalty on the stalling party's rating (per the graduated event table in BR-35). Where the missing item is a stalled NOC rather than a rating, the admin's determination is a factual finding, not a neutral placeholder: the admin must log the specific basis relied upon (e.g., bank statement cross-reference, direct contact with the other party, delivery record reviewed) alongside the NOC entry, not just the resulting confirmation.
+
+***Logic / Rationale: ***Prevents a stalling party from indefinitely blocking the other side's settlement, while avoiding the unfairness of fabricating either a good or a bad signal on their behalf — and still holding chronic non-responsiveness accountable as its own behavioral pattern. Logging the investigation basis for a force-logged NOC fixes accountability for what is, unlike a rating, an assertion of fact.
+
+**BR-40: ****Dispute Resolution Framework**
+
+***Statement: ***A structured dispute mechanism covers Payment Disputes, Condition/Delivery Disputes, Non-Lifting/Collection Disputes, Auction Rejection Disputes, Buyer Non-Response Disputes, and Standing Review — a sixth category, distinct from the first five in that it is system-initiated rather than filed by one party against another, with a Seller (or, symmetrically, a Buyer) as its subject rather than a respondent to a specific accuser (see BR-61). Tender is excluded entirely, consistent with its full isolation from the platform's EMD/rating system. A dispute must be filed within a defined window of the triggering event; both parties then have a defined window to submit evidence; the ruling authority (Tenant Admin for seller-side/transaction disputes, Super Admin for buyer-side disputes) then rules within a further defined window. Turnaround time targets favor the fastest resolution the evidence allows, rather than treating any window as a mandatory minimum delay. A Tenant Admin ruling may be appealed once, to the Super Admin, whose decision is final; Super Admin rulings made directly (buyer-side disputes) carry no further appeal. The ruling can force-log an NOC, order EMD forfeiture, apply a specific (non-neutral) rating consequence to the at-fault party, apply a Standing Review outcome (BR-61), or dismiss the claim. Every ruling must include a stated rationale identifying the specific evidence relied upon, not just the outcome — this rationale is what any appeal is actually reviewed against. Patterns of repeated, baseless dispute-filing are tracked as their own behavioral signal, and feed into Standing Review as one of its own triggers.
+
+***Logic / Rationale: ***Provides every dispute scenario on the platform with one consistent, accountable, and fast resolution path, rather than leaving disagreements to informal or ad-hoc handling. Mandating a stated rationale, not just a decision, is what makes a ruling auditable and genuinely appealable rather than a black-box outcome.
+
+**BR-41: ****Seller Rating Visibility Pre-Bid**
+
+***Statement: ***Even in fully anonymous, price-only auction formats (Easy, Express), the seller's own sellerStarRating remains visible to all bidding buyers throughout the live event.
+
+***Logic / Rationale: ***This is not a breach of bidder anonymity (BR-16) since it exposes the seller's own public reputation, not another bidder's private information — giving buyers a pre-bid trust signal on yard efficiency and reliability.
+
+**BR-42: ****Buy-Now Trust-Over-Price Discretion**
+
+***Statement: ***In Buy-Now, the seller has full discretion to select and accept a lower offer from a highly-rated buyer over a higher offer from a low-rated buyer, rather than being bound to an automatic highest-offer match. Whenever the seller accepts an offer other than the highest-value offer received, the seller must select a reason from a closed list (e.g., buyer's rating reflects stronger payment reliability, higher-value offer flagged by fishing/circumvention monitoring, other stated reason) and log it; this record is visible to the Tenant Admin and forms part of the transaction's audit trail.
+
+***Logic / Rationale: ***Minimizes default risk by letting sellers trade a fractional amount for execution certainty, consistent with rating mattering only in judgment-based formats (never in pure price-determined auctions). Mandating a logged reason whenever the highest offer is bypassed gives the seller's discretion a documented, auditable basis, consistent with the platform's broader accountability standard applied to every other rejection/deviation point.
+
+**BR-43: ****150% Bid Ceiling Anti-Jacking Rule**
+
+***Statement: ***No manual, proxy, or custom bid is accepted if it exceeds 150% of the current high bid. Any bid exceeding this threshold is instantly blocked with a clear explanatory warning.
+
+***Logic / Rationale: ***Protects buyers from catastrophic typing errors and prevents intentional price-jacking or market disruption, while preserving orderly price discovery.
+
+**BR-44: ****Single Tenant Admin Accountability Limit**
+
+***Statement: ***Each tenant is restricted to exactly one active Tenant Admin at any time. Promoting a new Tenant Admin automatically demotes any existing one back to a standard buyer profile.
+
+***Logic / Rationale: ***Guarantees unambiguous, single-point tenant-level accountability for brand configuration, seller upgrades, and listing approvals.
+
+**BR-45: ****Mandatory Listing Evidence ****&**** Media Compression**
+
+***Statement: ***Auto-generated placeholders, stock photography, and default fallbacks are strictly prohibited. Every listing requires a minimum of 5 and maximum of 50 seller-uploaded photographs, with exactly one explicitly designated as the Main Display Photo. All photos are server-side compressed to a 300KB target (WebP format) on upload. Videos are capped at 720p resolution and 120 seconds duration, server-side compressed to a 4 Mbps target bitrate (approximately 59MB per full video). Documents carry a 2MB consolidated limit per listing/submission. Authenticity is verified via structured GPS + timestamp data captured by the app itself at the moment of shooting (not gallery upload, not file EXIF metadata, which can be stripped or spoofed). The original, uncompressed upload is discarded once the compressed, authenticity-tagged version is generated and stored.
+
+***Logic / Rationale: ***Eliminates fraud and misrepresentation for buyers committing sight-unseen, keeps media delivery performant via aggressive compression, and decouples authenticity verification entirely from the compression pipeline so neither compromises the other.
+
+**BR-46: ****AI Listing Quality Pre-Audit**
+
+***Statement: ***Before submitting a listing for Tenant Admin review, a seller may trigger a real-time, server-side Gemini AI pre-check. It evaluates completeness, suggests optimized B2B titles, and flags missing business-level parameters (e.g., condition grading, GST HSN/SAC codes, operating hours), returning a quality score, status flag, and one-click 'Apply Title' action. This check is purely advisory — it never gates or auto-approves a listing; Tenant Admin review remains the sole approval authority.
+
+***Logic / Rationale: ***Reduces manual-curation bottlenecks and downstream rejection rates by letting sellers self-correct before formal submission.
+
+**BR-47: ****Related Auctions**
+
+***Statement: ***Items sharing a common origin (e.g., a flood-affected lot of vehicles) may be explicitly tagged by the seller as a related group, displayed together on a single screen, while each item remains a fully independent auction (own RV/EV, EMD, close, settlement) — one auction, one winner, always. Related Auctions is available on Buy-Now, Easy, and Tender only (not Express, whose fast/no-review nature does not suit grouped browsing). A related group runs under a single sale system throughout. Forward-format related items display in a visual/gallery mode (photo cards); grouping is purely a navigational/display layer with zero dependency between individual item outcomes.
+
+***Logic / Rationale: ***Gives buyers efficient visibility into multi-item lots sharing an origin, without altering any of the underlying independent transactional mechanics of each item.
+
+**BR-48: ****Live Ticker**
+
+***Statement: ***A continuous, stock-ticker-style scrolling feed gives buyers real-time visibility into their own balance and live auction activity. A fixed left-hand panel always shows the buyer's current PC/Money Points balance. The scrolling area prioritizes the buyer's own active bids (real-time price + own H1/not-H1 status, per the BR-16 visibility rule), filling remaining space with CAT-LOC-VAL 'sales of interest' matches (BR-23) so the feed stays populated even without active bids. Auctions entering their final anti-sniping window receive visual urgency treatment. Updates are delivered via WebSocket, not polling. A Shadow-Banned buyer's own active-bid tracking is unaffected; only new interest-matches stop populating.
+
+***Logic / Rationale: ***Gives buyers continuous situational awareness across multiple simultaneous auctions without requiring each to be open individually, while respecting existing anonymity and Shadow-Banning rules.
+
+**BR-49: ****High-Value Disposal Reporting**
+
+***Statement: ***Every completed sale where the final sale value exceeds ₹10,00,000 automatically generates a Reserve-vs-Sale-Price record, surfaced to the Tenant Admin and Super Admin, showing RV, final sale value, and the variance between them. This single ₹10 Lakh threshold applies uniformly across all tenants and sale formats — no tenant-specific carve-outs.
+
+***Logic / Rationale: ***A single, low, consistently-applied threshold is simpler to implement, harder to argue around, and signals genuine commitment to transparency rather than a bar calibrated to minimize how often it fires — directly strengthening the platform's credibility with institutional tenants who are themselves subject to CVC-style vigilance scrutiny on asset disposal.
+
+**BR-50: ****Payout Account Change Control**
+
+***Statement: ***A change to any registered banking details used for refunds or settlement payouts requires: (a) OTP re-verification of the account holder, (b) a mandatory 24-hour cooling-off period before the new account becomes active for any payout, and (c) the change is logged with before/after values, timestamp, and initiating party. High-value pending payouts additionally require Tenant Admin or SaaS Admin review before release to a newly-changed account.
+
+***Logic / Rationale: ***Redirecting a payout to a fraudulently substituted account is a well-documented fraud pattern; a cooling-off period plus mandatory audit trail on every change closes this gap without materially inconveniencing genuine account updates.
+
+**BR-51: ****Consent Capture ****&**** Audit Trail**
+
+***Statement: ***Every meaningful consent point on the platform is captured as its own discrete, timestamped, auditable event — not inferred from a single signup-time acceptance. This applies to: (a) initial acceptance of the Terms of Usage and Privacy Policy at registration; (b) consent to KYC data collection and processing; (c) a mandatory, specific acknowledgment shown to the buyer immediately before every EMD pledge, stating the exact forfeiture consequence applicable to that bid, which the buyer must explicitly confirm before the pledge is accepted; and (d) re-consent, required before further platform use, whenever the Terms of Usage or Privacy Policy are materially amended. Each consent event is logged with the user's identity, the specific version of the terms shown, a timestamp, and — for per-pledge consent — the specific bid/transaction reference, forming part of the platform's immutable audit trail (BR-05).
+
+***Logic / Rationale: ***A general, one-time acceptance of the Terms of Usage is a weak evidentiary basis if a specific forfeiture, chargeback, or dispute is later contested — a buyer can plausibly claim they never turned their mind to the specific risk of that specific bid. Requiring a fresh, specific acknowledgment at the moment of each EMD pledge creates a contemporaneous, transaction-linked record of informed consent, which is significantly more defensible in a dispute, a chargeback representment, or regulatory review. This also directly supports the platform's Digital Personal Data Protection Act (DPDP) compliance posture, which requires consent to be specific, informed, and evidenced, not merely implied.
+
+**BR-52: ****Chargeback Mitigation ****&**** Recourse**
+
+***Statement: ***Card-funded EMD is held as an authorization hold, not captured, for as long as operationally possible — capture occurs only at the point money genuinely needs to move (settlement fee deduction or a confirmed forfeiture event), minimizing the window in which a completed charge (and therefore a chargeback) exists at all. Buyers are strongly directed toward VAN/UPI bank-transfer funding as the default, with card funding offered as a secondary option, since bank-rail payments carry no card-network chargeback mechanism. A chargeback filed against a legitimate, already-approved forfeiture (BR-28/34) does not extinguish the buyer's underlying obligation; the platform retains the right to pursue recovery, and such a chargeback is itself treated as a serious account-integrity event, escalated for review rather than accepted at face value.
+
+***Logic / Rationale: ***Chargebacks are a documented fraud/dispute vector specific to card networks; delaying capture and preferring bank-rail funding both reduce the attack surface directly, while the recourse clause and consent trail (BR-51) together give the platform a genuine evidentiary basis to contest an illegitimate chargeback rather than simply absorbing the loss.
+
+**BR-53: ****Tax Deduction at Source (TDS)**
+
+***Statement: ***As an e-commerce operator facilitating sales between Buyers and Sellers, the platform deducts Tax Deducted at Source on the gross amount of facilitated sales, in accordance with Section 194-O of the Income Tax Act (or its successor provision), at the rate prescribed from time to time. The applicable rate and precise mechanics of deduction are confirmed with a qualified tax advisor before implementation and are not fixed by this document.
+
+***Logic / Rationale: ***TDS obligations under Section 194-O attach to platforms facilitating e-commerce transactions; building this in as a first-class rule (even with the rate held open pending advisor confirmation) ensures it is not silently missed once real transaction volume begins.
+
+**BR-54: ****Anti-Money Laundering Transaction Monitoring**
+
+***Statement: ***The platform maintains a dedicated Anti-Money Laundering (AML) monitoring function, distinct from the fishing/circumvention detection described elsewhere (which addresses platform-circumvention, not money-laundering risk). Monitored patterns include: rapid deposit-then-refund cycles with no genuine bidding activity, deposits inconsistent with a User's declared KYC profile, and multiple accounts funding or being funded from the same external bank account. Flagged patterns are reviewed by the SaaS Admin, who holds responsibility for determining whether a Suspicious Transaction Report is warranted under applicable PMLA obligations.
+
+***Logic / Rationale: ***PMLA-adjacent risk is a distinct category from ordinary marketplace fraud and needs its own detection logic and its own accountable reviewer, rather than being assumed to be caught by mechanisms built for a different purpose.
+
+**BR-55: ****Tiered KYC ****&**** Enhanced Due Diligence**
+
+***Statement: ***Full KYC verification (BR-17) is mandatory before a User's first EMD pledge or first Listing, with no lower-value exemption. Above a defined transaction-value threshold, a User is additionally subject to enhanced due diligence — which may include re-verification of existing documents or additional supporting evidence — before that specific transaction is permitted to proceed. The specific enhanced-due-diligence threshold is set by SaaS Admin in consultation with compliance/legal advice, referencing applicable RBI/PMLA KYC master directions, and is not fixed by this document.
+
+***Logic / Rationale: ***A flat KYC gate at entry is necessary but not sufficient for higher-value transactions, where PMLA risk scales; leaving the specific threshold open rather than guessing a number avoids either an unnecessarily strict gate or a genuine compliance gap.
+
+**BR-56: ****Mandatory Transaction Invoicing**
+
+***Statement: ***A GST-compliant invoice is automatically generated for every completed transaction on Buy-Now, Express, and Easy formats, covering the applicable platform commission (Tenant's share plus SaaS's 0.5% share) and any Payment Gateway collection charge passed through under BR-27. The invoice is issued by the Tenant, as the party legally supplying the commission-bearing service to the Buyer, with SaaS's own share separately invoiced to the Tenant per BR-08. Tender Auction invoicing follows the seller-set terms described in BR-12/BR-31 and is not affected by this rule.
+
+***Logic / Rationale: ***Automatic, systematic invoicing closes a real compliance and bookkeeping gap and removes reliance on manual invoice generation, which does not scale and is prone to omission.
+
+**BR-57: ****Express Auction Defect Disclosure**
+
+***Statement: ***Since Express Auctions carry no inspection window (BR-30), the Seller must complete a mandatory, structured defect-disclosure checklist at listing time — covering known damage, missing components, and non-functional aspects of the item — even though no physical inspection opportunity exists. This disclosure is displayed to bidders alongside the listing. A Seller found to have answered this checklist falsely is subject to the Dispute Resolution Framework (BR-40) as a Condition/Delivery Dispute, notwithstanding the general sight-unseen nature of the format.
+
+***Logic / Rationale: ***Removing inspection entirely for speed should not also remove all seller accountability for known defects; a structured disclosure gives buyers some concrete information even sight-unseen, and preserves a genuine fraud/misrepresentation remedy distinct from the ordinary buyer-beware waiver.
+
+**BR-58: ****Statutory Books ****&**** Audit Trail Exportability**
+
+***Statement: ***The platform's immutable audit trail (BR-05) is maintained in a form that is exportable to support the maintenance of statutory books of account under the Income Tax Act and other applicable Indian financial record-keeping law. This is a reporting/export capability layered on the existing audit trail, not a separate data-capture requirement.
+
+***Logic / Rationale: ***The audit trail already captures every transactional event needed for statutory bookkeeping; the only additional requirement is ensuring it can be extracted in a form usable by the finance function, rather than building a parallel record-keeping system.
+
+**BR-59: ****Two-Tier Listing Media Standard — Verified ****&**** Certified by Seller**
+
+***Statement: ***The choice between the two media designations always rests with the seller — never mandated by the Tenant or SaaS Admin for any category or value bracket. 'Verified': eBid Hub's (or the Tenant's authorised) inspection team physically examines the item and captures the photographs themselves, in-app, with GPS and timestamp data at the moment of capture, per the mechanism in BR-45. The seller pays for this inspection, at the rate published in the platform's Fee & Charges Schedule. 'Certified by Seller' (CBS): the seller captures the media themselves, by any method or device, with or without GPS/timestamp data — the only absolute requirement is that the photographs are genuine images of the actual item; stock photography, catalogue images, or any created/generated image standing in for the real item is strictly prohibited, with no exception absent an approved Tenant Media Waiver (BR-60). The applicable tier is displayed clearly to buyers on the listing.
+
+***Logic / Rationale: ***A single, rigid capture standard is disproportionate for the majority of sellers and listings; splitting into two tiers preserves a genuinely strong, independently-verified guarantee where it matters most while keeping the default seller experience simple (kiss). The one absolute CBS prohibition — no stock or generated imagery — is the single line that most directly protects buyers from outright fabrication, and is deliberately kept as the only hard technical rule at this tier.
+
+**BR-60: ****Tenant Media Waiver**
+
+***Statement: ***A Tenant may apply to SaaS Admin for a waiver from the CBS no-stock/no-catalogue-image prohibition (BR-59), scoped to one specific category, where item-specific photography is not meaningful to that category's business reality (e.g., bulk/siloed commodities, rental space, surplus goods sold by specification). SaaS Admin reviews and decides, logging the stated business justification and the decision's own rationale. An approved waiver is valid for 12 months from its grant date, after which it lapses automatically unless SaaS Admin affirmatively re-reviews and renews it — inaction results in lapse, not continuation. Independently of the 12-month cycle, SaaS Admin may revoke a waiver immediately if a serious issue arises. Every listing published under an active waiver must visibly disclose that its images are representative, not item-specific.
+
+***Logic / Rationale: ***Balances the CBS prohibition's fraud-prevention purpose against categories where it is simply inapplicable, without weakening the rule generally — the waiver is narrow (one category, one tenant), actively reviewed (not a permanent exemption), and always disclosed to buyers, so trust in the platform's general 'real photos' standard is not diluted by a legitimate, disclosed exception.
+
+**BR-61: ****Seller Standing Review**
+
+***Statement: ***Every recorded action against a seller — including CBS violations (BR-59), Condition/Delivery Disputes, Auction Rejection Disputes, and any other outcome logged under the Dispute Resolution Framework (BR-40) — is counted toward that seller's Standing Review, a system-initiated case under BR-40 with the seller as its subject, not a respondent to a specific accuser. A Standing Review opens automatically either on the annual anniversary of the seller's first approval as a seller, or immediately upon the seller's complaint count exceeding 10 within the current review period, whichever comes first; the complaint count resets to zero once a Standing Review concludes, on either trigger. CBS violations specifically follow their own graduated consequence track within Standing Review: the 1st and 2nd CBS offence draw a warning only; the 3rd and 4th are referred to the Tenant Admin, who may act or not at their own discretion, with SaaS Admin seeing the referral regardless of the Tenant Admin's decision; from the 5th offence onward, the decision authority moves to SaaS Admin exclusively. A Standing Review's ruling authority is the Tenant Admin (for signal specific to their own storefront), with SaaS Admin always reviewing in parallel, since a seller's full history spans every Tenant they operate under (BR-37). A Standing Review concludes in one of three outcomes: no action; formal application of an escalation-ladder consequence (including for offences that individually drew only a warning); or suspension of selling privileges. Every outcome carries a stated rationale and the same one-time appeal right to SaaS Admin as any other BR-40 ruling.
+
+***Logic / Rationale: ***Consolidating every recorded seller-side action into one review point, rather than leaving each to stand alone, ensures a genuine pattern is acted on even when no single incident individually crosses a threshold — while resetting the count after every review prevents a seller from being permanently trapped by a bad stretch once it has actually been reviewed and addressed.
+
+# SECTION 2: PROCESS WORKFLOWS
+
+**PR-01: ****Stakeholder Discovery ****&**** Blueprint Finalization**
+
+***Description: ***Initiate discovery to fully discuss and solidify operational parameters, transaction locks, and platform safety rules before any coding begins.
+
+**Operational Sequence Steps:**
+
+- Publish the Business Rules draft for stakeholder review.
+
+- Discuss rule nuances and potential commercial risks.
+
+- Formulate anti-sniping intervals, minimum bid increments, and escrow terms.
+
+- Agree on final technical stack and architectural design.
+
+- Transition from Strategy Draft to Active Application Coding.
+
+***Governing Rules: ***BR-01
+
+**PR-02: ****User Identification, Verification ****&**** Onboarding**
+
+***Description: ***Gateway sequence to verify, onboard, and register any portal visitor via mobile number.
+
+**Operational Sequence Steps:**
+
+- Request the user's mobile phone number.
+
+- Query the database for an existing record.
+
+- If registered: prompt for 4-digit mPIN for session access.
+
+- If mPIN fails 3 consecutive times: trigger a failover OTP SMS.
+
+- Prompt OTP verification before allowing mPIN reset or re-authentication.
+
+- If new: issue and transmit a registration OTP via SMS.
+
+- Verify submitted OTP against the generated token.
+
+- After match: capture legal identification details (Name, Salutation).
+
+- Prompt the verified user to set and confirm their 4-digit mPIN.
+
+***Governing Rules: ***BR-02
+
+**PR-03: ****Indian Region Localization ****&**** Validation**
+
+***Description: ***Systematic procedure to sanitize, validate, and localize all inputs and metadata for Indian operations.
+
+**Operational Sequence Steps:**
+
+- Enforce 10-digit numeric mobile input following the '+91' prefix.
+
+- Display all prices, bids, reserves, and deposits in Rupees.
+
+- Deliver all documents and communications in Indian English.
+
+- Validate 6-digit PIN codes and auto-map to district/state via postal index.
+
+***Governing Rules: ***BR-03
+
+**PR-04: ****Sovereign Rule Revision ****&**** Governance Flow**
+
+***Description: ***Secure procedure through which the Super Admin administers or amends rules inside the live system.
+
+**Operational Sequence Steps:**
+
+- Super Admin authenticates via the isolated TOTP/MFA flow.
+
+- System grants administrative context and unlocks the Rules & Specifications module.
+
+- Admin reviews current rules or defines a new rule (Title, Statement, Logic).
+
+- Admin submits a mandatory 'Reason for Modification' audit comment.
+
+- System versions the change, commits it, and updates the live application's behavior.
+
+***Governing Rules: ***BR-01, BR-04
+
+**PR-05: ****Audit Archiving ****&**** Log Reader Workflow**
+
+***Description: ***Standard lifecycle to log user actions, manage cold-tier compression, and retrieve 5-year audit history.
+
+**Operational Sequence Steps:**
+
+- Intercept all user-initiated events and configuration changes at the API layer.
+
+- Attach rich metadata (IP, verified mobile ID, browser agent, ISO 8601 UTC timestamp) to each event.
+
+- Commit the event to the append-only Hot tier table.
+
+- Mark deleted records as soft-deleted (archived flag + timestamp), never physically removed.
+
+- Run a scheduled monthly job to compress and transfer records older than 1 year to Cold cloud storage.
+
+- Apply an automated lifecycle policy to purge Cold-tier archives only after they exceed 5 years.
+
+- Expose a unified Log Reader API merging Hot and Cold tiers on one timeline, to the Super Admin console only.
+
+***Governing Rules: ***BR-05
+
+**PR-06: ****Multi-Tenant Whitelisting ****&**** White-Label Provisioning**
+
+***Description: ***Sequence to onboard, whitelist, and brand-configure a new tenant.
+
+**Operational Sequence Steps:**
+
+- Super Admin receives an onboarding request and whitelists the tenant.
+
+- Associate the tenant with a unique subdomain or custom domain mapping.
+
+- Upload and bind tenant branding assets (logo, brand colors, terms of use).
+
+- Store tenant billing configuration, defaulting to the 0.5% SaaS commission.
+
+- On request, the edge layer inspects the incoming Host header to match the tenant.
+
+- The system injects the tenant's branding and inventory, displaying a white-label portal.
+
+***Governing Rules: ***BR-04, BR-06, BR-08
+
+**PR-07: ****Salvage Bidding ****&**** Compliance Check**
+
+***Description: ***Validation routine executed when a buyer bids on a specialized salvage asset.
+
+**Operational Sequence Steps:**
+
+- Filter invalid retail-new or non-salvage listings during submission (BR-07).
+
+- A buyer navigates to a listing and triggers 'Place Bid.'
+
+- The engine checks the listing's custom restriction flags (e.g., hazmat license, EMD required).
+
+- Check the bidder's profile for the required credentials.
+
+- If unmet: halt the bid, explain clearly, and prompt credential/EMD submission.
+
+- Once validated: accept the bid, log it to the audit trail, update leaderboards.
+
+***Governing Rules: ***BR-02, BR-05, BR-07
+
+**PR-08: ****Tenant Admin Onboarding ****&**** Promotion**
+
+***Description: ***Protocol through which the Super Admin creates a tenant and promotes a verified buyer to Tenant Admin.
+
+**Operational Sequence Steps:**
+
+- Super Admin authenticates and opens the Global Administration Console.
+
+- Whitelists a new tenant record with its subdomain/custom domain.
+
+- Searches the global user directory to select a verified buyer.
+
+- Checks for an existing active Tenant Admin on that tenant.
+
+- Appoints the selected buyer as Tenant Admin, auto-demoting any prior admin (BR-44).
+
+- Updates the buyer's role attribute, binding it to the specific tenant ID.
+
+- Tenant Admin logs in and unlocks their administrative workspace.
+
+***Governing Rules: ***BR-04, BR-06, BR-09, BR-44
+
+**PR-09: ****Asset Media Upload ****&**** Compression Pipeline**
+
+***Description: ***Sequence through which a seller uploads authentic media, designates a primary photo, and the compressor optimizes assets before review.
+
+**Operational Sequence Steps:**
+
+- Seller opens the 'Create Asset Listing' workspace and completes structural forms.
+
+- Seller uploads proof-of-existence media (min 5, max 50 photos; optional video and documents).
+
+- Bulk uploads are placed into a background worker queue, processed sequentially so the interface never freezes while the seller continues filling in details.
+
+- A background auto-save persists the seller's in-progress form and uploaded files (browser localStorage), enabling recovery after a reload or tab switch.
+
+- Seller designates exactly one uploaded photo as the Main Display Photo.
+
+- The server-side pipeline transcodes images to WebP at the 300KB target, video to 720p/120s/4Mbps, in real time.
+
+- On submit: if fewer than 5 photos or no Main Display Photo, submission is blocked with an error. No stock fallback is ever applied.
+
+- The Tenant Admin reviews the authentic media catalog and thumbnail in the Verification Console, approving or rejecting.
+
+- If rejected: the Tenant Admin selects a reason from a closed list (e.g., insufficient photos, suspected fraudulent images, mismatched description, incomplete metadata), may append free-text detail, and this is logged against the listing and shown to the seller.
+
+***Governing Rules: ***BR-13, BR-18, BR-19, BR-45
+
+**PR-10: ****AI-Powered Listing Pre-Check**
+
+***Description: ***Automated Gemini-powered evaluation of a seller's in-progress listing before formal submission.
+
+**Operational Sequence Steps:**
+
+- Seller populates listing fields (Title, Category, Expected Price, Location/PIN) and uploads media.
+
+- Seller triggers 'AI Pre-Check with Gemini.'
+
+- The platform packages the current form plus media metadata and calls the Gemini API server-side.
+
+- Gemini evaluates completeness, pricing realism, location specification, and media evidence.
+
+- The system returns a compliance score (0-100), status flag, optimized title, recommended category, and price-realism feedback.
+
+- The report flags missing B2B metadata (condition grading, GST HSN/SAC code, yard operating hours).
+
+- The seller can click 'Apply Title' to instantly adopt the AI-suggested title into the draft.
+
+- This pre-check reduces downstream Tenant Admin rejection cycles but never gates or auto-approves the listing.
+
+***Governing Rules: ***BR-18, BR-19, BR-45, BR-46
+
+**PR-11: ****Express Auction Trigger Sequence**
+
+***Description: ***Rapid-launch protocol triggering instant start upon cumulative buyer reserve-pledge thresholds.
+
+**Operational Sequence Steps:**
+
+- Seller maps an approved listing to Express Auction and sets a Reserve Value.
+
+- Global buyers browse the listing (marked 'Not Available / Express Mode' - no inspection).
+
+- Buyers click 'Pledge Reserve' to lock EMD and commit intent.
+
+- The engine tracks the unique buyer-pledge count for that listing in real time.
+
+- On the 3rd distinct pledge: the system schedules the bidding phase, sends real-time alerts, opens the live leaderboard.
+
+- At countdown expiry: the engine computes the high bid and logs the event to the audit trail.
+
+***Governing Rules: ***BR-10, BR-12, BR-30
+
+**PR-12: ****Approved Listing Safe-Editing ****&**** Duplication**
+
+***Description: ***Procedure when a seller modifies an active or already-approved listing.
+
+**Operational Sequence Steps:**
+
+- Seller initiates an edit request on an approved listing.
+
+- System detects the 'Approved'/'Active' status.
+
+- System checks for an active Sale Event attached to this listing.
+
+- If found: the active Sale Event is cancelled, all bids/tokens/deposits are refunded, and bidders are notified.
+
+- The listing is duplicated as a new record under a new ID, status 'Pending Approval.'
+
+- The Tenant Admin reviews and approves or declines the new draft.
+
+- If declined: the Tenant Admin selects a reason and logs it, visible to the seller, before the draft can be revised and resubmitted.
+
+- On approval: status transitions to 'Active,' and a new Sale Event can now be mapped.
+
+***Governing Rules: ***BR-11, BR-13
+
+**PR-13: ****Sale Event Creation, Approval ****&**** Post-Approval Lifecycle**
+
+***Description: ***Workflow to transition a listing into a live market transaction and manage subsequent changes.
+
+**Operational Sequence Steps:**
+
+- Seller selects an approved listing and attaches one of the four Sale Systems.
+
+- Seller inputs the required transactional parameters for that format.
+
+- The system generates a unique Event Reference Number (ERN), status 'Pending Event Approval.'
+
+- The Tenant Admin reviews compliance and clicks 'Approve Event' to publish it live.
+
+- For Buy-Now or Tender: further changes require duplicate-clone into a new ERN for re-approval, archiving the original and refunding active bids.
+
+- For Easy Auctions or Buy-Now: direct edits are allowed within a 60-minute post-approval grace window, triggering a delta/diff Quick Re-approval; beyond 60 minutes, parameters freeze permanently.
+
+- For Express Auctions: no direct edits or cancellation by the seller at any point.
+
+- Emergency Stop: the Tenant Admin or Super Admin may terminate any event with a mandatory audited reason, refunding all bids/escrows and alerting bidders.
+
+***Governing Rules: ***BR-10, BR-12, BR-14
+
+**PR-14: ****Double-Blind Anonymity Enforcement**
+
+***Description: ***Algorithmic procedure to mask identities per event type and enforce role-based access restrictions.
+
+**Operational Sequence Steps:**
+
+- Every registration, listing, and bid request passes role validation.
+
+- If the actor holds the Super Admin role: block any bid/listing/configuration attempt with an explicit conflict warning.
+
+- Live bidding (buyer view): strip all identifying fields from other bidders' feeds.
+
+- Live bidding (seller view): strip names/contacts from the live bidder tracker, across every format.
+
+- Buy-Now: keep both parties blind until the seller selects a winning offer, at which point both identities unlock simultaneously.
+
+- Event termination (seller/Tenant Admin view): reveal only H1, H2, H3 standings with amounts; remaining bidders stay concealed.
+
+- Post-auction (Super Admin): unlock full, unrestricted access to the complete transaction ledger.
+
+***Governing Rules: ***BR-15, BR-16
+
+**PR-15: ****Multi-Address ****&**** Document-Backed KYC Onboarding**
+
+***Description: ***Protocol to capture, encrypt, verify, and authorize individual and corporate identities.
+
+**Operational Sequence Steps:**
+
+- Patron selects Entity Type (Individual or Organization).
+
+- System displays the matching KYC questionnaire per BR-17.
+
+- Patron uploads required documents to the secure document vault.
+
+- System encrypts documents, tokenizes Aadhaar, and runs automated PAN/GSTIN registry checks.
+
+- Patron registers their multi-address portfolio (BR-18).
+
+- System updates compliance flags (PAN/GST/Email/Mobile/Bank Verified).
+
+- Tenant Admin reviews the compliance dossier and transitions master KYC Status to Verified or Suspended.
+
+- If Suspended: the Tenant Admin selects a reason from a closed list and logs it; the patron is notified of both the suspension and its stated reason.
+
+***Governing Rules: ***BR-02, BR-03, BR-17, BR-18
+
+**PR-16: ****Polymorphic Role Provisioning ****&**** Compliance Lockout**
+
+***Description: ***Workflow to assign multiple roles to a single verified entity and coordinate cascade locks.
+
+**Operational Sequence Steps:**
+
+- A verified Party profile enters the central registry.
+
+- The Party applies to play one or more roles (Buyer, Seller, Bidder, Vendor, Customer, Auctioneer, Service Provider, Surveyor, Financier).
+
+- System asserts Super Admins are structurally locked out of any participant role (BR-15).
+
+- On approval: the system provisions separate dashboards and access privileges per active role.
+
+- If master KYC status is suspended or a compliance flag is revoked: an automatic global lockout cascades to every role held by that Party.
+
+***Governing Rules: ***BR-09, BR-15, BR-19
+
+**PR-17: ****Super Admin Credential Recovery**
+
+***Description: ***Strict isolation procedure governing Super Admin credential modification.
+
+**Operational Sequence Steps:**
+
+- Super Admin submits a credential modification request.
+
+- The authentication engine identifies the target profile as Super Admin.
+
+- Standard SMS-OTP/self-service channels are bypassed entirely.
+
+- The request routes to the isolated TOTP/MFA verification path.
+
+- The change requires successful TOTP confirmation before it is authorized.
+
+- The system logs the credential change in the immutable audit registry.
+
+***Governing Rules: ***BR-15, BR-20
+
+**PR-18: ****Asset-Level Role Exclusion Verification**
+
+***Description: ***Real-time check ensuring inspectors and custodians cannot bid on or finance their assigned listings.
+
+**Operational Sequence Steps:**
+
+- A verified user attempts to bid, offer, or finance an active Sale Event.
+
+- The engine fetches the targeted listing's bound-role metadata.
+
+- The system checks whether the bidding user matches the bound Surveyor/Custodian/Inspector.
+
+- If matched: the bid is instantly rejected with an explicit conflict message.
+
+- The blocked attempt is logged to the security dashboard.
+
+***Governing Rules: ***BR-11, BR-21
+
+**PR-19: ****Tenant-Scope Bidding Deactivation**
+
+***Description: ***Automated mechanism blocking a Tenant Admin from bidding on their own tenant's storefront.
+
+**Operational Sequence Steps:**
+
+- A user is promoted to Tenant Admin for a specific tenant.
+
+- The user-role matrix maps their admin context to that tenant ID.
+
+- The user attempts to bid on that tenant's storefront.
+
+- The bidding interface detects the matching tenant ID and disables bidding entirely for that storefront.
+
+- On any other, independent tenant storefront: the system confirms zero admin overlap and permits standard bidding.
+
+***Governing Rules: ***BR-09, BR-22
+
+**PR-20: ****Easy Auction / Buy-Now Grace Period Synchronization**
+
+***Description: ***Coordination sequence separating the 60-minute post-approval edit grace period from live bidding.
+
+**Operational Sequence Steps:**
+
+- Tenant Admin clicks 'Approve' on a newly submitted Easy Auction or Buy-Now Sale Event.
+
+- The event enters a 60-minute grace countdown; parameters remain editable.
+
+- The event is fully published; buyers can view and, for Easy, begin monitoring the scheduled open.
+
+- The seller may use this window to make direct edits, triggering the Quick Re-approval delta view.
+
+- If edited: the 60-minute clock resets.
+
+- If no edits: at 60 minutes, parameters freeze permanently and the event transitions to its live/active state.
+
+***Governing Rules: ***BR-14, BR-23
+
+**PR-21: ****Cascading Baton-Pass Execution**
+
+***Description: ***Sequence executing the H1 to H2 to H3 default cascade and its forfeiture consequences.
+
+**Operational Sequence Steps:**
+
+- Auction closes above Reserve; H1's EMD is recalculated against the actual closing value.
+
+- System opens H1's top-up window (2hr Express / 24hr Easy).
+
+- If H1 pays: deal proceeds to settlement (PR-22) normally.
+
+- If H1's window lapses unpaid: H1 defaults, forfeits EMD, and the system opens H2's window at H2's own bid price.
+
+- If H2's window lapses unpaid: H2 defaults, forfeits EMD, and the system opens H3's window at H3's own bid price.
+
+- If H3's window also lapses unpaid: H3 defaults, forfeits EMD, and the auction is cancelled outright.
+
+- On full cascade failure: all three forfeitures are retained by the platform (Tenant + SaaS split); zero share passes to the seller.
+
+- The seller may then submit a standard edit-and-relist request (PR-12) for the item.
+
+***Governing Rules: ***BR-28, BR-34
+
+**PR-22: ****Settlement — Dual NOC ****&**** Mandatory Rating Gate**
+
+***Description: ***Sequence gating deal closure on both parties' confirmations and ratings.
+
+**Operational Sequence Steps:**
+
+- Buyer pays the seller 100% of sale value directly, offline, after shipment or self-collection.
+
+- Seller registers their NOC confirming full fund clearance.
+
+- Buyer registers their NOC confirming goods received.
+
+- Buyer submits a mandatory star rating of the seller.
+
+- Seller submits a mandatory star rating of the buyer.
+
+- Once all four are recorded: the system deducts commission/SaaS fee from the held EMD and refunds the remaining balance to the buyer.
+
+- If any party fails to act within a reasonable window: the stall-resolution sequence (PR-23) is triggered.
+
+***Governing Rules: ***BR-33
+
+**PR-23: ****Stall Resolution ****&**** Forced Rating**
+
+***Description: ***Sequence resolving a party's failure to complete their settlement obligation.
+
+**Operational Sequence Steps:**
+
+- System detects a party has not completed their required NOC or rating within the expected window.
+
+- A time-bound warning message is sent to the non-responsive party.
+
+- If a rating is what's missing and the party still does not respond: the relevant admin (Tenant Admin for seller, Super Admin for buyer) force-applies a neutral 3-star rating.
+
+- If an NOC is what's missing (a factual attestation, not a score): the relevant admin investigates directly, contacting both parties as needed, before logging the NOC on the non-responsive party's behalf, only once satisfied the underlying fact is true.
+
+- The admin logs the specific basis relied upon for that determination (e.g., bank statement cross-reference, direct contact with the other party, delivery record reviewed) alongside the NOC entry — the confirmation alone is not sufficient.
+
+- If the admin cannot confirm the underlying fact (e.g., a genuine payment dispute): the case is routed to the Dispute Resolution Framework (PR-24) instead of being force-closed.
+
+- The system logs each forced-rating instance against the user's record, tracked independently by role.
+
+- On the 5th such instance against the same user in the same role: a real rating-damaging event is triggered.
+
+***Governing Rules: ***BR-39
+
+**PR-24: ****Dispute Filing, Evidence ****&**** Ruling**
+
+***Description: ***Sequence for filing, evidencing, and resolving a platform dispute.
+
+**Operational Sequence Steps:**
+
+- A party files a dispute against a specific transaction, selecting a closed-list category (BR-40), within the filing window.
+
+- The system opens an evidence window; both parties may upload supporting material.
+
+- The ruling authority (Tenant Admin or Super Admin, per category) reviews the case as quickly as the evidence allows.
+
+- The ruling authority issues a binding decision: force-log an NOC, order EMD forfeiture, apply a rating consequence, or dismiss the claim — together with a stated rationale identifying the specific evidence relied upon.
+
+- The decision and its rationale are logged and shared with both parties.
+
+- If the ruling was made by a Tenant Admin: either party may appeal once to the Super Admin within the appeal window, reviewed against the logged rationale.
+
+- The Super Admin's decision, whether on direct ruling or on appeal, is final, and is itself logged with its own rationale.
+
+- The system tracks any user with a pattern of repeated, baseless dispute-filing as its own behavioral signal.
+
+***Governing Rules: ***BR-40
+
+**PR-25: ****Related Auctions Display**
+
+***Description: ***Sequence grouping and displaying related, independently-transacting auctions.
+
+**Operational Sequence Steps:**
+
+- Seller tags multiple listings as belonging to one related group at listing time (e.g., a shared origin lot).
+
+- The system verifies all items in the group share the same sale format.
+
+- The related group is rendered as a scrollable strip of item cards (photo, current price/status, time remaining).
+
+- A buyer taps any card to enter that specific item's full, independent auction view.
+
+- Each item's EMD, bidding, close, and settlement proceed entirely independently of the others in the group.
+
+***Governing Rules: ***BR-47
+
+**PR-26: ****Live Ticker Subscription ****&**** Update**
+
+***Description: ***Sequence delivering the real-time ticker feed to a buyer.
+
+**Operational Sequence Steps:**
+
+- On login, the client subscribes via WebSocket to the buyer's own active-bid set and their CAT-LOC-VAL match set.
+
+- The server pushes price/status updates for the buyer's active bids as they occur.
+
+- When no active bids exist, or space remains, the server fills the feed with new CAT-LOC-VAL interest matches.
+
+- Any subscribed auction entering its anti-sniping window is flagged for urgency treatment on the ticker.
+
+- Tapping any ticker item navigates the buyer directly into that auction's full view.
+
+- If the buyer is Shadow Banned: their own active-bid updates continue unaffected; new interest-matches stop being pushed.
+
+***Governing Rules: ***BR-23, BR-48
+
+**PR-27: ****High-Value Disposal Record Generation**
+
+***Description: ***Sequence automatically flagging and recording a completed sale that crosses the ₹10 Lakh reporting threshold.
+
+**Operational Sequence Steps:**
+
+- On settlement close (per PR-22), the system checks the final sale value against the ₹10,00,000 threshold.
+
+- If crossed: the system auto-generates a Reserve-vs-Sale-Price record — RV, final sale value, variance, tenant, sale format, and settlement date.
+
+- The record is surfaced on the Tenant Admin's dashboard and included in the Super Admin's audit console.
+
+- No manual trigger or admin action is required to generate the record — it is a deterministic system output, not a discretionary flag.
+
+***Governing Rules: ***BR-49
+
+**PR-28: ****Payout Account Change Verification**
+
+***Description: ***Sequence governing any change to a patron's registered payout banking details.
+
+**Operational Sequence Steps:**
+
+- Patron initiates a change to their registered bank account details.
+
+- System triggers OTP re-verification of the account holder before accepting the change request.
+
+- On successful OTP verification, the new account is recorded but marked inactive for payouts during a mandatory 24-hour cooling-off period.
+
+- The system logs the change: old value, new value, timestamp, and initiating party, to the immutable audit trail.
+
+- If any payout above the high-value threshold (BR-49) is pending against this patron during or after the cooling-off period, it is held for Tenant Admin or SaaS Admin review before release to the newly-changed account.
+
+- After the cooling-off period lapses with no flagged review pending, the new account becomes active for standard payouts.
+
+***Governing Rules: ***BR-50
+
+**PR-29: ****Consent Capture Workflow**
+
+***Description: ***Sequence capturing and logging each discrete consent event across registration, KYC, and per-bid EMD pledging.
+
+**Operational Sequence Steps:**
+
+- At registration: system displays the current Terms of Usage and Privacy Policy in full; the user must take an explicit accept action (not a pre-ticked box) before a profile is created.
+
+- During KYC: system displays a specific consent statement covering collection and processing of identity/verification data, separate from the general Terms acceptance, before documents are accepted.
+
+- Before any EMD pledge: system displays a short, specific acknowledgment stating the exact deposit amount and the forfeiture consequence applicable to that bid; the buyer must explicitly confirm before the pledge is submitted to escrow.
+
+- Each consent event (registration, KYC, per-pledge) is written to the immutable audit trail (BR-05), recording: user identity, consent type, the specific version of the terms/statement shown, a timestamp, and — for per-pledge consent — the specific bid/transaction reference.
+
+- If the Terms of Usage or Privacy Policy are materially amended: the system flags all existing users as requiring re-consent, and blocks further bidding, listing, or account actions until the updated terms are explicitly re-accepted.
+
+- Consent records are retrievable via the unified Log Reader (BR-05) for dispute, chargeback-representment, or regulatory review purposes.
+
+***Governing Rules: ***BR-51
+
+**PR-30: ****Chargeback Handling ****&**** Representment**
+
+***Description: ***Sequence managing card-funded EMD capture timing and responding to a filed chargeback.
+
+**Operational Sequence Steps:**
+
+- On card-funded EMD pledge: system places an authorization hold only; no capture occurs at this stage.
+
+- Capture is triggered only at settlement (fee deduction) or a confirmed forfeiture event (BR-28/34), whichever occurs first for that pledge.
+
+- If a chargeback is filed: system assembles the evidence package automatically — timestamped per-pledge consent record (BR-51), bid/transaction history, and the forfeiture approval chain (BR-28), if applicable.
+
+- The assembled package is submitted to the Payment Gateway for representment within the network's response window.
+
+- If the chargeback is filed against a legitimate, already-approved forfeiture: the case is flagged for SaaS Admin review and logged as a distinct account-integrity event on the buyer's record, independent of the representment outcome.
+
+***Governing Rules: ***BR-52
+
+**PR-31: ****AML Monitoring ****&**** Suspicious Transaction Escalation**
+
+***Description: ***Sequence detecting and escalating transaction patterns consistent with money-laundering risk.
+
+**Operational Sequence Steps:**
+
+- System continuously screens deposit, refund, and transfer activity against defined AML pattern rules (BR-54).
+
+- A matching pattern generates a flag, visible only to SaaS Admin — not to the User or any Tenant Admin.
+
+- SaaS Admin reviews the flagged activity and determines whether it is explainable (e.g., a legitimate high-frequency bidder) or warrants further action.
+
+- Where warranted, SaaS Admin determines whether a Suspicious Transaction Report is required under applicable PMLA obligations, and files it through the appropriate regulatory channel.
+
+- All flags and their resolution are logged to the immutable audit trail (BR-05), regardless of outcome.
+
+***Governing Rules: ***BR-54
+
+**PR-32: ****Transaction Invoice Generation**
+
+***Description: ***Sequence auto-generating a GST-compliant invoice on transaction completion.
+
+**Operational Sequence Steps:**
+
+- On formal settlement close (per the dual-NOC gate), the system calculates the final commission and any Payment Gateway charge passed through.
+
+- A GST-compliant invoice is generated, itemising the Tenant's commission share, SaaS's 0.5% share, and any gateway charge.
+
+- The invoice is issued to the Buyer under the Tenant's name, as the legal supplier of the commission-bearing service.
+
+- A corresponding invoice for SaaS's share is issued to the Tenant.
+
+- Both invoices are stored against the transaction record and made available for download by the relevant party.
+
+***Governing Rules: ***BR-56
+
+**PR-33: ****Express Listing Defect Disclosure Capture**
+
+***Description: ***Sequence capturing mandatory defect disclosure for Express Auction listings, given the absence of an inspection window.
+
+**Operational Sequence Steps:**
+
+- Seller maps an approved listing to Express Auction (per PR-11).
+
+- Before the listing can be submitted for Tenant Admin approval, the seller must complete a structured defect-disclosure checklist (known damage, missing components, non-functional aspects).
+
+- The completed checklist is displayed to bidders alongside the listing throughout the live auction.
+
+- If a buyer later demonstrates the disclosure was false: the case is filed as a Condition/Delivery Dispute under the Dispute Resolution Framework (PR-24), notwithstanding the format's general sight-unseen, buyer-beware posture.
+
+***Governing Rules: ***BR-57
+
+**PR-34: ****Two-Tier Listing Media Capture**
+
+***Description: ***Sequence capturing listing media under either the Verified or Certified by Seller (CBS) tier.
+
+**Operational Sequence Steps:**
+
+- Seller initiates a new listing and selects the applicable media tier — always the seller's own choice, for either tier.
+
+- Verified: an inspection team member visits the item, captures photographs in-app, with GPS and timestamp recorded automatically at the moment of capture (per PR-09's compression pipeline).
+
+- Verified: seller is charged the inspection fee published in the platform's Fee & Charges Schedule before the inspection is scheduled.
+
+- CBS: seller uploads photographs captured by any method or device; system checks only that images are not flagged as stock/catalogue/generated content, not for GPS/timestamp presence.
+
+- System displays the applicable tier badge on the published listing, visible to all buyers.
+
+- If a CBS listing is later found to use stock, catalogue, or generated imagery without an approved Tenant Media Waiver (PR-35): the case is logged as a CBS violation, feeding Seller Standing Review (PR-36).
+
+***Governing Rules: ***BR-59
+
+**PR-35: ****Tenant Media Waiver Request ****&**** Annual Review**
+
+***Description: ***Sequence for a Tenant to request, and SaaS Admin to review and maintain, a category-specific CBS media waiver.
+
+**Operational Sequence Steps:**
+
+- Tenant submits a waiver request to SaaS Admin, specifying the single category and the business justification.
+
+- SaaS Admin reviews the request and approves or declines, logging the decision and its stated rationale.
+
+- On approval: the waiver is recorded with a 12-month expiry from grant date; listings in that category, under that Tenant, may use representative imagery, disclosed as such to buyers.
+
+- At the 12-month mark: system prompts SaaS Admin to actively re-review, referencing usage history and any disputes/violations tied to waived listings during the period.
+
+- If SaaS Admin takes no action by the expiry date: the waiver lapses automatically, and the Tenant's listings in that category revert to the standard CBS prohibition.
+
+- At any point, independent of the annual cycle: SaaS Admin may revoke the waiver immediately if a serious issue arises, logged with reason.
+
+***Governing Rules: ***BR-60
+
+**PR-36: ****Seller Standing Review Execution**
+
+***Description: ***Sequence aggregating recorded seller-side actions and executing the resulting Standing Review.
+
+**Operational Sequence Steps:**
+
+- System continuously logs every recorded action against a seller — CBS violations, disputed rulings, rejected auctions — to a running Standing Review count, tracked globally against the seller's identity.
+
+- System checks the count against the 10-complaint threshold on every new entry, and separately tracks the annual anniversary of the seller's first approval as a seller.
+
+- Whichever trigger fires first opens a Standing Review case under the Dispute Resolution Framework (BR-40), with the seller as its subject.
+
+- For CBS-specific offences within the review: 1st/2nd offence — warning logged, no further action. 3rd/4th offence — referred to Tenant Admin for a discretionary decision; SaaS Admin is notified regardless of the Tenant Admin's action. 5th offence onward — decision authority moves to SaaS Admin exclusively.
+
+- Tenant Admin reviews the aggregated record for their own storefront's signal; SaaS Admin reviews the full cross-tenant picture in parallel.
+
+- The review concludes in one of three outcomes — no action, formal escalation-ladder consequence, or suspension — each logged with a stated rationale.
+
+- The seller may appeal the outcome once, to SaaS Admin, whose decision is final.
+
+- On conclusion, the complaint counter resets to zero. The annual anniversary date itself does not change — it remains fixed to the seller's original approval date — so an early, count-triggered review does not reset or delay the next scheduled annual review; both triggers continue to operate independently going forward.
+
+***Governing Rules: ***BR-61
+
+# SECTION 3: TECHNOLOGY STACK
+
+The stack is chosen to satisfy three hard constraints arising from the Business Rules above: (a) strict ACID integrity for every EMD, commission, and settlement transaction (BR-25 through BR-34); (b) sub-second real-time bid broadcasting across potentially thousands of concurrent bidders (BR-16, BR-48); and (c) full compliance with Indian payment/banking regulation, avoiding any unlicensed pooled-wallet (PPI) classification (BR-25).
+
+## 3.1 Master Stack Summary
+
+| **Layer** | **Choice** |
+| --- | --- |
+| Frontend | Vite + React (TypeScript), mobile-responsive web |
+| Real-time server | Node.js (Express) + WebSockets / Socket.io |
+| Live bidding state | Redis (in-memory) |
+| Background job queue | BullMQ (Redis-backed) |
+| Primary database | PostgreSQL (Cloud SQL) |
+| Auth — Super Admin | Auth0 (OAuth 2.0, TOTP/MFA) — login + credential recovery only (BR-04, BR-20) |
+| Auth — all other users | Custom mobile number + OTP + 4-digit mPIN flow (BR-02) |
+| SMS OTP provider | TBD — candidates: MSG91, Twilio, Fast2SMS, Textlocal |
+| Payments / Escrow (Indian PG) | SabPaisa (existing commercial relationship) — RBI-authorised Payment Aggregator, STQC/PCI-DSS-L1/ISO-27001 certified, B2B Virtual Account Number collection, Payouts API. Selected as default PG. |
+| Bank verification / penny-drop | TBD — candidates: Signzy, Digio, Setu, IDfy |
+| KYC verification | Manual — Tenant Admin / Super Admin review, no automated vendor |
+| AI listing pre-audit | Gemini API (direct, server-side) — BR-46 |
+| Push/alert delivery | SMS + Web Push (dual channel) |
+| Email service | TBD — candidates: SendGrid, Resend, AWS SES |
+| Error monitoring | Sentry |
+| Secrets management | Google Secret Manager |
+| CI/CD | GitHub Actions to Cloud Build to Cloud Run |
+| Deployment | Docker containers on Google Cloud Run |
+| CDN | Cloudflare |
+| Cold storage / audit archive | Google Cloud Storage, 5-year lifecycle policy (BR-05) |
+
+## 3.2 Real-Time Bidding Engine
+
+- Node.js (Express) + WebSockets/Socket.io handles high-concurrency real-time bid broadcasts for every live auction (Easy, Express) and the Live Ticker (BR-48).
+
+- Redis holds live bidding-room state — current high bid, leading-bidder reference, anti-sniping countdown clock — so high-frequency read/write during an auction's final seconds never touches the relational database directly.
+
+- Anti-sniping is implemented as a database-lock pattern: lock the auction record, validate the incoming bid against the current price plus increment, record it to PostgreSQL, extend the close time if the bid landed inside the trigger window, and broadcast the new state to every subscribed client immediately.
+
+## 3.3 Data Storage & Persistence
+
+- PostgreSQL only — chosen over document-store alternatives specifically because every financial event (EMD pledge, forfeiture, commission split, refund) requires strict ACID transactions.
+
+- The database enforces the same Listing-vs-Sale-Event architectural split as BR-10 — a Listing and a Sale Event are separate entities, with each Sale Event carrying its own immutable reference number.
+
+- A dedicated, insert-only audit_log table, separate from transactional tables, captures every state change with microsecond-accurate UTC timestamps, per BR-05.
+
+## 3.4 Authentication & Identity
+
+- Super Admin: Auth0 (OAuth 2.0) with TOTP/MFA enabled, compatible with Google Authenticator and Microsoft Authenticator apps — used only for login and credential recovery, isolated from the standard user flow (BR-04, BR-20).
+
+- All other users: a custom-built mobile number + OTP + 4-digit mPIN flow, not routed through any third-party identity platform, since this underpins the platform's "one identity = one verified mobile number" principle that the global rating and KYC model depends on (BR-02).
+
+## 3.5 Payments, Escrow & Bank Verification
+
+Built around the segregated, per-pledge escrow model in BR-25/BR-26 — no pooled wallet balance anywhere in the system. SabPaisa is the selected Payment Gateway / Payment Aggregator (existing commercial relationship), providing RBI-mandated escrow account structure, B2B Virtual Account Number (VAN) collection for per-pledge segregation, UPI/QR and bank-transfer collection, and a Payouts API for refunds and forfeiture settlements. Card-based EMD collection, where offered, is treated as the secondary option to VAN/UPI, given its comparatively higher cost and chargeback exposure.
+
+| **Sale Format** | **EMD Routing** |
+| --- | --- |
+| Tender | Manual offline bank transfer into the platform's corporate escrow account. No gateway. Refunds processed manually. |
+| Express & Buy-Now | Buyer's choice: Virtual Account Number (VAN) instant transfer, or Credit Card authorization hold. |
+| Easy | VAN only. Credit card authorization is barred, to avoid chargeback exposure on high-velocity liquidations. |
+
+## 3.6 Audit Trail & Long-Term Retention
+
+- Hot tier: the append-only PostgreSQL audit_log table, holding all events under 1 year old.
+
+- Cold tier: a scheduled monthly job Gzip-compresses and encrypts records older than 1 year and writes them to a dedicated Google Cloud Storage bucket with a 5-year lifecycle policy.
+
+- A unified Log Reader service queries both tiers and merges results on one timeline, exposed exclusively to the Super Admin's audit console (BR-05).
+
+- **Tamper-evidence: **the audit_log table is write-only at the application layer — no update or delete grant exists for any application role, including Super Admin's own operational database credentials. Each audit record includes a cryptographic hash chained to the previous record's hash, so any retroactive tampering — including by someone with raw database access — is detectable.
+
+- **Cold-tier immutability: **archives in Google Cloud Storage are written with object-lock/retention-lock enabled, making them immutable for their retention period even against a compromised or malicious admin credential.
+
+- **Control separation: **the audit/logging pathway is administratively separate from the primary application database — access credentials for the audit trail are distinct from, and not a superset of, general database administration credentials.
+
+## 3.7 Media Storage & Delivery
+
+- Photos, videos, and documents are compressed server-side on upload per BR-45 (photos to 300KB/WebP, video to 720p/120s/4Mbps, documents to a 2MB consolidated cap).
+
+- Cloudflare CDN edge-caches all processed media and static frontend bundles.
+
+- The original, uncompressed upload is used only transiently during processing — authenticity metadata (GPS + timestamp) is extracted and stored independently before compression runs, and the original file is discarded once the compressed version is generated.
+
+## 3.8 Notifications & Alerts
+
+- Dual-channel delivery — SMS (via the OTP provider, once selected) and Web Push — since the platform is mobile-responsive web with no native app, and time-sensitive events (CLV matches, anti-sniping "closing soon" nudges, H1/H2 baton-pass notices) need to reach a buyer who isn't actively looking at the screen.
+
+- Email is used for lower-urgency, record-keeping communications (settlement confirmations, KYC status changes) rather than time-sensitive bidding alerts.
+
+- All channels are dispatched via BullMQ background jobs, never synchronously in the request path.
+
+## 3.9 AI Listing Pre-Audit
+
+- Gemini API, called directly server-side, implementing BR-46. Purely advisory — never gates or auto-approves a listing; Tenant Admin review remains the sole approval authority.
+
+## 3.10 Server Time Integrity
+
+- All auction timing (Dynamic Time triggers, extension windows, EMD deadlines, cascading baton-pass windows per BR-28) is computed against a server clock synced to NTP against a verified time source, checked continuously.
+
+- Any drift or manual clock adjustment beyond a defined tolerance triggers an automated alert to the Super Admin and is itself logged as an audit event.
+
+- This protects the integrity of every timing-dependent mechanic on the platform against clock manipulation — a documented risk vector for online bidding systems, since an unsynced or tamperable server clock could otherwise be exploited to view bids before close or to manipulate auction-extension timing.
+
+## 3.11 Independent Security Audit
+
+- An independent, third-party security audit — not performed by the platform's own development team — is conducted before go-live and at a minimum annual cadence thereafter.
+
+- Scope covers the application layer, infrastructure, and payment-handling flows specifically.
+
+- Audit findings and remediation status are tracked to closure, not just reported.
+
+- This satisfies a maker-checker principle: the team that builds the system should not be the sole party certifying its security.
+
+## 3.12 Deployment & Infrastructure
+
+- Docker containers on Google Cloud Run — serverless, scales to zero during low traffic, scales out automatically under bidding-driven spikes.
+
+- Cloudflare sits in front of Cloud Run for CDN, edge caching, and tenant domain/Host-header routing (BR-06).
+
+- Google Secret Manager stores all third-party API credentials (Gemini, SMS, Payment Gateway, bank verification, Auth0) — never in environment files or source control.
+
+- CI/CD: GitHub Actions builds and tests on every push; Cloud Build packages the container image; deployment to Cloud Run is automated on merge to the main branch.
+
+- Sentry provides error monitoring across both frontend and backend.
+
+## 3.13 Open Technology Decisions
+
+- Final selection of the SMS OTP provider.
+
+- Final selection of the bank verification / penny-drop provider.
+
+- Final selection of the email service provider.
+
+- Final selection of the independent security audit firm (STQC/CERT-In empanelled, or equivalent).
+
+# SECTION 4: PHASED ROADMAP
+
+This document specifies Phase 1 only. The items below are explicitly deferred to Phase 2 — noted here so the intent is preserved, not because they are active scope in this document.
+
+## 4.1 Phase 1 — Sales (this document)
+
+- Buy-Now, Express, Easy, and Tender sale formats; the two-score Star Rating system (starRating, sellerStarRating); the General Tenant / Company Shop tenant model; EMD, commission, and settlement mechanics; the dispute resolution and stall-resolution frameworks; Related Auctions; the Live Ticker; and all CVC-alignment safeguards (BR-42, BR-49, BR-50, and the tamper-evidence / server-time-integrity / independent-audit tech-stack additions).
+
+## 4.2 Phase 2 — Procurement (Reverse Auction)
+
+- A role-inverted sale format: buyers post procurement requirements; sellers (suppliers) compete to fulfil them; the lowest qualified quote (L1) wins.
+
+- Two additional rating scores — supplierRating and procurerRating — fully independent of starRating and sellerStarRating.
+
+- A third tenant tier (Institutional Tenant) and a third floor (Floor 2 — Procurement), sitting alongside the Phase 1 General Tenant / Company Shop model.
+
+- EMD and Performance Deposit mechanics, a buyer-run qualification gateway, and multi-line-item listing support.
+
+- This format was fully designed in an earlier working session; the design is preserved and ready to be reinstated into this document when Phase 2 begins, rather than needing to be re-specified from scratch.
+
+## 4.3 Phase 2 — Market Intelligence
+
+- A unified selling/buying price-guide feature, built on the platform's existing closed-transaction data (RV, EV, final sale price, CAT, LOC, condition, date) — no new data capture required, only aggregation and surfacing.
+
+- **Selling guide: **comparable-price suggestions at listing time, post-listing pricing feedback if a listing underperforms, and category/location demand trend visibility.
+
+- **Buying guide: **side-by-side comparison of selected listings, a read-only "what similar items sold for" panel, and a fair-price indicator on listing pages.
+
+- Open for Phase 2 scoping: real-time vs. periodic (daily/weekly) refresh cadence for comparable-price aggregates.
+
+Page  of
