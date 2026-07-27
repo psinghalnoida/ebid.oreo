@@ -110,10 +110,30 @@ class TestDispute extends BaseCommand
         $this->assert($ruled['status'] === 'ruled', 'Dispute status = ruled');
         $this->assert($ruled['ruling_rationale'] !== null, 'Rationale recorded');
 
+        // BR-35: condition_delivery ruled against the seller now maps to
+        // the exact "Data Mismatch" named event (-1.5★, not the old
+        // generic -0.5 this test originally assumed) — from a fresh
+        // 3.0★ that lands at 1.5★, which BR-36 requires DUAL approval
+        // for. A Tenant Admin's own ruling can no longer fully resolve
+        // this alone; a real downgrade event genuinely exists and is
+        // tenant-approved, but correctly still awaits Super Admin.
+        $ratingEventModel = new \App\Models\RatingEventModel();
+        $downgradeEvent = $ratingEventModel->where('party_id', $seller['id'])->where('event_key', 'data_mismatch')->orderBy('created_at', 'DESC')->first();
+        $this->assert($downgradeEvent !== null, 'A real "Data Mismatch" downgrade event was created by the ruling, not just a label');
+        $this->assert($downgradeEvent['tenant_admin_approved_at'] !== null, 'The ruling Tenant Admin\'s own approval was recorded');
+
         $sellerAfter = $partyModel->find($seller['id']);
         $this->assert(
-            (float) $sellerAfter['seller_star_rating'] < (float) $sellerBefore['seller_star_rating'],
-            "Seller's rating actually decreased from the ruling ({$sellerBefore['seller_star_rating']} -> {$sellerAfter['seller_star_rating']}), not just recorded as an outcome label"
+            (float) $sellerAfter['seller_star_rating'] === (float) $sellerBefore['seller_star_rating'],
+            'BR-36: since -1.5★ lands at/below 2.0★, dual approval is genuinely required — the rating correctly has NOT changed from a Tenant-Admin-only ruling'
+        );
+
+        $ratingService = new \App\Libraries\RatingService();
+        $ratingService->approveDowngrade($downgradeEvent['id'], $superAdmin['id'], 'super_admin');
+        $sellerAfterDual = $partyModel->find($seller['id']);
+        $this->assert(
+            (float) $sellerAfterDual['seller_star_rating'] < (float) $sellerBefore['seller_star_rating'],
+            "Once Super Admin also approves, the seller's rating genuinely decreases ({$sellerBefore['seller_star_rating']} -> {$sellerAfterDual['seller_star_rating']})"
         );
 
         CLI::write("\n=== Appeal: Tenant Admin ruling can be appealed once ===", 'yellow');

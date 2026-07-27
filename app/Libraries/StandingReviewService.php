@@ -54,6 +54,25 @@ class StandingReviewService
 
         $this->recordComplaint($sellerId, "CBS violation (offense #{$offenseNumber}, tier: {$tier})");
 
+        // BR-35: "Confirmed CBS violation (stock/fake photo, past
+        // warning stage) −2.0★" — offenses 1-2 are warning-only per the
+        // ladder above; a real rating consequence applies starting at
+        // the 3rd. The flagger here was already verified (by
+        // ListingController::flagCbsViolation) to be either this
+        // listing's Tenant Admin or Super Admin, so their own decision
+        // satisfies BR-36's approval gate, same self-approval pattern
+        // already established in DisputeService/RatingService.
+        if ($offenseNumber >= 3) {
+            $authz = new AuthorizationService();
+            $approverType = $authz->isSuperAdmin($flaggedByPartyId) ? 'super_admin' : 'tenant_admin';
+            $ratingService = new RatingService();
+            $downgrade = $ratingService->applyNamedEvent($sellerId, 'seller_star_rating', 'confirmed_cbs_violation', "offense #{$offenseNumber}");
+            $ratingService->approveDowngrade($downgrade['id'], $flaggedByPartyId, $approverType);
+            if ($approverType === 'super_admin' && $downgrade['requiresDualApproval']) {
+                $ratingService->approveDowngrade($downgrade['id'], $flaggedByPartyId, 'tenant_admin');
+            }
+        }
+
         return ['offenseNumber' => $offenseNumber, 'tier' => $tier];
     }
 

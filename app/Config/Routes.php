@@ -139,6 +139,10 @@ $routes->post('/payout-bank/confirm', 'PayoutBankController::confirmSubmit');
 $routes->get('/admin/payout-reviews', 'PayoutReviewController::index');
 $routes->post('/admin/payout-reviews/(:segment)/decide', 'PayoutReviewController::decide/$1');
 
+// Pending rating downgrade reviews (BR-35/BR-36)
+$routes->get('/admin/rating-reviews', 'RatingReviewController::index');
+$routes->post('/admin/rating-reviews/(:segment)/approve', 'RatingReviewController::approve/$1');
+
 // Legal documents (BR-01/D-15: reviewed structural content, pending fields flagged)
 $routes->get('/terms', 'LegalController::termsOfUsage');
 $routes->get('/privacy', 'LegalController::privacyPolicy');

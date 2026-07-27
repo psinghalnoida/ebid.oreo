@@ -52,9 +52,9 @@ All three distinct bound roles (Surveyor, Yard Inspector, Physical Custodian) ar
 ### ✅ PR-17 — Super Admin's own TOTP re-enrollment — **CLOSED (D-53)**
 Genuinely closed a real, exploitable credential-hijack gap in already-shipped code, not just the originally-scoped self-service convenience — a regular session could previously overwrite an existing Super Admin's TOTP secret with zero confirmation of the old device.
 
-### BR-35 — Graduated rating event tables — still open, unverified
-**Spec**: a detailed table of named events, each with a specific point value (small 0.1-0.3★, moderate 0.4-0.7★, large 0.8★+), asymmetric caps (positive movement capped lower than negative).
-**Built**: `RatingService` has upgrade/downgrade/approval-gating logic, but I have not verified it implements this *specific, granular table* of named events rather than simpler fixed increments — worth a dedicated review pass against the actual table.
+### ✅ BR-35 — Graduated rating event tables — CLOSED to the extent real hook points allow (D-64)
+**Spec**: a detailed table of ~37 named events, each with a specific point value (small 0.1-0.3★, moderate 0.4-0.7★, large 0.8★+), asymmetric caps (positive movement capped lower than negative).
+**Built**: the full named-event table now exists as real, structured data (`RatingService::NAMED_EVENTS`), with a real `event_key` column recording which one fired. A genuine, previously-undiscovered gap closed: cascade defaults (BR-28/34) never touched the rating system at all — now wired to the exact 1st/2nd/3rd Default magnitudes. Dispute rulings now map to specific named events for the four category+role combinations that are unambiguous, rather than one flat generic magnitude. `delistSellerForFraud` and confirmed CBS violations (3rd+ offense) now apply their named "Reset to 1★"/"-2.0★" consequences. A new general "sustained clean streak" counter is wired. **Honestly still open** (no fabricated triggers): events needing a messaging system (prompt seller-query response), a KYC flow (confirmed false KYC/KYC fraud), a real payment gateway (chargeback), new pattern-counters (repeated baseless dispute/rejection patterns), or a new admin-flagging action this session didn't build (disruptive conduct, off-platform solicitation, dishonest defect disclosure, and the seller-side "quality" events). See D-64 for the full itemized list.
 
 ### BR-06 — Tenant branding and custom domains
 **Spec**: logo/brand-color upload, custom domain mapping, Host-header-based white-label routing.
@@ -136,5 +136,5 @@ The transactional core remains genuinely solid — this deeper pass didn't find 
 
 **Revised remaining phases:**
 - **Phase 3 — ✅ fully complete**: BR-61 (Standing Review, D-60), BR-54 (AML monitoring, D-62), BR-50 (payout account change control, D-63).
-- **Phase 4**: PR-04 (Sovereign Rule Revision), BR-35 (full graduated event table), BR-46 (gated on a Gemini key), BR-52 (gated on the real payment gateway)
+- **Phase 4**: ✅ BR-35 (largely closed, D-64 — see remaining sub-items there), PR-04 (Sovereign Rule Revision, still fully open), BR-46 (gated on a Gemini key), BR-52 (gated on the real payment gateway)
 
