@@ -3,6 +3,8 @@
 <main style="max-width:720px; padding:40px 24px;">
   <h1 style="font-size:24px;">Tenant Admin — <?= esc($tenant['name']) ?></h1>
   <a href="/tenants/<?= esc($tenant['id']) ?>/media-waiver" class="btn btn-ghost" style="font-size:12px;">Request Media Waiver (BR-60)</a>
+  <a href="/admin/payout-reviews" class="btn btn-ghost" style="font-size:12px;">Payout Reviews (BR-50)</a>
+  <a href="/admin/rating-reviews" class="btn btn-ghost" style="font-size:12px;">Rating Reviews (BR-36)</a>
 
   <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:12px; margin:20px 0;">
     <div style="border:1px solid var(--line); border-radius:12px; padding:14px; text-align:center;">

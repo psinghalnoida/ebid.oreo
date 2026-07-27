@@ -106,7 +106,13 @@ class SettlementService
             if (!$reason) {
                 throw new \RuntimeException('A reason is required when reporting a settlement problem.');
             }
-            $this->ratingService->initiateDowngrade($rateeId, $ratingRole, 0.3, $reason);
+            // BR-36: threading the sale event through means this pending
+            // downgrade is finally reachable by a real Tenant Admin —
+            // previously it had no related_sale_event_id at all, so
+            // nothing could ever resolve which tenant's admin should
+            // review it (a genuine, pre-existing gap, not introduced
+            // here — found while wiring BR-35's own review queue).
+            $this->ratingService->initiateDowngrade($rateeId, $ratingRole, 0.3, $reason, $settlement['sale_event_id']);
         } else {
             throw new \RuntimeException("Unknown outcome: {$outcome}");
         }
@@ -151,6 +157,13 @@ class SettlementService
             $ratingService = new RatingService();
             $ratingService->recordCleanTransactionForCrawlBack($settlement['buyer_party_id'], 'star_rating');
             $ratingService->recordCleanTransactionForCrawlBack($settlement['seller_party_id'], 'seller_star_rating');
+
+            // BR-35: "Sustained clean streak" — a general reward
+            // distinct from BR-38's crawl-back-specific clean count
+            // above; every party accrues this regardless of Crawl-Back
+            // state.
+            $ratingService->recordCleanStreak($settlement['buyer_party_id'], 'star_rating', $settlement['sale_event_id']);
+            $ratingService->recordCleanStreak($settlement['seller_party_id'], 'seller_star_rating', $settlement['sale_event_id']);
 
             // BR-49: deterministic, non-discretionary — no manual
             // trigger, no tenant carve-outs, a single ₹10L threshold

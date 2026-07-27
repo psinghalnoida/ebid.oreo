@@ -29,6 +29,7 @@ class PartyModel extends Model
         'forced_neutral_count_buyer', 'forced_neutral_count_seller',
         'payout_bank_account_number', 'payout_bank_ifsc', 'payout_bank_updated_at',
         'payout_bank_pending_account_number', 'payout_bank_pending_ifsc', 'payout_bank_pending_activates_at',
+        'clean_transaction_streak_buyer', 'clean_transaction_streak_seller',
         'updated_at',
     ];
 
@@ -145,6 +146,26 @@ class PartyModel extends Model
             ->set('updated_at', $this->now())
             ->update();
         return (int) $this->find($partyId)[$column];
+    }
+
+    // BR-35: general clean-transaction streak — every completed
+    // settlement, regardless of Crawl-Back state. Distinct from BR-38's
+    // crawl_back_clean_completed_*, which only counts during active
+    // rehabilitation.
+    public function incrementCleanStreak(string $partyId, string $ratingRole): int
+    {
+        $column = $ratingRole === 'star_rating' ? 'clean_transaction_streak_buyer' : 'clean_transaction_streak_seller';
+        $this->db->table('party')->where('id', $partyId)
+            ->set($column, "$column + 1", false)
+            ->set('updated_at', $this->now())
+            ->update();
+        return (int) $this->find($partyId)[$column];
+    }
+
+    public function resetCleanStreak(string $partyId, string $ratingRole): void
+    {
+        $column = $ratingRole === 'star_rating' ? 'clean_transaction_streak_buyer' : 'clean_transaction_streak_seller';
+        $this->update($partyId, [$column => 0, 'updated_at' => $this->now()]);
     }
 
     private function now(): string

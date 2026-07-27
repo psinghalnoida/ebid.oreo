@@ -16,7 +16,7 @@ class RatingEventModel extends Model
         'id', 'party_id', 'rating_role', 'event_type', 'previous_value', 'new_value',
         'reason', 'status', 'tenant_admin_approved_by', 'tenant_admin_approved_at',
         'super_admin_approved_by', 'super_admin_approved_at', 'appealed_at',
-        'appeal_outcome', 'related_sale_event_id', 'applied_at',
+        'appeal_outcome', 'related_sale_event_id', 'applied_at', 'event_key',
     ];
 
     public function createEvent(array $data): array
@@ -59,5 +59,33 @@ class RatingEventModel extends Model
             ->where('rating_role', $ratingRole)
             ->where('event_type', 'forced_neutral')
             ->countAllResults();
+    }
+
+    // Super Admin sees every pending downgrade, platform-wide.
+    public function findAllPending(): array
+    {
+        return $this->db->table('rating_event re')
+            ->select('re.*, p.mobile_number')
+            ->join('party p', 'p.id = re.party_id')
+            ->where('re.status', 'pending_tenant_approval')
+            ->orderBy('re.created_at', 'ASC')
+            ->get()->getResultArray();
+    }
+
+    // BR-36: a Tenant Admin sees only pending downgrades whose related
+    // sale event belongs to a tenant they actually administer.
+    public function findPendingForTenants(array $tenantIds): array
+    {
+        if (empty($tenantIds)) {
+            return [];
+        }
+        return $this->db->table('rating_event re')
+            ->select('re.*, p.mobile_number')
+            ->join('party p', 'p.id = re.party_id')
+            ->join('sale_event se', 'se.id = re.related_sale_event_id')
+            ->where('re.status', 'pending_tenant_approval')
+            ->whereIn('se.tenant_id', $tenantIds)
+            ->orderBy('re.created_at', 'ASC')
+            ->get()->getResultArray();
     }
 }
