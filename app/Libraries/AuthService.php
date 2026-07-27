@@ -38,7 +38,7 @@ class AuthService
         if (!self::isValidIndianMobile($mobileNumber)) {
             throw new \RuntimeException('BR-03 violation: invalid Indian mobile number format (expected +91XXXXXXXXXX)');
         }
-        if (!in_array($purpose, ['registration', 'mpin_reset'], true)) {
+        if (!in_array($purpose, ['registration', 'mpin_reset', 'payout_bank_change'], true)) {
             throw new \RuntimeException("Unknown OTP purpose: {$purpose}");
         }
 

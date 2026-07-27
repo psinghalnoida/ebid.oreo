@@ -174,6 +174,13 @@ class SchedulerService
         return array_merge(...array_values($byPattern));
     }
 
+    // BR-50: the mandatory 24-hour cooling-off is what makes a payout
+    // bank-detail change genuinely time-gated rather than immediate.
+    public function processPendingPayoutBankChanges(): array
+    {
+        return (new \App\Libraries\PayoutControlService())->promoteDuePendingChanges();
+    }
+
     public function runAll(): array
     {
         $result = [
@@ -185,6 +192,7 @@ class SchedulerService
             'mediaWaiversLapsed' => (new TenantMediaWaiverService())->lapseExpired(),
             'standingReviewAnniversariesOpened' => $this->processStandingReviewAnniversaries(),
             'amlFlagsRaised' => $this->processAmlMonitoring(),
+            'payoutBankChangesActivated' => $this->processPendingPayoutBankChanges(),
         ];
 
         // BR-05: every scheduler run is a genuine "configuration/state

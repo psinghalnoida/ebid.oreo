@@ -132,6 +132,13 @@ $routes->get('/tenants', 'TenantController::directory');
 $routes->get('/admin/aml', 'AmlController::index', ['filter' => 'superAdmin']);
 $routes->post('/admin/aml/(:segment)/review', 'AmlController::review/$1', ['filter' => 'superAdmin']);
 
+// Payout Account Change Control (BR-50/PR-28)
+$routes->get('/payout-bank', 'PayoutBankController::requestForm');
+$routes->post('/payout-bank/request', 'PayoutBankController::requestSubmit');
+$routes->post('/payout-bank/confirm', 'PayoutBankController::confirmSubmit');
+$routes->get('/admin/payout-reviews', 'PayoutReviewController::index');
+$routes->post('/admin/payout-reviews/(:segment)/decide', 'PayoutReviewController::decide/$1');
+
 // Legal documents (BR-01/D-15: reviewed structural content, pending fields flagged)
 $routes->get('/terms', 'LegalController::termsOfUsage');
 $routes->get('/privacy', 'LegalController::privacyPolicy');
