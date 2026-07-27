@@ -153,6 +153,26 @@ $routes->get('/admin/consent-audit', 'ConsentAuditController::index', ['filter' 
 $routes->get('/admin/consent-audit/export', 'ConsentAuditController::exportForm', ['filter' => 'superAdmin']);
 $routes->get('/admin/consent-audit/export/download', 'ConsentAuditController::export', ['filter' => 'superAdmin']);
 
+// Phase 3A: account management
+$routes->get('/account', 'MyActivityController::profile');
+$routes->get('/account/edit', 'AccountController::editForm');
+$routes->post('/account/edit', 'AccountController::editSubmit');
+$routes->get('/account/change-mpin', 'AccountController::changeMpinForm');
+$routes->post('/account/change-mpin/request-otp', 'AccountController::changeMpinRequestOtp');
+$routes->post('/account/change-mpin/confirm', 'AccountController::changeMpinConfirm');
+$routes->get('/account/delete', 'AccountController::deleteForm');
+$routes->post('/account/delete/request', 'AccountController::deleteRequestSubmit');
+$routes->post('/account/delete/cancel', 'AccountController::deleteCancelSubmit');
+$routes->get('/account/earnings', 'AccountController::earnings');
+
+// Phase 3A: real, dedicated, paginated/filterable transaction pages
+$routes->get('/my-bids', 'MyActivityController::myBids');
+$routes->get('/my-offers', 'MyActivityController::myOffers');
+$routes->get('/my-purchases', 'MyActivityController::myPurchases');
+$routes->get('/my-purchases/export', 'MyActivityController::myPurchasesExport');
+$routes->get('/my-sales', 'MyActivityController::mySales');
+$routes->get('/my-sales/export', 'MyActivityController::mySalesExport');
+
 // Legal documents (BR-01/D-15: reviewed structural content, pending fields flagged)
 $routes->get('/terms', 'LegalController::termsOfUsage');
 $routes->get('/privacy', 'LegalController::privacyPolicy');

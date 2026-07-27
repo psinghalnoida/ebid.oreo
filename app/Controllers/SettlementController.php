@@ -32,9 +32,25 @@ class SettlementController extends BaseController
         }
         $saleEvent = $this->saleEventModel->find($s['sale_event_id']);
         $invoices = (new \App\Libraries\InvoiceService())->findForSettlement($settlementId);
+
+        $db = \Config\Database::connect();
+        $dispute = $db->table('dispute')->where('sale_event_id', $s['sale_event_id'])->orderBy('created_at', 'DESC')->get()->getRowArray();
+
+        // Phase 3A: a real timeline of audit trail events relevant to
+        // this specific settlement/sale event — the underlying BR-05
+        // hash-chained data already exists (D-45), this just surfaces
+        // it scoped to one transaction rather than only the platform-
+        // wide log at /admin/audit-log.
+        $auditEvents = $db->table('audit_log')
+            ->like('payload', $settlementId)
+            ->orLike('payload', $s['sale_event_id'])
+            ->orderBy('sequence_number', 'ASC')
+            ->get()->getResultArray();
+
         return view('settlement/show', [
             'title' => 'Settlement — eBid Hub', 'settlement' => $s, 'saleEvent' => $saleEvent,
             'callerId' => $this->requireLogin(), 'invoices' => $invoices,
+            'dispute' => $dispute, 'auditEvents' => $auditEvents,
         ]);
     }
 

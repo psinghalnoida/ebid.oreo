@@ -30,6 +30,7 @@ class PartyModel extends Model
         'payout_bank_account_number', 'payout_bank_ifsc', 'payout_bank_updated_at',
         'payout_bank_pending_account_number', 'payout_bank_pending_ifsc', 'payout_bank_pending_activates_at',
         'clean_transaction_streak_buyer', 'clean_transaction_streak_seller',
+        'deletion_requested_at', 'deletion_reason', 'last_login_at',
         'updated_at',
     ];
 
