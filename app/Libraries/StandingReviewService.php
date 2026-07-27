@@ -85,7 +85,13 @@ class StandingReviewService
             ->countAllResults() > 0;
     }
 
-    public function openCase(string $sellerId, string $triggerReason): array
+    // $initiatedByPartyId: null for the two automatic triggers (threshold
+    // count, annual anniversary — genuinely system-initiated, no human
+    // decided this one). A Tenant Admin proactively opening a case ahead
+    // of the automatic threshold passes their own party ID here, so the
+    // audit trail correctly attributes a human judgment call rather than
+    // recording every case as if the system alone decided it.
+    public function openCase(string $sellerId, string $triggerReason, ?string $initiatedByPartyId = null): array
     {
         if ($this->hasOpenCase($sellerId)) {
             throw new \RuntimeException('BR-61: this seller already has an open Standing Review case.');
@@ -101,7 +107,7 @@ class StandingReviewService
             'ruling_authority_type' => 'tenant_admin',
         ]);
 
-        (new AuditLogService())->log('standing_review.case_opened', null, [
+        (new AuditLogService())->log('standing_review.case_opened', $initiatedByPartyId, [
             'disputeId' => $created['id'], 'sellerId' => $sellerId, 'triggerReason' => $triggerReason,
         ]);
 
