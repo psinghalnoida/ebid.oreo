@@ -35,6 +35,7 @@
   <a href="/admin/aml" class="btn btn-ghost" style="margin-left:8px;">AML Monitoring</a>
   <a href="/admin/payout-reviews" class="btn btn-ghost" style="margin-left:8px;">Payout Reviews</a>
   <a href="/admin/rating-reviews" class="btn btn-ghost" style="margin-left:8px;">Rating Reviews</a>
+  <a href="/admin/consent-audit" class="btn btn-ghost" style="margin-left:8px;">Consent Audit</a>
 
   <h3 style="font-size:16px; margin-top:28px;">Tenants</h3>
   <table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:13px;">

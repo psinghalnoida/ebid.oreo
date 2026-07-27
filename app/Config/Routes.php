@@ -143,6 +143,16 @@ $routes->post('/admin/payout-reviews/(:segment)/decide', 'PayoutReviewController
 $routes->get('/admin/rating-reviews', 'RatingReviewController::index');
 $routes->post('/admin/rating-reviews/(:segment)/approve', 'RatingReviewController::approve/$1');
 
+// Seller Management for Tenant Admin (BR-61, built on the real Standing Review system)
+$routes->get('/tenants/(:segment)/sellers', 'SellerManagementController::list/$1', ['filter' => 'tenantAdmin:tenant']);
+$routes->get('/tenants/(:segment)/sellers/(:segment)', 'SellerManagementController::detail/$1/$2', ['filter' => 'tenantAdmin:tenant']);
+$routes->post('/tenants/(:segment)/sellers/(:segment)/initiate-review', 'SellerManagementController::initiateReview/$1/$2', ['filter' => 'tenantAdmin:tenant']);
+
+// Consent Audit viewer (BR-51)
+$routes->get('/admin/consent-audit', 'ConsentAuditController::index', ['filter' => 'superAdmin']);
+$routes->get('/admin/consent-audit/export', 'ConsentAuditController::exportForm', ['filter' => 'superAdmin']);
+$routes->get('/admin/consent-audit/export/download', 'ConsentAuditController::export', ['filter' => 'superAdmin']);
+
 // Legal documents (BR-01/D-15: reviewed structural content, pending fields flagged)
 $routes->get('/terms', 'LegalController::termsOfUsage');
 $routes->get('/privacy', 'LegalController::privacyPolicy');
