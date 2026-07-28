@@ -161,6 +161,30 @@ class SchedulerService
         return $opened;
     }
 
+    // BR-50/PR-28: cooling-off accounts whose 24h window has genuinely lapsed.
+    public function processBankAccountActivations(): array
+    {
+        return (new PayoutAccountService())->activateDueAccounts();
+    }
+
+    // BR-50: retries every settlement currently on hold — either its
+    // cooling-off window has now lapsed, or a Tenant/SaaS Admin has since
+    // released a flagged high-value hold. Idempotent: a settlement that's
+    // still genuinely blocked just stays 'payout_held' for the next pass.
+    public function processPayoutHoldRetries(): array
+    {
+        $held = (new \App\Models\SettlementModel())->findPayoutHeld();
+
+        $released = [];
+        foreach ($held as $row) {
+            $result = $this->settlement->retryPayoutHold($row['id']);
+            if ($result['status'] === 'completed') {
+                $released[] = $row['id'];
+            }
+        }
+        return $released;
+    }
+
     public function runAll(): array
     {
         $result = [
@@ -172,6 +196,8 @@ class SchedulerService
             'mediaWaiversLapsed' => (new TenantMediaWaiverService())->lapseExpired(),
             'standingReviewAnniversariesOpened' => $this->processStandingReviewAnniversaries(),
             'amlFlagsCreated' => (new AmlMonitoringService())->runScreening(),
+            'bankAccountsActivated' => $this->processBankAccountActivations(),
+            'payoutHoldsReleased' => $this->processPayoutHoldRetries(),
         ];
 
         // BR-05: every scheduler run is a genuine "configuration/state

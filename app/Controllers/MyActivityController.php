@@ -68,6 +68,7 @@ class MyActivityController extends BaseController
         if (!$partyId) return redirect()->to('/login');
 
         $party = (new \App\Models\PartyModel())->find($partyId);
-        return view('my/profile', ['title' => 'My Profile — eBid Hub', 'party' => $party]);
+        $bankAccount = (new \App\Libraries\PayoutAccountService())->currentAccountForParty($partyId);
+        return view('my/profile', ['title' => 'My Profile — eBid Hub', 'party' => $party, 'bankAccount' => $bankAccount]);
     }
 }

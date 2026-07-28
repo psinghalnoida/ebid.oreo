@@ -53,6 +53,14 @@ $routes->post('/settlements/(:segment)/rate-as-buyer', 'SettlementController::ra
 $routes->post('/settlements/(:segment)/rate-as-seller', 'SettlementController::rateAsSeller/$1');
 $routes->post('/settlements/dev-flag-stalled', 'SettlementController::devFlagStalled');
 $routes->post('/settlements/(:segment)/force-resolve', 'SettlementController::forceResolve/$1', ['filter' => 'tenantAdmin:settlement']);
+$routes->post('/settlements/(:segment)/payout-hold/decide', 'SettlementController::payoutHoldDecide/$1');
+
+// Payout Account Change Control (BR-50/PR-28)
+$routes->get('/payout-account/change', 'PayoutAccountController::changeForm');
+$routes->post('/payout-account/change', 'PayoutAccountController::changeSubmit');
+$routes->post('/payout-account/change/verify-otp', 'PayoutAccountController::changeVerifyOtpSubmit');
+$routes->get('/admin/payout-holds', 'PayoutHoldAdminController::pendingList', ['filter' => 'superAdmin']);
+$routes->post('/admin/payout-holds/(:segment)/decide', 'PayoutHoldAdminController::decide/$1', ['filter' => 'superAdmin']);
 
 // Dispute Resolution Framework (BR-40)
 $routes->get('/sale-events/(:segment)/dispute', 'DisputeController::fileForm/$1');

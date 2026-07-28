@@ -44,4 +44,11 @@ class SettlementModel extends Model
             ->where('stall_flagged_at', null)
             ->findAll();
     }
+
+    // BR-50: settlements whose fund release is on hold pending the
+    // payout-account gate — retried by the scheduler on every pass.
+    public function findPayoutHeld(): array
+    {
+        return $this->where('status', 'payout_held')->findAll();
+    }
 }

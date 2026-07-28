@@ -26,5 +26,7 @@ class RunScheduler extends BaseCommand
         CLI::write('Stale offers lapsed: ' . count($results['staleOffersLapsed']), 'green');
         CLI::write('Settlements flagged stalled: ' . count($results['settlementsFlaggedStalled']), 'green');
         CLI::write('AML flags created: ' . count($results['amlFlagsCreated']), 'green');
+        CLI::write('Bank accounts activated: ' . count($results['bankAccountsActivated']), 'green');
+        CLI::write('Payout holds released: ' . count($results['payoutHoldsReleased']), 'green');
     }
 }

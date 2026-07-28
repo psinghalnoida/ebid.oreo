@@ -82,6 +82,25 @@
     <p style="background:var(--emerald-soft); color:var(--emerald-deep); padding:12px; border-radius:10px; font-size:13px;">
       ✓ Settlement complete. EMD processed and released.
     </p>
+  <?php elseif ($settlement['status'] === 'payout_held'): ?>
+    <div style="background:var(--amber-soft); color:#9C5B1F; padding:12px; border-radius:10px; font-size:13px;">
+      <?php if ($payoutHold && $payoutHold['status'] === 'pending'): ?>
+        <p style="margin:0 0 10px;">⚠️ BR-50: this is a high-value payout (₹<?= number_format((float) $payoutHold['amount'], 2) ?>) pending release to a recently-changed bank account — held for Tenant Admin or SaaS Admin review.</p>
+        <?php if (!empty($isReviewAdmin)): ?>
+          <form method="post" action="/settlements/<?= esc($settlement['id']) ?>/payout-hold/decide">
+            <textarea name="notes" placeholder="Review notes" rows="2"
+              style="display:block; width:100%; padding:8px; margin-bottom:8px; border:1px solid var(--line); border-radius:8px; font-size:12px;"></textarea>
+            <button type="submit" name="outcome" value="release" class="btn btn-emerald" style="font-size:12px;">Release Payout</button>
+            <button type="submit" name="outcome" value="reject" class="btn btn-ghost" style="font-size:12px;">Reject — Hold for Investigation</button>
+          </form>
+        <?php endif; ?>
+      <?php elseif ($payoutHold && $payoutHold['status'] === 'rejected'): ?>
+        <p style="margin:0;">⛔ BR-50: this payout (₹<?= number_format((float) $payoutHold['amount'], 2) ?>) was rejected on review and needs manual investigation before it can proceed — it will not release automatically.</p>
+        <?php if ($payoutHold['review_notes']): ?><p style="margin:8px 0 0; font-size:12px;"><?= esc($payoutHold['review_notes']) ?></p><?php endif; ?>
+      <?php else: ?>
+        <p style="margin:0;">⚠️ BR-50: the buyer's payout bank account is still in its mandatory 24-hour cooling-off period — release will happen automatically once it lapses.</p>
+      <?php endif; ?>
+    </div>
   <?php elseif ($settlement['status'] === 'stalled'): ?>
     <div style="background:var(--amber-soft); color:#9C5B1F; padding:12px; border-radius:10px; font-size:13px;">
       <p style="margin:0 0 10px;">⚠️ This settlement stalled (BR-39) — flagged after sitting incomplete too long.</p>

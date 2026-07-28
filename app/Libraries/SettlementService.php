@@ -116,52 +116,103 @@ class SettlementService
     }
 
     // BR-33: formal closure + fee deduction, once all four steps are done.
+    // BR-50: the actual fund release (markSettled — the buyer's EMD
+    // refund) is the one real "payout" moment in this codebase, so it's
+    // the point the payout-account gate hooks into. If the gate blocks
+    // it, the settlement moves to 'payout_held' instead of 'completed' —
+    // everything ELSE about the transaction (both NOC confirmations, both
+    // ratings) genuinely happened; only the money's release is withheld.
     private function checkCompletion(string $settlementId): array
     {
         $settlement = $this->settlementModel->find($settlementId);
         $allDone = $settlement['seller_noc_confirmed_at'] && $settlement['buyer_noc_confirmed_at']
             && $settlement['buyer_rated_seller_at'] && $settlement['seller_rated_buyer_at'];
 
-        if ($allDone && $settlement['status'] !== 'completed') {
-            $saleEvent = $this->saleEventModel->find($settlement['sale_event_id']);
-            $tenant = $this->tenantModel->find($saleEvent['tenant_id']);
-            $hold = $this->emdHoldModel->findBySaleEventAndParty($settlement['sale_event_id'], $settlement['buyer_party_id']);
-
-            $feeWasSettled = false;
-            if ($hold && $hold['status'] === 'held') {
-                $fees = EmdService::calculateSettlementFee(
-                    (float) $settlement['final_price'], (float) $tenant['buyer_fee_percent'], (float) $hold['amount']
-                );
-                $this->emdHoldModel->markSettled($hold['id'], $fees['tenantAmount'], $fees['saasAmount'], $fees['buyerRefund']);
-                $feeWasSettled = true;
-            }
-
-            $this->settlementModel->update($settlementId, ['status' => 'completed', 'completed_at' => date('Y-m-d H:i:s')]);
-
-            // BR-38: a completed settlement is a genuine clean
-            // transaction for BOTH parties — the exit path was fully
-            // built (RatingService::recordCleanTransactionForCrawlBack)
-            // but never actually called anywhere until now.
-            $ratingService = new RatingService();
-            $ratingService->recordCleanTransactionForCrawlBack($settlement['buyer_party_id'], 'star_rating');
-            $ratingService->recordCleanTransactionForCrawlBack($settlement['seller_party_id'], 'seller_star_rating');
-
-            // BR-49: deterministic, non-discretionary — no manual
-            // trigger, no tenant carve-outs, a single ₹10L threshold
-            // applied uniformly.
-            $this->maybeRecordHighValueDisposal($settlementId, $settlement);
-
-            // BR-56: automatic on Buy-Now, Express, Easy — explicitly
-            // excluded on Tender, which follows the seller's own custom
-            // terms instead (BR-56's own text).
-            if ($feeWasSettled && $saleEvent['sale_format'] !== 'tender') {
-                (new InvoiceService())->generateForSettlement(
-                    $settlementId, $settlement, $tenant, $fees['tenantAmount'], $fees['saasAmount']
-                );
-            }
+        if ($allDone && !in_array($settlement['status'], ['completed', 'payout_held'], true)) {
+            $this->attemptFundReleaseAndFinalize($settlementId, $settlement);
         }
 
         return $this->settlementModel->find($settlementId);
+    }
+
+    // BR-50/PR-28: re-entry point for a settlement already sitting in
+    // 'payout_held' — called by the scheduler once a cooling-off window
+    // has lapsed, or immediately after an admin releases a flagged
+    // high-value hold. Safe to call repeatedly: if the gate still blocks,
+    // the settlement simply stays 'payout_held'.
+    public function retryPayoutHold(string $settlementId): array
+    {
+        $settlement = $this->requireSettlement($settlementId);
+        if ($settlement['status'] !== 'payout_held') {
+            return $settlement;
+        }
+        $this->attemptFundReleaseAndFinalize($settlementId, $settlement);
+        return $this->settlementModel->find($settlementId);
+    }
+
+    private function attemptFundReleaseAndFinalize(string $settlementId, array $settlement): void
+    {
+        $saleEvent = $this->saleEventModel->find($settlement['sale_event_id']);
+        $tenant = $this->tenantModel->find($saleEvent['tenant_id']);
+        $hold = $this->emdHoldModel->findBySaleEventAndParty($settlement['sale_event_id'], $settlement['buyer_party_id']);
+
+        $feeWasSettled = false;
+        $fees = null;
+        if ($hold && $hold['status'] === 'held') {
+            $fees = EmdService::calculateSettlementFee(
+                (float) $settlement['final_price'], (float) $tenant['buyer_fee_percent'], (float) $hold['amount']
+            );
+
+            // BR-50(c) evaluates against BR-49's own high-value definition
+            // — the sale's disposal value (final_price), not the buyer's
+            // EMD-refund remainder. The refund itself is always a small
+            // fraction of final_price (10% EMD minus ~5% fee), so it would
+            // never realistically cross the ₹10L mark on its own — using
+            // it here would make the high-value review gate effectively
+            // unreachable. $fees['buyerRefund'] is still the amount
+            // actually recorded on the resulting hold, since that's the
+            // real sum being released.
+            $payoutGate = (new PayoutAccountService())->evaluatePayout($settlement['buyer_party_id'], (float) $settlement['final_price']);
+            if (!$payoutGate['allowed']) {
+                if ($payoutGate['reason'] === 'high_value_review') {
+                    (new PayoutAccountService())->ensureHold(
+                        $settlementId, $settlement['buyer_party_id'], $payoutGate['bankAccountId'], $fees['buyerRefund']
+                    );
+                }
+                $this->settlementModel->update($settlementId, ['status' => 'payout_held']);
+                (new AuditLogService())->log('settlement.payout_held', null, [
+                    'settlementId' => $settlementId, 'buyerPartyId' => $settlement['buyer_party_id'], 'reason' => $payoutGate['reason'],
+                ]);
+                return;
+            }
+
+            $this->emdHoldModel->markSettled($hold['id'], $fees['tenantAmount'], $fees['saasAmount'], $fees['buyerRefund']);
+            $feeWasSettled = true;
+        }
+
+        $this->settlementModel->update($settlementId, ['status' => 'completed', 'completed_at' => date('Y-m-d H:i:s')]);
+
+        // BR-38: a completed settlement is a genuine clean
+        // transaction for BOTH parties — the exit path was fully
+        // built (RatingService::recordCleanTransactionForCrawlBack)
+        // but never actually called anywhere until now.
+        $ratingService = new RatingService();
+        $ratingService->recordCleanTransactionForCrawlBack($settlement['buyer_party_id'], 'star_rating');
+        $ratingService->recordCleanTransactionForCrawlBack($settlement['seller_party_id'], 'seller_star_rating');
+
+        // BR-49: deterministic, non-discretionary — no manual
+        // trigger, no tenant carve-outs, a single ₹10L threshold
+        // applied uniformly.
+        $this->maybeRecordHighValueDisposal($settlementId, $settlement);
+
+        // BR-56: automatic on Buy-Now, Express, Easy — explicitly
+        // excluded on Tender, which follows the seller's own custom
+        // terms instead (BR-56's own text).
+        if ($feeWasSettled && $saleEvent['sale_format'] !== 'tender') {
+            (new InvoiceService())->generateForSettlement(
+                $settlementId, $settlement, $tenant, $fees['tenantAmount'], $fees['saasAmount']
+            );
+        }
     }
 
     // BR-49/PR-27

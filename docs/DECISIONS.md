@@ -3396,4 +3396,98 @@ double-logged; the Super Admin dashboard's new "Open AML Flags" tile
 correctly showed 1 after one dismissal and one escalation.
 
 **Remaining Phase 3 item**: BR-50 (payout account change control
-process) — not started.
+process) — see D-63 below.
+---
+
+### D-63: BR-50/PR-28 Payout Account Change Control — Phase 3 complete
+
+**Decision:** Built BR-50 — the last item in the Phase 3 plan (D-56/D-60:
+BR-61 Standing Review, then BR-54 AML monitoring, now this). Confirmed
+before building anything that "registered payout banking details" did not
+exist anywhere in this schema at all — a "payout" was purely an EMD
+status/ledger event (`emd_hold.status`/`released_at`), with no
+destination-account concept, because the real payment gateway (BR-52) is
+still a dev stub. This is genuinely new schema, not an extension of
+something half-built.
+
+**What's real:** a `party_bank_account` table (OTP-gated change via the
+existing `AuthService`, mirroring the registration flow exactly — submit
+details → OTP sent → OTP verified → committed, nothing written before
+verification succeeds); a mandatory 24-hour cooling-off period during
+which the account is inactive for ANY payout, enforced by
+`PayoutAccountService::evaluatePayout()` and lifted automatically by a
+new scheduler check (`processBankAccountActivations`, same shape as
+`TenantMediaWaiverService::lapseExpired()`); every change logged to the
+audit trail with masked before/after values, timestamp, and initiating
+party. The gate hooks into the one real "payout" moment in this
+codebase — `SettlementService`'s buyer-EMD-refund release inside
+`checkCompletion()` — rather than inventing a parallel payout concept
+disconnected from the actual money-adjacent code path.
+
+**High-value review (BR-50c)**, evaluated against BR-49's own ₹10L
+disposal-value threshold: a settlement above it, paying out to a
+recently-changed account, is held (`settlement.status = 'payout_held'`,
+a new enum value distinct from `'stalled'` — that means sat-incomplete-
+too-long; this means everything else about the transaction genuinely
+finished and only the fund release is withheld) and surfaced to both the
+relevant Tenant Admin (inline on the settlement's own page) and SaaS
+Admin (`/admin/payout-holds`, platform-wide) per BR-50's explicit
+"Tenant Admin OR SaaS Admin" dual authority — checked manually in
+`SettlementController::payoutHoldDecide()` rather than a single route
+filter, since neither `tenantAdmin` nor `superAdmin` alone covers both.
+Once released, that specific bank account is treated as vetted — a
+second high-value payout to the same account doesn't need review again
+(BR-50's text doesn't specify a re-review window, so this was the most
+defensible reading, flagged as a judgment call in the code itself, not
+presented as literal spec text).
+
+**Two real bugs found and fixed during testing, not assumed away:**
+
+1. The high-value gate was initially evaluated against the buyer's EMD-
+   *refund* amount, not the settlement's disposal value — since EMD is a
+   flat 10% and platform fees ~5%, a refund is always a small fraction of
+   the sale price, meaning a settlement would need to close above roughly
+   ₹2 Crore before its refund alone crossed ₹10L. Caught by actually
+   running a real ₹14.5L Buy-Now settlement through the flow and watching
+   it release without ever creating a hold — the gate is now evaluated
+   against `settlement.final_price` (BR-49's own measure), while the
+   hold itself still records the real amount being released.
+2. Rejecting a hold, then letting the scheduler retry (as it does every
+   minute in production), spawned a fresh duplicate `pending` hold on
+   every subsequent pass — `ensureHold()` only checked for an existing
+   *pending* hold, and a rejected one no longer counted. Fixed to check
+   for any existing hold on that settlement+account regardless of status;
+   a rejected hold is now a genuine terminal state awaiting manual
+   follow-up, not something auto-retried into a growing queue. Also
+   surfaced a related view bug: the settlement page had no branch for a
+   rejected hold and silently fell back to the generic "still cooling
+   off" message, which was actively misleading once a hold had been
+   rejected — added a distinct rejected-state message showing the
+   reviewer's notes.
+
+**Verified against a real Postgres 16 + PHP 8.4 stack, multiple full
+scenarios**: a real buyer changed their payout bank account through the
+live OTP flow; two Buy-Now settlements (₹480K and ₹14.5L) were driven
+through full NOC+rating completion while that account was still cooling
+off — both correctly held with `reason: cooling_off`, confirmed via the
+audit trail, no `payout_hold` row created prematurely. Force-lapsed the
+cooling-off window and re-ran the real scheduler: the ₹480K settlement
+released automatically with no review; the ₹14.5L settlement was
+correctly held for `high_value_review` this time (after the bug fix)
+with a real `payout_hold` row for the actual refund amount. Confirmed a
+regular buyer session gets a 403 attempting to decide the hold, and the
+correct Tenant Admin can — release completed immediately (not waiting
+for the next scheduler tick). A third, independent ₹19.5L settlement to
+the *same* now-vetted account completed straight through with no review,
+confirming the "vetted once" design. A fourth scenario (different buyer,
+₹11.5L) was explicitly rejected via the SaaS Admin console and confirmed
+to leave the underlying EMD genuinely un-released, not silently paid out
+anyway. Confirmed scheduler idempotency by re-running it repeatedly at
+every stage and checking nothing changed on the second pass.
+
+**Phase 3 is now closed** (BR-61, BR-54, BR-50 — all three built).
+Remaining known gaps: BR-46 (blocked on a real Gemini key), BR-52
+(blocked on the real payment gateway — which is also what keeps this
+feature's account numbers/IFSCs from ever actually moving real money;
+everything BR-50 requires independent of the gateway is built and real),
+BR-35's full graduated event table, and PR-04 (Sovereign Rule Revision).
