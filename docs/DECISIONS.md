@@ -4097,3 +4097,51 @@ which fails on the pre-existing, unrelated D-62 bug (hardcoded
 `ebidhub` database) — not caused by, or fixed by, this decision.
 
 **This closes Task #3 of the "close rest" plan.**
+
+---
+
+### D-70: Missing composite database indexes
+
+**Decision:** Audited every existing index against the codebase's actual
+query patterns (not speculative guesses) and added four composite
+indexes for genuinely hot, previously under-indexed WHERE+ORDER BY
+combinations:
+
+- `settlement (buyer_party_id, created_at DESC)` and
+  `settlement (seller_party_id, created_at DESC)` —
+  `MyActivityController::myPurchases/mySales` (and their CSV export
+  siblings) always filter by one of these two columns and order by
+  `created_at DESC`; only single-column indexes existed before.
+- `settlement (seller_party_id, status, completed_at)` —
+  `AccountController`'s earnings query filters by seller +
+  `status = 'completed'` + a `completed_at` range.
+- `dispute (respondent_party_id, category, status)` —
+  `StandingReviewService::hasOpenCase`, `SellerManagementController`,
+  and the new `UserController::detail` (D-69) all filter by
+  `respondent_party_id`, most combined with `category` and/or `status`.
+  `respondent_party_id` had **no index at all** before this — only
+  `filed_by_party_id` did, despite both columns being queried about
+  equally often.
+
+**Deliberately not added:** a `bid (sale_event_id, standing, created_at)`
+style index was considered (it appears as an example in the original
+pending-work document) but checked against real usage first — `bid` has
+no `created_at` column (it's `placed_at`), and the actual hot query
+(`BidModel::findCurrentHighBid`/`findRankedBids`) filters by
+`sale_event_id` and orders by `amount DESC, placed_at ASC`, which the
+existing `idx_bid_sale_event (sale_event_id, amount DESC)` already
+serves. The `standing` filters that exist (`resetOutbidStandings`,
+`withdrawAllForSaleEvent`) are low-cardinality bulk UPDATEs scoped by
+`sale_event_id` first, which is already indexed — adding `standing` to
+that index would not meaningfully help. Building the index the document
+suggested, rather than the index the actual code needs, would have been
+cargo-culting a stale example instead of verifying it against this
+schema.
+
+**Verified:** migration applies cleanly on a fresh database (all 52
+migrations from zero). **Full regression: 404 assertions across all
+twenty-four engines, zero new failures** (same single pre-existing,
+unrelated `test:auditlog`/D-62 failure as D-69) — an index-only change,
+so no behavioral assertions were expected to move, and none did.
+
+**This closes Task #4 of the "close rest" plan.**
