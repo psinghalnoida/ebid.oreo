@@ -21,6 +21,12 @@ class SettlementService
     // tenants and sale formats — no tenant-specific carve-outs."
     private const HIGH_VALUE_DISPOSAL_THRESHOLD = 1000000.0;
 
+    // BR-53: the BR text itself leaves the rate open pending tax-advisor
+    // confirmation — the Super Admin (project owner) has confirmed 10%
+    // for this platform (Section 194-O), so this is a real constant now,
+    // not a DEV-ONLY placeholder.
+    private const TDS_RATE_PERCENT = 10.0;
+
     private SettlementModel $settlementModel;
     private SaleEventModel $saleEventModel;
     private TenantModel $tenantModel;
@@ -148,7 +154,23 @@ class SettlementService
                 );
             }
 
-            $this->settlementModel->update($settlementId, ['status' => 'completed', 'completed_at' => date('Y-m-d H:i:s')]);
+            // BR-53: TDS under Section 194-O, on the GROSS sale amount —
+            // applies to every completed facilitated sale regardless of
+            // format (unlike BR-56's invoice, BR-53's own text carries no
+            // Tender carve-out). Deducted from what the platform owes the
+            // seller; distinct from, and on top of, the buyer-side
+            // commission split above.
+            $tdsAmount = round((float) $settlement['final_price'] * (self::TDS_RATE_PERCENT / 100), 2);
+
+            $this->settlementModel->update($settlementId, [
+                'status' => 'completed', 'completed_at' => date('Y-m-d H:i:s'),
+                'tds_rate_percent' => self::TDS_RATE_PERCENT, 'tds_amount' => $tdsAmount,
+            ]);
+
+            (new AuditLogService())->log('settlement.tds_deducted', $settlement['seller_party_id'], [
+                'settlementId' => $settlementId, 'grossAmount' => (float) $settlement['final_price'],
+                'tdsRatePercent' => self::TDS_RATE_PERCENT, 'tdsAmount' => $tdsAmount,
+            ]);
 
             // BR-38: a completed settlement is a genuine clean
             // transaction for BOTH parties — the exit path was fully

@@ -4145,3 +4145,64 @@ unrelated `test:auditlog`/D-62 failure as D-69) — an index-only change,
 so no behavioral assertions were expected to move, and none did.
 
 **This closes Task #4 of the "close rest" plan.**
+
+---
+
+### D-71: BR-53 — TDS deduction at 10% (Section 194-O)
+
+**Decision:** BR-53's own text explicitly leaves the TDS rate open
+pending tax-advisor confirmation — the previous audit correctly flagged
+it as an external dependency for that reason. The Super Admin (project
+owner) has now confirmed the rate directly: **10%**, unblocking this.
+
+Implemented as a real, wired deduction rather than a documentation-only
+placeholder: `settlement` gained `tds_rate_percent`/`tds_amount`
+columns. `SettlementService::checkCompletion()` computes TDS as 10% of
+the **gross** `final_price` at the same point the settlement transitions
+to `completed` (both the normal 4-step path and `forceResolveStalled`'s
+stall-resolution path, since both funnel through `checkCompletion`),
+stores it on the settlement row, and logs `settlement.tds_deducted` to
+the audit trail.
+
+**Deliberately NOT merged into the BR-56 GST invoice.** BR-56's own text
+scopes the invoice to "the applicable platform commission ... and any
+Payment Gateway collection charge" — it says nothing about TDS. TDS is
+a distinct withholding-tax obligation on the seller's proceeds under
+194-O, not a component of the commission invoice, so it gets its own
+field and its own audit trail entry rather than being folded into an
+invoice type that BR-56 didn't define it into.
+
+**Deliberately NOT excluded on Tender**, unlike BR-56's invoice — BR-53's
+own statement carries no format carve-out ("the platform deducts TDS on
+the gross amount of facilitated sales"), so it applies uniformly
+regardless of `sale_format`.
+
+**Surfaced to the seller** in three places that already existed and
+already showed the buyer-side fee split, so TDS was added alongside it
+rather than as a new page: `/account/earnings` (This Month/YTD TDS
+totals, and a corrected "Net Received" that now actually subtracts TDS
+in addition to fees — previously the label was accurate for D-66's
+earnings feature at the time, but is now updated since a real
+deduction it needs to account for exists), `/my-sales` (a per-sale TDS
+column, list and CSV export), and the settlement detail page.
+
+**Verified with `spark test:settlement`** (23 assertions, up from 21):
+on a ₹95,000 sale, confirms `tds_rate_percent = 10.0` and
+`tds_amount = 9500.00` (95000 × 10%) stored on the completed
+settlement.
+
+**Verified over real HTTP**: logged in as the seller from the test
+fixture, `/account/earnings` correctly aggregates ₹14,300 total TDS
+across 2 completed sales (₹143,000 gross) with `net_earnings` matching
+gross minus fees minus TDS exactly; `/my-sales` shows the exact
+per-row ₹9,500.00 TDS figure matching the test's math; the settlement
+detail page renders the same gross × rate = TDS breakdown.
+
+**Full regression: 406 assertions across all twenty-four engines, zero
+new failures**, run on a genuinely freshly-migrated database (all 53
+migrations from zero). The only non-passing engine remains the
+pre-existing, unrelated `test:auditlog`/D-62 bug.
+
+**This closes Task #8 of the "close rest" plan** — the last item that
+was blocked on an external dependency (the rate) is now unblocked and
+shipped.

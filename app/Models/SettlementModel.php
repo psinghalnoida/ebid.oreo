@@ -17,6 +17,7 @@ class SettlementModel extends Model
         'seller_noc_confirmed_at', 'buyer_noc_confirmed_at',
         'buyer_rated_seller_at', 'seller_rated_buyer_at',
         'status', 'stall_flagged_at', 'forced_neutral_applied_at', 'completed_at',
+        'tds_rate_percent', 'tds_amount',
     ];
 
     public function createSettlement(string $saleEventId, string $buyerId, string $sellerId, float $finalPrice): array

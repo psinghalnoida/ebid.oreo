@@ -24,7 +24,7 @@
 
   <table style="width:100%; border-collapse:collapse; font-size:13px;">
     <tr style="text-align:left; color:var(--ink-3); font-size:10px; text-transform:uppercase;">
-      <th style="padding:6px 0;">Date</th><th>Format</th><th>Price</th><th>Fee</th><th>Buyer</th><th>Status</th>
+      <th style="padding:6px 0;">Date</th><th>Format</th><th>Price</th><th>Fee</th><th>TDS</th><th>Buyer</th><th>Status</th>
     </tr>
     <?php foreach ($sales as $s): ?>
     <tr style="border-top:1px solid var(--line);">
@@ -32,6 +32,7 @@
       <td><?= esc(strtoupper($s['sale_format'])) ?></td>
       <td><a href="/settlements/<?= esc($s['id']) ?>" style="color:var(--emerald);">₹<?= number_format((float) $s['final_price'], 2) ?></a></td>
       <td>₹<?= number_format((float) $s['fee_deducted'], 2) ?></td>
+      <td>₹<?= number_format((float) $s['tds_amount'], 2) ?></td>
       <td><?= esc($s['buyer_mobile']) ?></td>
       <td><?= esc(strtoupper($s['status'])) ?></td>
     </tr>

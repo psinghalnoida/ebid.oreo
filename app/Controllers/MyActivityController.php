@@ -180,7 +180,8 @@ class MyActivityController extends BaseController
         $total = $filtered()->countAllResults();
         $sales = $filtered()
             ->select('s.id, s.final_price, s.status, s.created_at, se.sale_format, l.category, buyer.mobile_number as buyer_mobile,
-                      COALESCE(eh.forfeited_to_tenant_amount, 0) + COALESCE(eh.forfeited_to_saas_amount, 0) as fee_deducted')
+                      COALESCE(eh.forfeited_to_tenant_amount, 0) + COALESCE(eh.forfeited_to_saas_amount, 0) as fee_deducted,
+                      COALESCE(s.tds_amount, 0) as tds_amount')
             ->orderBy('s.created_at', 'DESC')->limit($pg['perPage'], $pg['offset'])->get()->getResultArray();
 
         return view('my/sales', [
@@ -198,7 +199,8 @@ class MyActivityController extends BaseController
         $db = \Config\Database::connect();
         $rows = $db->table('settlement s')
             ->select('s.created_at, s.final_price, s.status, se.sale_format, l.category, buyer.mobile_number as buyer_mobile,
-                      COALESCE(eh.forfeited_to_tenant_amount, 0) + COALESCE(eh.forfeited_to_saas_amount, 0) as fee_deducted')
+                      COALESCE(eh.forfeited_to_tenant_amount, 0) + COALESCE(eh.forfeited_to_saas_amount, 0) as fee_deducted,
+                      COALESCE(s.tds_amount, 0) as tds_amount')
             ->join('sale_event se', 'se.id = s.sale_event_id')
             ->join('listing l', 'l.id = se.listing_id')
             ->join('party buyer', 'buyer.id = s.buyer_party_id')
@@ -206,8 +208,8 @@ class MyActivityController extends BaseController
             ->where('s.seller_party_id', $partyId)
             ->orderBy('s.created_at', 'DESC')->get()->getResultArray();
 
-        return $this->csvResponse('my-sales.csv', ['Date', 'Category', 'Format', 'Price', 'Fee Deducted', 'Status', 'Buyer Mobile'],
-            array_map(fn($r) => [substr($r['created_at'], 0, 10), $r['category'], strtoupper($r['sale_format']), $r['final_price'], $r['fee_deducted'], $r['status'], $r['buyer_mobile']], $rows));
+        return $this->csvResponse('my-sales.csv', ['Date', 'Category', 'Format', 'Price', 'Fee Deducted', 'TDS Deducted', 'Status', 'Buyer Mobile'],
+            array_map(fn($r) => [substr($r['created_at'], 0, 10), $r['category'], strtoupper($r['sale_format']), $r['final_price'], $r['fee_deducted'], $r['tds_amount'], $r['status'], $r['buyer_mobile']], $rows));
     }
 
     private function csvResponse(string $filename, array $header, array $rows)
