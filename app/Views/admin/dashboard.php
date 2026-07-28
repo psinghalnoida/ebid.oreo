@@ -21,6 +21,10 @@
       <p style="font-size:24px; font-weight:800; margin:0;"><?= esc($stalledSettlements) ?></p>
       <p style="font-size:12px; color:var(--ink-3);">Stalled Settlements</p>
     </div>
+    <div style="flex:1; border:1px solid var(--line); border-radius:12px; padding:16px;">
+      <p style="font-size:24px; font-weight:800; margin:0;"><?= esc($openAmlFlags) ?></p>
+      <p style="font-size:12px; color:var(--ink-3);">Open AML Flags</p>
+    </div>
   </div>
 
   <a href="/admin/tenants/create" class="btn btn-emerald">+ Whitelist New Tenant</a>
@@ -28,6 +32,7 @@
   <a href="/admin/audit-log" class="btn btn-ghost" style="margin-left:8px;">Audit Log</a>
   <a href="/admin/audit-log/export" class="btn btn-ghost" style="margin-left:8px;">Statutory Export</a>
   <a href="/admin/media-waivers" class="btn btn-ghost" style="margin-left:8px;">Media Waivers</a>
+  <a href="/admin/aml-flags" class="btn btn-ghost" style="margin-left:8px;">AML Monitoring</a>
 
   <h3 style="font-size:16px; margin-top:28px;">Tenants</h3>
   <table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:13px;">

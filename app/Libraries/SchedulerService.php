@@ -171,6 +171,7 @@ class SchedulerService
             'settlementsFlaggedStalled' => $this->processStalledSettlements(),
             'mediaWaiversLapsed' => (new TenantMediaWaiverService())->lapseExpired(),
             'standingReviewAnniversariesOpened' => $this->processStandingReviewAnniversaries(),
+            'amlFlagsCreated' => (new AmlMonitoringService())->runScreening(),
         ];
 
         // BR-05: every scheduler run is a genuine "configuration/state

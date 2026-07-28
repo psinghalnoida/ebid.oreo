@@ -18,13 +18,21 @@ class EmdHoldModel extends Model
         'forfeited_to_seller_amount', 'gateway_reference', 'released_at', 'forfeited_at',
     ];
 
-    // BR-25: one hold per party per sale_event — never pooled
-    public function createHold(string $saleEventId, string $partyId, string $channel, float $amount): array
+    // BR-25: one hold per party per sale_event — never pooled.
+    // $gatewayReference: the payment gateway's own reference for the
+    // funding transaction (e.g. a UTR) — real once BR-52's gateway is
+    // connected. Optional and null by default since nothing populates it
+    // yet in production; see EmdConsentController for the dev-only test
+    // path that lets BR-54's shared-external-reference AML pattern
+    // (AmlMonitoringService) actually be exercised before that gateway
+    // exists.
+    public function createHold(string $saleEventId, string $partyId, string $channel, float $amount, ?string $gatewayReference = null): array
     {
         $id = \App\Libraries\Uuid::v4();
         $this->insert([
             'id' => $id, 'sale_event_id' => $saleEventId, 'party_id' => $partyId,
             'channel' => $channel, 'amount' => $amount, 'status' => 'held',
+            'gateway_reference' => $gatewayReference,
         ]);
         return $this->find($id);
     }

@@ -112,6 +112,8 @@ $routes->post('/tenants/(:segment)/media-waiver', 'TenantMediaWaiverController::
 $routes->get('/admin/media-waivers', 'TenantMediaWaiverController::pendingList', ['filter' => 'superAdmin']);
 $routes->post('/admin/media-waivers/(:segment)/decide', 'TenantMediaWaiverController::decide/$1', ['filter' => 'superAdmin']);
 $routes->post('/admin/media-waivers/(:segment)/revoke', 'TenantMediaWaiverController::revoke/$1', ['filter' => 'superAdmin']);
+$routes->get('/admin/aml-flags', 'AmlAdminController::pendingList', ['filter' => 'superAdmin']);
+$routes->post('/admin/aml-flags/(:segment)/decide', 'AmlAdminController::decide/$1', ['filter' => 'superAdmin']);
 $routes->post('/listings/(:segment)/flag-cbs-violation', 'ListingController::flagCbsViolation/$1');
 $routes->get('/admin/standing-review/(:segment)', 'StandingReviewController::show/$1');
 $routes->post('/admin/standing-review/(:segment)/rule', 'StandingReviewController::rule/$1');

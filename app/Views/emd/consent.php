@@ -28,6 +28,9 @@
       <input type="checkbox" name="confirmed" value="1" required style="margin-top:2px;">
       I have read and understand the deposit and forfeiture terms above.
     </label>
+    <input type="text" name="dev_gateway_reference" placeholder="Dev-only: test bank/UTR reference (optional)"
+      style="display:block; width:100%; padding:10px; margin-bottom:14px; border:1px dashed var(--line); border-radius:8px; font-size:12px;">
+    <p style="font-size:10.5px; color:var(--ink-3); margin:-10px 0 14px;">⚠️ Dev-only: simulates the reference a real payment gateway (BR-52, not yet connected) would return — lets BR-54's AML cross-account check be tested for real.</p>
     <button type="submit" class="btn btn-emerald" style="width:100%;">Confirm & Pledge Deposit</button>
   </form>
 </main>

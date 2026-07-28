@@ -3307,3 +3307,93 @@ folder explains what each document is and why it's there; the main
 
 **No code changes in this decision** — purely a durability and
 continuity improvement for the project's own foundation.
+---
+
+### D-62: BR-54/PR-31 AML Transaction Monitoring — Phase 3, item 2 — two of three patterns built for real, the third honestly deferred
+
+**Decision:** Built BR-54's Anti-Money Laundering monitoring function —
+the next item in the Phase 3 plan laid out at D-56/D-60, after BR-61
+(Standing Review). New `aml_flag` table, `AmlMonitoringService`,
+`AmlAdminController` (`/admin/aml-flags`, superAdmin-only), wired into
+the existing `SchedulerService`/`php spark run:scheduler` sweep
+alongside every other timer this platform depends on.
+
+**Two of BR-54's three named patterns are genuinely detectable against
+real data already in this schema, and are built:**
+
+1. **Rapid deposit-then-refund with no genuine bidding activity** —
+   screens `emd_hold` rows released within 24 hours of being held
+   (BR-54's text says "rapid" but names no threshold; 24h is a
+   judgment call, not a spec value — flagged as such, adjustable
+   without a schema change), cross-checked against the `bid`/`offer`
+   tables for genuine participation on that sale_event. Deliberately
+   excludes any hold released because its sale_event was cancelled
+   (`ListingLifecycleService::emergencyStop`/`cancelOpenSaleEventsForListing`
+   release EVERY participant's EMD indiscriminately when a listing is
+   pulled — that's the platform acting, not evidence of an individual
+   buyer's behavior, and including it would have flagged every honest
+   bidder caught in an emergency stop).
+2. **Multiple accounts funding from the same external bank account** —
+   groups `emd_hold` by `gateway_reference`, a column that already
+   existed on the table but, confirmed by reading the actual funding
+   code paths (`BidController`/`OfferController`/`EmdConsentController`),
+   was never once written by anything — the payment gateway itself is
+   still BR-52's dev stub. Wired `EmdHoldModel::createHold()` to
+   actually accept and store it, and added a clearly-labeled
+   (`⚠️ Dev-only`) optional field to the EMD consent confirmation form
+   so this pattern is genuinely exercisable today instead of sitting
+   dark until a real gateway exists — the same category of dev
+   stand-in as `devFundEmd` itself, not a new kind of fakery.
+
+**The third pattern — "deposits inconsistent with a User's declared
+KYC profile" — is explicitly NOT built, flagged rather than faked.**
+Read the actual code before deciding this: `PartyModel::setKycStatus()`
+is never called anywhere in the app; every party sits at the DB default
+`kyc_status='pending'` forever; declared-profile fields like
+`org_annual_turnover` are schema-only, never populated by any
+registration or KYC UI (none exists — BR-17 itself is still unbuilt,
+listed in the same Tier-4 backlog BR-54 came from). Comparing a deposit
+against a "declared KYC profile" that doesn't actually exist yet for
+any real user would be theatre, not monitoring. Given the same
+treatment BR-46/BR-52 already get for their own external blockers —
+`AmlMonitoringService`'s class comment states this explicitly, so it
+reads as a scoped gap, not an oversight, and the pattern can be added
+for real once BR-17 exists.
+
+**Idempotent by design, not by luck**: both screens check for an
+existing flag (by `related_emd_hold_id`+pattern, or by
+`party_id`+`external_reference`) before creating a new one, since the
+scheduler runs every minute in production — confirmed by running
+`php spark run:scheduler` twice in a row against real flagged data and
+seeing zero new flags on the second pass.
+
+**Verified against a real Postgres 16 + PHP 8.4 stack, full real
+scenarios, not synthetic shortcuts**: registered two real buyer
+accounts and a tenant admin over live HTTP; walked a genuine Buy-Now
+sale event through listing approval → sale-event approval → both
+buyers funding EMD via the real consent flow with the SAME dev test
+gateway reference → one buyer submitting a real offer and winning →
+confirmed the OTHER buyer's EMD — who never submitted an offer at
+all — got swept into `OfferService`'s "release every other held
+deposit" call exactly as read in the code, a genuine pre-existing
+platform behavior, not a contrived test. Ran the real scheduler and
+confirmed: the non-participating buyer's rapid release was flagged;
+both buyers sharing the test gateway reference were each flagged,
+correctly cross-referencing the other's party ID. Ran two explicit
+negative controls to prove the false-positive guard actually works —
+a released hold on a **cancelled** sale_event, and a released hold
+with a **genuine bid** on record — confirmed neither produced a flag.
+Logged into the real, TOTP-verified Super Admin path (computed a live
+RFC 6238 code from the enrolled secret, not a stub) and confirmed: both
+flags render correctly with their evidence; a regular seller session
+and a tenant-admin-only session are both denied `/admin/aml-flags`
+(BR-54: "never to the User or any Tenant Admin"); dismissing one flag
+and escalating the other (with an STR reference) both persisted
+correctly and both wrote to the immutable audit trail per BR-54's own
+"regardless of outcome" requirement; attempting to re-review an
+already-decided flag was correctly rejected rather than silently
+double-logged; the Super Admin dashboard's new "Open AML Flags" tile
+correctly showed 1 after one dismissal and one escalation.
+
+**Remaining Phase 3 item**: BR-50 (payout account change control
+process) — not started.

@@ -35,7 +35,7 @@ class ExpressAuctionService
     // If this is the 3rd distinct buyer to pledge, automatically opens
     // the bidding phase (PR-11 step: "on the 3rd distinct pledge...
     // schedules the bidding phase").
-    public function pledgeReserve(string $saleEventId, string $buyerPartyId): array
+    public function pledgeReserve(string $saleEventId, string $buyerPartyId, ?string $gatewayReference = null): array
     {
         $saleEvent = $this->saleEventModel->find($saleEventId);
         if (!$saleEvent || $saleEvent['sale_format'] !== 'express') {
@@ -55,7 +55,7 @@ class ExpressAuctionService
         $baseline = EmdService::calculateBaselineEmd('express', null, (float) $saleEvent['reserve_value']);
         $existing = $this->emdHoldModel->findBySaleEventAndParty($saleEventId, $buyerPartyId);
         if (!$existing || $existing['status'] !== 'held') {
-            $this->emdHoldModel->createHold($saleEventId, $buyerPartyId, 'van', $baseline);
+            $this->emdHoldModel->createHold($saleEventId, $buyerPartyId, 'van', $baseline, $gatewayReference);
             (new AuditLogService())->log('emd.held', $buyerPartyId, [
                 'saleEventId' => $saleEventId, 'amount' => $baseline, 'channel' => 'van', 'context' => 'express_pledge',
             ]);

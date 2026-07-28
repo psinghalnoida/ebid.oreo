@@ -25,5 +25,6 @@ class RunScheduler extends BaseCommand
         CLI::write('Easy auctions closed: ' . count($results['easyAuctionsClosed']), 'green');
         CLI::write('Stale offers lapsed: ' . count($results['staleOffersLapsed']), 'green');
         CLI::write('Settlements flagged stalled: ' . count($results['settlementsFlaggedStalled']), 'green');
+        CLI::write('AML flags created: ' . count($results['amlFlagsCreated']), 'green');
     }
 }
