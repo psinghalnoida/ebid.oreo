@@ -98,6 +98,7 @@ $routes->get('/sale-events/(:segment)/tender/report', 'TenderController::auction
 // Navigation gaps closed — logout, My Listings/Activity/Profile, browse
 $routes->get('/logout', 'AuthController::logout');
 $routes->get('/browse', 'Home::browse');
+$routes->get('/listings', 'Home::browse');
 $routes->get('/my-listings', 'MyActivityController::myListings');
 $routes->get('/my-activity', 'MyActivityController::myActivity');
 $routes->get('/profile', 'MyActivityController::profile');
