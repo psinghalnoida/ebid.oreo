@@ -114,6 +114,16 @@
     <?php endforeach; ?>
   <?php endif; ?>
 
+  <?php if (!empty($settlement['tds_amount'])): ?>
+    <h3 style="font-size:15px; margin-top:24px;">TDS Deducted (BR-53, Section 194-O)</h3>
+    <div style="border:1px solid var(--line); border-radius:12px; padding:16px; margin-top:10px;">
+      <p style="font-size:13px; margin:0;">
+        ₹<?= number_format((float) $settlement['final_price'], 2) ?> gross ×
+        <?= esc($settlement['tds_rate_percent']) ?>% = <strong>₹<?= number_format((float) $settlement['tds_amount'], 2) ?></strong> withheld
+      </p>
+    </div>
+  <?php endif; ?>
+
   <?php if (!empty($auditEvents)): ?>
     <h3 style="font-size:15px; margin-top:24px;">Audit Trail (BR-05)</h3>
     <?php foreach ($auditEvents as $ev): ?>

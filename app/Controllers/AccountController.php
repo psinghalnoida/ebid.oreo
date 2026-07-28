@@ -160,15 +160,21 @@ class AccountController extends BaseController
         // toward sale_count but contribute nothing to total_fees. The
         // join is naturally 1:1 (BR-25: one hold per party per sale
         // event, never pooled), so no DISTINCT/dedup handling is needed.
+        // BR-53: TDS lives directly on settlement.tds_amount, deducted
+        // from the seller's own proceeds — distinct from, and on top of,
+        // the buyer-side commission (total_fees) above.
         $earningsQuery = function (string $since) use ($db, $partyId) {
-            return $db->table('settlement s')
+            $row = $db->table('settlement s')
                 ->select('COUNT(s.id) as sale_count, COALESCE(SUM(s.final_price), 0) as total_sales,
-                          COALESCE(SUM(eh.forfeited_to_tenant_amount + eh.forfeited_to_saas_amount), 0) as total_fees')
+                          COALESCE(SUM(eh.forfeited_to_tenant_amount + eh.forfeited_to_saas_amount), 0) as total_fees,
+                          COALESCE(SUM(s.tds_amount), 0) as total_tds')
                 ->join('emd_hold eh', 'eh.sale_event_id = s.sale_event_id AND eh.party_id = s.buyer_party_id', 'left')
                 ->where('s.seller_party_id', $partyId)
                 ->where('s.status', 'completed')
                 ->where('s.completed_at >=', $since)
                 ->get()->getRowArray();
+            $row['net_earnings'] = round((float) $row['total_sales'] - (float) $row['total_fees'] - (float) $row['total_tds'], 2);
+            return $row;
         };
 
         $thisMonth = $earningsQuery($monthStart);
