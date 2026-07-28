@@ -4009,3 +4009,91 @@ zero).
 
 **This closes Phase 3C entirely** (D-67 + this decision) — the last
 item from the original pending-work document's Phase 3C section.
+
+---
+
+### D-69: Phase 3D — Admin robustness (backup TOTP codes, user/tenant directories, dashboard metrics, alerts, BR-06 branding)
+
+**Decision:** Closed out the remaining Phase 3D gaps from the pending-work
+document, all with zero external dependencies:
+
+1. **Backup TOTP codes at enrollment (PR-17).** Every successful
+   `confirmTotpSetup` (first enrollment or re-enrollment) now generates
+   10 single-use backup codes, bcrypt-hashed at rest in a new
+   `super_admin_backup_code` table, shown exactly once on the
+   confirmation page and never persisted in session or flash data.
+   `SuperAdminAuthService::confirmTotpSetup()`'s return type changed
+   from `bool` to `?array` (the plain codes on success, `null` on a
+   wrong code) — a deliberate breaking change to the method's contract,
+   fixed forward into `TestTier3.php`'s assertions rather than papered
+   over. `SuperAdminAuthService::login()` now falls back to
+   `SuperAdminBackupCodeModel::consumeIfValid()` when the primary TOTP
+   check fails, consuming the code so it can't be reused, and logs
+   `admin.totp_backup_code_used` to the audit trail. Regenerating
+   (enrollment or re-enrollment) invalidates every prior code — they
+   were trust-bound to the old device/enrollment context.
+
+2. **`/admin/users`** — a platform-wide, searchable (mobile/name/email/GSTIN)
+   user directory with a detail page showing roles, ratings, offence
+   counts, standing-review counters, recent purchases/sales, disputes,
+   and rating events. Previously a party (buyer, inspector, tenant
+   admin) was only reachable if you already knew their UUID; sellers
+   were the only role with any admin-facing list (tenant-scoped, via
+   `SellerManagementController`).
+
+3. **`/admin/tenants`** — a dedicated, searchable tenant list page,
+   separated out from the dashboard's embedded table.
+
+4. **BR-06 tenant branding upload.** `branding_logo_url` and
+   `branding_primary_color` have existed on the `tenant` table and in
+   `TenantModel::$allowedFields` since Phase 0, but nothing ever wrote
+   to them. `TenantController::editSubmit` now accepts a logo file
+   (JPEG/PNG/WebP/SVG, stored at `public/uploads/tenants/{tenantId}/`,
+   same convention as `MediaService`'s listing-photo storage) and a
+   primary-color text field. Host-header custom-domain routing itself
+   (the other half of BR-06) remains explicitly out of scope — real DNS
+   configuration, per the standing "close rest" exclusions.
+
+5. **Dashboard metrics + `/admin/alerts`.** `AdminController::dashboard()`
+   now surfaces today's activity (bids placed, sales closed, disputes
+   filed, new sale events by format) and a stalled-settlements aging
+   table (oldest first, days-stalled computed via `EXTRACT(DAY FROM ...)`).
+   A new `/admin/alerts` page aggregates every "needs a decision" queue
+   that was previously scattered across separate pages — open AML
+   flags, pending payout reviews, pending rating reviews, open disputes,
+   stalled settlements — into one triage view. No new underlying data;
+   this only surfaces what `AmlFlagModel`, `PayoutReleaseReviewModel`,
+   `RatingEventModel::findAllPending()`, and `DisputeModel` already
+   track.
+
+**Not attempted, per the standing "close rest" exclusions:** `/admin/users`
+has no write actions beyond what already exists elsewhere (delisting,
+rating review, standing review keep their own governed controllers) —
+deliberately kept read-only rather than growing a second, competing
+mutation path.
+
+**Verified with `spark test:tier3`** (20 assertions, up from 18): the
+two new assertions confirm a valid backup code logs a Super Admin in
+exactly as a TOTP code would, and that the same code is rejected on a
+second attempt.
+
+**Verified over real HTTP**, end to end, against a running server: regular
+login → `/admin/setup-totp` → confirm with a computed TOTP code → 10 real
+backup codes rendered on the confirmation page → `/admin/login` with one
+of those codes succeeds (303 to `/admin`) → the same code reused a second
+time is correctly rejected ("Invalid or expired authentication code").
+Also verified `/admin`, `/admin/tenants`, `/admin/users`, `/admin/users/{id}`,
+and `/admin/alerts` all return 200 for an authenticated Super Admin
+session with no rendering errors, and that a tenant branding edit
+(logo + primary color, multipart upload) genuinely persists — the
+uploaded file lands on disk and the tenant view reflects the new color
+and `<img>` tag on reload.
+
+**Full regression: 404 assertions across all twenty-four engines, zero
+new failures**, run on a genuinely freshly-migrated database (all 51
+migrations from zero). The only non-passing engine is `test:auditlog`,
+which fails on the pre-existing, unrelated D-62 bug (hardcoded
+`ebidhub_ci4` database name in a `psql` shell-out, vs. the real
+`ebidhub` database) — not caused by, or fixed by, this decision.
+
+**This closes Task #3 of the "close rest" plan.**

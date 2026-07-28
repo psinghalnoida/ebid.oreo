@@ -27,7 +27,9 @@
     </div>
   </div>
 
-  <a href="/admin/tenants/create" class="btn btn-emerald">+ Whitelist New Tenant</a>
+  <a href="/admin/tenants" class="btn btn-emerald">Tenants</a>
+  <a href="/admin/users" class="btn btn-ghost" style="margin-left:8px;">Users</a>
+  <a href="/admin/alerts" class="btn btn-ghost" style="margin-left:8px;">Alerts</a>
   <a href="/admin/delist-seller" class="btn btn-ghost" style="margin-left:8px;">Delist Seller (Confirmed Fraud)</a>
   <a href="/admin/audit-log" class="btn btn-ghost" style="margin-left:8px;">Audit Log</a>
   <a href="/admin/audit-log/export" class="btn btn-ghost" style="margin-left:8px;">Statutory Export</a>
@@ -36,6 +38,28 @@
   <a href="/admin/payout-reviews" class="btn btn-ghost" style="margin-left:8px;">Payout Reviews</a>
   <a href="/admin/rating-reviews" class="btn btn-ghost" style="margin-left:8px;">Rating Reviews</a>
   <a href="/admin/consent-audit" class="btn btn-ghost" style="margin-left:8px;">Consent Audit</a>
+
+  <h3 style="font-size:15px; margin-top:28px;">Today</h3>
+  <div style="display:flex; gap:16px; margin:10px 0;">
+    <div style="flex:1; border:1px solid var(--line); border-radius:12px; padding:14px;">
+      <p style="font-size:20px; font-weight:800; margin:0;"><?= (int) $bidsPlacedToday ?></p>
+      <p style="font-size:11px; color:var(--ink-3);">Bids Placed</p>
+    </div>
+    <div style="flex:1; border:1px solid var(--line); border-radius:12px; padding:14px;">
+      <p style="font-size:20px; font-weight:800; margin:0;"><?= (int) $salesClosedToday ?></p>
+      <p style="font-size:11px; color:var(--ink-3);">Sales Closed</p>
+    </div>
+    <div style="flex:1; border:1px solid var(--line); border-radius:12px; padding:14px;">
+      <p style="font-size:20px; font-weight:800; margin:0;"><?= (int) $disputesFiledToday ?></p>
+      <p style="font-size:11px; color:var(--ink-3);">Disputes Filed</p>
+    </div>
+    <?php foreach ($listingsByFormatToday as $lf): ?>
+    <div style="flex:1; border:1px solid var(--line); border-radius:12px; padding:14px;">
+      <p style="font-size:20px; font-weight:800; margin:0;"><?= (int) $lf['cnt'] ?></p>
+      <p style="font-size:11px; color:var(--ink-3);">New <?= esc(strtoupper($lf['sale_format'])) ?> Sale Events</p>
+    </div>
+    <?php endforeach; ?>
+  </div>
 
   <h3 style="font-size:16px; margin-top:28px;">Tenants</h3>
   <table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:13px;">
@@ -51,6 +75,21 @@
     </tr>
     <?php endforeach; ?>
   </table>
+
+  <h3 style="font-size:15px; margin-top:28px;">Stalled Settlements — Aging</h3>
+  <table style="width:100%; border-collapse:collapse; font-size:12px;">
+    <tr style="text-align:left; color:var(--ink-3); font-size:10px; text-transform:uppercase;">
+      <th style="padding:6px 0;">Amount</th><th>Since</th><th>Days Stalled</th>
+    </tr>
+    <?php foreach ($stalledAging as $s): ?>
+    <tr style="border-top:1px solid var(--line);">
+      <td style="padding:6px 0;">₹<?= number_format((float) $s['final_price'], 2) ?></td>
+      <td><?= esc(substr($s['created_at'], 0, 10)) ?></td>
+      <td><?= (int) $s['days_stalled'] ?></td>
+    </tr>
+    <?php endforeach; ?>
+  </table>
+  <?php if (empty($stalledAging)): ?><p style="font-size:12px; color:var(--ink-3); margin-top:8px;">None.</p><?php endif; ?>
 
   <h3 style="font-size:15px; margin-top:28px;">High-Value Disposal Records (BR-49, &gt;₹10L, platform-wide)</h3>
   <table style="width:100%; border-collapse:collapse; font-size:12px;">

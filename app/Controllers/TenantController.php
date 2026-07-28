@@ -44,6 +44,18 @@ class TenantController extends BaseController
         return redirect()->to('/admin')->with('error', "Tenant \"{$tenant['name']}\" whitelisted successfully.");
     }
 
+    // Was missing entirely — the dashboard embedded a tenant table but
+    // there was no dedicated, searchable list page.
+    public function list()
+    {
+        $q = trim((string) $this->request->getGet('q'));
+        $builder = $this->tenantModel->orderBy('name', 'ASC');
+        if ($q !== '') {
+            $builder = $builder->groupStart()->like('name', $q)->orLike('subdomain', $q)->groupEnd();
+        }
+        return view('admin/tenants_list', ['title' => 'Tenants — eBid Hub', 'tenants' => $builder->findAll(), 'q' => $q]);
+    }
+
     // Was missing entirely — Super Admin could only create tenants, not
     // view or correct one afterward.
     public function view(string $tenantId)
@@ -55,6 +67,8 @@ class TenantController extends BaseController
         return view('admin/tenant_view', ['title' => 'Tenant — eBid Hub', 'tenant' => $tenant]);
     }
 
+    // BR-06: tenant branding (logo + primary color) — the columns have
+    // existed since Phase 0 but nothing ever wrote to them.
     public function editSubmit(string $tenantId)
     {
         $tenant = $this->tenantModel->find($tenantId);
@@ -62,10 +76,28 @@ class TenantController extends BaseController
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
 
-        $this->tenantModel->update($tenantId, [
+        $update = [
             'name' => $this->request->getPost('name') ?: $tenant['name'],
             'buyer_fee_percent' => $this->request->getPost('buyer_fee_percent') ?: $tenant['buyer_fee_percent'],
-        ]);
+            'branding_primary_color' => $this->request->getPost('branding_primary_color') ?: $tenant['branding_primary_color'],
+        ];
+
+        $logo = $this->request->getFile('branding_logo');
+        if ($logo && $logo->isValid() && !$logo->hasMoved()) {
+            $allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
+            if (!in_array($logo->getMimeType(), $allowed, true)) {
+                return redirect()->to("/admin/tenants/{$tenantId}")->with('error', 'Logo must be JPEG, PNG, WebP, or SVG.');
+            }
+            $uploadDir = WRITEPATH . '../public/uploads/tenants/' . $tenantId;
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+            $filename = 'logo_' . time() . '.' . $logo->getExtension();
+            $logo->move($uploadDir, $filename);
+            $update['branding_logo_url'] = '/uploads/tenants/' . $tenantId . '/' . $filename;
+        }
+
+        $this->tenantModel->update($tenantId, $update);
         return redirect()->to("/admin/tenants/{$tenantId}")->with('error', 'Tenant updated.');
     }
 

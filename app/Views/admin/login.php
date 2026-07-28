@@ -13,8 +13,8 @@
     <label style="font-size:12px; color:var(--ink-3);">mPIN</label>
     <input type="password" name="mpin" maxlength="4" required
       style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
-    <label style="font-size:12px; color:var(--ink-3);">Authenticator Code</label>
-    <input type="text" name="totp_code" maxlength="6" required
+    <label style="font-size:12px; color:var(--ink-3);">Authenticator Code (or a backup code)</label>
+    <input type="text" name="totp_code" maxlength="8" required
       style="display:block; width:100%; padding:12px; margin:6px 0 20px; border:1px solid var(--line); border-radius:10px;">
     <button type="submit" class="btn btn-emerald" style="width:100%;">Log In</button>
   </form>
