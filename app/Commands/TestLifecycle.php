@@ -46,20 +46,35 @@ class TestLifecycle extends BaseCommand
         ]);
         $this->assert($listing['status'] === 'inventory', 'BR-13: new listing starts at inventory');
 
-        // BR-11: submitForApproval now requires >=5 photos (added after this
-        // test was originally written) — simulate uploads directly via the
-        // model rather than real file uploads, which aren't practical in a
-        // CLI test context. Real upload enforcement is tested separately
-        // via real HTTP with actual files (see D-24).
+        // BR-11: submitForApproval now requires >=5 photos AND a
+        // designated Main Display Photo (added after this test was
+        // originally written) — simulate uploads directly via the model
+        // rather than real file uploads, which aren't practical in a CLI
+        // test context. Real upload enforcement is tested separately via
+        // real HTTP with actual files (see D-24, and D-73's test:media).
         $listingModel->setMediaCount($listing['id'], 6);
+        (new \App\Models\ListingMediaModel())->createMedia([
+            'listing_id' => $listing['id'], 'uploaded_by_party_id' => $seller['id'],
+            'file_path' => 'uploads/listings/fake.webp', 'media_type' => 'photo', 'is_primary' => true,
+        ]);
 
         CLI::write("\n=== BR-13: Approval lifecycle ===", 'yellow');
         $listing = $lifecycle->submitForApproval($listing['id']);
         $this->assert($listing['status'] === 'pending_approval', 'Submitted for approval');
 
-        $rejected = $lifecycle->reject($listing['id'], 'insufficient photos');
+        // PR-09: reject() now takes a closed-list reason key + optional
+        // free-text detail, not an arbitrary string.
+        $rejected = $lifecycle->reject($listing['id'], 'insufficient_photos', 'Only 3 usable photos, need 5.');
         $this->assert($rejected['status'] === 'inventory', 'Rejected listing returns to inventory');
-        $this->assert($rejected['rejection_reason'] === 'insufficient photos', 'Rejection reason logged');
+        $this->assert($rejected['rejection_reason'] === 'Insufficient photos: Only 3 usable photos, need 5.', 'Rejection reason (closed-list label + detail) genuinely logged');
+
+        $invalidReason = false;
+        try {
+            $lifecycle->reject($listing['id'], 'made_up_reason_not_in_list');
+        } catch (\RuntimeException $e) {
+            $invalidReason = str_contains($e->getMessage(), 'closed list');
+        }
+        $this->assert($invalidReason, 'A reason outside the closed list is rejected, not silently accepted');
 
         $listing = $lifecycle->submitForApproval($listing['id']);
         $listing = $lifecycle->approve($listing['id']);

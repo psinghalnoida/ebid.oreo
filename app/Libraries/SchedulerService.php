@@ -206,6 +206,14 @@ class SchedulerService
         return $archived;
     }
 
+    // PR-09: the same cron sweep that already drains every other
+    // time-based queue in this codebase also drains the media upload
+    // job queue — one cron entry, not a second separate one.
+    public function processMediaQueue(): array
+    {
+        return (new MediaQueueService())->processAll();
+    }
+
     public function runAll(): array
     {
         $result = [
@@ -219,6 +227,7 @@ class SchedulerService
             'amlFlagsRaised' => $this->processAmlMonitoring(),
             'payoutBankChangesActivated' => $this->processPendingPayoutBankChanges(),
             'accountsArchived' => $this->processAccountDeletions(),
+            'mediaJobsProcessed' => $this->processMediaQueue(),
         ];
 
         // BR-05: every scheduler run is a genuine "configuration/state

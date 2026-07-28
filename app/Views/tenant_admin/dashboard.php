@@ -2,6 +2,7 @@
 <?= $this->section('content') ?>
 <main style="max-width:720px; padding:40px 24px;">
   <h1 style="font-size:24px;">Tenant Admin — <?= esc($tenant['name']) ?></h1>
+  <a href="/tenants/<?= esc($tenant['id']) ?>/verification" class="btn btn-emerald" style="font-size:12px;">Verification Console (PR-09)</a>
   <a href="/tenants/<?= esc($tenant['id']) ?>/media-waiver" class="btn btn-ghost" style="font-size:12px;">Request Media Waiver (BR-60)</a>
   <a href="/admin/payout-reviews" class="btn btn-ghost" style="font-size:12px;">Payout Reviews (BR-50)</a>
   <a href="/admin/rating-reviews" class="btn btn-ghost" style="font-size:12px;">Rating Reviews (BR-36)</a>

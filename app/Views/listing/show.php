@@ -22,9 +22,17 @@
     <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(90px, 1fr)); gap:8px; margin:16px 0;">
       <?php foreach ($media as $m): ?>
         <div style="position:relative;">
-          <img src="/<?= esc($m['file_path']) ?>" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:8px; border:2px solid <?= $m['is_primary'] ? 'var(--emerald)' : 'var(--line)' ?>;">
+          <?php if ($m['media_type'] === 'photo'): ?>
+            <img src="/<?= esc($m['file_path']) ?>" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:8px; border:2px solid <?= $m['is_primary'] ? 'var(--emerald)' : 'var(--line)' ?>;">
+          <?php elseif ($m['media_type'] === 'video'): ?>
+            <video src="/<?= esc($m['file_path']) ?>" controls style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:8px; border:2px solid var(--line);"></video>
+          <?php else: ?>
+            <a href="/<?= esc($m['file_path']) ?>" target="_blank" style="display:flex; align-items:center; justify-content:center; width:100%; aspect-ratio:1; border-radius:8px; border:2px solid var(--line); background:var(--line-soft); font-size:10px; text-align:center; color:var(--ink-3); text-decoration:none;">
+              📄 <?= esc($m['original_filename'] ?? 'Document') ?>
+            </a>
+          <?php endif; ?>
           <?php if ($m['is_primary']): ?><span style="position:absolute; top:4px; left:4px; background:var(--emerald); color:#fff; font-size:9px; padding:2px 6px; border-radius:100px;">PRIMARY</span><?php endif; ?>
-          <?php if (!empty($isOwner) && !$m['is_primary']): ?>
+          <?php if (!empty($isOwner) && $m['media_type'] === 'photo' && !$m['is_primary']): ?>
             <form method="post" action="/listings/<?= esc($listing['id']) ?>/media/<?= esc($m['id']) ?>/set-primary">
               <button type="submit" style="font-size:9px; margin-top:2px; width:100%; background:none; border:1px solid var(--line); border-radius:6px; cursor:pointer;">Set primary</button>
             </form>
@@ -45,15 +53,39 @@
     </form>
   <?php endif; ?>
 
+  <?php if (!empty($queuedMediaJobs)): ?>
+    <div style="background:var(--line-soft); border-radius:10px; padding:12px; margin:10px 0; font-size:12px;">
+      <p style="margin:0 0 6px; color:var(--ink-3);">PR-09: background queue — files below are still being compressed off the request thread.</p>
+      <?php foreach ($queuedMediaJobs as $job): ?>
+        <p style="margin:2px 0;">
+          <?= esc($job['original_filename']) ?> —
+          <?php if ($job['status'] === 'failed'): ?>
+            <span style="color:#B5482F;">failed: <?= esc($job['error_message']) ?></span>
+          <?php else: ?>
+            <span style="color:var(--ink-3);"><?= esc($job['status']) ?>…</span>
+          <?php endif; ?>
+        </p>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+
   <?php if (!empty($isOwner) && in_array($listing['status'], ['inventory', 'pending_approval'], true)): ?>
     <form method="post" action="/listings/<?= esc($listing['id']) ?>/media" enctype="multipart/form-data" style="margin:10px 0 20px;">
-      <input type="file" name="photos[]" multiple accept="image/jpeg,image/png,image/webp" required
-        style="display:block; width:100%; padding:10px; border:1px dashed var(--line); border-radius:10px; margin-bottom:8px;">
+      <label style="font-size:11px; color:var(--ink-3);">Photos (min 5 total, max 50)</label>
+      <input type="file" name="photos[]" multiple accept="image/jpeg,image/png,image/webp"
+        style="display:block; width:100%; padding:10px; border:1px dashed var(--line); border-radius:10px; margin:4px 0 8px;">
+      <label style="font-size:11px; color:var(--ink-3);">Video (optional)</label>
+      <input type="file" name="videos[]" multiple accept="video/mp4,video/quicktime,video/webm"
+        style="display:block; width:100%; padding:10px; border:1px dashed var(--line); border-radius:10px; margin:4px 0 8px;">
+      <label style="font-size:11px; color:var(--ink-3);">Documents (optional, PDF)</label>
+      <input type="file" name="documents[]" multiple accept="application/pdf"
+        style="display:block; width:100%; padding:10px; border:1px dashed var(--line); border-radius:10px; margin:4px 0 8px;">
       <input type="hidden" name="gps_lat" id="gpsLat_<?= esc($listing['id']) ?>">
       <input type="hidden" name="gps_lng" id="gpsLng_<?= esc($listing['id']) ?>">
-      <button type="submit" class="btn btn-ghost">Upload Photos</button>
+      <button type="submit" class="btn btn-ghost">Upload</button>
       <p style="font-size:10.5px; color:var(--ink-3); margin-top:6px;">
         BR-45: location is captured automatically if your browser allows it — this is a best-effort web substitute for a native app's automatic capture, not a guarantee.
+        PR-09: uploads are processed in the background — this page won't freeze while they compress, and finished files appear above once done.
       </p>
     </form>
     <script>
@@ -111,7 +143,15 @@
       <form method="post" action="/listings/<?= esc($listing['id']) ?>/approve" style="display:inline;">
         <button type="submit" class="btn btn-emerald">Approve</button>
       </form>
-      <form method="post" action="/listings/<?= esc($listing['id']) ?>/reject" style="display:inline;">
+      <form method="post" action="/listings/<?= esc($listing['id']) ?>/reject" style="margin-top:10px;">
+        <label style="font-size:11px; color:var(--ink-3);">Rejection Reason (PR-09 closed list)</label>
+        <select name="reason_key" required style="display:block; width:100%; padding:8px; margin:4px 0 6px; border:1px solid var(--line); border-radius:8px; font-size:12px;">
+          <?php foreach ($rejectionReasons as $key => $label): ?>
+            <option value="<?= esc($key) ?>"><?= esc($label) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <input type="text" name="detail" placeholder="Optional additional detail"
+          style="display:block; width:100%; padding:8px; margin:0 0 8px; border:1px solid var(--line); border-radius:8px; font-size:12px;">
         <button type="submit" class="btn btn-ghost">Reject</button>
       </form>
     </div>
