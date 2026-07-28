@@ -9,6 +9,19 @@ use App\Models\EmdHoldModel;
 
 class ListingLifecycleService
 {
+    // PR-09 step 8: "the Tenant Admin selects a reason from a closed
+    // list ... may append free-text detail." Previously the reject
+    // route had no reason field at all and silently hardcoded
+    // 'insufficient photos' on every rejection, regardless of the
+    // actual reason — a real, incorrect audit trail, not just a missing
+    // feature.
+    public const REJECTION_REASONS = [
+        'insufficient_photos' => 'Insufficient photos',
+        'suspected_fraudulent_images' => 'Suspected fraudulent images',
+        'mismatched_description' => 'Mismatched description',
+        'incomplete_metadata' => 'Incomplete metadata',
+    ];
+
     private ListingModel $listingModel;
     private SaleEventModel $saleEventModel;
     private BidModel $bidModel;
@@ -39,6 +52,18 @@ class ListingLifecycleService
                 "BR-11 violation: at least 5 photos are required before submitting for approval (currently {$listing['media_count']})"
             );
         }
+        // PR-09 step 6: "if fewer than 5 photos or no Main Display Photo,
+        // submission is blocked" — the no-primary half of this was never
+        // actually checked. It happened to be unreachable today only
+        // because the first uploaded photo is always auto-marked primary
+        // and there is no media-delete feature — an unenforced
+        // coincidence, not a real validation rule, so made explicit here.
+        $hasPrimaryPhoto = (new \App\Models\ListingMediaModel())
+            ->where('listing_id', $listingId)->where('media_type', 'photo')->where('is_primary', true)
+            ->countAllResults() > 0;
+        if (!$hasPrimaryPhoto) {
+            throw new \RuntimeException('BR-11 violation: a Main Display Photo must be designated before submitting for approval.');
+        }
         return $this->listingModel->transitionStatus($listingId, 'pending_approval');
     }
 
@@ -54,20 +79,30 @@ class ListingLifecycleService
         return $result;
     }
 
-    // BR-13: every rejection requires a closed-list reason, logged.
-    // Rejected listings return to inventory so the seller can revise and resubmit.
-    public function reject(string $listingId, string $reason, ?string $actorPartyId = null): array
+    // BR-13/PR-09: every rejection requires a genuine closed-list
+    // reason, logged, with optional free-text detail appended — not any
+    // arbitrary string.
+    public function reject(string $listingId, string $reasonKey, ?string $detail = null, ?string $actorPartyId = null): array
     {
+        if (!array_key_exists($reasonKey, self::REJECTION_REASONS)) {
+            throw new \RuntimeException('Rejection reason must be one of the closed list: ' . implode(', ', array_keys(self::REJECTION_REASONS)));
+        }
         $listing = $this->listingModel->findActiveById($listingId);
         if (!$listing || $listing['status'] !== 'pending_approval') {
             throw new \RuntimeException('Listing must be pending_approval to reject');
         }
-        $result = $this->listingModel->transitionStatus($listingId, 'inventory', $reason);
-        (new \App\Libraries\AuditLogService())->log('listing.rejected', $actorPartyId, ['listingId' => $listingId, 'reason' => $reason]);
+
+        $reasonLabel = self::REJECTION_REASONS[$reasonKey];
+        $storedReason = $detail ? "{$reasonLabel}: {$detail}" : $reasonLabel;
+
+        $result = $this->listingModel->transitionStatus($listingId, 'inventory', $storedReason);
+        (new \App\Libraries\AuditLogService())->log('listing.rejected', $actorPartyId, [
+            'listingId' => $listingId, 'reasonKey' => $reasonKey, 'reason' => $storedReason,
+        ]);
 
         // BR-61: "rejected auctions" is one of Standing Review's
         // explicit complaint sources.
-        (new \App\Libraries\StandingReviewService())->recordComplaint($listing['seller_party_id'], "Listing rejected: {$reason}");
+        (new \App\Libraries\StandingReviewService())->recordComplaint($listing['seller_party_id'], "Listing rejected: {$storedReason}");
 
         return $result;
     }

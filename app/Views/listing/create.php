@@ -6,7 +6,7 @@
   <?php if (!empty($error)): ?>
     <p style="color:#B5482F; font-size:13px;"><?= esc($error) ?></p>
   <?php endif; ?>
-  <form method="post" action="/listings">
+  <form method="post" action="/listings" id="listingCreateForm">
     <label style="font-size:12px; color:var(--ink-3);">Tenant</label>
     <select name="tenant_id" required style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
       <?php foreach ($tenants as $t): ?>
@@ -85,5 +85,88 @@
 
     <button type="submit" class="btn btn-emerald" style="width:100%;">Create Listing</button>
   </form>
+  <p style="font-size:11px; color:var(--ink-3); margin-top:10px;">
+    PR-09: your progress on this form is auto-saved to your browser (localStorage) and restored if you reload or switch tabs.
+    <a href="#" id="clearDraftLink" style="color:var(--emerald);">Clear saved draft</a>
+    <span id="draftRestoredNote" style="display:none;"> — a saved draft was restored below.</span>
+  </p>
 </main>
+<script>
+(function () {
+  // PR-09: "A background auto-save persists the seller's in-progress
+  // form ... (browser localStorage), enabling recovery after a reload
+  // or tab switch." Honest limitation: localStorage cannot hold File
+  // objects (no serialization support, and well under the size of a
+  // real photo/video anyway) — only the TEXT/SELECT/CHECKBOX field
+  // values are recoverable this way, matching BR-45's precedent of
+  // flagging an honest web-platform limitation rather than silently
+  // overclaiming. Uploaded files themselves are not restorable after a
+  // reload; the seller re-selects them.
+  var DRAFT_KEY = 'ebidhub_listing_draft_v1';
+  var form = document.getElementById('listingCreateForm');
+  if (!form) return;
+
+  function fieldsForDraft() {
+    return form.querySelectorAll('input[type=text], input[type=number], input[type=checkbox], input[type=radio], textarea, select');
+  }
+
+  function restoreDraft() {
+    var raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    var data;
+    try { data = JSON.parse(raw); } catch (e) { return; }
+    var restoredAny = false;
+    fieldsForDraft().forEach(function (el) {
+      if (!el.name || !(el.name in data)) return;
+      if (el.type === 'checkbox' || el.type === 'radio') {
+        el.checked = data[el.name] === true || data[el.name] === el.value;
+      } else {
+        el.value = data[el.name];
+      }
+      restoredAny = true;
+    });
+    if (restoredAny) {
+      var note = document.getElementById('draftRestoredNote');
+      if (note) note.style.display = 'inline';
+      var toggle = document.getElementById('shipping-toggle');
+      var opts = document.getElementById('shipping-options');
+      if (toggle && opts) opts.style.display = toggle.checked ? 'block' : 'none';
+    }
+  }
+
+  function saveDraft() {
+    var data = {};
+    fieldsForDraft().forEach(function (el) {
+      if (!el.name) return;
+      if (el.type === 'checkbox') { data[el.name] = el.checked; }
+      else if (el.type === 'radio') { if (el.checked) data[el.name] = el.value; }
+      else { data[el.name] = el.value; }
+    });
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
+  }
+
+  restoreDraft();
+  form.addEventListener('input', saveDraft);
+  form.addEventListener('change', saveDraft);
+
+  // Cleared on genuine submit, not kept around to stale-fill the NEXT
+  // listing's form — recovery is for reload/tab-switch before
+  // submitting, per PR-09's own wording, not for a server-side
+  // validation failure after submission.
+  form.addEventListener('submit', function () {
+    localStorage.removeItem(DRAFT_KEY);
+  });
+
+  var clearLink = document.getElementById('clearDraftLink');
+  if (clearLink) {
+    clearLink.addEventListener('click', function (e) {
+      e.preventDefault();
+      localStorage.removeItem(DRAFT_KEY);
+      form.reset();
+      var note = document.getElementById('draftRestoredNote');
+      if (note) note.style.display = 'none';
+    });
+  }
+})();
+</script>
 <?= $this->endSection() ?>

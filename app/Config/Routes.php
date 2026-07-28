@@ -85,6 +85,7 @@ $routes->get('/tenants/(:segment)/pending-sellers', 'SellerApplicationController
 $routes->post('/seller-applications/(:segment)/approve', 'SellerApplicationController::approve/$1', ['filter' => 'tenantAdmin:sellerApplication']);
 $routes->post('/seller-applications/(:segment)/reject', 'SellerApplicationController::reject/$1', ['filter' => 'tenantAdmin:sellerApplication']);
 $routes->get('/tenants/(:segment)/dashboard', 'TenantAdminController::dashboard/$1', ['filter' => 'tenantAdmin:tenant']);
+$routes->get('/tenants/(:segment)/verification', 'TenantAdminController::verification/$1', ['filter' => 'tenantAdmin:tenant']);
 
 // Tender Auction — real HTTP routes
 $routes->post('/sale-events/(:segment)/tender/interest', 'TenderController::registerInterest/$1');

@@ -4265,3 +4265,132 @@ non-passing engine remains the pre-existing, unrelated
 `test:auditlog`/D-62 bug.
 
 **This closes Task #5 of the "close rest" plan.**
+
+---
+
+### D-73: PR-09 — full Asset Media Upload & Compression Pipeline
+
+**Decision:** An audit against PR-09's literal 8-step operational
+sequence found the compression math (WebP/ffmpeg) and primary-photo
+mechanics were solid, but several steps were partial or entirely
+missing — and one, the reject flow, was silently producing an
+incorrect audit trail. Closed every gap that has no external
+dependency:
+
+1. **A real background job queue**, not just a fast-looking request.
+   New `media_upload_job` table + `MediaUploadJobModel`. `MediaService`
+   split into `enqueueUploads()` (validates, stages raw files under
+   `writable/uploads_staging/` — outside the public webroot, since
+   they're unprocessed — and creates job rows; returns immediately) and
+   `processJob()` (the actual WebP/ffmpeg work, called only by the
+   worker). `MediaQueueService::processNext()/processAll()` claims and
+   drains jobs strictly FIFO (`ORDER BY created_at ASC`), platform-wide.
+   `php spark process:media-queue` is the real cron entry, and it's also
+   wired into `SchedulerService::runAll()` so the existing cron sweep
+   drains it without a second, separate cron line — matching this
+   project's established "stage now, scheduler finalizes later"
+   pattern. One bad file (corrupt upload, or a video when ffmpeg isn't
+   installed) is caught and marked `failed` with the real error message
+   — it does not stop the rest of the sequential queue from draining.
+
+2. **Document upload support**, genuinely absent before. `listing_media_type`
+   gained a `document` enum value (PDF only); documents are stored
+   as-is (no compression pipeline applies to a PDF the way it does to
+   images/video) and rendered with a distinct icon rather than
+   attempting to `<img>`-tag them.
+
+3. **Video upload form field** — backend support already existed but
+   the actual upload form never rendered a `videos[]` input at all,
+   making it unreachable from the UI. Added, alongside the new
+   documents field.
+
+4. **Explicit "no Main Display Photo" submit gate.** PR-09 step 6 blocks
+   submission on "fewer than 5 photos OR no Main Display Photo" — only
+   the photo-count half was ever actually checked.
+   `submitForApproval` now also verifies a real `is_primary=true` photo
+   row exists. This was previously unreachable only by coincidence (the
+   first uploaded photo auto-becomes primary and there's no
+   media-delete feature) — an unenforced assumption, not a real
+   validation rule, now made explicit.
+
+5. **A real closed-list rejection reason, fixing an active correctness
+   bug.** The reject button had no reason input field at all —
+   `ListingController::reject` silently hardcoded the literal
+   `'insufficient photos'` on every single rejection, regardless of the
+   real reason, misrepresenting the audit trail on every use. Added
+   `ListingLifecycleService::REJECTION_REASONS` (the exact 4-item closed
+   list from PR-09's own text), validated in `reject()`, with an
+   optional free-text detail appended (`"Mismatched description: Photos
+   show a different model number than described."`). The reject form
+   now has a real `<select>` sourced from the same closed list.
+
+6. **A real Tenant Admin Verification Console** (`/tenants/{id}/verification`),
+   not just a bare pending-listings text list. Shows the real primary
+   photo thumbnail (or an honest "no primary photo yet" placeholder),
+   and live photo/video/document/still-queued counts per listing.
+   Approve/reject itself still happens on the existing listing detail
+   page — this is the entry point with real visual context PR-09 calls
+   for, not a duplicate workflow.
+
+7. **Browser localStorage form autosave** on the listing-creation form,
+   restoring text/select/checkbox values after a reload or tab switch.
+   **Honest limitation, flagged rather than overclaimed** (same
+   discipline as BR-45's GPS-capture precedent): localStorage cannot
+   hold `File` objects — only field VALUES are recoverable this way,
+   never the actual selected files, which the seller must re-choose.
+   The draft is cleared on genuine submit (not kept around to
+   stale-fill the next listing's form) — recovery is for reload/
+   tab-switch before submitting, per PR-09's own wording, not for a
+   server-side validation failure after submission.
+
+**A real breaking-change ripple, fixed forward.** Two existing tests
+called into the code paths this decision changed:
+`ListingLifecycleService::reject()`'s signature changed from
+`(id, reason)` to `(id, reasonKey, detail, actorId)`, and
+`submitForApproval()` gained the primary-photo gate.
+`TestLifecycle.php`'s fixture (which fakes `media_count` directly
+rather than doing real uploads, since real file uploads aren't
+practical in a CLI test context) needed a fake primary `listing_media`
+row added, and its `reject()` call updated to the new signature and
+closed-list reason. `TestScheduler.php` got one added assertion for the
+new `mediaJobsProcessed` key on `runAll()`'s summary.
+
+**Verified with a new `spark test:media`** (27 assertions): a real
+photo is genuinely WebP-compressed through the queue and auto-marked
+primary; a second photo does NOT steal primary; a document is stored
+as-is; a fabricated video job genuinely fails (no ffmpeg on this test
+host) without crashing the queue or blocking a photo queued after it;
+the queue is genuinely empty once drained; both submission gates
+(photo count, primary) block correctly; an out-of-list rejection reason
+is rejected, not silently accepted; a valid one combines the closed-
+list label with free-text detail exactly; the 50-photo cap counts
+still-queued jobs, not just finished media.
+
+**Verified over real HTTP**, end to end against a running server: real
+registration → seller approval (via a scratch bootstrap command) →
+listing creation → multipart upload of 2 real JPEGs + 1 real PDF
+(document correctly MIME-sniffed as `application/pdf`, not just
+trusted from the client's `Content-Type` header) → upload returns
+immediately (not blocking on compression) → listing page shows the
+files as "pending…" in the background-queue panel → `php spark
+process:media-queue` drains all 3 → listing page now shows 2 real WebP
+photos (one marked PRIMARY) and the document with its icon → submitted
+for approval → Tenant Admin's Verification Console shows the real
+thumbnail and correct counts → rejected with a closed-list reason +
+detail, which is genuinely stored and displayed back to the seller →
+a bogus reason key is genuinely rejected (listing stays
+`pending_approval`, not silently transitioned). Also confirmed a batch
+mixing a genuinely-invalid file (plain text mislabeled as
+`video/mp4` — content-sniffed correctly, not fooled by the client's
+claimed MIME type) aborts that whole batch with a clear error — this is
+pre-existing "validate the whole loop, throw on first bad file"
+behavior inherited from the original synchronous code, not introduced
+by this refactor.
+
+**Full regression: 446 assertions across all twenty-six engines
+(twenty-five existing plus the new `test:media`), zero new failures**,
+run on a genuinely freshly-migrated database (all 54 migrations from
+zero). The only non-passing engine remains the pre-existing, unrelated
+`test:auditlog`/D-62 bug.
+
+**This closes Task #6 of the "close rest" plan.**
