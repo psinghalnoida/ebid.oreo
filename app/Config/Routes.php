@@ -71,8 +71,12 @@ $routes->post('/admin/login', 'SuperAdminAuthController::loginSubmit');
 $routes->get('/admin/logout', 'SuperAdminAuthController::logout');
 
 $routes->get('/admin', 'AdminController::dashboard', ['filter' => 'superAdmin']);
+$routes->get('/admin/alerts', 'AdminController::alerts', ['filter' => 'superAdmin']);
+$routes->get('/admin/tenants', 'TenantController::list', ['filter' => 'superAdmin']);
 $routes->get('/admin/tenants/create', 'TenantController::createForm', ['filter' => 'superAdmin']);
 $routes->post('/admin/tenants', 'TenantController::createSubmit', ['filter' => 'superAdmin']);
+$routes->get('/admin/users', 'UserController::index', ['filter' => 'superAdmin']);
+$routes->get('/admin/users/(:segment)', 'UserController::detail/$1', ['filter' => 'superAdmin']);
 
 // Seller Application (BR-09)
 $routes->get('/tenants/(:segment)/apply-to-sell', 'SellerApplicationController::applyForm/$1');
@@ -81,6 +85,7 @@ $routes->get('/tenants/(:segment)/pending-sellers', 'SellerApplicationController
 $routes->post('/seller-applications/(:segment)/approve', 'SellerApplicationController::approve/$1', ['filter' => 'tenantAdmin:sellerApplication']);
 $routes->post('/seller-applications/(:segment)/reject', 'SellerApplicationController::reject/$1', ['filter' => 'tenantAdmin:sellerApplication']);
 $routes->get('/tenants/(:segment)/dashboard', 'TenantAdminController::dashboard/$1', ['filter' => 'tenantAdmin:tenant']);
+$routes->get('/tenants/(:segment)/verification', 'TenantAdminController::verification/$1', ['filter' => 'tenantAdmin:tenant']);
 
 // Tender Auction — real HTTP routes
 $routes->post('/sale-events/(:segment)/tender/interest', 'TenderController::registerInterest/$1');
@@ -98,6 +103,7 @@ $routes->get('/sale-events/(:segment)/tender/report', 'TenderController::auction
 // Navigation gaps closed — logout, My Listings/Activity/Profile, browse
 $routes->get('/logout', 'AuthController::logout');
 $routes->get('/browse', 'Home::browse');
+$routes->get('/listings', 'Home::browse');
 $routes->get('/my-listings', 'MyActivityController::myListings');
 $routes->get('/my-activity', 'MyActivityController::myActivity');
 $routes->get('/profile', 'MyActivityController::profile');
@@ -127,6 +133,65 @@ $routes->post('/sale-events/(:segment)/defect-disclosure', 'SaleEventController:
 $routes->get('/admin/tenants/(:segment)', 'TenantController::view/$1', ['filter' => 'superAdmin']);
 $routes->post('/admin/tenants/(:segment)/edit', 'TenantController::editSubmit/$1', ['filter' => 'superAdmin']);
 $routes->get('/tenants', 'TenantController::directory');
+
+// AML Monitoring (BR-54/PR-31) — SaaS Admin only
+$routes->get('/admin/aml', 'AmlController::index', ['filter' => 'superAdmin']);
+$routes->post('/admin/aml/(:segment)/review', 'AmlController::review/$1', ['filter' => 'superAdmin']);
+
+// Payout Account Change Control (BR-50/PR-28)
+$routes->get('/payout-bank', 'PayoutBankController::requestForm');
+$routes->post('/payout-bank/request', 'PayoutBankController::requestSubmit');
+$routes->post('/payout-bank/confirm', 'PayoutBankController::confirmSubmit');
+$routes->get('/admin/payout-reviews', 'PayoutReviewController::index');
+$routes->post('/admin/payout-reviews/(:segment)/decide', 'PayoutReviewController::decide/$1');
+
+// Pending rating downgrade reviews (BR-35/BR-36)
+$routes->get('/admin/rating-reviews', 'RatingReviewController::index');
+$routes->post('/admin/rating-reviews/(:segment)/approve', 'RatingReviewController::approve/$1');
+
+// Seller Management for Tenant Admin (BR-61, built on the real Standing Review system)
+$routes->get('/tenants/(:segment)/sellers', 'SellerManagementController::list/$1', ['filter' => 'tenantAdmin:tenant']);
+$routes->get('/tenants/(:segment)/sellers/(:segment)', 'SellerManagementController::detail/$1/$2', ['filter' => 'tenantAdmin:tenant']);
+$routes->post('/tenants/(:segment)/sellers/(:segment)/initiate-review', 'SellerManagementController::initiateReview/$1/$2', ['filter' => 'tenantAdmin:tenant']);
+
+// Consent Audit viewer (BR-51)
+$routes->get('/admin/consent-audit', 'ConsentAuditController::index', ['filter' => 'superAdmin']);
+$routes->get('/admin/consent-audit/export', 'ConsentAuditController::exportForm', ['filter' => 'superAdmin']);
+$routes->get('/admin/consent-audit/export/download', 'ConsentAuditController::export', ['filter' => 'superAdmin']);
+
+// Phase 3A: account management
+$routes->get('/account', 'MyActivityController::profile');
+$routes->get('/account/edit', 'AccountController::editForm');
+$routes->post('/account/edit', 'AccountController::editSubmit');
+$routes->get('/account/change-mpin', 'AccountController::changeMpinForm');
+$routes->post('/account/change-mpin/request-otp', 'AccountController::changeMpinRequestOtp');
+$routes->post('/account/change-mpin/confirm', 'AccountController::changeMpinConfirm');
+$routes->get('/account/delete', 'AccountController::deleteForm');
+$routes->post('/account/delete/request', 'AccountController::deleteRequestSubmit');
+$routes->post('/account/delete/cancel', 'AccountController::deleteCancelSubmit');
+$routes->get('/account/earnings', 'AccountController::earnings');
+
+// Phase 3D remainder: BR-56 invoice history + PDF (D-72)
+$routes->get('/account/invoices', 'InvoiceController::index');
+$routes->get('/account/invoices/(:segment)/pdf', 'InvoiceController::pdf/$1');
+
+// Phase 3A: real, dedicated, paginated/filterable transaction pages
+$routes->get('/my-bids', 'MyActivityController::myBids');
+$routes->get('/my-offers', 'MyActivityController::myOffers');
+$routes->get('/my-purchases', 'MyActivityController::myPurchases');
+$routes->get('/my-purchases/export', 'MyActivityController::myPurchasesExport');
+$routes->get('/my-sales', 'MyActivityController::mySales');
+$routes->get('/my-sales/export', 'MyActivityController::mySalesExport');
+
+// Phase 3C+: favorites, saved searches, search history, recommendations
+$routes->post('/listings/(:segment)/favorite', 'ListingController::favorite/$1');
+$routes->post('/listings/(:segment)/unfavorite', 'ListingController::unfavorite/$1');
+$routes->get('/my-favorites', 'DiscoveryController::myFavorites');
+$routes->get('/my-searches', 'DiscoveryController::mySearches');
+$routes->post('/my-searches', 'DiscoveryController::saveSearchSubmit');
+$routes->post('/my-searches/(:segment)/delete', 'DiscoveryController::deleteSearch/$1');
+$routes->get('/search-history', 'DiscoveryController::searchHistory');
+$routes->get('/recommendations', 'DiscoveryController::recommendations');
 
 // Legal documents (BR-01/D-15: reviewed structural content, pending fields flagged)
 $routes->get('/terms', 'LegalController::termsOfUsage');

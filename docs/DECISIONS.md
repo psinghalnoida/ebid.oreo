@@ -3307,3 +3307,1090 @@ folder explains what each document is and why it's there; the main
 
 **No code changes in this decision** — purely a durability and
 continuity improvement for the project's own foundation.
+
+---
+
+### D-62: BR-54/PR-31 AML Monitoring — built literally to the governing text, not the larger platform separately discussed
+
+**Decision:** The project owner brought a much larger AML/fraud-risk
+platform concept to discuss first (a 0–100 risk-scoring engine, device/
+browser fingerprinting, VPN/emulator/root detection, case management,
+watchlists, a full dashboard). Before building anything, the actual
+governing text was pulled and quoted directly from
+`eBid_Hub_Unified_BR_PR.docx` — consistent with BR-01's own discuss-
+first discipline, and with the "no deviation" instruction this project
+has held to since D-31. BR-54's actual scope is far narrower: three
+named patterns (rapid deposit-then-refund cycling with no genuine
+bidding activity, deposits inconsistent with declared KYC profile,
+multiple accounts funding/funded from the same external bank account),
+reviewed exclusively by SaaS Admin (never Tenant Admin, never the User —
+PR-31's explicit text), with a Suspicious-Transaction-Report filing
+decision and full audit logging. The project owner confirmed building
+BR-54 exactly as governed now, with the larger platform concept left
+undecided as a separate, future item rather than folded into this BR.
+
+**Two of the three patterns are honestly, not silently, limited by data
+that doesn't exist yet elsewhere in this codebase — flagged in code
+comments, not just here:**
+1. **KYC-inconsistent deposits** checks a real column
+   (`party.org_annual_turnover`) against real deposit amounts — but no
+   KYC data-entry flow exists yet (BR-17/18, deferred to Tier 4), so
+   this column is null for virtually every party today. The logic is
+   real and will fire correctly the moment that data exists; it just
+   realistically flags nothing yet.
+2. **Shared external funding source** checks `emd_hold.gateway_reference`
+   — confirmed by grepping every `createHold()` call site in this
+   codebase that nothing ever populates this column, since the payment
+   gateway itself remains stubbed (deferred post-deployment, D-23).
+   Building a detector against a column nothing writes real values into
+   would be security theater, not a real control — same honesty
+   standard as BR-59's stock-photo detection being out of scope. The
+   query is correct and will catch real collisions the moment a real
+   gateway populates this field.
+
+**The one pattern with real, populated data today — deposit-then-refund
+cycling — is genuinely wired**: an `emd_hold` that was funded and later
+released without the funding party ever placing a bid or offer on that
+sale_event counts as a zero-participation cycle; three or more within a
+rolling 14-day window raises a flag. Genuine losing bidders (who did
+bid/offer but lost) are correctly never counted, no matter how many
+times their EMD is released.
+
+**New pieces:** `aml_flag` table, `AmlFlagModel`, `AmlMonitoringService`
+(the three detectors plus SaaS Admin's `reviewFlag`), `AmlController`
+gated entirely behind the existing `superAdmin` filter (`/admin/aml`),
+wired into `SchedulerService::runAll()` so screening is genuinely
+continuous per PR-31's text ("System continuously screens... activity"),
+and a new stat tile + link on the Super Admin dashboard.
+
+**Verified with a dedicated test (`spark test:aml`, 16 assertions)**,
+including the two honest limitations proven directly rather than
+assumed: a party with no declared turnover is confirmed never flagged
+however large the deposit; a hold created through this codebase's real
+`createHold()` path is confirmed to have a null `gateway_reference`.
+Also verified: the idempotency guard (repeated scheduler runs don't
+duplicate an already-open flag), the STR-reference-mandatory-when-
+filing rule, rejection of re-reviewing an already-decided flag, and
+that both the flag-raised and flag-reviewed events land in the
+existing hash-chained audit trail (BR-05).
+
+**Verified over real HTTP, not just spark tests**: an unauthenticated
+request to `/admin/aml` and to its review POST endpoint both correctly
+redirect to `/admin/login`, identical to every other `superAdmin`-gated
+route — confirming PR-31's "visible only to SaaS Admin" requirement
+actually holds at the HTTP layer, not just in application logic.
+
+**Full regression: 302 assertions across all eighteen engines (seventeen
+existing plus the new `test:aml`), zero failures**, run on a genuinely
+freshly-migrated database (all 44 migrations from zero).
+
+**A pre-existing, unrelated issue found and flagged, not fixed (out of
+this decision's scope)**: `TestAuditLog.php`'s tampering-simulation step
+shells out to `psql -d ebidhub_ci4`, a hardcoded database name that
+doesn't match `SETUP.md`'s own documented convention (`ebidhub`) — this
+predates this decision entirely and fails in any environment configured
+per `SETUP.md`'s own instructions. Confirmed unrelated to this build by
+running `test:auditlog` in isolation, before any AML code existed in
+the running process. Left as-is since fixing a hardcoded value in an
+unrelated test file wasn't part of what was asked here — noted so it
+isn't mistaken for something this decision broke.
+
+**What's still not decided**: the larger Risk & Compliance platform
+(scoring engine, device intelligence, case management, watchlists,
+dashboard) the project owner originally described remains a real,
+separate, unscheduled item — not part of D-56's revised phase plan,
+and not attempted here.
+
+---
+
+### D-63: BR-50/PR-28 Payout Account Change Control — Phase 3 fully closed
+
+**Decision:** Built BR-50 literally to the governing text: "(a) OTP
+re-verification of the account holder, (b) a mandatory 24-hour
+cooling-off period before the new account becomes active for any
+payout, and (c) the change is logged with before/after values,
+timestamp, and initiating party. High-value pending payouts
+additionally require Tenant Admin or SaaS Admin review before release
+to a newly-changed account." This closes the last remaining Phase 3
+item (D-23's re-scoped gate) — Phase 3 (BR-61, BR-54, BR-50) is now
+fully complete.
+
+**One bank-details field per party, confirmed with the project owner
+before building anything**: a Seller is a Buyer upgraded on a tenant
+(BR-09) — the same party — so `party.payout_bank_account_number`/`_ifsc`
+serves both a buyer's EMD refund destination (real, and the only
+payout channel this platform actually moves money through today) and a
+future seller settlement payout (currently offline per BR-10.1/D-25),
+rather than two parallel, duplicated fields.
+
+**Design carried the 24-hour cooling-off for free, rather than needing
+extra gating logic**: the newly-requested account is staged in
+`payout_bank_pending_*` columns, never touching the active
+`payout_bank_account_number`/`_ifsc` fields until a scheduler pass
+(`SchedulerService::processPendingPayoutBankChanges`, same timer
+pattern as every other BR-14/Express/offer-lapse mechanic on this
+platform) promotes it — so any payout attempted during the window
+automatically keeps using the still-active OLD account with no special
+"is this still cooling off" check needed anywhere else.
+
+**The high-value review gate required a real architectural decision**:
+five separate call sites across four services
+(`OfferService` ×2, `ListingLifecycleService`, `TenderReviewService`,
+`SettlementService`) called `EmdHoldModel::markReleased`/`markSettled`
+directly, with no shared choke point. Rather than duplicate the gate
+five times, all five now route through a new `PayoutControlService::
+guardedRelease`/`guardedSettle` — the same "one shared choke point, not
+duplicated per caller" pattern already established by
+`BiddingService::placeBid` for real-time broadcasts (D-42). A deferred
+release leaves the underlying `emd_hold` genuinely `held`, not released
+— confirmed directly at the database level, not assumed from a status
+label.
+
+**New pieces**: `payout_release_review` table, `PayoutReleaseReviewModel`,
+`PayoutControlService`, `PayoutBankController` (party-facing request/
+OTP-confirm flow, mirroring `AuthController`'s existing multi-step
+session-staged pattern rather than a new one), `PayoutReviewController`
+at `/admin/payout-reviews` — deliberately reachable by **either** Tenant
+Admin (scoped to only the tenants they actually administer,
+`PartyRoleModel::findAdministeredTenantIds`) or Super Admin (via the
+real TOTP session, not just role membership), since BR-50's text names
+both as valid reviewers, unlike BR-54's SaaS-Admin-only restriction.
+
+**A real gap caught and fixed before it shipped, not after**: the
+first draft of `PayoutReviewController::index()` only checked that
+someone was logged in, not that they actually held Tenant Admin or
+Super Admin authority — meaning any ordinary buyer could have viewed
+the pending high-value review queue. Caught by re-reading the
+controller against BR-50's actual authorization requirement before
+considering it done, not by a failing test (the spark test suite
+exercises `PayoutControlService` directly and wouldn't have caught an
+HTTP-layer authorization gap on its own) — fixed by scoping `index()`
+per-identity and verified over real HTTP afterward specifically because
+of this.
+
+**Verified with a dedicated test (`spark test:payoutcontrol`, 25
+assertions)**: OTP mismatch correctly blocks a change; the confirmed
+change is genuinely staged pending, not active; the scheduler promotes
+it once (a backdated) 24 hours have passed; an ordinary low-value
+release is completely unaffected; a high-value release to a
+recently-changed account is genuinely deferred (hold stays `held`, a
+real pending review row exists) and does not duplicate on a repeated
+call; the 30-day recency window (not specified by BR-50's text — a
+flagged default, same discipline as the settlement-stall and OTP-limit
+thresholds elsewhere) genuinely expires rather than protecting forever;
+a party who never changed their bank details is never gated however
+large the payout; approving a review genuinely executes the withheld
+release; declining one genuinely leaves the hold untouched; and both
+the bank-change request/activation and the review decision are logged
+to the existing hash-chained audit trail (BR-05).
+
+**Verified over real HTTP, not just spark tests**: unauthenticated
+requests to `/payout-bank` and `/admin/payout-reviews` both redirect to
+`/login`; a genuine ordinary logged-in party (registered and logged in
+over real HTTP, not simulated) receives a real **403** on
+`/admin/payout-reviews` while still reaching their own `/payout-bank`
+page (**200**) — confirming the authorization fix above actually holds
+at the HTTP layer.
+
+**Full regression: 327 assertions across all nineteen engines
+(eighteen existing plus the new `test:payoutcontrol`), zero failures**,
+run on a genuinely freshly-migrated database (all 47 migrations from
+zero). The one unrelated `TestAuditLog.php` database-name issue noted
+in D-62 is unchanged by this decision.
+
+**This closes Phase 3 (D-56's revised phase plan) completely**: BR-61
+(D-60), BR-54 (D-62), and BR-50 (this decision). Remaining: Phase 4
+(PR-04 Sovereign Rule Revision, BR-35's full graduated event table,
+BR-46 gated on a Gemini key, BR-52 gated on the real payment gateway).
+
+---
+
+### D-64: BR-35 full graduated rating event table — the largest single Phase 4 item, built to the honest extent real hook points allow
+
+**Decision:** Per the project owner's "go ahead, whatever is doable"
+instruction, built BR-35's real named-event table plus every genuine
+trigger point that exists in this codebase today — while explicitly
+NOT faking triggers for events that have no real infrastructure behind
+them yet (no messaging system, no KYC verification flow, no real
+payment gateway). D-56 sized this comparably to BR-38/BR-61; that
+sizing held.
+
+**The named event table is now real, structured data, not scattered ad
+hoc deltas.** `RatingService::NAMED_EVENTS` holds all ~37 buyer/seller
+events from the document with their exact point values (including the
+`'reset_to_1'` special magnitude for the three "Reset to 1★" events).
+A new `event_key` column on `rating_event` records which named event
+fired, not just free text — so a pattern (e.g. "how many defaults in
+the last 12 months") can be counted reliably later, not regexed out of
+`reason`.
+
+**A genuine, previously-undiscovered gap closed: `CascadeService`
+never touched the rating system at all.** Every H1/H2/H3 default
+(BR-28/34) forfeited EMD correctly but never once called
+`RatingService`. `$cascadeStep` maps directly onto "1st/2nd/3rd
+Default" — no new counter needed, the cascade's own step number IS the
+count. Goes through the normal BR-36 approval gate like every other
+downgrade, including a system-detected one — it does not apply
+silently just because the system caught it automatically.
+
+**`DisputeService`'s rating-consequence ruling used one flat -0.5 for
+every category — now maps to the correct named event for the four
+combinations that are genuinely unambiguous**: `condition_delivery`
+ruled against the buyer → Frivolous Dispute (-1.5★); against the seller
+→ Data Mismatch (-1.5★); `payment` against the buyer → Late Payment
+(-0.5★); `non_lifting_collection` against the seller → Delayed
+Collection (-0.5★). The remaining combinations (`payment`+seller,
+`non_lifting_collection`+buyer, `auction_rejection`+*,
+`buyer_non_response`+*) keep the prior generic -0.5 — flagged in code
+as genuinely lacking a clean 1:1 named-table match, not silently
+expanded to force a mapping that isn't actually there.
+
+**A real, previously-invisible regression caught by the existing
+`test:dispute` suite, not papered over**: correcting `condition_delivery`
+against the seller from -0.5 to the real -1.5★ pushes a fresh 3.0★
+seller to 1.5★ — which now genuinely crosses BR-36's dual-approval
+threshold (≤2.0★). The existing test asserted the seller's rating had
+already decreased right after a single Tenant Admin ruling — true
+under the old, wrong -0.5 magnitude, no longer true under the correct
+one, since a Tenant Admin alone can no longer satisfy dual approval.
+Fixed the test to check the actually-correct sequence (tenant-approved,
+still pending, then genuinely decreases only once Super Admin also
+approves) — the same class of fix as D-37's clock-extension test
+correction, not a weakened assertion.
+
+**`delistSellerForFraud` (BR-38) now also applies "Confirmed fraud...
+Reset to 1★"**, self-approved immediately — the Super Admin's own
+confirmed-fraud finding already outranks BR-36's gate, same
+self-approval pattern DisputeService already established for a direct
+Super Admin ruling.
+
+**`StandingReviewService::recordCbsViolation` now also applies
+"Confirmed CBS violation... -2.0★" once past the warning stage (3rd+
+offense)** — distinct from, and in addition to, the existing CBS
+authority ladder (which governs who may act, not the rating itself).
+The flagger (already verified as that listing's Tenant Admin or Super
+Admin by the controller) self-approves their own tier; verified
+directly that a Tenant-Admin-only flag correctly stays pending Super
+Admin sign-off when the magnitude crosses the dual-approval line, while
+a Super Admin flag resolves immediately — exactly the same dual-gate
+behavior as everywhere else on this platform, not a special case.
+
+**"Sustained clean streak" is a new, general positive counter, deliberately
+separate from BR-38's own clean-transaction count.** BR-38's
+`crawl_back_clean_completed_*` only counts while a party is actively
+rehabilitating; BR-35's streak accrues for every party on every
+completed settlement regardless of Crawl-Back state, resets after
+firing at 10, and applies automatically (upgrades need no approval).
+
+**A real, pre-existing gap surfaced and partially fixed while building
+this — not this decision's fault, but made visible by it**:
+`RatingService::approveDowngrade` has never had a real HTTP path for a
+Tenant Admin or Super Admin to use — `SettlementService`'s own
+"problem" settlement rating (existing since D-25) and
+`StandingReviewService`'s escalation-consequence downgrade (D-60) both
+create pending downgrades that could only ever be approved via a spark
+test command, never a real page. Built `RatingReviewController` at
+`/admin/rating-reviews` (Tenant Admin, scoped to tenants they actually
+administer via the event's `related_sale_event_id`, or Super Admin) to
+close this — the same dual-authorization shape as `PayoutReviewController`
+(BR-50). Also threaded `related_sale_event_id` through `SettlementService`'s
+"problem" downgrade for the first time, so it's now genuinely reachable
+by a scoped Tenant Admin. **Not fixed in this pass**:
+`StandingReviewService::ruleOnCase`'s own escalation-consequence downgrade
+still doesn't self-approve or thread a sale event (Standing Review cases
+are system-initiated with no single transaction, BR-61) — it now appears
+in the new queue for Super Admin specifically, but this pre-existing gap
+itself wasn't otherwise touched, kept out of this already-large pass's scope.
+
+**Explicitly NOT wired this pass — present in the named-event table as
+real data, honestly without a trigger, not faked:**
+- `prompt_seller_query_response` — no messaging/query system exists
+  anywhere in this codebase.
+- `prompt_noc_confirmation`, `prompt_rating_submission`,
+  `successful_collection`, `clean_inspection`, `high_participation`,
+  `repeated_weak_withdrawal_reasons` — each needs an arbitrary
+  "promptness"/"pattern" threshold decision not yet confirmed, on top
+  of new counting infrastructure.
+- `early_settlement` — needs back-computing each format's topup-window
+  start time to measure "within 48 hours of H1"; not attempted this pass.
+- `repeated_baseless_dispute_filing`, `repeated_baseless_rejection` —
+  need new per-party pattern counters this codebase doesn't have yet.
+- `disruptive_conduct_harassment`, `confirmed_fishing_circumvention`,
+  `confirmed_offplatform_solicitation`, `dishonest_defect_disclosure`,
+  `unprofessional_conduct`, `fulfilling_promised_shipping`,
+  `detailed_documentation`, `rapid_handover`, `accurate_description` —
+  each would need its own new admin-flagging action (like
+  `flagCbsViolation`) or a data source this platform doesn't collect;
+  not invented here.
+- `confirmed_false_kyc`, `confirmed_kyc_fraud` — blocked on KYC
+  verification (BR-17/18) not existing at all (Tier 4, long-deferred).
+- `chargeback_against_approved_forfeiture` — blocked on the real
+  payment gateway (BR-52, explicitly deferred).
+
+**Verified with a dedicated test (`spark test:br35`, 27 assertions)**:
+the full 1st/2nd/3rd Default ladder including the correct magnitudes
+and dual-approval gating; the Tenant Admin's scoped review queue
+genuinely surfaces a pending default; all four dispute category
+mappings firing the exact named event (not the old generic -0.5), with
+the honest `auction_rejection` fallback confirmed to carry no
+`event_key`; `delistSellerForFraud` genuinely resetting to exactly
+1.0★, self-approved; the CBS ladder's rating consequence firing only
+at 3rd+ offense, correctly staying pending under a Tenant-Admin-only
+flag but resolving immediately under a Super Admin flag; the sustained
+clean streak firing exactly on the 10th clean transaction and
+resetting; and dispute-driven rating events now genuinely carrying a
+real `related_sale_event_id`.
+
+**Verified over real HTTP**: unauthenticated requests to
+`/admin/rating-reviews` and its approve endpoint both redirect to
+`/login`, matching every other admin-gated route on this platform.
+
+**Full regression: 357 assertions across all twenty engines
+(nineteen existing plus the new `test:br35`), zero failures**, run on
+a genuinely freshly-migrated database (all 48 migrations from zero).
+One pre-existing test (`test:dispute`) required a genuine fix — not a
+weakening — for the reason explained above.
+
+**What remains of BR-35**: everything listed as "not wired" above.
+Given the scope already covered here, the remaining items are smaller,
+individually-addressable increments (each needs its own new counter,
+admin action, or upstream dependency) rather than one more
+undertaking of this size.
+
+---
+
+### D-65: Seller Management (BR-61) admin view + Consent Audit viewer (BR-51) — built on real existing systems, not a parallel one
+
+**Decision:** The project owner brought a large external "pending work"
+document (Phase 3A-3E, ~150 checklist items). Before building anything,
+it was checked against this codebase's actual state, not taken at face
+value — several sections described building systems that already
+exist, one item (a security-questions TOTP recovery flow) directly
+contradicted D-41's own explicit rejection of that exact design, and
+two items were listed as "explicitly deferred" despite being built
+earlier in this same session (AML monitoring, D-62; payout account
+change control, D-63). The project owner confirmed keeping D-41's
+decision as-is, and chose the smallest, lowest-risk slice first: expose
+the genuinely-missing admin visibility around two systems that already
+work, rather than any of the larger new-page phases.
+
+**The most consequential finding**: the document's "Phase 3B" proposed
+building an entire Seller Standing Review system from scratch —
+`SellerStandingService`, a `seller_violations` table, a
+`seller_standing_reviews` table, auto-suspension logic. This is BR-61,
+**already closed in D-60** and extended further in this session's own
+BR-35 work (D-64) — `StandingReviewService`, the real CBS offense
+ladder, case management via the shared `dispute` table, annual
+anniversary triggers, `StandingReviewController`. Building the
+document's version would have forked this into two parallel,
+inconsistent tracking systems. Similarly, BR-56 (invoicing, D-57) was
+proposed with a `settlement_invoices` table — the real table is
+`invoice` (D-57) — and BR-57 (Express defect disclosure, D-56) was
+proposed as if unbuilt.
+
+**What was actually built — real gaps around the real systems**:
+
+1. **Seller Management view for Tenant Admin**
+   (`SellerManagementController`, `/tenants/{id}/sellers` +
+   `/tenants/{id}/sellers/{sellerId}`) — queries the REAL data:
+   `standing_review_complaint_count`/`_cbs_offense_count` from `party`,
+   whether an open Standing Review case exists (the shared `dispute`
+   table), sales completed on this specific tenant, and — genuinely
+   useful and not previously exposed anywhere — every real BR-35 named
+   rating consequence this seller has actually received (`rating_event`
+   where `rating_role='seller_star_rating'` and `event_type='downgrade'`),
+   pulled from the same table BR-35 wired, not a separate violations log.
+2. **A real, small gap closed in `StandingReviewService::openCase`**:
+   it always logged the case-opening audit event with `actor_party_id`
+   = null, correct for the two genuinely automatic triggers (complaint
+   threshold, annual anniversary) but wrong for a Tenant Admin who
+   proactively opens a case on their own judgment ahead of the
+   threshold — a new capability this session added
+   (`initiateReview` action), now correctly attributing that human
+   decision rather than recording it as if the system alone acted.
+   Verified both paths independently: a manual initiation now carries
+   the real Tenant Admin's ID; the automatic threshold path is
+   confirmed unchanged (still null).
+3. **Consent Audit viewer** (`ConsentAuditController`,
+   `/admin/consent-audit` + CSV export) — BR-51's `consent_event` table
+   has been capturing real, discrete consent events since D-56 (per-
+   pledge EMD acknowledgment, registration terms) with no way to browse
+   or export them until now. Mirrors `AuditLogController`'s established
+   filter/export pattern exactly rather than inventing a new one — the
+   same "reporting layer on existing data, not new capture" relationship
+   BR-58 has to BR-05.
+
+**Deliberately NOT built, and explained why rather than silently
+skipped**: no "direct suspend" button on the seller detail page —
+`SellerApplicationService::suspendSeller` only fires today as the
+outcome of a ruled Standing Review case, and adding a one-click bypass
+would undermine the case/ruling discipline BR-61 was built with. No
+"restore" action either — re-application (the existing, real path) is
+how a suspended seller regains selling rights, not a fabricated
+shortcut. No TOTP security-questions recovery — the project owner
+confirmed keeping D-41's decision.
+
+**Verified with a dedicated test (`spark test:selleraudit`, 7
+assertions)**: the sales-on-tenant count reflects a real completed
+settlement; the violation query surfaces a real BR-35 CBS-violation
+rating event; a manually-initiated case correctly attributes the
+Tenant Admin as actor while a duplicate attempt is correctly rejected;
+the automatic threshold path is confirmed still attributing no human
+actor; and both a registration and an EMD-pledge consent event are
+genuinely stored and queryable.
+
+**Verified over real HTTP**: unauthenticated requests to
+`/tenants/{id}/sellers` and `/admin/consent-audit` redirect to login;
+a genuinely registered, logged-in ordinary buyer gets a real **403**
+attempting to view another tenant's seller list (confirmed with a
+syntactically valid but nonexistent UUID — an initial check using a
+non-UUID string produced a 500 from Postgres's own type validation
+firing before authorization logic ran, a test-methodology artifact,
+not an application bug, confirmed by re-running with a real UUID).
+
+**Full regression: 364 assertions across all twenty-one engines
+(twenty existing plus the new `test:selleraudit`), zero failures**,
+run on a genuinely freshly-migrated database.
+
+**What's left from the pending-work document**: everything in the
+"genuinely real gaps" bucket identified during the discussion — the
+My Bids/Offers/Purchases/Sales/Settlements pages, account edit/mPIN
+change/deletion, marketplace browse/search/filter, favorites/saved
+searches, `/admin/users`, backup TOTP codes — none of which were
+started this pass, per the project owner's explicit choice to do the
+smallest slice first.
+
+---
+
+### D-66: Phase 3A — account management + real transaction pages
+
+**Decision:** Built the genuinely-missing half of Phase 3A: account
+edit, mPIN change, account deletion (soft, 30-day grace with
+cancellation), an earnings summary, and dedicated, paginated,
+filterable "My Bids" / "My Offers" / "My Purchases" / "My Sales" pages
+— replacing the pending-work document's unpaginated combined
+`/my-activity` page as the real answer for each, while leaving
+`/my-activity` itself untouched for backward compatibility.
+
+**A design question checked against the actual source text before
+building anything**: the document's mockups showed counter-party
+identity masked ("Seller #12345"). BR-16 ("Double-Blind Market Privacy
+& Visibility Matrix") was pulled directly — it specifies full
+anonymity only *during live bidding*; **after close**, the seller
+genuinely sees the H1 winner's real name and details, and in Buy-Now
+each side's real identity unlocks on EMD pledge / offer acceptance.
+Since a settlement only exists post-close, masking on My
+Purchases/Sales would over-anonymize beyond what BR-16 actually
+specifies — these pages show the real counter-party mobile number, not
+a masked placeholder.
+
+**A real bug caught and fixed before it ever ran**: the first draft of
+every new filtered query used a Laravel-style `->when($cond, fn($q) =>
+...)` conditional — CodeIgniter's query builder has no such method.
+Caught by grepping for the pattern across every file touched before
+running anything, not by a failed HTTP request; rewritten as plain
+`if` statements around `$q->where(...)`, the established convention
+already used elsewhere in this codebase (e.g. `AuditLogController`).
+
+**A second real bug caught the same way**: the first draft of
+`myPurchases()` tried to look up each row's dispute via
+`$db->table('dispute')->where('sale_event_id', <a QueryBuilder
+object>)` — not a real subquery in CI4, just a broken comparison.
+Fixed by collecting the page's `sale_event_id`s first and looking up
+disputes in one batched query, avoiding both the bug and an N+1 query
+pattern.
+
+**A genuine schema check before writing the earnings/My Sales
+queries**: the platform's fee split (BR-33) lives on `emd_hold`
+(`forfeited_to_tenant_amount`/`_saas_amount`, reused via `markSettled`,
+D-25), not on `settlement` itself — confirmed by reading the actual
+migration rather than assuming a column name. The join is deliberately
+`LEFT JOIN`: Tender sales use a separate `tender_emd_log` with no
+platform fee deduction at all (BR-56 explicitly excludes Tender), so a
+Tender sale correctly counts toward the sale total while contributing
+exactly zero to the fee total — verified directly, not assumed, since
+an `INNER JOIN` here would have silently dropped every Tender sale from
+"My Sales" entirely.
+
+**Account edit deliberately excludes every BR-17 KYC-verification
+field** (PAN, Aadhaar, CIN, GSTIN, MSME/UDYAM registration, date of
+birth) — those should only change through a real KYC re-verification
+flow (not built, Tier 4), not a casual self-service form. Only
+`full_name`, `recovery_email`, `occupation`, and (for organizations)
+the descriptive business fields are editable. Verified directly that
+the edit path never even reads PAN from the request, let alone writes
+it.
+
+**Account deletion reuses the existing `archived_at` logical-archive
+mechanism** (already governing login eligibility via
+`findByMobile`/`findActiveById`) rather than a new deletion status —
+staged through new `deletion_requested_at`/`deletion_reason` columns
+and a scheduler job, the same "stage now, scheduler finalizes later"
+pattern BR-50's payout cooling-off already established. A cancelled
+request is verified to never finalize; a genuinely 30-days-elapsed
+request is verified to finalize and the party becomes genuinely
+unreachable by mobile lookup afterward — not merely flagged.
+
+**mPIN change is OTP-gated even though the caller is already logged
+in** — a hijacked session cookie alone shouldn't be able to change the
+credential without also controlling the registered mobile. Verified
+over real HTTP, not just the service layer: requested the OTP,
+confirmed with it, then logged out and back in with the *new* mPIN
+successfully — proving the change genuinely took effect, not just that
+the endpoint returned success.
+
+**Settlement detail page extended** with a dispute link (if one exists
+for that sale event) and a real audit-trail section scoped to that
+specific transaction — surfacing BR-05's existing hash-chained data
+per-transaction rather than only via the platform-wide `/admin/audit-log`.
+**Not built this pass**: a full bid-by-bid narrative timeline (bid
+placed → EMD topped up → NOC → rated) — the existing 4-step BR-33
+tracker and the new dispute/audit additions cover most of what was
+asked; a genuinely reconstructed event-by-event timeline is a larger,
+separate visualization task, flagged rather than half-attempted.
+
+**Verified with a dedicated test (`spark test:phase3a`, 17
+assertions)**: pagination math; a cancelled deletion request never
+finalizes while a genuinely-elapsed one does, with the party
+confirmed unreachable by mobile afterward; the Tender/Buy-Now fee-join
+distinction at both the aggregate and per-row level; and account edit
+never touching PAN.
+
+**Verified over real HTTP across every new route**: unauthenticated
+requests to all nine new pages redirect to login; a genuinely
+registered, logged-in party reaches all of them (200) including with
+realistic filter/pagination query strings (format, status, sort, date
+range, page, per_page — exactly the parameter combinations that would
+have caught the `->when()` bug had it shipped); the CSV export
+produces a real, correctly-headered file; and the full write-path
+cycle (edit account → change mPIN → log out → log back in with the
+new mPIN → request deletion → cancel it) was run end-to-end, not just
+individually.
+
+**Full regression: 381 assertions across all twenty-two engines
+(twenty-one existing plus the new `test:phase3a`), zero failures**,
+run on a genuinely freshly-migrated database (all 49 migrations from
+zero).
+
+**What remains of Phase 3A**: "My Settlements" as its own page (largely
+redundant with the union of My Purchases + My Sales, not built
+separately); a generalized amount-range filter and per-tenant filter
+(lower value than date/format/status, not built); saved searches;
+favorites/watchlist (that's Phase 3C territory). Everything else in
+the original acceptance criteria for this phase is now real.
+
+---
+
+### D-67: Phase 3C core — real marketplace browse/search, plus TDS rate confirmed
+
+**Decision:** Following the project owner's "leave anything with an
+external dependency, close the rest" instruction, built the real
+`/listings` marketplace discovery page: category, format, price range,
+location, seller-rating, condition, and posted-date filters; sort by
+recent/ending-soon/price/rating; pagination; and a CLV
+preference-match badge. Reachable as both `/listings` (the pending-work
+document's naming) and the original `/browse` (unchanged), same alias
+pattern as `/account`↔`/profile` from D-66.
+
+**The project owner also confirmed BR-53's TDS rate as 10%** (Section
+194-O), unblocking an item that had been correctly excluded earlier as
+needing exactly this kind of real-world confirmation before
+implementation, not a coding gap — tracked as its own item, sequenced
+alongside the seller invoicing work.
+
+**A real gap checked and honestly flagged, not silently worked
+around**: the document's mockup showed a "State" dropdown for
+location filtering. `listing` has no discrete state column — only a
+free-text `yard_location_address` and a 6-digit `yard_location_pin`.
+Building a real state dropdown would need that structured data added
+to the schema first (a genuine, separate small piece of work). Implemented
+as a text search against the free-text address instead — an honest
+interim behavior, not a fabricated dropdown backed by data that
+doesn't exist.
+
+**A second real, pre-existing gap surfaced while wiring the CLV
+badge**: `ClvMatchingService::findMatches` saves a buyer's
+`comfort_states` preference (BR-23) but never actually filters by it
+— only category and budget are enforced. This predates this decision
+(the method was built that way originally) and wasn't fixed here,
+since doing so meaningfully depends on the same missing state-column
+question above — flagged rather than silently left unnoticed a second
+time.
+
+**The CLV badge reuses `ClvMatchingService::findMatches` directly**
+rather than re-deriving separate matching logic for the browse page —
+a listing is marked "matches your preferences" if and only if it's in
+the same result set the buyer's own CLV ticker would show, so the two
+surfaces can never disagree with each other.
+
+**A real test-isolation bug caught and fixed, not shipped**: the first
+version of `spark test:browse` counted matching listings
+platform-wide. Run alone, it passed cleanly; run as part of the full
+regression sequence, it failed — every other suite creates its own
+"Machinery"/"buy_now" test listings, so an unscoped count was
+genuinely polluted by every prior suite's leftover data in the shared
+database. Fixed by scoping every count to this test's own tenant,
+the same discipline `test:aml`/`test:payoutcontrol` etc. already
+follow — caught specifically by running the full sequence rather than
+trusting the suite in isolation.
+
+**Verified with a dedicated test (`spark test:browse`, 9 assertions)**:
+category/format filters genuinely narrow results; the price filter
+operates correctly against the `COALESCE`'d cross-format comparable
+price; location text search narrows correctly; the rating filter
+correctly excludes a lower-rated seller's listing; Shadow Banning
+(BR-38) is confirmed still enforced at the query level, not just
+visually; and the CLV badge set is confirmed to be exactly
+`ClvMatchingService`'s own real match set.
+
+**Verified over real HTTP**: both `/listings` and `/browse` return
+200; the full realistic filter/sort/pagination combination (the exact
+parameter shape that would have caught a repeat of D-66's `->when()`
+bug) returns 200 for every sort mode.
+
+**Full regression: 390 assertions across all twenty-three engines
+(twenty-two existing plus the new `test:browse`), zero failures**, run
+on a genuinely freshly-migrated database.
+
+---
+
+### D-68: Phase 3C+ — favorites, saved searches, search history, recommendations
+
+**Decision:** Built the remaining Phase 3C+ discovery features: a
+favorites/watchlist toggle on every listing, saved searches (name a
+filter combination from `/listings`, one-click re-run), automatic
+search history (last 20), and two real recommendation sections —
+"Trending Now" (genuine bid-activity count in the last 24 hours) and
+"Based on Your Bids" (other active listings in categories the buyer
+has actually bid in, excluding ones they've already bid on).
+
+**Notification-on-match/price-drop deliberately not attempted** — the
+document's own framing already correctly flagged this as needing "a
+notification system" that doesn't exist, the same category of gap as
+the SMS provider itself. Favorites/saved searches are real and
+persist; the *alerting* half is out of scope until a real notification
+channel exists.
+
+**A second unverified-API risk avoided, having already been burned
+once this session (D-66's `->when()` bug)**: the first draft of the
+"Based on Your Bids" query passed a raw `QueryBuilder` instance
+directly into `whereNotIn()` as a pseudo-subquery. Rather than trust
+that CI4 supports this without confirming it against this codebase's
+own established usage, rewrote it as two steps — fetch the excluded
+IDs as a plain array first, then filter — matching the pattern already
+proven throughout this codebase rather than gambling on an unverified
+API surface a second time.
+
+**"Similar to X" was considered and deliberately not duplicated** —
+BR-47's Related Auctions (D-54) already provides genuine per-listing
+"similar items" via seller-chosen grouping; a second, separate
+category-based similarity feature on the recommendations page would
+have been redundant with, and potentially inconsistent with, the
+existing mechanism.
+
+**Verified with a dedicated test (`spark test:discovery`, 12
+assertions)**: favoriting is idempotent (a second add doesn't violate
+the unique constraint or duplicate); saved search filters round-trip
+correctly through JSON storage; search history genuinely caps at 20 on
+retrieval even when 25 were recorded, most-recent first; Trending Now
+reflects a real, recent bid; and Based on Your Bids both includes a
+same-category never-bid-on listing and correctly excludes the one
+already bid on.
+
+**Verified over real HTTP**: all four new pages redirect unauthenticated
+visitors to login and return 200 for a genuinely registered, logged-in
+party; saving a search over real HTTP and reloading the saved-searches
+page confirms it was genuinely persisted, not just accepted.
+
+**Full regression: 402 assertions across all twenty-four engines
+(twenty-three existing plus the new `test:discovery`), zero failures**,
+run on a genuinely freshly-migrated database (all 50 migrations from
+zero).
+
+**This closes Phase 3C entirely** (D-67 + this decision) — the last
+item from the original pending-work document's Phase 3C section.
+
+---
+
+### D-69: Phase 3D — Admin robustness (backup TOTP codes, user/tenant directories, dashboard metrics, alerts, BR-06 branding)
+
+**Decision:** Closed out the remaining Phase 3D gaps from the pending-work
+document, all with zero external dependencies:
+
+1. **Backup TOTP codes at enrollment (PR-17).** Every successful
+   `confirmTotpSetup` (first enrollment or re-enrollment) now generates
+   10 single-use backup codes, bcrypt-hashed at rest in a new
+   `super_admin_backup_code` table, shown exactly once on the
+   confirmation page and never persisted in session or flash data.
+   `SuperAdminAuthService::confirmTotpSetup()`'s return type changed
+   from `bool` to `?array` (the plain codes on success, `null` on a
+   wrong code) — a deliberate breaking change to the method's contract,
+   fixed forward into `TestTier3.php`'s assertions rather than papered
+   over. `SuperAdminAuthService::login()` now falls back to
+   `SuperAdminBackupCodeModel::consumeIfValid()` when the primary TOTP
+   check fails, consuming the code so it can't be reused, and logs
+   `admin.totp_backup_code_used` to the audit trail. Regenerating
+   (enrollment or re-enrollment) invalidates every prior code — they
+   were trust-bound to the old device/enrollment context.
+
+2. **`/admin/users`** — a platform-wide, searchable (mobile/name/email/GSTIN)
+   user directory with a detail page showing roles, ratings, offence
+   counts, standing-review counters, recent purchases/sales, disputes,
+   and rating events. Previously a party (buyer, inspector, tenant
+   admin) was only reachable if you already knew their UUID; sellers
+   were the only role with any admin-facing list (tenant-scoped, via
+   `SellerManagementController`).
+
+3. **`/admin/tenants`** — a dedicated, searchable tenant list page,
+   separated out from the dashboard's embedded table.
+
+4. **BR-06 tenant branding upload.** `branding_logo_url` and
+   `branding_primary_color` have existed on the `tenant` table and in
+   `TenantModel::$allowedFields` since Phase 0, but nothing ever wrote
+   to them. `TenantController::editSubmit` now accepts a logo file
+   (JPEG/PNG/WebP/SVG, stored at `public/uploads/tenants/{tenantId}/`,
+   same convention as `MediaService`'s listing-photo storage) and a
+   primary-color text field. Host-header custom-domain routing itself
+   (the other half of BR-06) remains explicitly out of scope — real DNS
+   configuration, per the standing "close rest" exclusions.
+
+5. **Dashboard metrics + `/admin/alerts`.** `AdminController::dashboard()`
+   now surfaces today's activity (bids placed, sales closed, disputes
+   filed, new sale events by format) and a stalled-settlements aging
+   table (oldest first, days-stalled computed via `EXTRACT(DAY FROM ...)`).
+   A new `/admin/alerts` page aggregates every "needs a decision" queue
+   that was previously scattered across separate pages — open AML
+   flags, pending payout reviews, pending rating reviews, open disputes,
+   stalled settlements — into one triage view. No new underlying data;
+   this only surfaces what `AmlFlagModel`, `PayoutReleaseReviewModel`,
+   `RatingEventModel::findAllPending()`, and `DisputeModel` already
+   track.
+
+**Not attempted, per the standing "close rest" exclusions:** `/admin/users`
+has no write actions beyond what already exists elsewhere (delisting,
+rating review, standing review keep their own governed controllers) —
+deliberately kept read-only rather than growing a second, competing
+mutation path.
+
+**Verified with `spark test:tier3`** (20 assertions, up from 18): the
+two new assertions confirm a valid backup code logs a Super Admin in
+exactly as a TOTP code would, and that the same code is rejected on a
+second attempt.
+
+**Verified over real HTTP**, end to end, against a running server: regular
+login → `/admin/setup-totp` → confirm with a computed TOTP code → 10 real
+backup codes rendered on the confirmation page → `/admin/login` with one
+of those codes succeeds (303 to `/admin`) → the same code reused a second
+time is correctly rejected ("Invalid or expired authentication code").
+Also verified `/admin`, `/admin/tenants`, `/admin/users`, `/admin/users/{id}`,
+and `/admin/alerts` all return 200 for an authenticated Super Admin
+session with no rendering errors, and that a tenant branding edit
+(logo + primary color, multipart upload) genuinely persists — the
+uploaded file lands on disk and the tenant view reflects the new color
+and `<img>` tag on reload.
+
+**Full regression: 404 assertions across all twenty-four engines, zero
+new failures**, run on a genuinely freshly-migrated database (all 51
+migrations from zero). The only non-passing engine is `test:auditlog`,
+which fails on the pre-existing, unrelated D-62 bug (hardcoded
+`ebidhub_ci4` database name in a `psql` shell-out, vs. the real
+`ebidhub` database) — not caused by, or fixed by, this decision.
+
+**This closes Task #3 of the "close rest" plan.**
+
+---
+
+### D-70: Missing composite database indexes
+
+**Decision:** Audited every existing index against the codebase's actual
+query patterns (not speculative guesses) and added four composite
+indexes for genuinely hot, previously under-indexed WHERE+ORDER BY
+combinations:
+
+- `settlement (buyer_party_id, created_at DESC)` and
+  `settlement (seller_party_id, created_at DESC)` —
+  `MyActivityController::myPurchases/mySales` (and their CSV export
+  siblings) always filter by one of these two columns and order by
+  `created_at DESC`; only single-column indexes existed before.
+- `settlement (seller_party_id, status, completed_at)` —
+  `AccountController`'s earnings query filters by seller +
+  `status = 'completed'` + a `completed_at` range.
+- `dispute (respondent_party_id, category, status)` —
+  `StandingReviewService::hasOpenCase`, `SellerManagementController`,
+  and the new `UserController::detail` (D-69) all filter by
+  `respondent_party_id`, most combined with `category` and/or `status`.
+  `respondent_party_id` had **no index at all** before this — only
+  `filed_by_party_id` did, despite both columns being queried about
+  equally often.
+
+**Deliberately not added:** a `bid (sale_event_id, standing, created_at)`
+style index was considered (it appears as an example in the original
+pending-work document) but checked against real usage first — `bid` has
+no `created_at` column (it's `placed_at`), and the actual hot query
+(`BidModel::findCurrentHighBid`/`findRankedBids`) filters by
+`sale_event_id` and orders by `amount DESC, placed_at ASC`, which the
+existing `idx_bid_sale_event (sale_event_id, amount DESC)` already
+serves. The `standing` filters that exist (`resetOutbidStandings`,
+`withdrawAllForSaleEvent`) are low-cardinality bulk UPDATEs scoped by
+`sale_event_id` first, which is already indexed — adding `standing` to
+that index would not meaningfully help. Building the index the document
+suggested, rather than the index the actual code needs, would have been
+cargo-culting a stale example instead of verifying it against this
+schema.
+
+**Verified:** migration applies cleanly on a fresh database (all 52
+migrations from zero). **Full regression: 404 assertions across all
+twenty-four engines, zero new failures** (same single pre-existing,
+unrelated `test:auditlog`/D-62 failure as D-69) — an index-only change,
+so no behavioral assertions were expected to move, and none did.
+
+**This closes Task #4 of the "close rest" plan.**
+
+---
+
+### D-71: BR-53 — TDS deduction at 10% (Section 194-O)
+
+**Decision:** BR-53's own text explicitly leaves the TDS rate open
+pending tax-advisor confirmation — the previous audit correctly flagged
+it as an external dependency for that reason. The Super Admin (project
+owner) has now confirmed the rate directly: **10%**, unblocking this.
+
+Implemented as a real, wired deduction rather than a documentation-only
+placeholder: `settlement` gained `tds_rate_percent`/`tds_amount`
+columns. `SettlementService::checkCompletion()` computes TDS as 10% of
+the **gross** `final_price` at the same point the settlement transitions
+to `completed` (both the normal 4-step path and `forceResolveStalled`'s
+stall-resolution path, since both funnel through `checkCompletion`),
+stores it on the settlement row, and logs `settlement.tds_deducted` to
+the audit trail.
+
+**Deliberately NOT merged into the BR-56 GST invoice.** BR-56's own text
+scopes the invoice to "the applicable platform commission ... and any
+Payment Gateway collection charge" — it says nothing about TDS. TDS is
+a distinct withholding-tax obligation on the seller's proceeds under
+194-O, not a component of the commission invoice, so it gets its own
+field and its own audit trail entry rather than being folded into an
+invoice type that BR-56 didn't define it into.
+
+**Deliberately NOT excluded on Tender**, unlike BR-56's invoice — BR-53's
+own statement carries no format carve-out ("the platform deducts TDS on
+the gross amount of facilitated sales"), so it applies uniformly
+regardless of `sale_format`.
+
+**Surfaced to the seller** in three places that already existed and
+already showed the buyer-side fee split, so TDS was added alongside it
+rather than as a new page: `/account/earnings` (This Month/YTD TDS
+totals, and a corrected "Net Received" that now actually subtracts TDS
+in addition to fees — previously the label was accurate for D-66's
+earnings feature at the time, but is now updated since a real
+deduction it needs to account for exists), `/my-sales` (a per-sale TDS
+column, list and CSV export), and the settlement detail page.
+
+**Verified with `spark test:settlement`** (23 assertions, up from 21):
+on a ₹95,000 sale, confirms `tds_rate_percent = 10.0` and
+`tds_amount = 9500.00` (95000 × 10%) stored on the completed
+settlement.
+
+**Verified over real HTTP**: logged in as the seller from the test
+fixture, `/account/earnings` correctly aggregates ₹14,300 total TDS
+across 2 completed sales (₹143,000 gross) with `net_earnings` matching
+gross minus fees minus TDS exactly; `/my-sales` shows the exact
+per-row ₹9,500.00 TDS figure matching the test's math; the settlement
+detail page renders the same gross × rate = TDS breakdown.
+
+**Full regression: 406 assertions across all twenty-four engines, zero
+new failures**, run on a genuinely freshly-migrated database (all 53
+migrations from zero). The only non-passing engine remains the
+pre-existing, unrelated `test:auditlog`/D-62 bug.
+
+**This closes Task #8 of the "close rest" plan** — the last item that
+was blocked on an external dependency (the rate) is now unblocked and
+shipped.
+
+---
+
+### D-72: BR-56 invoice history + real PDF generation
+
+**Decision:** Invoices (BR-56) already existed and were correctly
+generated at settlement completion, but were only ever reachable one
+settlement at a time, embedded in `SettlementController::show` — there
+was no aggregate history view and no PDF export at all. Added:
+
+1. **`GET /account/invoices`** — a paginated invoice history for the
+   logged-in party, reusing the existing `Paginator` helper. Scoped to
+   `tenant_to_buyer` invoices only (the type actually billed to a buyer
+   or generated for a seller's sale); `saas_to_tenant` invoices are
+   platform-internal (Tenant/SaaS-only, per BR-56's own text: "SaaS's
+   own share separately invoiced to the Tenant") and correctly excluded
+   from any buyer/seller-facing view.
+2. **Real party-scoping, not just a UI filter.** `InvoiceService` gained
+   `findForParty`/`countForParty` (joins `invoice → settlement`, matches
+   `buyer_party_id` OR `seller_party_id`) and `findIfAuthorized` (single
+   invoice, same buyer-or-seller check). A genuine third party gets a
+   403 on the PDF endpoint and an empty list at `/account/invoices` —
+   verified over real HTTP, not just assumed from the query shape.
+3. **`GET /account/invoices/{id}/pdf`** — a real, rendered PDF via
+   `dompdf/dompdf` (newly added via `composer require`, no existing PDF
+   library was present). Confirmed genuine PDF output, not just an HTML
+   response with a misleading content-type: the bytes start with the
+   `%PDF-` magic header and contain real `/Type/Page` structure.
+
+**A real test-isolation bug caught before it reached the shared
+regression**, matching the same class of issue D-32/D-38/D-67 already
+flagged in this project's history: the first draft of
+`TestInvoices.php` reused mobile numbers `+919888901001-3`, which
+collided with `TestEasySchedule.php`'s existing `+919888901001/2`.
+Passed standalone, failed when run as part of the full sequence.
+Fixed by moving to an unused `+919889901xxx` prefix, confirmed against
+every other test command's fixtures first this time rather than after
+the fact.
+
+**Verified with `spark test:invoices`** (11 assertions): both invoices
+generate on settlement completion; buyer and seller both see the same
+`tenant_to_buyer` invoice via `findForParty`, `saas_to_tenant` is
+excluded, an unrelated party sees zero; `findIfAuthorized` allows
+buyer/seller and denies a stranger; the rendered PDF has the correct
+magic bytes and non-trivial size.
+
+**Verified over real HTTP**: logged in as the buyer, `/account/invoices`
+lists the real invoice and its PDF downloads with valid `%PDF-1.7`
+content (1840 bytes, contains a genuine `/Type/Page`); logged in as the
+seller, the same invoice is visible; logged in as an unrelated third
+party, the PDF endpoint returns 403 and the list is empty.
+
+**Full regression: 417 assertions across all twenty-five engines
+(twenty-four existing plus the new `test:invoices`), zero new
+failures**, run on a genuinely freshly-migrated database. The only
+non-passing engine remains the pre-existing, unrelated
+`test:auditlog`/D-62 bug.
+
+**This closes Task #5 of the "close rest" plan.**
+
+---
+
+### D-73: PR-09 — full Asset Media Upload & Compression Pipeline
+
+**Decision:** An audit against PR-09's literal 8-step operational
+sequence found the compression math (WebP/ffmpeg) and primary-photo
+mechanics were solid, but several steps were partial or entirely
+missing — and one, the reject flow, was silently producing an
+incorrect audit trail. Closed every gap that has no external
+dependency:
+
+1. **A real background job queue**, not just a fast-looking request.
+   New `media_upload_job` table + `MediaUploadJobModel`. `MediaService`
+   split into `enqueueUploads()` (validates, stages raw files under
+   `writable/uploads_staging/` — outside the public webroot, since
+   they're unprocessed — and creates job rows; returns immediately) and
+   `processJob()` (the actual WebP/ffmpeg work, called only by the
+   worker). `MediaQueueService::processNext()/processAll()` claims and
+   drains jobs strictly FIFO (`ORDER BY created_at ASC`), platform-wide.
+   `php spark process:media-queue` is the real cron entry, and it's also
+   wired into `SchedulerService::runAll()` so the existing cron sweep
+   drains it without a second, separate cron line — matching this
+   project's established "stage now, scheduler finalizes later"
+   pattern. One bad file (corrupt upload, or a video when ffmpeg isn't
+   installed) is caught and marked `failed` with the real error message
+   — it does not stop the rest of the sequential queue from draining.
+
+2. **Document upload support**, genuinely absent before. `listing_media_type`
+   gained a `document` enum value (PDF only); documents are stored
+   as-is (no compression pipeline applies to a PDF the way it does to
+   images/video) and rendered with a distinct icon rather than
+   attempting to `<img>`-tag them.
+
+3. **Video upload form field** — backend support already existed but
+   the actual upload form never rendered a `videos[]` input at all,
+   making it unreachable from the UI. Added, alongside the new
+   documents field.
+
+4. **Explicit "no Main Display Photo" submit gate.** PR-09 step 6 blocks
+   submission on "fewer than 5 photos OR no Main Display Photo" — only
+   the photo-count half was ever actually checked.
+   `submitForApproval` now also verifies a real `is_primary=true` photo
+   row exists. This was previously unreachable only by coincidence (the
+   first uploaded photo auto-becomes primary and there's no
+   media-delete feature) — an unenforced assumption, not a real
+   validation rule, now made explicit.
+
+5. **A real closed-list rejection reason, fixing an active correctness
+   bug.** The reject button had no reason input field at all —
+   `ListingController::reject` silently hardcoded the literal
+   `'insufficient photos'` on every single rejection, regardless of the
+   real reason, misrepresenting the audit trail on every use. Added
+   `ListingLifecycleService::REJECTION_REASONS` (the exact 4-item closed
+   list from PR-09's own text), validated in `reject()`, with an
+   optional free-text detail appended (`"Mismatched description: Photos
+   show a different model number than described."`). The reject form
+   now has a real `<select>` sourced from the same closed list.
+
+6. **A real Tenant Admin Verification Console** (`/tenants/{id}/verification`),
+   not just a bare pending-listings text list. Shows the real primary
+   photo thumbnail (or an honest "no primary photo yet" placeholder),
+   and live photo/video/document/still-queued counts per listing.
+   Approve/reject itself still happens on the existing listing detail
+   page — this is the entry point with real visual context PR-09 calls
+   for, not a duplicate workflow.
+
+7. **Browser localStorage form autosave** on the listing-creation form,
+   restoring text/select/checkbox values after a reload or tab switch.
+   **Honest limitation, flagged rather than overclaimed** (same
+   discipline as BR-45's GPS-capture precedent): localStorage cannot
+   hold `File` objects — only field VALUES are recoverable this way,
+   never the actual selected files, which the seller must re-choose.
+   The draft is cleared on genuine submit (not kept around to
+   stale-fill the next listing's form) — recovery is for reload/
+   tab-switch before submitting, per PR-09's own wording, not for a
+   server-side validation failure after submission.
+
+**A real breaking-change ripple, fixed forward.** Two existing tests
+called into the code paths this decision changed:
+`ListingLifecycleService::reject()`'s signature changed from
+`(id, reason)` to `(id, reasonKey, detail, actorId)`, and
+`submitForApproval()` gained the primary-photo gate.
+`TestLifecycle.php`'s fixture (which fakes `media_count` directly
+rather than doing real uploads, since real file uploads aren't
+practical in a CLI test context) needed a fake primary `listing_media`
+row added, and its `reject()` call updated to the new signature and
+closed-list reason. `TestScheduler.php` got one added assertion for the
+new `mediaJobsProcessed` key on `runAll()`'s summary.
+
+**Verified with a new `spark test:media`** (27 assertions): a real
+photo is genuinely WebP-compressed through the queue and auto-marked
+primary; a second photo does NOT steal primary; a document is stored
+as-is; a fabricated video job genuinely fails (no ffmpeg on this test
+host) without crashing the queue or blocking a photo queued after it;
+the queue is genuinely empty once drained; both submission gates
+(photo count, primary) block correctly; an out-of-list rejection reason
+is rejected, not silently accepted; a valid one combines the closed-
+list label with free-text detail exactly; the 50-photo cap counts
+still-queued jobs, not just finished media.
+
+**Verified over real HTTP**, end to end against a running server: real
+registration → seller approval (via a scratch bootstrap command) →
+listing creation → multipart upload of 2 real JPEGs + 1 real PDF
+(document correctly MIME-sniffed as `application/pdf`, not just
+trusted from the client's `Content-Type` header) → upload returns
+immediately (not blocking on compression) → listing page shows the
+files as "pending…" in the background-queue panel → `php spark
+process:media-queue` drains all 3 → listing page now shows 2 real WebP
+photos (one marked PRIMARY) and the document with its icon → submitted
+for approval → Tenant Admin's Verification Console shows the real
+thumbnail and correct counts → rejected with a closed-list reason +
+detail, which is genuinely stored and displayed back to the seller →
+a bogus reason key is genuinely rejected (listing stays
+`pending_approval`, not silently transitioned). Also confirmed a batch
+mixing a genuinely-invalid file (plain text mislabeled as
+`video/mp4` — content-sniffed correctly, not fooled by the client's
+claimed MIME type) aborts that whole batch with a clear error — this is
+pre-existing "validate the whole loop, throw on first bad file"
+behavior inherited from the original synchronous code, not introduced
+by this refactor.
+
+**Full regression: 446 assertions across all twenty-six engines
+(twenty-five existing plus the new `test:media`), zero new failures**,
+run on a genuinely freshly-migrated database (all 54 migrations from
+zero). The only non-passing engine remains the pre-existing, unrelated
+`test:auditlog`/D-62 bug.
+
+**This closes Task #6 of the "close rest" plan.**

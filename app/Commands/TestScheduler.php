@@ -129,6 +129,7 @@ class TestScheduler extends BaseCommand
         $this->assert(array_key_exists('expressBiddingClosed', $summary), 'runAll() returns Express results');
         $this->assert(array_key_exists('staleOffersLapsed', $summary), 'runAll() returns stale offer results');
         $this->assert(array_key_exists('settlementsFlaggedStalled', $summary), 'runAll() returns settlement stall results');
+        $this->assert(array_key_exists('mediaJobsProcessed', $summary), 'runAll() drains the PR-09 media upload queue too');
 
         CLI::write("\n" . ($this->fail === 0 ? "🎉 ALL {$this->pass} ASSERTIONS PASSED" : "❌ {$this->fail} FAILURES, {$this->pass} passed"), $this->fail === 0 ? 'green' : 'red');
     }

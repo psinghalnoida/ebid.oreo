@@ -123,11 +123,14 @@ class OfferService
             $this->emdHoldModel->setRecalculatedAmount($hold['id'], (float) $hold['amount'] + $adjustment);
         }
 
-        // Release EMD for every other buyer whose offer was rejected
+        // Release EMD for every other buyer whose offer was rejected.
+        // BR-50: a high-value release to a recently-changed bank account
+        // is instead deferred to Tenant/SaaS Admin review — not counted
+        // here as released.
         $releasedCount = 0;
+        $payoutControl = new PayoutControlService();
         foreach ($this->emdHoldModel->findAllBySaleEvent($saleEventId) as $otherHold) {
-            if ($otherHold['party_id'] !== $offer['buyer_party_id']) {
-                $this->emdHoldModel->markReleased($otherHold['id']);
+            if ($otherHold['party_id'] !== $offer['buyer_party_id'] && $payoutControl->guardedRelease($otherHold['id'])) {
                 $releasedCount++;
             }
         }
@@ -157,7 +160,7 @@ class OfferService
         if ($stillActive === 0) {
             $hold = $this->emdHoldModel->findBySaleEventAndParty($saleEventId, $buyerPartyId);
             if ($hold && $hold['status'] === 'held') {
-                $this->emdHoldModel->markReleased($hold['id']);
+                (new PayoutControlService())->guardedRelease($hold['id']);
             }
         }
     }

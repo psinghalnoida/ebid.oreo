@@ -161,6 +161,59 @@ class SchedulerService
         return $opened;
     }
 
+    // BR-54/PR-31: "System continuously screens deposit, refund, and
+    // transfer activity against defined AML pattern rules" — this is
+    // what makes that screening actually continuous rather than a
+    // one-off manual run. Flattened to a single list of flagged party
+    // IDs (rather than AmlMonitoringService::runAll()'s per-pattern
+    // breakdown) so it fits the same count()-based summary every other
+    // scheduler method already returns.
+    public function processAmlMonitoring(): array
+    {
+        $byPattern = (new \App\Libraries\AmlMonitoringService())->runAll();
+        return array_merge(...array_values($byPattern));
+    }
+
+    // BR-50: the mandatory 24-hour cooling-off is what makes a payout
+    // bank-detail change genuinely time-gated rather than immediate.
+    public function processPendingPayoutBankChanges(): array
+    {
+        return (new \App\Libraries\PayoutControlService())->promoteDuePendingChanges();
+    }
+
+    // Phase 3A: account deletion — genuinely archives (the existing
+    // BR-05 logical-archive mechanism) once the 30-day grace period has
+    // passed, never before, and never if the party cancelled in the
+    // meantime (deletion_requested_at would be null by then).
+    public function processAccountDeletions(): array
+    {
+        $db = \Config\Database::connect();
+        $due = $db->table('party')
+            ->where('deletion_requested_at IS NOT NULL')
+            ->where('deletion_requested_at <=', date('Y-m-d H:i:s', strtotime('-30 days')))
+            ->where('archived_at', null)
+            ->get()->getResultArray();
+
+        $partyModel = new \App\Models\PartyModel();
+        $archived = [];
+        foreach ($due as $party) {
+            $partyModel->update($party['id'], ['archived_at' => date('Y-m-d H:i:s')]);
+            (new \App\Libraries\AuditLogService())->log('account.deletion_finalized', null, [
+                'partyId' => $party['id'], 'reason' => $party['deletion_reason'],
+            ]);
+            $archived[] = $party['id'];
+        }
+        return $archived;
+    }
+
+    // PR-09: the same cron sweep that already drains every other
+    // time-based queue in this codebase also drains the media upload
+    // job queue — one cron entry, not a second separate one.
+    public function processMediaQueue(): array
+    {
+        return (new MediaQueueService())->processAll();
+    }
+
     public function runAll(): array
     {
         $result = [
@@ -171,6 +224,10 @@ class SchedulerService
             'settlementsFlaggedStalled' => $this->processStalledSettlements(),
             'mediaWaiversLapsed' => (new TenantMediaWaiverService())->lapseExpired(),
             'standingReviewAnniversariesOpened' => $this->processStandingReviewAnniversaries(),
+            'amlFlagsRaised' => $this->processAmlMonitoring(),
+            'payoutBankChangesActivated' => $this->processPendingPayoutBankChanges(),
+            'accountsArchived' => $this->processAccountDeletions(),
+            'mediaJobsProcessed' => $this->processMediaQueue(),
         ];
 
         // BR-05: every scheduler run is a genuine "configuration/state

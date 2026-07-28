@@ -180,8 +180,30 @@ class DisputeService
         } elseif ($outcome === 'rating_consequence') {
             $target = $atFaultPartyId ?? $dispute['respondent_party_id'];
             $listing = $this->listingModel->find($this->saleEventModel->find($dispute['sale_event_id'])['listing_id']);
-            $ratingRole = ($target === $listing['seller_party_id']) ? 'seller_star_rating' : 'star_rating';
-            $downgrade = $this->ratingService->initiateDowngrade($target, $ratingRole, 0.5, "Dispute ruling: {$dispute['id']}");
+            $isSeller = $target === $listing['seller_party_id'];
+            $ratingRole = $isSeller ? 'seller_star_rating' : 'star_rating';
+
+            // BR-35: only these four category+role combinations map
+            // unambiguously onto a single named event without inventing
+            // new pattern-counting infrastructure this codebase doesn't
+            // have yet — condition_delivery's own text names exactly
+            // this scenario on both sides; payment/non_lifting_collection
+            // map onto the closest single-instance named event. The
+            // remaining combinations (payment+seller,
+            // non_lifting_collection+buyer, auction_rejection+*,
+            // buyer_non_response+*) keep the prior generic -0.5
+            // magnitude — flagged here, not silently left unexamined.
+            $eventKey = match (true) {
+                $dispute['category'] === 'condition_delivery' && !$isSeller => 'frivolous_dispute',
+                $dispute['category'] === 'condition_delivery' && $isSeller => 'data_mismatch',
+                $dispute['category'] === 'payment' && !$isSeller => 'late_payment',
+                $dispute['category'] === 'non_lifting_collection' && $isSeller => 'delayed_collection',
+                default => null,
+            };
+
+            $downgrade = $eventKey !== null
+                ? $this->ratingService->applyNamedEvent($target, $ratingRole, $eventKey, "Dispute ruling {$dispute['id']}", $dispute['sale_event_id'])
+                : $this->ratingService->initiateDowngrade($target, $ratingRole, 0.5, "Dispute ruling: {$dispute['id']}", $dispute['sale_event_id']);
             // A ruling authority's own decision satisfies the BR-36 approval
             // it would otherwise need — self-approve at the appropriate tier.
             $approverType = $dispute['ruling_authority_type'];

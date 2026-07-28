@@ -54,4 +54,12 @@ class PartyRoleModel extends Model
     {
         return $this->where('party_id', $partyId)->where('revoked_at', null)->findAll();
     }
+
+    // BR-50: scopes a Tenant Admin's payout-review visibility to only
+    // the tenants they actually administer — not every tenant platform-wide.
+    public function findAdministeredTenantIds(string $partyId): array
+    {
+        $rows = $this->where('party_id', $partyId)->where('role', 'tenant_admin')->where('revoked_at', null)->findAll();
+        return array_column($rows, 'tenant_id');
+    }
 }

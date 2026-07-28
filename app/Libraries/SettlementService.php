@@ -21,6 +21,12 @@ class SettlementService
     // tenants and sale formats — no tenant-specific carve-outs."
     private const HIGH_VALUE_DISPOSAL_THRESHOLD = 1000000.0;
 
+    // BR-53: the BR text itself leaves the rate open pending tax-advisor
+    // confirmation — the Super Admin (project owner) has confirmed 10%
+    // for this platform (Section 194-O), so this is a real constant now,
+    // not a DEV-ONLY placeholder.
+    private const TDS_RATE_PERCENT = 10.0;
+
     private SettlementModel $settlementModel;
     private SaleEventModel $saleEventModel;
     private TenantModel $tenantModel;
@@ -106,7 +112,13 @@ class SettlementService
             if (!$reason) {
                 throw new \RuntimeException('A reason is required when reporting a settlement problem.');
             }
-            $this->ratingService->initiateDowngrade($rateeId, $ratingRole, 0.3, $reason);
+            // BR-36: threading the sale event through means this pending
+            // downgrade is finally reachable by a real Tenant Admin —
+            // previously it had no related_sale_event_id at all, so
+            // nothing could ever resolve which tenant's admin should
+            // review it (a genuine, pre-existing gap, not introduced
+            // here — found while wiring BR-35's own review queue).
+            $this->ratingService->initiateDowngrade($rateeId, $ratingRole, 0.3, $reason, $settlement['sale_event_id']);
         } else {
             throw new \RuntimeException("Unknown outcome: {$outcome}");
         }
@@ -132,11 +144,33 @@ class SettlementService
                 $fees = EmdService::calculateSettlementFee(
                     (float) $settlement['final_price'], (float) $tenant['buyer_fee_percent'], (float) $hold['amount']
                 );
-                $this->emdHoldModel->markSettled($hold['id'], $fees['tenantAmount'], $fees['saasAmount'], $fees['buyerRefund']);
-                $feeWasSettled = true;
+                // BR-50: a high-value refund to a recently-changed bank
+                // account is deferred to Tenant/SaaS Admin review instead
+                // of settling immediately — $feeWasSettled correctly
+                // reflects that, so the invoice below isn't generated
+                // for a fee that hasn't actually been deducted yet.
+                $feeWasSettled = (new PayoutControlService())->guardedSettle(
+                    $hold['id'], $fees['tenantAmount'], $fees['saasAmount'], $fees['buyerRefund']
+                );
             }
 
-            $this->settlementModel->update($settlementId, ['status' => 'completed', 'completed_at' => date('Y-m-d H:i:s')]);
+            // BR-53: TDS under Section 194-O, on the GROSS sale amount —
+            // applies to every completed facilitated sale regardless of
+            // format (unlike BR-56's invoice, BR-53's own text carries no
+            // Tender carve-out). Deducted from what the platform owes the
+            // seller; distinct from, and on top of, the buyer-side
+            // commission split above.
+            $tdsAmount = round((float) $settlement['final_price'] * (self::TDS_RATE_PERCENT / 100), 2);
+
+            $this->settlementModel->update($settlementId, [
+                'status' => 'completed', 'completed_at' => date('Y-m-d H:i:s'),
+                'tds_rate_percent' => self::TDS_RATE_PERCENT, 'tds_amount' => $tdsAmount,
+            ]);
+
+            (new AuditLogService())->log('settlement.tds_deducted', $settlement['seller_party_id'], [
+                'settlementId' => $settlementId, 'grossAmount' => (float) $settlement['final_price'],
+                'tdsRatePercent' => self::TDS_RATE_PERCENT, 'tdsAmount' => $tdsAmount,
+            ]);
 
             // BR-38: a completed settlement is a genuine clean
             // transaction for BOTH parties — the exit path was fully
@@ -145,6 +179,13 @@ class SettlementService
             $ratingService = new RatingService();
             $ratingService->recordCleanTransactionForCrawlBack($settlement['buyer_party_id'], 'star_rating');
             $ratingService->recordCleanTransactionForCrawlBack($settlement['seller_party_id'], 'seller_star_rating');
+
+            // BR-35: "Sustained clean streak" — a general reward
+            // distinct from BR-38's crawl-back-specific clean count
+            // above; every party accrues this regardless of Crawl-Back
+            // state.
+            $ratingService->recordCleanStreak($settlement['buyer_party_id'], 'star_rating', $settlement['sale_event_id']);
+            $ratingService->recordCleanStreak($settlement['seller_party_id'], 'seller_star_rating', $settlement['sale_event_id']);
 
             // BR-49: deterministic, non-discretionary — no manual
             // trigger, no tenant carve-outs, a single ₹10L threshold

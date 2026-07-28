@@ -52,9 +52,9 @@ All three distinct bound roles (Surveyor, Yard Inspector, Physical Custodian) ar
 ### ✅ PR-17 — Super Admin's own TOTP re-enrollment — **CLOSED (D-53)**
 Genuinely closed a real, exploitable credential-hijack gap in already-shipped code, not just the originally-scoped self-service convenience — a regular session could previously overwrite an existing Super Admin's TOTP secret with zero confirmation of the old device.
 
-### BR-35 — Graduated rating event tables — still open, unverified
-**Spec**: a detailed table of named events, each with a specific point value (small 0.1-0.3★, moderate 0.4-0.7★, large 0.8★+), asymmetric caps (positive movement capped lower than negative).
-**Built**: `RatingService` has upgrade/downgrade/approval-gating logic, but I have not verified it implements this *specific, granular table* of named events rather than simpler fixed increments — worth a dedicated review pass against the actual table.
+### ✅ BR-35 — Graduated rating event tables — CLOSED to the extent real hook points allow (D-64)
+**Spec**: a detailed table of ~37 named events, each with a specific point value (small 0.1-0.3★, moderate 0.4-0.7★, large 0.8★+), asymmetric caps (positive movement capped lower than negative).
+**Built**: the full named-event table now exists as real, structured data (`RatingService::NAMED_EVENTS`), with a real `event_key` column recording which one fired. A genuine, previously-undiscovered gap closed: cascade defaults (BR-28/34) never touched the rating system at all — now wired to the exact 1st/2nd/3rd Default magnitudes. Dispute rulings now map to specific named events for the four category+role combinations that are unambiguous, rather than one flat generic magnitude. `delistSellerForFraud` and confirmed CBS violations (3rd+ offense) now apply their named "Reset to 1★"/"-2.0★" consequences. A new general "sustained clean streak" counter is wired. **Honestly still open** (no fabricated triggers): events needing a messaging system (prompt seller-query response), a KYC flow (confirmed false KYC/KYC fraud), a real payment gateway (chargeback), new pattern-counters (repeated baseless dispute/rejection patterns), or a new admin-flagging action this session didn't build (disruptive conduct, off-platform solicitation, dishonest defect disclosure, and the seller-side "quality" events). See D-64 for the full itemized list.
 
 ### BR-06 — Tenant branding and custom domains
 **Spec**: logo/brand-color upload, custom domain mapping, Host-header-based white-label routing.
@@ -104,9 +104,9 @@ The first audit above was built by searching the document broadly, and it under-
 
 **BR-58 — Statutory Books Export.** The audit trail itself (BR-05) is genuinely built and tamper-evident (D-45–49) — but the document's actual requirement is an *export* capability for statutory bookkeeping, and no export function of any kind exists yet. The data is there; nothing extracts it.
 
-**BR-50 / PR-28 — Payout Account Change Control.** No payout mechanism exists at all yet (payment gateway is stubbed), so this is adjacent to that larger gap — but worth naming specifically, since the document treats the *control process itself* (OTP re-verification, a mandatory 24-hour cooling-off period, before/after audit logging) as a distinct requirement independent of which gateway eventually gets connected.
+**✅ BR-50 / PR-28 — Payout Account Change Control — CLOSED (D-63).** Built the control process itself (OTP re-verification, mandatory 24-hour cooling-off before a new account becomes active for any payout, before/after audit logging) independent of a real payment gateway ever connecting. One bank-details field per party serves both buyer refunds (real today) and a future seller settlement payout (still offline per BR-10.1). High-value releases to a recently-changed account are deferred to a real Tenant Admin/SaaS Admin review queue, verified over real HTTP including a genuine 403 for an unauthorized logged-in party.
 
-**BR-54 / PR-31 — AML Transaction Monitoring.** No pattern detection exists for the specific behaviors named (rapid deposit-then-refund cycles, deposits inconsistent with KYC profile, multiple accounts funding from one external account). Genuinely distinct from the fishing/circumvention monitoring mentioned elsewhere in the document, which addresses a different risk.
+**✅ BR-54 / PR-31 — AML Transaction Monitoring — CLOSED (D-62).** Built literally to the governing text after the project owner brought a much larger risk/compliance platform concept to discuss first — confirmed as a genuine deviation from this BR's actual scope and left as a separate, unscheduled item rather than built here. All three named patterns are wired against real detection logic; the deposit-then-refund cycling pattern is fully live today, while the KYC-inconsistency and shared-funding-source patterns are honestly limited by upstream data that doesn't exist yet (no KYC data-entry flow, no real payment gateway) — flagged explicitly in code, not silently faked. Flags are visible/reviewable by SaaS Admin only, per PR-31's text, verified at the HTTP layer.
 
 **PR-04 — Sovereign Rule Revision.** Confirmed still unbuilt, carried over from the original audit — every business rule remains hardcoded in PHP, not editable through any admin UI.
 
@@ -135,6 +135,6 @@ The transactional core remains genuinely solid — this deeper pass didn't find 
 **✅ BR-60 (Tenant Media Waiver)** — full request/approve/decline/revoke/auto-lapse lifecycle, verified end-to-end over real HTTP including the unauthorized-request block and the disclosure requirement.
 
 **Revised remaining phases:**
-- **Phase 3** (next): BR-61 (Standing Review), BR-54 (AML monitoring), BR-50 (payout change control process)
-- **Phase 4**: PR-04 (Sovereign Rule Revision), BR-35 (full graduated event table), BR-46 (gated on a Gemini key), BR-52 (gated on the real payment gateway)
+- **Phase 3 — ✅ fully complete**: BR-61 (Standing Review, D-60), BR-54 (AML monitoring, D-62), BR-50 (payout account change control, D-63).
+- **Phase 4**: ✅ BR-35 (largely closed, D-64 — see remaining sub-items there), PR-04 (Sovereign Rule Revision, still fully open), BR-46 (gated on a Gemini key), BR-52 (gated on the real payment gateway)
 

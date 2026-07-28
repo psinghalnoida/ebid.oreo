@@ -10,7 +10,15 @@
     <?= esc(strtoupper($settlement['status'])) ?>
   </span>
   <h1 style="font-size:24px; margin:12px 0 4px;">Settlement</h1>
-  <p style="color:var(--ink-3); font-size:13px;">Final price: ₹<?= number_format((float) $settlement['final_price'], 2) ?> · <?= esc($saleEvent['ern']) ?></p>
+  <p style="color:var(--ink-3); font-size:13px;">
+    Final price: ₹<?= number_format((float) $settlement['final_price'], 2) ?> · <?= esc($saleEvent['ern']) ?>
+    <?php if ($settlement['status'] !== 'completed'): ?>
+      · <?= (int) floor((time() - strtotime($settlement['created_at'])) / 86400) ?> days since closure
+    <?php endif; ?>
+  </p>
+  <?php if ($dispute): ?>
+    <p style="font-size:13px;"><a href="/disputes/<?= esc($dispute['id']) ?>" style="color:#B5482F;">A dispute exists on this transaction (<?= esc($dispute['status']) ?>) — view it &rarr;</a></p>
+  <?php endif; ?>
 
   <p style="font-size:13px; color:var(--ink-2); margin:16px 0;">
     BR-33: a sale only formally closes once all four steps below are complete — both parties confirming the physical transaction, and both parties rating each other.
@@ -103,6 +111,25 @@
           = <strong>₹<?= number_format((float) $inv['total_amount'], 2) ?></strong>
         </p>
       </div>
+    <?php endforeach; ?>
+  <?php endif; ?>
+
+  <?php if (!empty($settlement['tds_amount'])): ?>
+    <h3 style="font-size:15px; margin-top:24px;">TDS Deducted (BR-53, Section 194-O)</h3>
+    <div style="border:1px solid var(--line); border-radius:12px; padding:16px; margin-top:10px;">
+      <p style="font-size:13px; margin:0;">
+        ₹<?= number_format((float) $settlement['final_price'], 2) ?> gross ×
+        <?= esc($settlement['tds_rate_percent']) ?>% = <strong>₹<?= number_format((float) $settlement['tds_amount'], 2) ?></strong> withheld
+      </p>
+    </div>
+  <?php endif; ?>
+
+  <?php if (!empty($auditEvents)): ?>
+    <h3 style="font-size:15px; margin-top:24px;">Audit Trail (BR-05)</h3>
+    <?php foreach ($auditEvents as $ev): ?>
+      <p style="font-size:12px; color:var(--ink-3); padding:6px 0; border-bottom:1px solid var(--line);">
+        <?= esc(substr($ev['occurred_at'], 0, 19)) ?> — <?= esc($ev['event_type']) ?>
+      </p>
     <?php endforeach; ?>
   <?php endif; ?>
 </main>

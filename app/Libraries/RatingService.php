@@ -24,6 +24,107 @@ class RatingService
     // count (3 / 5 / 8, settled in prior project work — see D-08 note).
     private const CRAWL_BACK_CLEAN_REQUIRED_BY_OFFENCE = [1 => 3, 2 => 3, 3 => 5, 4 => 5, 5 => 8];
 
+    // BR-35: general clean-transaction streak reward, distinct from
+    // BR-38's crawl_back_clean_completed_* (only counts during active
+    // rehabilitation) — this accrues for every party regardless.
+    private const SUSTAINED_CLEAN_STREAK_TARGET = 10;
+
+    // BR-35's full graduated event tables — a real, structured data
+    // source, not just points scattered across caller code. 'reset_to_1'
+    // is a special magnitude: not a relative delta, an absolute floor
+    // reset (still routed through the normal BR-36 approval gate, same
+    // as any other severe downgrade — see applyNamedEvent).
+    //
+    // Not every event below has a real trigger wired yet — see
+    // docs/DECISIONS.md for exactly which are wired vs. genuinely
+    // blocked (no messaging system, no KYC flow, no real payment
+    // gateway) and flagged as such rather than faked.
+    private const NAMED_EVENTS = [
+        'star_rating' => [
+            // Small (0.1-0.3)
+            'high_participation' => 0.1,
+            'prompt_seller_query_response' => 0.1,
+            'prompt_noc_confirmation' => 0.1,
+            'prompt_rating_submission' => 0.1,
+            'successful_collection' => 0.2,
+            'clean_inspection' => 0.3,
+            'repeated_weak_withdrawal_reasons' => -0.2,
+            // Medium (0.4-0.7)
+            'early_settlement' => 0.5,
+            'sustained_clean_streak' => 0.6,
+            'late_payment' => -0.5,
+            'stalling_pattern' => -0.5,
+            'repeated_baseless_dispute_filing' => -0.6,
+            // Large (0.8+)
+            'frivolous_dispute' => -1.5,
+            'default_1st' => -1.0,
+            'default_2nd' => -1.5,
+            'default_3rd' => -2.0,
+            'disruptive_conduct_harassment' => -1.5,
+            'confirmed_fishing_circumvention' => -1.5,
+            'chargeback_against_approved_forfeiture' => -2.0,
+            'confirmed_false_kyc' => 'reset_to_1',
+        ],
+        'seller_star_rating' => [
+            // Small (0.1-0.3)
+            'prompt_noc_confirmation' => 0.1,
+            'prompt_rating_submission' => 0.1,
+            'fulfilling_promised_shipping' => 0.1,
+            'detailed_documentation' => 0.2,
+            'rapid_handover' => 0.3,
+            // Medium (0.4-0.7)
+            'accurate_description' => 0.4,
+            'sustained_clean_streak' => 0.6,
+            'delayed_collection' => -0.5,
+            'stalling_pattern' => -0.5,
+            'repeated_baseless_rejection' => -0.6,
+            // Large (0.8+)
+            'unprofessional_conduct' => -1.0,
+            'data_mismatch' => -1.5,
+            'dishonest_defect_disclosure' => -1.5,
+            'confirmed_offplatform_solicitation' => -1.5,
+            'confirmed_cbs_violation' => -2.0,
+            'confirmed_fraud' => 'reset_to_1',
+            'confirmed_kyc_fraud' => 'reset_to_1',
+        ],
+    ];
+
+    private const EVENT_LABELS = [
+        'high_participation' => 'High Participation (5+ bids in 30 days)',
+        'prompt_seller_query_response' => 'Prompt seller-query responses during a live deal',
+        'prompt_noc_confirmation' => 'Prompt NOC confirmation',
+        'prompt_rating_submission' => 'Prompt rating submission',
+        'successful_collection' => 'Successful Collection (clean handover)',
+        'clean_inspection' => 'Clean Inspection (no dispute after an Easy Auction win)',
+        'repeated_weak_withdrawal_reasons' => 'Repeated weak/unconvincing withdrawal reasons (pattern)',
+        'early_settlement' => 'Early Settlement (balance paid within 48 hours of H1)',
+        'sustained_clean_streak' => 'Sustained clean streak (10 consecutive clean transactions)',
+        'late_payment' => 'Late Payment (more than 7 days from H1)',
+        'stalling_pattern' => 'Stalling pattern (5th forced-neutral-rating instance, BR-39)',
+        'repeated_baseless_dispute_filing' => 'Repeated baseless dispute-filing pattern',
+        'frivolous_dispute' => 'Frivolous Dispute (baseless condition complaint after winning)',
+        'default_1st' => '1st Default (non-payment, non-lifting, disruptive conduct)',
+        'default_2nd' => '2nd Default (within the 12-month window)',
+        'default_3rd' => '3rd Default (within the same window)',
+        'disruptive_conduct_harassment' => 'Disruptive conduct or harassment at handover',
+        'confirmed_fishing_circumvention' => 'Confirmed fishing/circumvention pattern (reveal-then-abandon)',
+        'chargeback_against_approved_forfeiture' => 'Chargeback filed against an already-approved, legitimate forfeiture',
+        'confirmed_false_kyc' => 'Confirmed false KYC information',
+        'fulfilling_promised_shipping' => 'Fulfilling promised shipping exactly as stated',
+        'detailed_documentation' => 'Detailed Documentation (video + photos + location/map)',
+        'rapid_handover' => 'Rapid Handover (NOC/delivery within 24 hours of payment)',
+        'accurate_description' => 'Accurate Description (buyers consistently rate listing accuracy highly)',
+        'delayed_collection' => 'Delayed Collection (unreachable at handover)',
+        'repeated_baseless_rejection' => 'Repeated baseless Easy-Auction rejection pattern',
+        'unprofessional_conduct' => 'Unprofessional Conduct (verified buyer complaint)',
+        'data_mismatch' => 'Data Mismatch (significant discrepancy)',
+        'dishonest_defect_disclosure' => 'Dishonest Express defect-disclosure (confirmed via dispute)',
+        'confirmed_offplatform_solicitation' => 'Confirmed off-platform solicitation (seller-side fishing)',
+        'confirmed_cbs_violation' => 'Confirmed CBS violation (stock/fake photo, past warning stage)',
+        'confirmed_fraud' => 'Confirmed fraud (bid manipulation, deliberate misrepresentation)',
+        'confirmed_kyc_fraud' => 'Confirmed KYC fraud',
+    ];
+
     private PartyModel $partyModel;
     private RatingEventModel $ratingEventModel;
 
@@ -45,7 +146,7 @@ class RatingService
     }
 
     // BR-36: upgrades apply automatically — no approval gate.
-    public function applyUpgrade(string $partyId, string $ratingRole, float $delta, string $reason): array
+    public function applyUpgrade(string $partyId, string $ratingRole, float $delta, string $reason, ?string $relatedSaleEventId = null, ?string $eventKey = null): array
     {
         $party = $this->requireParty($partyId);
         $previousValue = (float) $party[$ratingRole];
@@ -55,6 +156,7 @@ class RatingService
         $event = $this->ratingEventModel->createEvent([
             'party_id' => $partyId, 'rating_role' => $ratingRole, 'event_type' => 'upgrade',
             'previous_value' => $previousValue, 'new_value' => $newValue, 'reason' => $reason, 'status' => 'applied',
+            'related_sale_event_id' => $relatedSaleEventId, 'event_key' => $eventKey,
         ]);
 
         $role = $this->roleColumnFor($ratingRole);
@@ -70,7 +172,7 @@ class RatingService
     }
 
     // BR-36: downgrades require approval — dual (Tenant + Super Admin) at <=2.0★.
-    public function initiateDowngrade(string $partyId, string $ratingRole, float $delta, string $reason): array
+    public function initiateDowngrade(string $partyId, string $ratingRole, float $delta, string $reason, ?string $relatedSaleEventId = null, ?string $eventKey = null): array
     {
         $party = $this->requireParty($partyId);
         $previousValue = (float) $party[$ratingRole];
@@ -81,9 +183,37 @@ class RatingService
             'party_id' => $partyId, 'rating_role' => $ratingRole, 'event_type' => 'downgrade',
             'previous_value' => $previousValue, 'new_value' => $newValue, 'reason' => $reason,
             'status' => 'pending_tenant_approval',
+            'related_sale_event_id' => $relatedSaleEventId, 'event_key' => $eventKey,
         ]);
 
         return $event + ['requiresDualApproval' => $requiresDualApproval];
+    }
+
+    // BR-35: applies a NAMED event from the graduated table above rather
+    // than an arbitrary caller-supplied delta — the magnitude and
+    // direction come from the table, not the call site, so every caller
+    // wiring the same event applies the exact same documented figure.
+    public function applyNamedEvent(string $partyId, string $ratingRole, string $eventKey, string $context = '', ?string $relatedSaleEventId = null): array
+    {
+        $magnitude = self::NAMED_EVENTS[$ratingRole][$eventKey] ?? null;
+        if ($magnitude === null) {
+            throw new \RuntimeException("BR-35: unknown named rating event '{$eventKey}' for {$ratingRole}");
+        }
+
+        $label = self::EVENT_LABELS[$eventKey] ?? $eventKey;
+        $reason = "BR-35: {$label}" . ($context !== '' ? " ({$context})" : '');
+
+        if ($magnitude === 'reset_to_1') {
+            $party = $this->requireParty($partyId);
+            $delta = max(0.0, (float) $party[$ratingRole] - self::PLATFORM_FLOOR);
+            return $this->initiateDowngrade($partyId, $ratingRole, $delta, $reason, $relatedSaleEventId, $eventKey);
+        }
+
+        if ($magnitude > 0) {
+            return $this->applyUpgrade($partyId, $ratingRole, $magnitude, $reason, $relatedSaleEventId, $eventKey);
+        }
+
+        return $this->initiateDowngrade($partyId, $ratingRole, abs($magnitude), $reason, $relatedSaleEventId, $eventKey);
     }
 
     // BR-36: applies only once all required approvals are present.
@@ -152,6 +282,20 @@ class RatingService
         }
     }
 
+    // BR-35: general clean-transaction streak — every party accrues
+    // this on every completed settlement regardless of Crawl-Back
+    // state, distinct from BR-38's own clean-count (which only counts
+    // during active rehabilitation and is handled separately below).
+    // Resets after firing so it can be earned again.
+    public function recordCleanStreak(string $partyId, string $ratingRole, ?string $relatedSaleEventId = null): void
+    {
+        $streak = $this->partyModel->incrementCleanStreak($partyId, $ratingRole);
+        if ($streak >= self::SUSTAINED_CLEAN_STREAK_TARGET) {
+            $this->applyNamedEvent($partyId, $ratingRole, 'sustained_clean_streak', "{$streak} consecutive clean transactions", $relatedSaleEventId);
+            $this->partyModel->resetCleanStreak($partyId, $ratingRole);
+        }
+    }
+
     // BR-38: restores to exactly 3.0 once the escalated clean-count is met.
     public function recordCleanTransactionForCrawlBack(string $partyId, string $ratingRole): array
     {
@@ -195,9 +339,14 @@ class RatingService
 
         $strikeCount = $this->partyModel->incrementForcedNeutralCount($partyId, $ratingRole);
         if ($strikeCount >= self::FORCED_NEUTRAL_PATTERN_LIMIT) {
+            // BR-35: this already matched "Stalling pattern... -0.5★"
+            // exactly before this session — tagged with event_key here
+            // for traceability against the same named-event table,
+            // not a behavior change.
             $downgrade = $this->initiateDowngrade(
                 $partyId, $ratingRole, 0.5,
-                "BR-39: pattern of {$strikeCount} forced-neutral ratings triggered a rating-damaging event"
+                "BR-39: pattern of {$strikeCount} forced-neutral ratings triggered a rating-damaging event",
+                $relatedSaleEventId, 'stalling_pattern'
             );
             return ['event' => $event, 'strikeCount' => $strikeCount, 'patternTriggered' => true, 'pendingDowngradeEvent' => $downgrade];
         }
@@ -279,6 +428,18 @@ class RatingService
             'seller_delisted_reason' => $confirmedFraudReason,
             'seller_delisted_by_party_id' => $superAdminId,
         ]);
+
+        // BR-35: "Confirmed fraud... Reset to 1★" — the Super Admin's
+        // confirmed-fraud finding here IS the ultimate authority BR-36's
+        // approval gate exists to require, so it self-approves at both
+        // tiers rather than sitting pending, same pattern already
+        // established in DisputeService::executeRuling for a Super
+        // Admin ruling.
+        $downgrade = $this->applyNamedEvent($partyId, 'seller_star_rating', 'confirmed_fraud', $confirmedFraudReason);
+        $this->approveDowngrade($downgrade['id'], $superAdminId, 'tenant_admin');
+        if ($downgrade['requiresDualApproval']) {
+            $this->approveDowngrade($downgrade['id'], $superAdminId, 'super_admin');
+        }
 
         // Every active listing this seller has, across every tenant, is
         // suspended — a confirmed-fraud finding is not tenant-specific.

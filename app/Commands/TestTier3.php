@@ -50,12 +50,15 @@ class TestTier3 extends BaseCommand
         $this->assert(strlen($setup['secret']) > 0, 'TOTP secret generated');
         $this->assert(str_starts_with($setup['provisioningUri'], 'otpauth://totp/'), 'Valid otpauth:// provisioning URI generated');
 
+        // Phase 3D: confirmTotpSetup now returns the plain-text backup
+        // codes on success (null on failure) rather than a bare bool,
+        // so the caller can show them exactly once.
         $wrongConfirm = $superAdminAuth->confirmTotpSetup($admin['id'], '000000');
-        $this->assert($wrongConfirm === false, 'Wrong code correctly rejected during setup confirmation');
+        $this->assert($wrongConfirm === null, 'Wrong code correctly rejected during setup confirmation');
 
         $validCode = $this->computeTotpCode($setup['secret']);
         $confirmed = $superAdminAuth->confirmTotpSetup($admin['id'], $validCode);
-        $this->assert($confirmed === true, 'Correct code confirms TOTP setup');
+        $this->assert(is_array($confirmed) && count($confirmed) === 10, 'Correct code confirms TOTP setup and returns 10 real backup codes');
 
         $wrongMpin = false;
         try {
@@ -67,6 +70,18 @@ class TestTier3 extends BaseCommand
 
         $loggedIn = $superAdminAuth->login('+919222801001', '1234', $validCode);
         $this->assert($loggedIn['id'] === $admin['id'], 'Full login succeeds with correct mPIN + correct TOTP code');
+
+        // PR-17 fallback: a real backup code stands in for the
+        // authenticator when it's unavailable, and is single-use.
+        $backupLogin = $superAdminAuth->login('+919222801001', '1234', $confirmed[0]);
+        $this->assert($backupLogin['id'] === $admin['id'], 'Login succeeds using a valid backup code in place of the TOTP code');
+        $backupReuseBlocked = false;
+        try {
+            $superAdminAuth->login('+919222801001', '1234', $confirmed[0]);
+        } catch (\RuntimeException $e) {
+            $backupReuseBlocked = str_contains($e->getMessage(), 'Invalid or expired');
+        }
+        $this->assert($backupReuseBlocked, 'A backup code cannot be reused after being consumed once');
 
         $nonAdmin = $partyModel->createParty('+919222801002');
         $partyModel->setMpinHash($nonAdmin['id'], password_hash('5555', PASSWORD_BCRYPT));

@@ -28,6 +28,31 @@ class ListingController extends BaseController
         return $partyId;
     }
 
+    // Phase 3C+: favorites/watchlist — a plain toggle, no approval or
+    // ownership check needed beyond being logged in (favoriting is
+    // purely personal, unlike bidding/offering).
+    public function favorite(string $listingId)
+    {
+        $partyId = $this->requireLogin();
+        if (!$partyId) return redirect()->to('/login');
+
+        if (!$this->listingModel->find($listingId)) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        (new \App\Models\ListingFavoriteModel())->add($partyId, $listingId);
+        return redirect()->back();
+    }
+
+    public function unfavorite(string $listingId)
+    {
+        $partyId = $this->requireLogin();
+        if (!$partyId) return redirect()->to('/login');
+
+        (new \App\Models\ListingFavoriteModel())->remove($partyId, $listingId);
+        return redirect()->back();
+    }
+
     public function createForm()
     {
         $sellerId = $this->requireLogin();
@@ -184,6 +209,10 @@ class ListingController extends BaseController
         $expressState = null;
         $settlementRecord = null;
         $media = (new \App\Models\ListingMediaModel())->findForListing($listingId);
+        // PR-09: files still in the background queue (pending/processing/
+        // failed) — shown alongside finished media so the seller sees real
+        // upload progress instead of files silently vanishing until done.
+        $queuedMediaJobs = (new \App\Libraries\MediaService())->getQueuedJobsForListing($listingId);
         if ($saleEvent && $saleEvent['status'] === 'closed_sold') {
             $settlementRecord = (new \App\Models\SettlementModel())->findBySaleEvent($saleEvent['id']);
         }
@@ -228,13 +257,17 @@ class ListingController extends BaseController
                 ->get()->getResultArray();
         }
 
+        $viewerId = session()->get('logged_in_party_id');
         return view('listing/show', [
             'title' => 'Listing — eBid Hub', 'listing' => $listing, 'saleEvent' => $saleEvent,
             'offers' => $offers, 'expressState' => $expressState, 'tenderState' => $tenderState, 'media' => $media,
-            'isOwner' => session()->get('logged_in_party_id') === $listing['seller_party_id'],
+            'queuedMediaJobs' => $queuedMediaJobs,
+            'isOwner' => $viewerId === $listing['seller_party_id'],
             'minPhotos' => \App\Libraries\MediaService::minPhotos(),
+            'rejectionReasons' => \App\Libraries\ListingLifecycleService::REJECTION_REASONS,
             'settlementRecord' => $settlementRecord,
             'relatedListings' => $relatedListings,
+            'isFavorited' => $viewerId ? (new \App\Models\ListingFavoriteModel())->isFavorited($viewerId, $listingId) : false,
         ]);
     }
 
@@ -261,8 +294,13 @@ class ListingController extends BaseController
 
     public function reject(string $listingId)
     {
-        $reason = $this->request->getPost('reason') ?: 'insufficient photos';
-        $this->lifecycle->reject($listingId, $reason, session()->get('logged_in_party_id'));
+        $reasonKey = (string) $this->request->getPost('reason_key');
+        $detail = $this->request->getPost('detail') ?: null;
+        try {
+            $this->lifecycle->reject($listingId, $reasonKey, $detail, session()->get('logged_in_party_id'));
+        } catch (\RuntimeException $e) {
+            return redirect()->to("/listings/{$listingId}")->with('error', $e->getMessage());
+        }
         return redirect()->to("/listings/{$listingId}");
     }
 

@@ -58,4 +58,44 @@ class TenantAdminController extends BaseController
             'highValueDisposals' => $highValueDisposals,
         ]);
     }
+
+    // PR-09 step 7: "the Tenant Admin reviews the authentic media
+    // catalog and thumbnail in the Verification Console" — previously
+    // the only pending-listings view was a bare text link with no
+    // thumbnail or media counts at all. Review/approve/reject itself
+    // still happens on the existing listing detail page (already fully
+    // built, including the closed-list reject reason) — this is the
+    // entry point with real visual context, not a duplicate workflow.
+    public function verification(string $tenantId)
+    {
+        $tenantModel = new TenantModel();
+        $tenant = $tenantModel->find($tenantId);
+        if (!$tenant) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $db = \Config\Database::connect();
+        $pending = $db->table('listing')
+            ->where('tenant_id', $tenantId)->where('status', 'pending_approval')
+            ->orderBy('created_at', 'ASC')
+            ->get()->getResultArray();
+
+        foreach ($pending as &$listing) {
+            $primary = $db->table('listing_media')
+                ->where('listing_id', $listing['id'])->where('is_primary', true)
+                ->get()->getRowArray();
+            $listing['primaryPhotoPath'] = $primary['file_path'] ?? null;
+            $listing['photoCount'] = $db->table('listing_media')->where('listing_id', $listing['id'])->where('media_type', 'photo')->countAllResults();
+            $listing['videoCount'] = $db->table('listing_media')->where('listing_id', $listing['id'])->where('media_type', 'video')->countAllResults();
+            $listing['documentCount'] = $db->table('listing_media')->where('listing_id', $listing['id'])->where('media_type', 'document')->countAllResults();
+            $listing['queuedJobCount'] = $db->table('media_upload_job')
+                ->where('listing_id', $listing['id'])->whereIn('status', ['pending', 'processing'])->countAllResults();
+        }
+        unset($listing);
+
+        return view('tenant_admin/verification', [
+            'title' => 'Verification Console — ' . $tenant['name'],
+            'tenant' => $tenant, 'pending' => $pending,
+        ]);
+    }
 }

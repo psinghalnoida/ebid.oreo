@@ -85,7 +85,22 @@ class CascadeService
         $this->bidModel->markDefaulted($defaultedBidId);
 
         $isFullCascadeFailure = $cascadeStep === 3;
-        $forfeitedHold = $this->forfeitHold($saleEventId, $ranked[$defaultedIndex]['bidder_party_id'], $tenantFeePercent, $isFullCascadeFailure);
+        $defaultingPartyId = $ranked[$defaultedIndex]['bidder_party_id'];
+        $forfeitedHold = $this->forfeitHold($saleEventId, $defaultingPartyId, $tenantFeePercent, $isFullCascadeFailure);
+
+        // BR-35: "1st/2nd/3rd Default" — this was a genuine, previously
+        // undiscovered gap: CascadeService never touched the rating
+        // system at all before this. $cascadeStep maps directly onto
+        // the table's tiers, and is already a real, per-sale-event
+        // count (no new counter needed). Goes through the normal BR-36
+        // approval gate, same as every other downgrade on this
+        // platform — a Tenant/Super Admin reviews it, it doesn't apply
+        // silently just because the system detected it automatically.
+        $eventKey = match ($cascadeStep) {
+            1 => 'default_1st', 2 => 'default_2nd', 3 => 'default_3rd',
+            default => 'default_3rd',
+        };
+        (new RatingService())->applyNamedEvent($defaultingPartyId, 'star_rating', $eventKey, "Cascade default, sale event {$saleEventId}", $saleEventId);
 
         if ($isFullCascadeFailure) {
             $this->saleEventModel->markClosed($saleEventId, 'cancelled');

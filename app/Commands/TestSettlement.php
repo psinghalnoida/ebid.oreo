@@ -96,6 +96,12 @@ class TestSettlement extends BaseCommand
         $this->assert($completed['status'] === 'completed', 'Settlement status = completed after all 4 steps');
         $this->assert($completed['completed_at'] !== null, 'completed_at timestamp set');
 
+        // BR-53: TDS at 10% of the GROSS final price (95000 * 10% = 9500),
+        // stored on the settlement itself, distinct from the buyer-side
+        // commission split.
+        $this->assert((float) $completed['tds_rate_percent'] === 10.0, 'TDS rate stored as 10.0%');
+        $this->assert((float) $completed['tds_amount'] === 9500.0, "TDS amount correctly computed on the gross price: {$completed['tds_amount']} (expected 9500)");
+
         $hold = $emdHoldModel->findBySaleEventAndParty($saleEvent['id'], $buyer['id']);
         $this->assert($hold['status'] === 'released', 'Buyer\'s EMD hold marked released');
         // 5% of 95000 = 4750 fee; buyer held 10000; refund = 10000 - 4750 = 5250

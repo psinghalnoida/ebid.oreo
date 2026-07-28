@@ -54,6 +54,25 @@ class StandingReviewService
 
         $this->recordComplaint($sellerId, "CBS violation (offense #{$offenseNumber}, tier: {$tier})");
 
+        // BR-35: "Confirmed CBS violation (stock/fake photo, past
+        // warning stage) −2.0★" — offenses 1-2 are warning-only per the
+        // ladder above; a real rating consequence applies starting at
+        // the 3rd. The flagger here was already verified (by
+        // ListingController::flagCbsViolation) to be either this
+        // listing's Tenant Admin or Super Admin, so their own decision
+        // satisfies BR-36's approval gate, same self-approval pattern
+        // already established in DisputeService/RatingService.
+        if ($offenseNumber >= 3) {
+            $authz = new AuthorizationService();
+            $approverType = $authz->isSuperAdmin($flaggedByPartyId) ? 'super_admin' : 'tenant_admin';
+            $ratingService = new RatingService();
+            $downgrade = $ratingService->applyNamedEvent($sellerId, 'seller_star_rating', 'confirmed_cbs_violation', "offense #{$offenseNumber}");
+            $ratingService->approveDowngrade($downgrade['id'], $flaggedByPartyId, $approverType);
+            if ($approverType === 'super_admin' && $downgrade['requiresDualApproval']) {
+                $ratingService->approveDowngrade($downgrade['id'], $flaggedByPartyId, 'tenant_admin');
+            }
+        }
+
         return ['offenseNumber' => $offenseNumber, 'tier' => $tier];
     }
 
@@ -66,7 +85,13 @@ class StandingReviewService
             ->countAllResults() > 0;
     }
 
-    public function openCase(string $sellerId, string $triggerReason): array
+    // $initiatedByPartyId: null for the two automatic triggers (threshold
+    // count, annual anniversary — genuinely system-initiated, no human
+    // decided this one). A Tenant Admin proactively opening a case ahead
+    // of the automatic threshold passes their own party ID here, so the
+    // audit trail correctly attributes a human judgment call rather than
+    // recording every case as if the system alone decided it.
+    public function openCase(string $sellerId, string $triggerReason, ?string $initiatedByPartyId = null): array
     {
         if ($this->hasOpenCase($sellerId)) {
             throw new \RuntimeException('BR-61: this seller already has an open Standing Review case.');
@@ -82,7 +107,7 @@ class StandingReviewService
             'ruling_authority_type' => 'tenant_admin',
         ]);
 
-        (new AuditLogService())->log('standing_review.case_opened', null, [
+        (new AuditLogService())->log('standing_review.case_opened', $initiatedByPartyId, [
             'disputeId' => $created['id'], 'sellerId' => $sellerId, 'triggerReason' => $triggerReason,
         ]);
 
