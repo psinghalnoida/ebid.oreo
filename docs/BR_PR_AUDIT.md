@@ -138,3 +138,36 @@ The transactional core remains genuinely solid — this deeper pass didn't find 
 - **Phase 3 — ✅ fully complete**: BR-61 (Standing Review, D-60), BR-54 (AML monitoring, D-62), BR-50 (payout account change control, D-63).
 - **Phase 4**: ✅ BR-35 (largely closed, D-64 — see remaining sub-items there), PR-04 (Sovereign Rule Revision, still fully open), BR-46 (gated on a Gemini key), BR-52 (gated on the real payment gateway)
 
+---
+
+## Update — reconciliation pass (D-65 through D-73, plus fresh code verification)
+
+This document stopped being updated after D-64 even though nine more PRs merged (D-65–D-73) — nothing above was wrong, it was just out of date. This pass reconciles it against the current `main` (post `dev`→`main` merge) and independently re-verifies every remaining "open" item directly against the code, not by trusting any prior claim, including this document's own.
+
+### Newly closed since D-64
+
+- **✅ PR-09 (full media pipeline) — CLOSED (D-73).** The two gaps flagged in Section 2 above (synchronous uploads, no autosave) are both closed for real: a genuine background job queue (`media_upload_job` table, `MediaService::enqueueUploads()`/`processJob()`, `php spark process:media-queue`, wired into the scheduler) plus browser-localStorage form autosave. Verified directly: the migration, the queue split, and the spark command all exist and are wired as described.
+- **✅ BR-53 (TDS deduction) — CLOSED (D-71).** Rate confirmed by the project owner at 10%. Verified directly: `settlement.tds_rate_percent`/`tds_amount` columns are real, and `SettlementService` genuinely computes and stores them at completion — not just schema, real computation.
+- **BR-56 — extended.** Already ✅ closed at Phase 2 (D-57–59) for invoice *generation*; D-72 added real PDF rendering and a history view on top. Verified directly: `dompdf/dompdf` is a real dependency, `InvoiceController` genuinely renders a PDF via it, routes exist (`/account/invoices`, `/account/invoices/{id}/pdf`).
+- **BR-06 — partially closed.** Logo/primary-color branding is now real (D-69/Phase 3D) — verified directly: `TenantController` genuinely writes `branding_logo_url`/`branding_primary_color`. **Still not built**: custom-domain Host-header routing — verified directly: no filter or route anywhere references `custom_domain` for actual request routing. The "subdomain" field remains a stored string with no routing behavior behind it.
+- Everything else in D-65–D-70 (Seller Management/Consent Audit viewers, Phase 3A account management + transaction pages, Phase 3C browse/search, Phase 3C+ discovery, Phase 3D admin robustness, composite indexes) is real UX/infrastructure built on top of already-closed BRs — genuinely valuable, but not new BR/PR closures in its own right, so not itemized individually here.
+
+### Confirmed still open — independently re-verified against code, not just re-stated
+
+- **PR-04 (Sovereign Rule Revision).** Zero code anywhere (`RuleRevision`/`SovereignRule`/rule-engine search returns nothing). Every business rule remains hardcoded in PHP.
+- **BR-46 / PR-10 (AI Listing Pre-Audit, Gemini).** Zero code anywhere — no Gemini client, no env var, not even a stub controller. Gated on a real API key that doesn't exist yet.
+- **BR-52 / PR-30 (Chargeback Mitigation).** The only trace in the entire codebase is a rating-consequence *magnitude* for a chargeback event in `RatingService::NAMED_EVENTS` (BR-35's table) — a lookup value for if/when it's ever triggered, not an actual detection/representment workflow. Gated on the real payment gateway.
+- **BR-17/18 (KYC verification, multi-address, encrypted banking).** `PartyModel::setKycStatus()` exists but is called from nowhere in the codebase — confirmed dead code. No `KycController`, no document upload path. Genuinely still Tier 4, unwired.
+- **BR-55 (Tiered KYC & Enhanced Due Diligence).** Zero code — depends entirely on BR-17, which doesn't exist yet.
+
+### Bottom line
+
+**Five items remain open**, and all five are the same five this document has pointed to since D-64 — nothing new was missed, the reconciliation just confirms the list is still accurate and current:
+1. PR-04 — Sovereign Rule Revision (large, no external blocker — a genuine build item)
+2. BR-46 — AI Pre-Audit (blocked on a Gemini API key)
+3. BR-52 — Chargeback Mitigation (blocked on the real payment gateway)
+4. BR-06's custom-domain routing (smaller, no external blocker)
+5. BR-17/18/55 — KYC, multi-address, encrypted banking, enhanced due diligence (large, no external blocker, but deliberately deferred since early in the project — Tier 4)
+
+Of these, **PR-04 and BR-06's custom-domain routing are the only "no external blocker, not yet attempted" items** — genuine next candidates if continuing to build. BR-17/18/55 (KYC) is large and was deliberately deferred, not overlooked; picking it up would be a real scope decision, not just clearing a backlog item.
+
