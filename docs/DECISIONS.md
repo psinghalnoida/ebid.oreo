@@ -3878,3 +3878,76 @@ separately); a generalized amount-range filter and per-tenant filter
 (lower value than date/format/status, not built); saved searches;
 favorites/watchlist (that's Phase 3C territory). Everything else in
 the original acceptance criteria for this phase is now real.
+
+---
+
+### D-67: Phase 3C core — real marketplace browse/search, plus TDS rate confirmed
+
+**Decision:** Following the project owner's "leave anything with an
+external dependency, close the rest" instruction, built the real
+`/listings` marketplace discovery page: category, format, price range,
+location, seller-rating, condition, and posted-date filters; sort by
+recent/ending-soon/price/rating; pagination; and a CLV
+preference-match badge. Reachable as both `/listings` (the pending-work
+document's naming) and the original `/browse` (unchanged), same alias
+pattern as `/account`↔`/profile` from D-66.
+
+**The project owner also confirmed BR-53's TDS rate as 10%** (Section
+194-O), unblocking an item that had been correctly excluded earlier as
+needing exactly this kind of real-world confirmation before
+implementation, not a coding gap — tracked as its own item, sequenced
+alongside the seller invoicing work.
+
+**A real gap checked and honestly flagged, not silently worked
+around**: the document's mockup showed a "State" dropdown for
+location filtering. `listing` has no discrete state column — only a
+free-text `yard_location_address` and a 6-digit `yard_location_pin`.
+Building a real state dropdown would need that structured data added
+to the schema first (a genuine, separate small piece of work). Implemented
+as a text search against the free-text address instead — an honest
+interim behavior, not a fabricated dropdown backed by data that
+doesn't exist.
+
+**A second real, pre-existing gap surfaced while wiring the CLV
+badge**: `ClvMatchingService::findMatches` saves a buyer's
+`comfort_states` preference (BR-23) but never actually filters by it
+— only category and budget are enforced. This predates this decision
+(the method was built that way originally) and wasn't fixed here,
+since doing so meaningfully depends on the same missing state-column
+question above — flagged rather than silently left unnoticed a second
+time.
+
+**The CLV badge reuses `ClvMatchingService::findMatches` directly**
+rather than re-deriving separate matching logic for the browse page —
+a listing is marked "matches your preferences" if and only if it's in
+the same result set the buyer's own CLV ticker would show, so the two
+surfaces can never disagree with each other.
+
+**A real test-isolation bug caught and fixed, not shipped**: the first
+version of `spark test:browse` counted matching listings
+platform-wide. Run alone, it passed cleanly; run as part of the full
+regression sequence, it failed — every other suite creates its own
+"Machinery"/"buy_now" test listings, so an unscoped count was
+genuinely polluted by every prior suite's leftover data in the shared
+database. Fixed by scoping every count to this test's own tenant,
+the same discipline `test:aml`/`test:payoutcontrol` etc. already
+follow — caught specifically by running the full sequence rather than
+trusting the suite in isolation.
+
+**Verified with a dedicated test (`spark test:browse`, 9 assertions)**:
+category/format filters genuinely narrow results; the price filter
+operates correctly against the `COALESCE`'d cross-format comparable
+price; location text search narrows correctly; the rating filter
+correctly excludes a lower-rated seller's listing; Shadow Banning
+(BR-38) is confirmed still enforced at the query level, not just
+visually; and the CLV badge set is confirmed to be exactly
+`ClvMatchingService`'s own real match set.
+
+**Verified over real HTTP**: both `/listings` and `/browse` return
+200; the full realistic filter/sort/pagination combination (the exact
+parameter shape that would have caught a repeat of D-66's `->when()`
+bug) returns 200 for every sort mode.
+
+**Full regression: 390 assertions across all twenty-three engines
+(twenty-two existing plus the new `test:browse`), zero failures**, run
+on a genuinely freshly-migrated database.
