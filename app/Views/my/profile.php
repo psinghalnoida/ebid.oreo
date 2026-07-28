@@ -30,6 +30,10 @@
     <a href="/my-offers" class="btn btn-ghost" style="font-size:12px;">My Offers</a>
     <a href="/my-purchases" class="btn btn-ghost" style="font-size:12px;">My Purchases</a>
     <a href="/my-sales" class="btn btn-ghost" style="font-size:12px;">My Sales</a>
+    <a href="/my-favorites" class="btn btn-ghost" style="font-size:12px;">My Favorites</a>
+    <a href="/my-searches" class="btn btn-ghost" style="font-size:12px;">Saved Searches</a>
+    <a href="/search-history" class="btn btn-ghost" style="font-size:12px;">Search History</a>
+    <a href="/recommendations" class="btn btn-ghost" style="font-size:12px;">Recommendations</a>
     <a href="/account/delete" class="btn btn-ghost" style="font-size:12px; color:#B5482F;">Delete Account</a>
   </div>
 

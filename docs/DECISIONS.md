@@ -3951,3 +3951,61 @@ bug) returns 200 for every sort mode.
 **Full regression: 390 assertions across all twenty-three engines
 (twenty-two existing plus the new `test:browse`), zero failures**, run
 on a genuinely freshly-migrated database.
+
+---
+
+### D-68: Phase 3C+ — favorites, saved searches, search history, recommendations
+
+**Decision:** Built the remaining Phase 3C+ discovery features: a
+favorites/watchlist toggle on every listing, saved searches (name a
+filter combination from `/listings`, one-click re-run), automatic
+search history (last 20), and two real recommendation sections —
+"Trending Now" (genuine bid-activity count in the last 24 hours) and
+"Based on Your Bids" (other active listings in categories the buyer
+has actually bid in, excluding ones they've already bid on).
+
+**Notification-on-match/price-drop deliberately not attempted** — the
+document's own framing already correctly flagged this as needing "a
+notification system" that doesn't exist, the same category of gap as
+the SMS provider itself. Favorites/saved searches are real and
+persist; the *alerting* half is out of scope until a real notification
+channel exists.
+
+**A second unverified-API risk avoided, having already been burned
+once this session (D-66's `->when()` bug)**: the first draft of the
+"Based on Your Bids" query passed a raw `QueryBuilder` instance
+directly into `whereNotIn()` as a pseudo-subquery. Rather than trust
+that CI4 supports this without confirming it against this codebase's
+own established usage, rewrote it as two steps — fetch the excluded
+IDs as a plain array first, then filter — matching the pattern already
+proven throughout this codebase rather than gambling on an unverified
+API surface a second time.
+
+**"Similar to X" was considered and deliberately not duplicated** —
+BR-47's Related Auctions (D-54) already provides genuine per-listing
+"similar items" via seller-chosen grouping; a second, separate
+category-based similarity feature on the recommendations page would
+have been redundant with, and potentially inconsistent with, the
+existing mechanism.
+
+**Verified with a dedicated test (`spark test:discovery`, 12
+assertions)**: favoriting is idempotent (a second add doesn't violate
+the unique constraint or duplicate); saved search filters round-trip
+correctly through JSON storage; search history genuinely caps at 20 on
+retrieval even when 25 were recorded, most-recent first; Trending Now
+reflects a real, recent bid; and Based on Your Bids both includes a
+same-category never-bid-on listing and correctly excludes the one
+already bid on.
+
+**Verified over real HTTP**: all four new pages redirect unauthenticated
+visitors to login and return 200 for a genuinely registered, logged-in
+party; saving a search over real HTTP and reloading the saved-searches
+page confirms it was genuinely persisted, not just accepted.
+
+**Full regression: 402 assertions across all twenty-four engines
+(twenty-three existing plus the new `test:discovery`), zero failures**,
+run on a genuinely freshly-migrated database (all 50 migrations from
+zero).
+
+**This closes Phase 3C entirely** (D-67 + this decision) — the last
+item from the original pending-work document's Phase 3C section.
