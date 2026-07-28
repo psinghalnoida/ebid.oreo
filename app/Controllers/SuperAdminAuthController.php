@@ -56,7 +56,13 @@ class SuperAdminAuthController extends BaseController
             return redirect()->to('/admin/setup-totp')->with('error', 'Invalid code — check your authenticator app and try again.');
         }
 
-        return redirect()->to('/admin/login')->with('error', '2FA enabled successfully — log in below.');
+        // Shown exactly once, rendered directly from this request — the
+        // plain codes are never put in session/flash, only the bcrypt
+        // hashes persist (in super_admin_backup_code).
+        return view('admin/setup_totp_backup_codes', [
+            'title' => 'Save Your Backup Codes — eBid Hub',
+            'codes' => $confirmed,
+        ]);
     }
 
     public function loginForm()
