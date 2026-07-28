@@ -64,6 +64,15 @@ class Home extends BaseController
         $q = $this->request->getGet('q');
         $pg = Paginator::fromRequest($this->request, 24);
 
+        // Phase 3C+: search history — only logged when the visitor is
+        // identified AND genuinely searched for something (at least one
+        // real filter set), not on every bare page load.
+        $activeFilters = array_filter(compact('category', 'format', 'priceMin', 'priceMax', 'location', 'minRating', 'condition', 'posted', 'q'));
+        $searchingPartyId = session()->get('logged_in_party_id');
+        if ($searchingPartyId && !empty($activeFilters)) {
+            (new \App\Models\SearchHistoryModel())->record($searchingPartyId, $activeFilters);
+        }
+
         // COALESCE gives one comparable/sortable price across formats —
         // Easy/Express/Tender use current_price/reserve_value,
         // Buy-Now uses expected_value until a deal closes.

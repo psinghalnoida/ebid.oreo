@@ -28,6 +28,31 @@ class ListingController extends BaseController
         return $partyId;
     }
 
+    // Phase 3C+: favorites/watchlist — a plain toggle, no approval or
+    // ownership check needed beyond being logged in (favoriting is
+    // purely personal, unlike bidding/offering).
+    public function favorite(string $listingId)
+    {
+        $partyId = $this->requireLogin();
+        if (!$partyId) return redirect()->to('/login');
+
+        if (!$this->listingModel->find($listingId)) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        (new \App\Models\ListingFavoriteModel())->add($partyId, $listingId);
+        return redirect()->back();
+    }
+
+    public function unfavorite(string $listingId)
+    {
+        $partyId = $this->requireLogin();
+        if (!$partyId) return redirect()->to('/login');
+
+        (new \App\Models\ListingFavoriteModel())->remove($partyId, $listingId);
+        return redirect()->back();
+    }
+
     public function createForm()
     {
         $sellerId = $this->requireLogin();
@@ -228,13 +253,15 @@ class ListingController extends BaseController
                 ->get()->getResultArray();
         }
 
+        $viewerId = session()->get('logged_in_party_id');
         return view('listing/show', [
             'title' => 'Listing — eBid Hub', 'listing' => $listing, 'saleEvent' => $saleEvent,
             'offers' => $offers, 'expressState' => $expressState, 'tenderState' => $tenderState, 'media' => $media,
-            'isOwner' => session()->get('logged_in_party_id') === $listing['seller_party_id'],
+            'isOwner' => $viewerId === $listing['seller_party_id'],
             'minPhotos' => \App\Libraries\MediaService::minPhotos(),
             'settlementRecord' => $settlementRecord,
             'relatedListings' => $relatedListings,
+            'isFavorited' => $viewerId ? (new \App\Models\ListingFavoriteModel())->isFavorited($viewerId, $listingId) : false,
         ]);
     }
 

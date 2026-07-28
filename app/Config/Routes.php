@@ -174,6 +174,16 @@ $routes->get('/my-purchases/export', 'MyActivityController::myPurchasesExport');
 $routes->get('/my-sales', 'MyActivityController::mySales');
 $routes->get('/my-sales/export', 'MyActivityController::mySalesExport');
 
+// Phase 3C+: favorites, saved searches, search history, recommendations
+$routes->post('/listings/(:segment)/favorite', 'ListingController::favorite/$1');
+$routes->post('/listings/(:segment)/unfavorite', 'ListingController::unfavorite/$1');
+$routes->get('/my-favorites', 'DiscoveryController::myFavorites');
+$routes->get('/my-searches', 'DiscoveryController::mySearches');
+$routes->post('/my-searches', 'DiscoveryController::saveSearchSubmit');
+$routes->post('/my-searches/(:segment)/delete', 'DiscoveryController::deleteSearch/$1');
+$routes->get('/search-history', 'DiscoveryController::searchHistory');
+$routes->get('/recommendations', 'DiscoveryController::recommendations');
+
 // Legal documents (BR-01/D-15: reviewed structural content, pending fields flagged)
 $routes->get('/terms', 'LegalController::termsOfUsage');
 $routes->get('/privacy', 'LegalController::privacyPolicy');

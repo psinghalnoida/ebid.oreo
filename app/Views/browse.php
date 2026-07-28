@@ -50,6 +50,16 @@
     <button type="submit" class="btn btn-emerald" style="font-size:12px;">Search</button>
   </form>
 
+  <?php if (session()->get('logged_in_party_id')): ?>
+  <form method="post" action="/my-searches" style="margin-top:8px; display:flex; gap:8px;">
+    <?php foreach (['category' => $selectedCategory, 'format' => $selectedFormat, 'price_min' => $priceMin, 'price_max' => $priceMax, 'location' => $location, 'min_rating' => $minRating, 'condition' => $condition, 'posted' => $posted, 'sort' => $sort, 'q' => $q] as $k => $v): ?>
+      <input type="hidden" name="<?= esc($k) ?>" value="<?= esc($v ?? '') ?>">
+    <?php endforeach; ?>
+    <input type="text" name="label" placeholder="Name this search" style="padding:8px; border:1px solid var(--line); border-radius:8px; font-size:12px;">
+    <button type="submit" class="btn btn-ghost" style="font-size:12px;">Save this search</button>
+  </form>
+  <?php endif; ?>
+
   <div class="filter-bar">
     <a href="/listings" class="filter-chip <?= !$selectedCategory && !$selectedFormat ? 'active' : '' ?>">All</a>
     <?php foreach (['easy', 'buy_now', 'express', 'tender'] as $fmt): ?>

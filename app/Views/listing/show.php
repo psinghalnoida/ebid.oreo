@@ -12,6 +12,12 @@
   <h1 style="font-size:26px; margin:12px 0 4px;"><?= esc($listing['category']) ?><?= $listing['subcategory'] ? ' / ' . esc($listing['subcategory']) : '' ?></h1>
   <p style="color:var(--ink-3); font-size:13px;">Lot ID: <?= esc($listing['id']) ?> · Media: <?= esc(strtoupper($listing['media_tier'])) ?></p>
 
+  <?php if (session()->get('logged_in_party_id')): ?>
+    <form method="post" action="/listings/<?= esc($listing['id']) ?>/<?= $isFavorited ? 'unfavorite' : 'favorite' ?>" style="margin-top:8px;">
+      <button type="submit" class="btn btn-ghost" style="font-size:12px;"><?= $isFavorited ? '★ Remove from Favorites' : '☆ Add to Favorites' ?></button>
+    </form>
+  <?php endif; ?>
+
   <?php if (!empty($media)): ?>
     <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(90px, 1fr)); gap:8px; margin:16px 0;">
       <?php foreach ($media as $m): ?>
