@@ -170,6 +170,10 @@ $routes->post('/account/delete/request', 'AccountController::deleteRequestSubmit
 $routes->post('/account/delete/cancel', 'AccountController::deleteCancelSubmit');
 $routes->get('/account/earnings', 'AccountController::earnings');
 
+// Phase 3D remainder: BR-56 invoice history + PDF (D-72)
+$routes->get('/account/invoices', 'InvoiceController::index');
+$routes->get('/account/invoices/(:segment)/pdf', 'InvoiceController::pdf/$1');
+
 // Phase 3A: real, dedicated, paginated/filterable transaction pages
 $routes->get('/my-bids', 'MyActivityController::myBids');
 $routes->get('/my-offers', 'MyActivityController::myOffers');

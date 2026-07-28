@@ -4206,3 +4206,62 @@ pre-existing, unrelated `test:auditlog`/D-62 bug.
 **This closes Task #8 of the "close rest" plan** — the last item that
 was blocked on an external dependency (the rate) is now unblocked and
 shipped.
+
+---
+
+### D-72: BR-56 invoice history + real PDF generation
+
+**Decision:** Invoices (BR-56) already existed and were correctly
+generated at settlement completion, but were only ever reachable one
+settlement at a time, embedded in `SettlementController::show` — there
+was no aggregate history view and no PDF export at all. Added:
+
+1. **`GET /account/invoices`** — a paginated invoice history for the
+   logged-in party, reusing the existing `Paginator` helper. Scoped to
+   `tenant_to_buyer` invoices only (the type actually billed to a buyer
+   or generated for a seller's sale); `saas_to_tenant` invoices are
+   platform-internal (Tenant/SaaS-only, per BR-56's own text: "SaaS's
+   own share separately invoiced to the Tenant") and correctly excluded
+   from any buyer/seller-facing view.
+2. **Real party-scoping, not just a UI filter.** `InvoiceService` gained
+   `findForParty`/`countForParty` (joins `invoice → settlement`, matches
+   `buyer_party_id` OR `seller_party_id`) and `findIfAuthorized` (single
+   invoice, same buyer-or-seller check). A genuine third party gets a
+   403 on the PDF endpoint and an empty list at `/account/invoices` —
+   verified over real HTTP, not just assumed from the query shape.
+3. **`GET /account/invoices/{id}/pdf`** — a real, rendered PDF via
+   `dompdf/dompdf` (newly added via `composer require`, no existing PDF
+   library was present). Confirmed genuine PDF output, not just an HTML
+   response with a misleading content-type: the bytes start with the
+   `%PDF-` magic header and contain real `/Type/Page` structure.
+
+**A real test-isolation bug caught before it reached the shared
+regression**, matching the same class of issue D-32/D-38/D-67 already
+flagged in this project's history: the first draft of
+`TestInvoices.php` reused mobile numbers `+919888901001-3`, which
+collided with `TestEasySchedule.php`'s existing `+919888901001/2`.
+Passed standalone, failed when run as part of the full sequence.
+Fixed by moving to an unused `+919889901xxx` prefix, confirmed against
+every other test command's fixtures first this time rather than after
+the fact.
+
+**Verified with `spark test:invoices`** (11 assertions): both invoices
+generate on settlement completion; buyer and seller both see the same
+`tenant_to_buyer` invoice via `findForParty`, `saas_to_tenant` is
+excluded, an unrelated party sees zero; `findIfAuthorized` allows
+buyer/seller and denies a stranger; the rendered PDF has the correct
+magic bytes and non-trivial size.
+
+**Verified over real HTTP**: logged in as the buyer, `/account/invoices`
+lists the real invoice and its PDF downloads with valid `%PDF-1.7`
+content (1840 bytes, contains a genuine `/Type/Page`); logged in as the
+seller, the same invoice is visible; logged in as an unrelated third
+party, the PDF endpoint returns 403 and the list is empty.
+
+**Full regression: 417 assertions across all twenty-five engines
+(twenty-four existing plus the new `test:invoices`), zero new
+failures**, run on a genuinely freshly-migrated database. The only
+non-passing engine remains the pre-existing, unrelated
+`test:auditlog`/D-62 bug.
+
+**This closes Task #5 of the "close rest" plan.**
