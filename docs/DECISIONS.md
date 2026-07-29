@@ -4504,3 +4504,156 @@ doesn't match a pre-registered `rule_key` has no runtime effect. Building
 a true expression engine (so any new freeform rule could be wired to code
 without a deploy) is the "rules-engine rewrite" the original audit
 flagged as out of scope, not this pass.
+
+### D-75: BR-17/BR-18/BR-55/PR-15 — Dual-Track Patron KYC Verification, Multi-Address & Banking, Mandatory Pre-Transaction Gate
+
+**Decision:** The largest remaining open item, deliberately deferred
+since early in the project. The `party` table already had almost the
+entire BR-17 questionnaire schema since Phase 0 (`entity_type`, `pan`,
+`aadhaar_masked`, the `org_*` fields, `kyc_status`), but
+`PartyModel::setKycStatus()` was confirmed dead code — called from
+nowhere. No document upload path, no address schema, and no gate
+existed anywhere.
+
+Two pieces of PR-15's operational sequence are externally gated the
+same way Auth0/Gemini/the payment gateway are — confirmed with the
+project owner before writing any code, who chose the honest fallback
+over fabricating an integration: **"Unless we have automated external
+api for verification let it be done by the saas admin."**
+- "runs automated PAN/GSTIN registry checks" (PR-15 step 4): no real
+  NSDL/GSTN API exists. `KycService::verifyComplianceFlag()` is instead
+  a manual SaaS Admin action per compliance flag (PAN/GSTIN/Aadhaar/
+  Bank/Email), audit-logged with the verifying admin's identity.
+- "Aadhaar (masked/tokenized)" (BR-17): no UIDAI tokenization service
+  exists. The raw 12-digit number is masked to its last 4 digits
+  (`XXXX-XXXX-1098`) immediately in `KycService::saveQuestionnaire()`
+  and never persisted in cleartext anywhere outside the encrypted
+  Aadhaar Card document upload — genuine masking, not UIDAI's real
+  Virtual ID/token scheme.
+
+**A deliberate, flagged deviation from PR-15's literal text**, decided
+without a second round of clarifying questions given the strength of
+the architectural case: PR-15 says "Tenant Admin reviews the compliance
+dossier and transitions master KYC Status." KYC is party-level data
+with no owning tenant, though — unlike every resource `TenantAdminFilter`
+actually guards (listing, saleEvent, settlement, sellerApplication, all
+genuinely tenant-owned), a Party's own identity isn't scoped to one
+tenant (BR-06: buyers are federated globally). There is no coherent
+answer to "which Tenant Admin" for a buyer who hasn't transacted with
+any tenant yet. Routed to Super Admin instead — `KycReviewController`'s
+own doc block states this reasoning — consistent with how this codebase
+already handles other genuinely platform-wide compliance functions
+(BR-54 AML review, BR-05 audit log, BR-49's cross-tenant reporting).
+
+**What's built:**
+1. Three new migrations: compliance-flag columns on `party`
+   (`pan_verified_at`/`gstin_verified_at`/`aadhaar_verified_at`/
+   `email_verified_at`/`bank_verified_at` — `mobile_verified_at`
+   already existed), the BR-18 banking gap (`payout_bank_account_holder_name`/
+   `_name`/`_branch_name`/`_upi_id`, added onto BR-50's existing one-
+   party/one-bank-record fields, not a duplicate), a `submitted`
+   `kyc_status` enum value, and enhanced-due-diligence tracking columns.
+   `party_document` (encrypted vault) and `party_address` (BR-18's four
+   typed addresses, `UNIQUE(party_id, address_type)` so re-registering
+   upserts, never duplicates).
+2. `KycService`: entity-type-specific questionnaire validation (PAN
+   regex, required-field closed lists per BR-17), real AES document
+   encryption via CI4's `Encryption` service (`service('encrypter')`,
+   keyed from `.env`'s `encryption.key`) — files are never written to
+   `writable/kyc_vault/` in plaintext, and that path sits outside the
+   public webroot entirely (unlike listing photos, a KYC document must
+   never be reachable by a guessed URL). `submitForReview()` genuinely
+   checks required documents + a Registered address are present before
+   allowing submission. `reviewDossier()` enforces a closed-list reason
+   on suspension (`SUSPENSION_REASONS`), mirroring BR-17's own text.
+3. **BR-55's gate is genuinely live, not a decorative check**: added to
+   the exact four real user-facing entry points where a pledge/listing
+   actually originates — `BidController::devFundEmd`,
+   `OfferController::devFundEmd`, `EmdConsentController::confirm`, and
+   `ListingController::createSubmit` — deliberately NOT inside
+   `EmdHoldModel::createHold()`/`ListingModel::createListing()`
+   themselves, which nearly every existing `Test*` command and internal
+   service (cascade top-ups, tender manual EMD) calls directly to set up
+   scenarios; gating the model would have broken the entire existing
+   regression suite for no correctness benefit, since those are
+   test/internal setup paths, not a real "first EMD pledge."
+4. **BR-55's enhanced-due-diligence threshold is a genuinely live
+   Sovereign Rule** (`BR-55.enhanced_due_diligence_threshold`, seeded at
+   ₹5L), not a hardcoded guess — BR-55's own text explicitly leaves this
+   open ("set by SaaS Admin... not fixed by this document"), which is
+   exactly what D-74's just-built Rules & Specifications module is for.
+   Required adding this branch on top of `claude/pr04-sovereign-rule-revision`
+   (PR-04, not yet merged) rather than duplicating `SovereignRuleService`
+   — a deliberate stacked-PR dependency, same pattern used earlier this
+   session for BR-50/BR-54's migration-number collision.
+
+**A real bug found by running the full regression suite, not just the
+new test in isolation**: adding a 6th seeded rule to `SovereignRuleService`
+broke `test:sovereignrule`'s own "exactly 5 wired rules" assertions —
+caught and fixed by updating that test's expectations (and its teardown
+loop, which already iterated `seedDefinitions()` generically and needed
+no logic change, only its assertion count).
+
+**Verified with a new `spark test:kyc`** (32 assertions): individual
+questionnaire validation (missing fields rejected, malformed PAN
+rejected, valid PAN uppercased, Aadhaar genuinely masked to only the
+last 4 digits); organization questionnaire validation; address upsert
+(re-registering the same type updates in place, confirmed still exactly
+one row); banking details saved and IFSC uppercased; `submitForReview()`
+genuinely blocked with missing documents, genuinely succeeds once
+complete; manual compliance-flag verification records the real verifying
+admin; dossier review genuinely rejects reviewing a non-submitted
+dossier and rejects suspension with no reason; approve/suspend both
+genuinely transition `kyc_status`, with the reason visible; BR-55's gate
+genuinely blocks both an unverified AND a suspended party, and passes a
+genuinely verified one; enhanced due diligence genuinely blocks a
+high-value transaction, stamps `edd_required_at` once, and genuinely
+passes the SAME transaction after SaaS Admin clearance; the EDD
+threshold is confirmed read from the live Sovereign Rule module, not a
+duplicated constant; at least one audit-log entry exists per distinct
+KYC action type exercised.
+
+Document upload itself (`isValid()` requires `is_uploaded_file()`,
+never true outside a real PHP upload request) follows `test:media`'s own
+established precedent — verified separately, below.
+
+**Verified over real HTTP** against a live server: a fresh buyer
+attempted to pledge EMD and create a Listing BEFORE completing KYC —
+both genuinely blocked, redirected to `/kyc`, zero EMD holds created.
+Completed the full onboarding: questionnaire, two real PDF document
+uploads via `curl -F` (confirmed the file on disk under
+`writable/kyc_vault/` contains zero recoverable plaintext — no `PDF`
+magic bytes anywhere in the ciphertext), a Registered address, banking
+details, submitted for review. Logged in as a real, TOTP-verified Super
+Admin (same registration → `grant:super-admin` → real RFC 6238 TOTP
+enrollment → isolated `/admin/login` flow as every other admin feature
+this session) — the dossier appeared in the review queue, manually
+verified PAN/Aadhaar/Bank compliance flags, downloaded and decrypted the
+uploaded PAN document (byte-identical to the original upload, confirming
+the full encrypt/store/decrypt round-trip is genuinely correct, not just
+"doesn't crash"), approved the dossier. The SAME previously-blocked EMD
+pledge then genuinely succeeded (a real ₹10,000 hold, 10% of a ₹1L
+reserve). A second, ₹60L-reserve sale event's EMD pledge (₹6L, above the
+₹5L EDD threshold) was genuinely blocked with the exact live threshold
+in the error message, cleared by the Super Admin, then genuinely
+succeeded (a real ₹6,00,000 hold). A second buyer's dossier was
+suspended with a closed-list reason — genuinely visible on their own
+`/kyc` page, and they remained genuinely blocked from pledging
+afterward, confirming BR-55 blocks a SUSPENDED party, not just a
+never-submitted one.
+
+**Full regression on a genuinely freshly-migrated database (58
+migrations from zero): 488 assertions across 28 engines, zero new
+failures** — confirming the model/service-layer gate placement (not the
+Model layer) was the correct call: every pre-existing `Test*` command
+that creates EMD holds or listings directly continued passing unchanged.
+Only pre-existing, unrelated gaps: `test:auditlog`'s known D-62 bug, and
+`test:invoices` (missing `Dompdf` package in this sandbox).
+
+**Not covered here (deliberately out of scope):** real NSDL/GSTN
+registry verification and UIDAI Aadhaar tokenization remain manual SaaS
+Admin actions pending real API access, per the project owner's explicit
+decision above. Multi-tenant KYC nuances (should a Tenant Admin ever get
+visibility into a specific applicant's dossier) were not addressed —
+the Super Admin routing above covers the literal PR-15 gate requirement,
+not a broader KYC-visibility redesign.

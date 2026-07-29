@@ -51,6 +51,7 @@
       <?php if (session()->get('logged_in_party_id')): ?>
         <a href="/my-listings" class="btn btn-ghost">My Listings</a>
         <a href="/my-activity" class="btn btn-ghost">My Activity</a>
+        <a href="/kyc" class="btn btn-ghost">KYC</a>
         <a href="/profile" class="btn btn-ghost">Profile</a>
         <a href="/logout" class="btn btn-ghost">Log Out</a>
       <?php else: ?>

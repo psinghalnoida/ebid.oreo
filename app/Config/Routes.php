@@ -216,3 +216,20 @@ $routes->get('/admin/rules/new', 'SovereignRuleController::createForm', ['filter
 $routes->post('/admin/rules/new', 'SovereignRuleController::createSubmit', ['filter' => 'superAdmin']);
 $routes->get('/admin/rules/(:segment)', 'SovereignRuleController::editForm/$1', ['filter' => 'superAdmin']);
 $routes->post('/admin/rules/(:segment)/edit', 'SovereignRuleController::editSubmit/$1', ['filter' => 'superAdmin']);
+
+// KYC Verification (BR-17/BR-18/BR-55/PR-15) — patron-facing onboarding
+$routes->get('/kyc', 'KycController::form');
+$routes->post('/kyc/questionnaire', 'KycController::saveQuestionnaire');
+$routes->post('/kyc/documents', 'KycController::uploadDocument');
+$routes->post('/kyc/addresses', 'KycController::saveAddress');
+$routes->post('/kyc/banking', 'KycController::saveBanking');
+$routes->post('/kyc/submit', 'KycController::submit');
+
+// KYC review — Super Admin (SaaS Admin) side, see KycReviewController's
+// class doc block for why this is Super Admin rather than Tenant Admin.
+$routes->get('/admin/kyc', 'KycReviewController::index', ['filter' => 'superAdmin']);
+$routes->get('/admin/kyc/(:segment)', 'KycReviewController::detail/$1', ['filter' => 'superAdmin']);
+$routes->post('/admin/kyc/(:segment)/verify-flag', 'KycReviewController::verifyFlag/$1', ['filter' => 'superAdmin']);
+$routes->post('/admin/kyc/(:segment)/decide', 'KycReviewController::decide/$1', ['filter' => 'superAdmin']);
+$routes->post('/admin/kyc/(:segment)/clear-edd', 'KycReviewController::clearEdd/$1', ['filter' => 'superAdmin']);
+$routes->get('/admin/kyc-documents/(:segment)/download', 'KycReviewController::downloadDocument/$1', ['filter' => 'superAdmin']);

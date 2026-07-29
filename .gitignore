@@ -63,6 +63,9 @@ Vagrantfile
 /writable/uploads_staging/*
 !/writable/uploads_staging/index.html
 
+# KYC document vault (BR-17) — encrypted at rest, never commit real content
+/writable/kyc_vault/*
+
 /writable/debugbar/*
 !/writable/debugbar/index.html
 

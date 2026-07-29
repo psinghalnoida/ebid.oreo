@@ -29,8 +29,12 @@ class PartyModel extends Model
         'forced_neutral_count_buyer', 'forced_neutral_count_seller',
         'payout_bank_account_number', 'payout_bank_ifsc', 'payout_bank_updated_at',
         'payout_bank_pending_account_number', 'payout_bank_pending_ifsc', 'payout_bank_pending_activates_at',
+        'payout_bank_account_holder_name', 'payout_bank_name', 'payout_bank_branch_name', 'payout_bank_upi_id',
         'clean_transaction_streak_buyer', 'clean_transaction_streak_seller',
         'deletion_requested_at', 'deletion_reason', 'last_login_at',
+        'pan_verified_at', 'gstin_verified_at', 'aadhaar_verified_at', 'email_verified_at', 'bank_verified_at',
+        'kyc_verified_by_party_id', 'kyc_submitted_at',
+        'edd_required_at', 'edd_cleared_at', 'edd_cleared_by_party_id',
         'updated_at',
     ];
 

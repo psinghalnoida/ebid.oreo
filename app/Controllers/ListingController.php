@@ -72,6 +72,14 @@ class ListingController extends BaseController
             return redirect()->to('/login');
         }
 
+        // BR-55: full KYC verification is mandatory before a User's
+        // first Listing, with no lower-value exemption.
+        try {
+            (new \App\Libraries\KycService())->requireVerifiedKyc($sellerId, 'creating a Listing');
+        } catch (\RuntimeException $e) {
+            return redirect()->to('/kyc')->with('error', $e->getMessage());
+        }
+
         $tenantId = $this->request->getPost('tenant_id');
 
         // BR-38: a delisted seller (confirmed fraud) cannot list on ANY

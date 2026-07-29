@@ -59,6 +59,12 @@ class SovereignRuleService
             'logic' => 'crawl_back if star_rating <= threshold',
             'numeric_value' => 2.0,
         ],
+        'BR-55.enhanced_due_diligence_threshold' => [
+            'title' => 'Enhanced Due Diligence Threshold',
+            'statement' => 'Transaction-value Rupee threshold above which a User, beyond ordinary KYC verification, is additionally subject to enhanced due diligence before that specific transaction is permitted to proceed. BR-55\'s own text leaves this figure open, to be set by SaaS Admin in consultation with compliance/legal advice referencing RBI/PMLA KYC master directions — not fixed by the governing document itself.',
+            'logic' => 'require_edd_clearance if transaction_value > threshold',
+            'numeric_value' => 500000.0,
+        ],
     ];
 
     // Per-process cache — the same rule can be read many times within
