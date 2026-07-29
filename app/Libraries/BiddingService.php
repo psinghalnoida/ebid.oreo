@@ -8,7 +8,12 @@ use App\Models\EmdHoldModel;
 
 class BiddingService
 {
-    private const BID_CEILING_MULTIPLIER = 1.5; // BR-43
+    // PR-04/D-75: was a hardcoded const, now the Super Admin's live,
+    // versioned "BR-43.bid_ceiling_multiplier" rule (Rules &
+    // Specifications module). 1.5 is the fallback until that rule is
+    // seeded — i.e. the exact original value, so this rewiring changes
+    // nothing until a Super Admin actually edits it.
+    private const BID_CEILING_MULTIPLIER_DEFAULT = 1.5; // BR-43
 
     private BidModel $bidModel;
     private SaleEventModel $saleEventModel;
@@ -66,12 +71,13 @@ class BiddingService
             );
         }
 
+        $ceilingMultiplier = \App\Libraries\SovereignRuleService::getNumeric('BR-43.bid_ceiling_multiplier', self::BID_CEILING_MULTIPLIER_DEFAULT);
         $currentHigh = $this->bidModel->findCurrentHighBid($saleEventId);
         $currentHighAmount = $currentHigh ? (float) $currentHigh['amount'] : (float) ($saleEvent['reserve_value'] ?? 0);
-        if ($currentHighAmount > 0 && $amount > $currentHighAmount * self::BID_CEILING_MULTIPLIER) {
-            $ceiling = round($currentHighAmount * self::BID_CEILING_MULTIPLIER, 2);
+        if ($currentHighAmount > 0 && $amount > $currentHighAmount * $ceilingMultiplier) {
+            $ceiling = round($currentHighAmount * $ceilingMultiplier, 2);
             throw new \RuntimeException(
-                "BR-43 violation: bid {$amount} exceeds 150% of current high bid {$currentHighAmount} (ceiling {$ceiling})"
+                "BR-43 violation: bid {$amount} exceeds " . ($ceilingMultiplier * 100) . "% of current high bid {$currentHighAmount} (ceiling {$ceiling})"
             );
         }
 

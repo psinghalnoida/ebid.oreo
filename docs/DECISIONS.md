@@ -4464,3 +4464,113 @@ tenant with no domain and an unrelated listing, as a negative control.
 for a tenant's real custom domain is an infrastructure concern outside
 the application layer; this closes the "edge layer inspects the Host
 header and shows a white-label portal" application-level requirement.
+
+### D-75: PR-04 — Sovereign Rule Revision & Governance Flow
+
+**Decision:** PR-04's operational sequence: Super Admin authenticates via
+the isolated TOTP flow, "unlocks the Rules & Specifications module,"
+reviews current rules or defines a new one (Title, Statement, Logic),
+submits a mandatory "Reason for Modification," and "the system versions
+the change, commits it, and updates the live application's behavior."
+Before this, every business rule was a hardcoded PHP const — changing
+the 150% bid ceiling, the 10% EMD baseline, or anything else required a
+code change and redeploy, not an admin action. The audit called this
+"closer to a rules-engine rewrite than a feature addition" — honestly
+scoped here rather than fabricated: no generic rule-expression evaluator
+was built (that really would be a rules-engine rewrite). Instead, the
+five thresholds that were ALREADY simple numeric consts, scattered
+across services, were made genuinely live.
+
+**What's built:**
+1. `sovereign_rule` (current state, versioned) + `sovereign_rule_revision`
+   (full snapshot per version, in addition to — not instead of — a
+   `sovereign_rule.revised` entry in the existing BR-05 audit hash chain
+   on every change) via `SovereignRuleService`.
+2. Five rules genuinely rewired from hardcoded consts to live,
+   admin-editable values, each keeping its original figure as the
+   fallback default until a Super Admin actually edits it:
+   `BiddingService::BID_CEILING_MULTIPLIER` (150%, BR-43),
+   `EmdService::EMD_PERCENT` (10%, BR-27),
+   `SettlementService::HIGH_VALUE_DISPOSAL_THRESHOLD` AND
+   `PayoutControlService::HIGH_VALUE_THRESHOLD` (₹10L, BR-49 — the SAME
+   rule key, so editing it once genuinely changes both the disposal-
+   reporting trigger and the payout review gate together, not two
+   independent numbers that happen to match), and
+   `RatingService::SHADOW_BAN_THRESHOLD` / `CRAWL_BACK_THRESHOLD` (BR-38).
+3. A Super Admin "Rules & Specifications" UI (`/admin/rules`, superAdmin-
+   filtered): list view, edit form (mandatory Reason for Modification,
+   rejected server-side if blank), revision history, and a "define a new
+   rule" form for freeform governance rules (Title/Statement/Logic only —
+   no `rule_key`, so no live code effect, but still versioned and audited
+   the same way, satisfying BR-01's "rationale record" for policy
+   decisions that don't map to a single numeric knob).
+
+**One real bug found and fixed by writing the automated test, not just
+the manual HTTP walkthrough**: `getNumeric()` caches a rule's value for
+the life of the process to avoid a DB round-trip on every bid. `update()`
+wrote the new value to the database but never invalidated that cache —
+harmless for the built-in dev server (one process per request), but a
+real latent bug for any long-running/persistent-worker deployment, and
+it broke `test:sovereignrule` itself the moment the test tried to read
+back a value it had just written in the same run. Fixed by having
+`update()` refresh the cache entry immediately after writing.
+
+**A second real bug, found only by running the FULL regression suite,
+not just the new test in isolation**: `test:sovereignrule` edits five
+platform-wide rules — unlike every other `Test*` command, which only
+creates its own isolated tenant/party/listing rows, this one mutates
+genuinely shared configuration. Running the full suite in sequence,
+`test:tier3` (which runs after it alphabetically) failed for real: it
+held an EMD deposit sized for the original 10%, then tried to bid after
+`test:sovereignrule` had left the live rule at 20%, and was correctly
+rejected by BR-27's live check for insufficient EMD. The rule wiring
+itself was working exactly as intended — the bug was that
+`test:sovereignrule` didn't clean up after itself. Fixed with an explicit
+teardown step that restores all five rules to their original values at
+the end of the run, asserted, not just assumed.
+
+**Verified with a new `spark test:sovereignrule`** (20 assertions): all
+five rules seed at their exact original hardcoded values; an empty
+Reason for Modification is genuinely rejected; editing the BR-43 ceiling
+from 150% to 120% makes a bid that the OLD ceiling would have allowed
+(140%) get genuinely rejected, while a bid within the new ceiling (115%)
+is accepted; editing BR-27's EMD percent genuinely changes
+`EmdService::calculateBaselineEmd()`'s output; editing the shared BR-49
+threshold genuinely trips both `SettlementService`'s disposal-reporting
+flag AND is read by `PayoutControlService`'s review gate from the same
+row; editing BR-38's shadow-ban threshold genuinely shadow-bans a rating
+the old threshold would not have; every successful edit produces exactly
+one `sovereign_rule.revised` audit-log entry (a rejected empty-reason
+attempt produces none); a freeform rule has no `rule_key`, starts at v1,
+and appears in the same listing as the wired rules; and the teardown
+genuinely restores all five originals.
+
+**Verified over real HTTP** against a live server: registered a fresh
+party, granted `super_admin` via `spark grant:super-admin`, enrolled real
+TOTP (RFC 6238, computed with a script replicating `TotpService`'s exact
+algorithm — not a stubbed code), logged in through the isolated
+`/admin/login` TOTP-gated path (the real `SuperAdminFilter` boundary, not
+just a role check), then confirmed `/admin/rules` lists all five seeded
+rules at their exact original values; confirmed an edit with a blank
+Reason for Modification is rejected with the value left completely
+unchanged (verified directly in Postgres); confirmed a real edit with a
+reason genuinely versions the row to v2, writes a `sovereign_rule_revision`
+row, and writes a `sovereign_rule.revised` audit-log entry with the actor
+party ID and the exact reason text.
+
+**Full regression, run twice on a genuinely freshly-migrated database
+(all 55 migrations from zero) — both before AND after the teardown fix,
+to prove the fix was real**: 455 assertions across all twenty-seven
+runnable engines (twenty-six existing plus the new `test:sovereignrule`),
+zero new failures once the teardown fix was in. Two pre-existing, unrelated
+gaps, both confirmed NOT caused by this change: `test:auditlog`'s known
+D-62 bug (3 failures), and `test:invoices` (fails on a missing `Dompdf`
+package in this sandbox, unrelated to rule wiring).
+
+**Not covered here (deliberately, honestly out of scope):** there is no
+generic rule-expression evaluator — a freeform rule's Logic field is
+descriptive text, not an executable expression, and creating one that
+doesn't match a pre-registered `rule_key` has no runtime effect. Building
+a true expression engine (so any new freeform rule could be wired to code
+without a deploy) is the "rules-engine rewrite" the original audit
+flagged as out of scope, not this pass.

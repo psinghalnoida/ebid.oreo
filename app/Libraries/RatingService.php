@@ -8,8 +8,11 @@ use App\Models\RatingEventModel;
 class RatingService
 {
     private const DEFAULT_RATING = 3.0;
-    private const CRAWL_BACK_THRESHOLD = 2.0;
-    private const SHADOW_BAN_THRESHOLD = 1.5; // Confirmed by the project owner (see docs/DECISIONS.md D-50) — was an unconfirmed placeholder since D-08
+    // PR-04/D-75: both now the Super Admin's live "BR-38.crawl_back_threshold"
+    // and "BR-38.shadow_ban_threshold" rules. These are only the fallback
+    // defaults until a Super Admin edits them via the Rules module.
+    private const CRAWL_BACK_THRESHOLD_DEFAULT = 2.0;
+    private const SHADOW_BAN_THRESHOLD_DEFAULT = 1.5; // Confirmed by the project owner (see docs/DECISIONS.md D-50) — was an unconfirmed placeholder since D-08
     private const PLATFORM_FLOOR = 1.0;
     // ⚠️ Unconfirmed placeholder, same status Shadow Ban's threshold had
     // until this session — the BR/PR document specifies a "flat
@@ -264,14 +267,14 @@ class RatingService
             ]);
             return;
         }
-        if ($newValue < self::SHADOW_BAN_THRESHOLD) {
+        if ($newValue < SovereignRuleService::getNumeric('BR-38.shadow_ban_threshold', self::SHADOW_BAN_THRESHOLD_DEFAULT)) {
             $this->partyModel->setShadowBanned($partyId, $role, true);
             (new AuditLogService())->log('rating.shadow_banned', $partyId, [
                 'ratingRole' => $ratingRole, 'newValue' => $newValue, 'reason' => 'below_threshold',
             ]);
             return;
         }
-        if ($newValue < self::CRAWL_BACK_THRESHOLD) {
+        if ($newValue < SovereignRuleService::getNumeric('BR-38.crawl_back_threshold', self::CRAWL_BACK_THRESHOLD_DEFAULT)) {
             $offenceCount = $this->partyModel->incrementOffenceCount($partyId, $role);
             $cleanRequired = $this->cleanRequiredFor($offenceCount);
             $this->partyModel->activateCrawlBack($partyId, $role, $cleanRequired);

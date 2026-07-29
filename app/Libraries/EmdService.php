@@ -4,8 +4,17 @@ namespace App\Libraries;
 
 class EmdService
 {
-    private const EMD_PERCENT = 0.10; // BR-27: flat 10% across all formats
+    // PR-04/D-75: was a hardcoded const, now the Super Admin's live,
+    // versioned "BR-27.emd_percent" rule. 0.10 is the fallback until
+    // that rule is seeded — the exact original value, so this rewiring
+    // changes nothing until a Super Admin actually edits it.
+    private const EMD_PERCENT_DEFAULT = 0.10; // BR-27: flat 10% across all formats
     private const ERROR_PREFIX = 'EMD_CALCULATION_ERROR';
+
+    private static function emdPercent(): float
+    {
+        return SovereignRuleService::getNumeric('BR-27.emd_percent', self::EMD_PERCENT_DEFAULT);
+    }
 
     // BR-27: EMD Baseline Calculation Protocol
     public static function calculateBaselineEmd(string $saleFormat, ?float $expectedValue, ?float $reserveValue): float
@@ -14,12 +23,12 @@ class EmdService
             if (!$expectedValue || $expectedValue <= 0) {
                 throw new \RuntimeException(self::ERROR_PREFIX . ': Buy-Now requires a positive expected_value');
             }
-            return self::round2($expectedValue * self::EMD_PERCENT);
+            return self::round2($expectedValue * self::emdPercent());
         }
         if ($saleFormat === 'tender') {
-            // BR: Tender's EMD is manual/offline — no automated 10% gate.
-            // The actual audit trail (amount + payment location, or a
-            // logged reason if none) is tracked separately via
+            // BR: Tender's EMD is manual/offline — no automated percent
+            // gate. The actual audit trail (amount + payment location,
+            // or a logged reason if none) is tracked separately via
             // TenderService::logManualEmd, not enforced here.
             return 0.0;
         }
@@ -27,7 +36,7 @@ class EmdService
             if (!$reserveValue || $reserveValue <= 0) {
                 throw new \RuntimeException(self::ERROR_PREFIX . ": {$saleFormat} requires a positive reserve_value");
             }
-            return self::round2($reserveValue * self::EMD_PERCENT);
+            return self::round2($reserveValue * self::emdPercent());
         }
         if ($saleFormat === 'tender') {
             throw new \RuntimeException(self::ERROR_PREFIX . ': Tender uses manual offline EMD (BR-26), not this calculator');
@@ -38,14 +47,14 @@ class EmdService
     // BR-29: signed delta — positive = top-up owed, negative = refund owed
     public static function calculateBuyNowAdjustment(float $heldAmount, float $finalAcceptedPrice): float
     {
-        $requiredAmount = self::round2($finalAcceptedPrice * self::EMD_PERCENT);
+        $requiredAmount = self::round2($finalAcceptedPrice * self::emdPercent());
         return self::round2($requiredAmount - $heldAmount);
     }
 
     // BR-28: recalculate H1's EMD against the actual closing value at top-up
     public static function calculateCascadeTopupOwed(float $heldAmount, float $closingValue): float
     {
-        $requiredAmount = self::round2($closingValue * self::EMD_PERCENT);
+        $requiredAmount = self::round2($closingValue * self::emdPercent());
         $owed = self::round2($requiredAmount - $heldAmount);
         return $owed > 0 ? $owed : 0;
     }
