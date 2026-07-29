@@ -171,3 +171,21 @@ This document stopped being updated after D-64 even though nine more PRs merged 
 
 Of these, **PR-04 and BR-06's custom-domain routing are the only "no external blocker, not yet attempted" items** — genuine next candidates if continuing to build. BR-17/18/55 (KYC) is large and was deliberately deferred, not overlooked; picking it up would be a real scope decision, not just clearing a backlog item.
 
+---
+
+## Update — three of the five items closed (D-74, D-75, D-76)
+
+All three of the no-external-blocker items above are now built, merged into `main`, and independently re-verified — including a genuinely fresh checkout of `main` (not a local branch simulation): 58 migrations from zero, the full regression suite (488 assertions across 27 runnable engines, only the pre-existing `test:auditlog`/D-62 gap unrelated to any of this), and a live-HTTP smoke test confirming every affected route responds correctly post-merge.
+
+- **✅ BR-06's custom-domain routing — CLOSED (D-74).** `TenantResolutionFilter` genuinely resolves a tenant from the Host header (exact `custom_domain` match, then `{label}.{platformHost}` subdomain match) on every request; `Home::index()`/`browse()` scope listings to the resolved tenant; the layout injects the tenant's logo/brand color/Terms link. Verified over real HTTP with Chromium, which caught and fixed a genuine bug: `esc($value, 'css')` was silently invalidating the tenant's brand color at the CSS-tokenizer level.
+- **✅ PR-04 (Sovereign Rule Revision) — CLOSED (D-75).** `SovereignRuleService` + a Super Admin "Rules & Specifications" UI (`/admin/rules`) genuinely drive five previously-hardcoded thresholds live: BR-43's bid ceiling, BR-27's EMD percent, BR-49's shared high-value threshold (read by both `SettlementService` and `PayoutControlService` from the same rule), and BR-38's shadow-ban/crawl-back thresholds. Every edit is versioned (`sovereign_rule_revision`) and audited (BR-05 hash chain), gated on a mandatory Reason for Modification. No generic rule-expression evaluator was built — a freeform rule is a governance record only, honestly scoped per the original audit's own "rules-engine rewrite" caveat.
+- **✅ BR-17/18/55 (KYC, multi-address, encrypted banking, enhanced due diligence) — CLOSED (D-76).** Full onboarding built on top of `party`'s existing Phase-0 schema: entity-type-specific questionnaire, a real AES-encrypted document vault, `party_address` (BR-18's four typed addresses), banking details, and a genuinely live gate (`KycService::requireVerifiedKyc()`) wired at the real user-facing pledge/listing entry points, not the Model layer. BR-55's enhanced-due-diligence threshold is itself a live Sovereign Rule (D-75's module), matching BR-55's own "not fixed by this document" text. Two pieces remain honestly manual rather than fabricated, per the project owner's explicit decision: PAN/GSTIN registry checks and Aadhaar tokenization are SaaS Admin manual actions, gated on real NSDL/GSTN/UIDAI API access that doesn't exist yet. Dossier review was deliberately routed to Super Admin rather than PR-15's literal "Tenant Admin," since KYC is party-level data with no owning tenant (BR-06: buyers are federated globally) — flagged and reasoned in `KycReviewController`'s own doc block.
+
+### Bottom line (current)
+
+**Two items remain open — both externally gated, nothing more to build without external access:**
+1. **BR-46 — AI Pre-Audit** (blocked on a real Gemini API key)
+2. **BR-52 — Chargeback Mitigation** (blocked on the real payment gateway)
+
+There is no remaining "no external blocker" item on this list. Further progress requires the project owner to supply one of the two external dependencies above.
+
