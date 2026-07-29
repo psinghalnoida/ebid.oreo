@@ -315,6 +315,14 @@ class KycService
             }
             $this->partyModel->setKycStatus($partyId, 'suspended', self::SUSPENSION_REASONS[$reasonKey]);
             (new AuditLogService())->log('kyc.suspended', $reviewerId, ['partyId' => $partyId, 'reason' => $reasonKey]);
+
+            // PR-16: master KYC suspension cascades an automatic global
+            // lockout to every other role this Party holds (e.g. a
+            // Tenant Admin whose KYC gets suspended immediately loses
+            // that role too, not just future KYC-gated actions).
+            (new ComplianceLockoutService())->cascadeLockout(
+                $partyId, 'KYC suspended: ' . self::SUSPENSION_REASONS[$reasonKey], $reviewerId
+            );
         }
 
         return $this->partyModel->find($partyId);

@@ -5028,3 +5028,73 @@ only the pre-existing, unrelated `test:auditlog`/D-62 gap and
 `test:invoices`'s missing `Dompdf` package. `test:settlement` and
 `test:dispute` — the two suites exercising the exact code paths
 touched here — both still pass in full.
+
+### D-83: BR-19/PR-16 — Compliance-Lockout Cascade
+
+**Decision:** D-77's re-audit found BR-19's own rationale text
+("supports automated cross-role lockout if a compliance flag is
+revoked") and PR-16's operational sequence ("If master KYC status is
+suspended or a compliance flag is revoked: an automatic global lockout
+cascades to every role held by that Party") had zero implementation —
+each role's suspension/delisting was handled entirely independently.
+Re-extracted the exact text directly from the source `.docx` (via the
+zip+XML paragraph extraction technique used for the document swap in
+D-77, since it's the only reliable way to read this file) rather than
+working from the audit summary alone, to confirm the precise trigger
+wording before scoping the fix.
+
+**A real gap this closes, not just a symbolic one:** before this,
+`party_role`'s `tenant_admin`/`seller` role checks
+(`hasActiveRole()`-based, used by `TenantAdminFilter` and
+`SellerApplicationService::isApprovedSeller()`) were never tied to
+`kyc_status` or seller-delisting at all — a Tenant Admin whose KYC got
+suspended, or a seller confirmed-fraud-delisted, would keep every
+other role's access completely intact. (Buyer participation itself was
+already effectively gated by `KycService::requireVerifiedKyc()`
+checking `kyc_status === 'verified'` directly, so KYC suspension
+already blocked bidding/EMD/listing on its own — the missing piece was
+specifically the *other* roles' own independent access checks.)
+
+**What's built:** `ComplianceLockoutService::cascadeLockout()` —
+revokes every one of a Party's active `party_role` rows
+(`revoked_at`), logs one `party.compliance_lockout_cascaded` audit
+entry listing every role/tenant locked out. Wired into the two real,
+already-reachable trigger points that exist in this codebase today:
+- `KycService::reviewDossier()`'s suspend branch (master KYC status suspended).
+- `RatingService::delistSellerForFraud()` (a confirmed-fraud finding is a compliance-flag revocation in substance, matching the audit doc's own "seller delisted for fraud" example).
+
+**Not covered here, and explicitly flagged rather than silently
+assumed away:** a dedicated admin action to revoke an *individual*
+compliance flag (PAN/GSTIN/Aadhaar/bank/email — the counterpart to the
+existing `KycService::verifyComplianceFlag()`) doesn't exist anywhere
+in this codebase. That specific literal trigger wording in PR-16
+therefore stays dormant until such a revoke action is built — the
+cascade service itself is ready and correct, it simply has no third
+caller yet. Same honest-gap treatment as `CascadeService::forfeitHold()`
+noted in D-82, whose only entry point is also never called from any
+production path today.
+
+**Verified over real HTTP**, not just code review: fixtured a Party
+holding both `tenant_admin` (Tenant X) and `seller` (Tenant Y) roles
+simultaneously, with KYC status `submitted`. A real, TOTP-verified
+Super Admin session issued a genuine `POST /admin/kyc/{id}/decide`
+rejection — confirmed in Postgres both `party_role` rows now carry a
+`revoked_at` timestamp and the audit-log entry lists both. Then
+confirmed the lockout has real teeth, not just a DB flag: the same
+party's later `POST /listings/{id}/approve` on their former Tenant X
+listing now genuinely returns 403 with the existing BR-09 message,
+where it would have succeeded before. Separately, fixtured a second
+Party holding `seller` (Tenant X) and `tenant_admin` (Tenant Z), then
+issued a real `POST /admin/delist-seller` for confirmed fraud —
+confirmed both of *that* party's roles were also cascaded, with the
+correct reason text in the audit payload. A control Super Admin party
+untouched by either trigger was confirmed to have its own role
+unaffected.
+
+**Full regression on a freshly-migrated database (59 migrations from
+zero): 488 assertions across 27 runnable engines, zero new failures** —
+only the pre-existing, unrelated `test:auditlog`/D-62 gap and
+`test:invoices`'s missing `Dompdf` package. `test:kyc` (32 assertions,
+exercises `reviewDossier()` directly) and `test:rating`/`test:selleraudit`
+(exercise `delistSellerForFraud()`-adjacent paths) all still pass in
+full.
