@@ -73,6 +73,7 @@ $routes->get('/admin/logout', 'SuperAdminAuthController::logout');
 
 $routes->get('/admin', 'AdminController::dashboard', ['filter' => 'superAdmin']);
 $routes->get('/admin/alerts', 'AdminController::alerts', ['filter' => 'superAdmin']);
+$routes->post('/admin/alerts/server-time-drift/(:segment)/acknowledge', 'AdminController::acknowledgeServerTimeDrift/$1', ['filter' => 'superAdmin']);
 $routes->get('/admin/tenants', 'TenantController::list', ['filter' => 'superAdmin']);
 $routes->get('/admin/tenants/create', 'TenantController::createForm', ['filter' => 'superAdmin']);
 $routes->post('/admin/tenants', 'TenantController::createSubmit', ['filter' => 'superAdmin']);

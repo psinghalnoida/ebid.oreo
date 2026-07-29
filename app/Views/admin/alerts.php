@@ -47,6 +47,17 @@
   <?php endforeach; ?>
   <?php if (empty($stalledSettlements)): ?><p style="font-size:12px; color:var(--ink-3);">None.</p><?php endif; ?>
 
+  <h3 style="font-size:15px; margin-top:24px;">Server Time Drift Alerts (<?= count($driftAlerts) ?>)</h3>
+  <?php foreach ($driftAlerts as $d): ?>
+    <p style="font-size:13px; border-top:1px solid var(--line); padding:8px 0;">
+      <?= esc($d['ntp_host']) ?> — drift <?= esc(number_format((float) $d['drift_seconds'], 3)) ?>s (tolerance <?= esc(number_format((float) $d['tolerance_seconds'], 3)) ?>s) — <?= esc(substr($d['checked_at'], 0, 19)) ?>
+      <form method="post" action="/admin/alerts/server-time-drift/<?= esc($d['id']) ?>/acknowledge" style="display:inline;">
+        <button type="submit" class="btn btn-ghost" style="font-size:11px; padding:4px 10px; margin-left:8px;">Acknowledge</button>
+      </form>
+    </p>
+  <?php endforeach; ?>
+  <?php if (empty($driftAlerts)): ?><p style="font-size:12px; color:var(--ink-3);">None.</p><?php endif; ?>
+
   <p style="margin-top:24px;"><a href="/admin" style="color:var(--ink-3); font-size:12px;">&larr; Back to Dashboard</a></p>
 </main>
 <?= $this->endSection() ?>

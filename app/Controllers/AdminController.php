@@ -87,6 +87,9 @@ class AdminController extends BaseController
 
         $pendingRatingReviews = (new \App\Models\RatingEventModel())->findAllPending();
 
+        // Tech Stack §3.10: unacknowledged server-time drift alerts.
+        $driftAlerts = (new \App\Models\ServerTimeCheckModel())->findUnacknowledgedDriftAlerts();
+
         return view('admin/alerts', [
             'title' => 'Alerts — eBid Hub',
             'amlFlags' => $amlFlags,
@@ -94,6 +97,20 @@ class AdminController extends BaseController
             'openDisputes' => $openDisputes,
             'pendingPayoutReviews' => $pendingPayoutReviews,
             'pendingRatingReviews' => $pendingRatingReviews,
+            'driftAlerts' => $driftAlerts,
         ]);
+    }
+
+    // Tech Stack §3.10: Super Admin acknowledges a server-time drift
+    // alert, clearing it from the Alerts list.
+    public function acknowledgeServerTimeDrift(string $checkId)
+    {
+        $superAdminId = session()->get('super_admin_party_id');
+        try {
+            (new \App\Libraries\ServerTimeIntegrityService())->acknowledge($checkId, $superAdminId);
+        } catch (\RuntimeException $e) {
+            return redirect()->to('/admin/alerts')->with('error', $e->getMessage());
+        }
+        return redirect()->to('/admin/alerts')->with('error', 'Drift alert acknowledged.');
     }
 }

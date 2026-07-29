@@ -14,7 +14,7 @@ use App\Models\SovereignRuleRevisionModel;
 // (private consts scattered across services); this is the live,
 // admin-editable registry those consts now read through.
 //
-// Honestly scoped: only the five rules in SEED below are actually wired
+// Honestly scoped: only the rules in SEED below are actually wired
 // into a real code path (getNumeric() is called at the exact spot the
 // old hardcoded const used to be). A Super Admin can also record a
 // freeform rule (rule_key = null) purely as a governed, versioned,
@@ -64,6 +64,12 @@ class SovereignRuleService
             'statement' => 'Transaction-value Rupee threshold above which a User, beyond ordinary KYC verification, is additionally subject to enhanced due diligence before that specific transaction is permitted to proceed. BR-55\'s own text leaves this figure open, to be set by SaaS Admin in consultation with compliance/legal advice referencing RBI/PMLA KYC master directions — not fixed by the governing document itself.',
             'logic' => 'require_edd_clearance if transaction_value > threshold',
             'numeric_value' => 500000.0,
+        ],
+        'TechStack-3.10.server_time_drift_tolerance_seconds' => [
+            'title' => 'Server Time Drift Tolerance',
+            'statement' => 'Maximum permitted difference, in seconds, between this server\'s clock and an authoritative NTP time source before a drift alert fires. Tech Stack §3.10 requires "a defined tolerance" without stating a figure — a reasonable default, flagged the same way as other unspecified thresholds in this codebase (e.g. SettlementService::STALL_THRESHOLD_DAYS), not a fixed value from the governing document.',
+            'logic' => 'alert if abs(local_time - ntp_time) > tolerance_seconds',
+            'numeric_value' => 5.0,
         ],
     ];
 
