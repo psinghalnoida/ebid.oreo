@@ -6,11 +6,44 @@ business rule, process workflow, or design decision in `docs/DECISIONS.md`
 cites a BR or PR number, it's referencing these files directly.
 
 **`eBid_Hub_Unified_BR_PR.docx`** is the single most important file here.
-It's the canonical Business Rules (BR-01 through BR-61) and Process
-Rules (PR-01 through PR-36) specification — the actual basis for this
-whole project. Any time the code and this document disagree, this
-document wins; `docs/DECISIONS.md` explains the reasoning whenever the
-build diverges or a rule needed clarification from the project owner.
+It's the canonical Business Rules and Process Rules specification — the
+actual basis for this whole project. Any time the code and this
+document disagree, this document wins; `docs/DECISIONS.md` explains the
+reasoning whenever the build diverges or a rule needed clarification
+from the project owner.
+
+**Updated 2026-07-29** (was BR-01–BR-61 / PR-01–PR-36; now BR-01–BR-66 /
+PR-01–PR-37) — the project owner's replacement supersedes the prior
+version per its own "Status" line, same as the prior version did before
+it. It's a real binary `.docx` (the earlier version in this repo's
+history was plain text saved with a `.docx` extension — `git log -p`
+on this file still has that original content if needed). What's new:
+- **BR-62–BR-66 / PR-37: Tenant API Access** — a whole new module letting
+  a Tenant integrate its own systems via API as an alternative to the
+  portal UI, governed by the exact same approval/lifecycle rules as a
+  portal submission (no API-side approval bypass), OAuth2 client-credentials
+  scoped per-tenant via the existing Auth0 relationship, visibility capped
+  at whatever the Visibility Matrix (BR-16) already grants that role.
+- **Section 3 (Tech Stack) is substantially more decided**: the payment
+  gateway is no longer TBD — **SabPaisa** is named as the selected PG
+  (RBI-authorised, VAN/UPI collection, Payouts API). KYC verification is
+  explicitly specified as **manual, no automated vendor** — Tenant Admin/
+  Super Admin review only, matching this repo's own D-76 KYC decision.
+  New requirements not yet built: server-time integrity (NTP sync + drift
+  alerting), audit-log DB-permission hardening (no UPDATE/DELETE grant at
+  the database layer, not just the application layer), and an independent
+  third-party security audit before go-live. SMS OTP, bank verification/
+  penny-drop, and email provider all remain TBD.
+- Every already-built numeric rule spot-checked against the new text
+  (BR-27 EMD 10%, BR-43's 150% ceiling, BR-49's ₹10L threshold, BR-38's
+  shadow-ban thresholds) is unchanged. BR-27 gained one new clause: a
+  Payment Gateway collection charge must be charged to the buyer on top
+  of the stated EMD, never deducted from it — relevant once BR-52's real
+  gateway integration happens, not yet actionable.
+- Section 4 (Phased Roadmap) is now explicit that this document is Phase
+  1 only, with Phase 2 (a full Reverse-Auction/Procurement format, plus
+  a Market Intelligence pricing-guide feature) intentionally out of
+  scope for now, not overlooked.
 
 ## The rest of the documents
 
