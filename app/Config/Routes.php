@@ -77,6 +77,7 @@ $routes->get('/admin/tenants/create', 'TenantController::createForm', ['filter' 
 $routes->post('/admin/tenants', 'TenantController::createSubmit', ['filter' => 'superAdmin']);
 $routes->get('/admin/users', 'UserController::index', ['filter' => 'superAdmin']);
 $routes->get('/admin/users/(:segment)', 'UserController::detail/$1', ['filter' => 'superAdmin']);
+$routes->post('/admin/users/(:segment)/promote-tenant-admin', 'UserController::promoteTenantAdmin/$1', ['filter' => 'superAdmin']);
 
 // Seller Application (BR-09)
 $routes->get('/tenants/(:segment)/apply-to-sell', 'SellerApplicationController::applyForm/$1');

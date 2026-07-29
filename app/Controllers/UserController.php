@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\PartyModel;
 use App\Models\PartyRoleModel;
+use App\Models\TenantModel;
 
 // Phase 3D: platform-wide Super Admin user directory — was previously
 // only reachable per-tenant (SellerManagementController) or not at all
@@ -88,6 +89,37 @@ class UserController extends BaseController
             'sales' => $sales,
             'disputes' => $disputes,
             'ratingEvents' => $ratingEvents,
+            'tenants' => (new TenantModel())->findAll(),
         ]);
+    }
+
+    // PR-08: Super Admin web UI to promote a Tenant Admin — previously
+    // only reachable via the grant:tenant-admin CLI command. Wraps the
+    // same PartyRoleModel::promoteTenantAdmin() logic (BR-44 auto-demotion
+    // of whoever previously held the role for that tenant included).
+    public function promoteTenantAdmin(string $partyId)
+    {
+        $partyModel = new PartyModel();
+        $party = $partyModel->find($partyId);
+        if (!$party) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $tenantId = (string) $this->request->getPost('tenant_id');
+        $tenant = (new TenantModel())->find($tenantId);
+        if (!$tenant) {
+            return redirect()->to("/admin/users/{$partyId}")->with('error', 'A valid tenant must be selected.');
+        }
+
+        $roleModel = new PartyRoleModel();
+        $existing = $roleModel->findActiveTenantAdmin($tenantId);
+
+        $roleModel->promoteTenantAdmin($partyId, $tenantId);
+        (new \App\Libraries\AuditLogService())->log('admin.tenant_admin_granted', $partyId, [
+            'tenantId' => $tenantId, 'tenantName' => $tenant['name'],
+            'demotedPreviousAdminId' => $existing['party_id'] ?? null, 'grantedViaCli' => false,
+        ], $this->request->getIPAddress(), (string) $this->request->getUserAgent());
+
+        return redirect()->to("/admin/users/{$partyId}")->with('error', "Granted Tenant Admin for \"{$tenant['name']}\".");
     }
 }
