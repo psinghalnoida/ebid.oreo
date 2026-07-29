@@ -4394,3 +4394,73 @@ zero). The only non-passing engine remains the pre-existing, unrelated
 `test:auditlog`/D-62 bug.
 
 **This closes Task #6 of the "close rest" plan.**
+
+### D-74: BR-06/PR-06 — Custom-domain / subdomain white-label routing
+
+**Decision:** BR-06 requires that "on request, the edge layer inspects
+the incoming Host header to match the tenant... injects the tenant's
+branding and inventory, displaying a white-label portal," while buyers
+stay "federated globally... across every tenant domain." The `tenant`
+table already had `subdomain`/`custom_domain`/`branding_*` columns
+since Phase 0, but nothing ever read the Host header or scoped a page
+by it — every domain showed the same platform-wide, unbranded view.
+
+Built as a global CI4 filter, `TenantResolutionFilter`, first in
+`$globals['before']` so it runs on every request ahead of routing. It
+tries an exact `custom_domain` match first, then derives the
+platform's own root domain from `config('App')->baseURL` (not
+hardcoded) and checks for a `{label}.{platformHost}` pattern to match
+`subdomain`. A resolved, non-suspended tenant is stashed in a new
+static `TenantContext` holder; anything else (platform's own domain,
+localhost, an unmapped host) leaves the context unset and falls through
+to today's unscoped behavior unchanged — the filter never blocks a
+request. `Home::index()` and `Home::browse()` read `TenantContext`
+and add a `tenant_id` scope to their listing/category queries only
+when a tenant is resolved; `layouts/main.php` reads it once (every page
+extends this layout) to swap in the tenant's logo/name in the header,
+override the Terms link, and inject a `color-mix()`-derived brand
+palette. Two small gaps closed in `TenantController`: `custom_domain`
+was accepted on tenant creation but never actually asked for on the
+create form, and `terms_url` existed as a column but had no edit-form
+field at all — both added.
+
+**One real bug found and fixed by verifying with a headless browser,
+not just curl.** Curl's raw HTML for the brand-color `<style>` block
+looked correct — `--emerald: #C05014` — but CI4's `esc($value, 'css')`
+was actually hex-escaping the `#` into `\23 C05014`. That's valid CSS
+*text*, but the CSS tokenizer consumes a leading escape into an
+*identifier* token, not a *hash-color* token, so `color-mix(in srgb,
+\23 C05014 80%, black)` silently parsed as an invalid color at
+used-value time — real Chromium rendered `.btn-emerald` as fully
+transparent (`rgba(0,0,0,0)`), not the tenant's orange. Curl alone
+would have shipped this bug undetected. Fixed at the root: brand color
+is now validated server-side against a strict `/^#[0-9a-fA-F]{6}$/` in
+`TenantController::editSubmit()` (rejecting anything else with a flash
+error) and re-validated with the same regex before being printed
+literally in the layout — no CSS-context escaping needed once the
+charset is provably safe, and none of the injection risk `esc()` was
+guarding against remains possible.
+
+**Verified over real HTTP against a live server** (Postgres,
+`php spark serve`), using `/etc/hosts` entries plus real Chromium via
+Playwright to check actual computed styles, not just response text:
+tenant "PNB Salvage Yard" with `subdomain=pnb`,
+`custom_domain=www.salvagemanagers.com`, an uploaded logo,
+`branding_primary_color=#C05014`, and a `terms_url`, alongside a second
+tenant with no domain and an unrelated listing, as a negative control.
+
+- `pnb.localhost:8080` and `www.salvagemanagers.com:8080` (both `/` and
+  `/browse`) show only PNB's listing/category, the uploaded logo in the
+  header, `.btn-emerald` genuinely rendering `rgb(192, 80, 20)`, and the
+  Terms link pointing at the tenant's own `terms_url`.
+- Plain `127.0.0.1:8080` (no Host match) and an unmapped
+  `random.localhost:8080` both fall through to the original
+  platform-wide view — both listings, default emerald
+  (`rgb(15, 92, 76)`), no logo, `/terms` — confirming the filter never
+  narrows what an unresolved buyer can see, matching BR-06's "buyers
+  are federated globally" requirement.
+
+**Not covered here (out of scope for this pass):** DNS/TLS provisioning
+for a tenant's real custom domain is an infrastructure concern outside
+the application layer; this closes the "edge layer inspects the Host
+header and shows a white-label portal" application-level requirement.

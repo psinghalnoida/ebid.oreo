@@ -131,3 +131,6 @@ _modules/*
 # Listing photo uploads — never commit real user-uploaded content
 /public/uploads/listings/*
 !/public/uploads/.gitkeep
+
+# Tenant branding logo uploads (BR-06) — same reasoning
+/public/uploads/tenants/*

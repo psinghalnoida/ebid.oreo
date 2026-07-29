@@ -6,7 +6,9 @@
     <p style="color:var(--emerald-deep); font-size:13px; background:var(--emerald-soft); padding:10px; border-radius:8px;"><?= esc($flashError) ?></p>
   <?php endif; ?>
   <h1 style="font-size:22px;"><?= esc($tenant['name']) ?></h1>
-  <p style="color:var(--ink-3); font-size:12px;"><?= esc($tenant['tenant_class']) ?> · <?= esc($tenant['subdomain']) ?></p>
+  <p style="color:var(--ink-3); font-size:12px;">
+    <?= esc($tenant['tenant_class']) ?> · <?= esc($tenant['subdomain']) ?><?= $tenant['custom_domain'] ? ' · ' . esc($tenant['custom_domain']) : '' ?>
+  </p>
 
   <?php if (!empty($tenant['branding_logo_url'])): ?>
     <img src="<?= esc($tenant['branding_logo_url']) ?>" alt="Tenant logo" style="max-height:48px; margin:12px 0;">
@@ -25,6 +27,9 @@
     <label style="font-size:12px; color:var(--ink-3);">Brand Logo (JPEG/PNG/WebP/SVG)</label>
     <input type="file" name="branding_logo" accept="image/png,image/jpeg,image/webp,image/svg+xml"
       style="display:block; width:100%; padding:8px 0; margin:6px 0 20px;">
+    <label style="font-size:12px; color:var(--ink-3);">Terms of Use URL (BR-06)</label>
+    <input type="text" name="terms_url" value="<?= esc($tenant['terms_url'] ?? '') ?>" placeholder="https://..."
+      style="display:block; width:100%; padding:12px; margin:6px 0 20px; border:1px solid var(--line); border-radius:10px;">
     <button type="submit" class="btn btn-emerald" style="width:100%;">Save Changes</button>
   </form>
 
