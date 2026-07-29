@@ -1,3 +1,10 @@
+<?php
+  // BR-06/PR-06: "injects the tenant's branding ... displaying a
+  // white-label portal" — read once here since every page extends this
+  // layout, rather than threading it through every controller's own
+  // view data.
+  $__tenant = \App\Libraries\TenantContext::current();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -35,12 +42,39 @@
   .foot-inner{max-width:1240px; margin:0 auto; padding:0 24px; display:flex; justify-content:space-between; align-items:center;}
   .foot-links{display:flex; gap:24px;}
 </style>
+<?php if ($__tenant && !empty($__tenant['branding_primary_color']) && preg_match('/^#[0-9a-fA-F]{6}$/', $__tenant['branding_primary_color'])): ?>
+<style>
+  /* BR-06: white-label brand color override for this tenant's domain —
+     derived from their one stored color via color-mix() rather than
+     hand-rolled hex math, since no color library exists in this codebase.
+     The value is validated as a strict 6-digit hex code (both here and on
+     save in TenantController::editSubmit) rather than run through
+     esc(..., 'css'): CI4's CSS-context escaping hex-escapes the '#',
+     which CSS then tokenizes as an identifier rather than a hash-color
+     token, silently invalidating color-mix() and losing the branding. */
+  :root{
+    --emerald: <?= $__tenant['branding_primary_color'] ?>;
+    --emerald-deep: color-mix(in srgb, <?= $__tenant['branding_primary_color'] ?> 80%, black);
+    --emerald-soft: color-mix(in srgb, <?= $__tenant['branding_primary_color'] ?> 15%, white);
+  }
+</style>
+<?php endif; ?>
 </head>
 <body>
 
 <header class="app-head">
   <div class="head-inner">
-    <div class="brand">eBid<span>Hub</span></div>
+    <div class="brand">
+      <?php if ($__tenant): ?>
+        <?php if (!empty($__tenant['branding_logo_url'])): ?>
+          <img src="<?= esc($__tenant['branding_logo_url']) ?>" alt="<?= esc($__tenant['name']) ?>" style="height:26px; vertical-align:middle;">
+        <?php else: ?>
+          <?= esc($__tenant['name']) ?>
+        <?php endif; ?>
+      <?php else: ?>
+        eBid<span>Hub</span>
+      <?php endif; ?>
+    </div>
     <nav class="tabs">
       <a href="/" class="<?= (uri_string() === '' || uri_string() === '/') ? 'active' : '' ?>">Marketplace</a>
       <a href="/browse" class="<?= (strpos(uri_string(), 'browse') !== false) ? 'active' : '' ?>">Browse</a>
@@ -147,8 +181,8 @@
     <span>&copy; eBid Hub</span>
     <div class="foot-links">
       <a href="/trust-support">Trust &amp; Support</a>
-      <a href="#">Terms</a>
-      <a href="#">Privacy</a>
+      <a href="<?= ($__tenant && !empty($__tenant['terms_url'])) ? esc($__tenant['terms_url']) : '/terms' ?>">Terms</a>
+      <a href="/privacy">Privacy</a>
     </div>
   </div>
 </footer>
