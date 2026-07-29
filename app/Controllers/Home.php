@@ -3,14 +3,16 @@
 namespace App\Controllers;
 
 use App\Libraries\Paginator;
+use App\Libraries\TenantContext;
 
 class Home extends BaseController
 {
     public function index(): string
     {
         $db = \Config\Database::connect();
+        $tenant = TenantContext::current();
 
-        $activeListings = $db->table('sale_event se')
+        $activeListingsQuery = $db->table('sale_event se')
             ->select('se.id as sale_event_id, se.ern, se.sale_format, se.status, se.current_price, se.reserve_value, se.expected_value,
                       l.id as listing_id, l.category, l.subcategory, l.physical_condition, l.yard_location_pin,
                       lm.file_path as photo_path')
@@ -18,24 +20,29 @@ class Home extends BaseController
             ->join('party p', 'p.id = l.seller_party_id')
             ->join('listing_media lm', 'lm.listing_id = l.id AND lm.is_primary = true', 'left', false)
             ->whereIn('se.status', ['active', 'grace_period'])
-            ->where('p.shadow_banned_at_seller', null)
-            ->orderBy('se.created_at', 'DESC')
-            ->limit(12)
-            ->get()->getResultArray();
-
-        $categoryCounts = $db->table('listing l')
+            ->where('p.shadow_banned_at_seller', null);
+        $categoryCountsQuery = $db->table('listing l')
             ->select('l.category, COUNT(*) as listing_count')
             ->join('sale_event se', 'se.listing_id = l.id')
-            ->whereIn('se.status', ['active', 'grace_period', 'closed_sold'])
-            ->groupBy('l.category')
-            ->orderBy('listing_count', 'DESC')
-            ->limit(6)
-            ->get()->getResultArray();
+            ->whereIn('se.status', ['active', 'grace_period', 'closed_sold']);
+        $totalActiveCountQuery = $db->table('sale_event')->whereIn('status', ['active', 'grace_period']);
 
-        $totalActiveCount = $db->table('sale_event')->whereIn('status', ['active', 'grace_period'])->countAllResults();
+        // BR-06: "injects the tenant's ... inventory" — a resolved tenant
+        // domain shows only that tenant's own listings, not the full
+        // federated platform. No tenant resolved (the platform's own
+        // domain, or dev/localhost) keeps today's platform-wide view.
+        if ($tenant) {
+            $activeListingsQuery->where('l.tenant_id', $tenant['id']);
+            $categoryCountsQuery->where('l.tenant_id', $tenant['id']);
+            $totalActiveCountQuery->where('sale_event.tenant_id', $tenant['id']);
+        }
+
+        $activeListings = $activeListingsQuery->orderBy('se.created_at', 'DESC')->limit(12)->get()->getResultArray();
+        $categoryCounts = $categoryCountsQuery->groupBy('l.category')->orderBy('listing_count', 'DESC')->limit(6)->get()->getResultArray();
+        $totalActiveCount = $totalActiveCountQuery->countAllResults();
 
         return view('landing', [
-            'title' => 'eBid Hub — Salvage & Surplus Marketplace',
+            'title' => $tenant ? esc($tenant['name']) . ' — eBid Hub' : 'eBid Hub — Salvage & Surplus Marketplace',
             'activeListings' => $activeListings,
             'categoryCounts' => $categoryCounts,
             'totalActiveCount' => $totalActiveCount,
@@ -77,8 +84,9 @@ class Home extends BaseController
         // Easy/Express/Tender use current_price/reserve_value,
         // Buy-Now uses expected_value until a deal closes.
         $priceExpr = 'COALESCE(se.current_price, se.reserve_value, se.expected_value)';
+        $tenant = TenantContext::current();
 
-        $filtered = function () use ($db, $category, $format, $priceMin, $priceMax, $location, $minRating, $condition, $posted, $q, $priceExpr) {
+        $filtered = function () use ($db, $category, $format, $priceMin, $priceMax, $location, $minRating, $condition, $posted, $q, $priceExpr, $tenant) {
             $query = $db->table('sale_event se')
                 ->join('listing l', 'l.id = se.listing_id')
                 ->join('party p', 'p.id = l.seller_party_id')
@@ -88,6 +96,13 @@ class Home extends BaseController
                 // seller's listing is excluded from discovery/browse
                 // only; it remains directly reachable by its own URL.
                 ->where('p.shadow_banned_at_seller', null);
+
+            // BR-06: browsing on a resolved tenant's domain shows only
+            // that tenant's own inventory — same white-label scoping as
+            // the landing page.
+            if ($tenant) {
+                $query->where('l.tenant_id', $tenant['id']);
+            }
 
             if ($category) $query->where('l.category', $category);
             if ($format) $query->where('se.sale_format', $format);
@@ -146,16 +161,18 @@ class Home extends BaseController
         }
         unset($item);
 
-        $allCategories = $db->table('listing l')
+        $allCategoriesQuery = $db->table('listing l')
             ->distinct()
             ->select('l.category')
             ->join('sale_event se', 'se.listing_id = l.id')
-            ->whereIn('se.status', ['active', 'grace_period'])
-            ->orderBy('l.category', 'ASC')
-            ->get()->getResultArray();
+            ->whereIn('se.status', ['active', 'grace_period']);
+        if ($tenant) {
+            $allCategoriesQuery->where('l.tenant_id', $tenant['id']);
+        }
+        $allCategories = $allCategoriesQuery->orderBy('l.category', 'ASC')->get()->getResultArray();
 
         return view('browse', [
-            'title' => 'Browse — eBid Hub', 'listings' => $listings,
+            'title' => $tenant ? esc($tenant['name']) . ' — Browse' : 'Browse — eBid Hub', 'listings' => $listings,
             'allCategories' => array_column($allCategories, 'category'),
             'selectedCategory' => $category, 'selectedFormat' => $format,
             'priceMin' => $priceMin, 'priceMax' => $priceMax, 'location' => $location,

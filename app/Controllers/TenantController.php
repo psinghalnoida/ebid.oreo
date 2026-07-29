@@ -27,6 +27,11 @@ class TenantController extends BaseController
         $tenantClass = $this->request->getPost('tenant_class') ?: 'general';
         $subdomain = $this->request->getPost('subdomain');
         $buyerFeePercent = $this->request->getPost('buyer_fee_percent') ?: 5.00;
+        // BR-06: "a dedicated subdomain ... or custom domain" — optional,
+        // set once at whitelisting time like subdomain itself (see
+        // tenant_view.php's own note on why domain fields aren't casually
+        // edited later — a routing-affecting decision, not a quick tweak).
+        $customDomain = trim((string) $this->request->getPost('custom_domain')) ?: null;
 
         if (!$name || !$subdomain) {
             return redirect()->to('/admin/tenants/create')->with('error', 'Name and subdomain are required.');
@@ -35,10 +40,10 @@ class TenantController extends BaseController
         try {
             $tenant = $this->tenantModel->createTenant([
                 'name' => $name, 'tenant_class' => $tenantClass,
-                'subdomain' => $subdomain, 'buyer_fee_percent' => $buyerFeePercent,
+                'subdomain' => $subdomain, 'custom_domain' => $customDomain, 'buyer_fee_percent' => $buyerFeePercent,
             ]);
         } catch (\Throwable $e) {
-            return redirect()->to('/admin/tenants/create')->with('error', 'Could not create tenant — subdomain may already be in use.');
+            return redirect()->to('/admin/tenants/create')->with('error', 'Could not create tenant — subdomain or custom domain may already be in use.');
         }
 
         return redirect()->to('/admin')->with('error', "Tenant \"{$tenant['name']}\" whitelisted successfully.");
@@ -76,10 +81,16 @@ class TenantController extends BaseController
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
 
+        $postedColor = $this->request->getPost('branding_primary_color');
+        if ($postedColor && !preg_match('/^#[0-9a-fA-F]{6}$/', $postedColor)) {
+            return redirect()->to("/admin/tenants/{$tenantId}")->with('error', 'Brand color must be a 6-digit hex code, e.g. #0F6E4E.');
+        }
+
         $update = [
             'name' => $this->request->getPost('name') ?: $tenant['name'],
             'buyer_fee_percent' => $this->request->getPost('buyer_fee_percent') ?: $tenant['buyer_fee_percent'],
-            'branding_primary_color' => $this->request->getPost('branding_primary_color') ?: $tenant['branding_primary_color'],
+            'branding_primary_color' => $postedColor ?: $tenant['branding_primary_color'],
+            'terms_url' => $this->request->getPost('terms_url') ?: $tenant['terms_url'],
         ];
 
         $logo = $this->request->getFile('branding_logo');
