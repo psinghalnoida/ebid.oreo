@@ -72,6 +72,12 @@ class ListingController extends BaseController
             return redirect()->to('/login');
         }
 
+        // BR-15: "structurally barred from listing assets... under any
+        // circumstance." Checked first, ahead of every other gate.
+        if ((new \App\Libraries\AuthorizationService())->isSuperAdmin($sellerId)) {
+            return redirect()->to('/')->with('error', 'BR-15: the Super Admin holds a non-participatory regulatory role and may never list an asset.');
+        }
+
         // BR-55: full KYC verification is mandatory before a User's
         // first Listing, with no lower-value exemption.
         try {

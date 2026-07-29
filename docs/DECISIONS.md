@@ -4873,3 +4873,57 @@ permitted categories.
 **Full regression on a freshly-migrated database (58 migrations from
 zero): 488 assertions across 27 runnable engines, zero new failures** —
 only the pre-existing, unrelated `test:auditlog`/D-62 gap.
+
+### D-80: BR-15 — Sovereign Isolation, Super Admin Non-Participation
+
+**Decision:** D-77's re-audit found zero enforcement anywhere for BR-15:
+"strictly forbidden from acting as Buyer, Seller, Tenant Admin,
+Inspector, or any other platform participant, and structurally barred
+from listing assets, attaching Sale Events, or placing bids/offers
+under any circumstance." `AuthorizationService::isSuperAdmin()` already
+existed and was used elsewhere for authorization, but nothing anywhere
+checked it as a *block* on participation.
+
+Added the check at the actual choke points rather than duplicating it
+per format:
+- `AuthorizationService::hasConflictOfInterest()` — already the shared
+  gate `BiddingService::placeBid()`, `OfferService::submit()`, and
+  `ExpressAuctionService::pledgeReserve()` all call for BR-21/22's
+  conflict-of-interest check. One addition covers all three real
+  bid/offer/pledge actions.
+- `TenderBiddingService::placeBid()` and `TenderService::registerInterest()`
+  — Tender doesn't go through `hasConflictOfInterest()` at all (it has
+  its own seller-granted-eligibility gate), so these needed their own
+  explicit checks.
+- `ListingController::createSubmit()` — "listing assets."
+- `SaleEventController::createSubmit()` — "attaching Sale Events."
+
+**A real gap found during verification, not just in the original
+audit**: `hasConflictOfInterest()` covers the actual bid/offer/pledge
+*action*, but a real HTTP test showed the EMD *pledge* step
+(`BidController`/`OfferController::devFundEmd`, `EmdConsentController::confirm`
+— the same three entry points BR-55's KYC gate already lives at) never
+calls it at all, so a Super Admin could still have EMD held in escrow
+even though they could never complete an actual bid. Fixed by adding
+the same `isSuperAdmin()` check directly at those three entry points,
+ahead of the EMD hold being created — not just at the eventual bid.
+
+**Not covered here**: BR-15 also names Tenant Admin and Inspector roles
+— these are role *assignments* (who a Super Admin/seller chooses to
+designate), not a live transaction a Super Admin initiates themselves,
+and are out of scope for this pass; `grant:tenant-admin` and the
+inspector-mobile binding on listing creation don't currently check
+for a Super Admin party either, which would be a reasonable follow-up.
+
+**Verified over real HTTP**: a real party granted `super_admin` via
+`spark grant:super-admin`, logged in through the normal mobile/mPIN
+flow. Confirmed genuinely blocked, each with zero rows created: pledging
+EMD directly (`dev-fund-emd`, both formats), placing an actual bid,
+creating a listing, and attaching a Sale Event to an existing upcoming
+listing — each with the exact BR-15 error message shown back. Confirmed
+a normal, non-Super-Admin buyer pledging EMD on the same sale event
+still succeeds unaffected (a real ₹10,000 hold created).
+
+**Full regression on a freshly-migrated database (58 migrations from
+zero): 488 assertions across 27 runnable engines, zero new failures** —
+only the pre-existing, unrelated `test:auditlog`/D-62 gap.

@@ -36,6 +36,12 @@ class SaleEventController extends BaseController
             return redirect()->to('/login');
         }
 
+        // BR-15: "structurally barred from... attaching Sale Events...
+        // under any circumstance."
+        if ((new \App\Libraries\AuthorizationService())->isSuperAdmin($sellerId)) {
+            return redirect()->to("/listings/{$listingId}")->with('error', 'BR-15: the Super Admin holds a non-participatory regulatory role and may never attach a Sale Event.');
+        }
+
         $listing = $this->listingModel->findActiveById($listingId);
         if (!$listing || $listing['status'] !== 'upcoming') {
             return redirect()->to("/listings/{$listingId}")->with('error', 'Listing must be approved (upcoming) before attaching a sale event.');

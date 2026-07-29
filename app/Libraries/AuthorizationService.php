@@ -48,6 +48,14 @@ class AuthorizationService
     // BR/PR audit (see BR_PR_AUDIT.md).
     public function hasConflictOfInterest(string $partyId, string $listingId): ?string
     {
+        // BR-15: "structurally barred from... placing bids/offers under
+        // any circumstance." Checked first, ahead of the listing-specific
+        // checks below, since this is an absolute platform-wide bar, not
+        // scoped to any one listing.
+        if ($this->isSuperAdmin($partyId)) {
+            return 'BR-15: the Super Admin holds a non-participatory regulatory role and may never bid, offer, or pledge on any listing.';
+        }
+
         $listing = $this->listingModel->findActiveById($listingId);
         if (!$listing) {
             return null;

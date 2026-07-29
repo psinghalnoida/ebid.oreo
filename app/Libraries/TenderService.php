@@ -41,6 +41,13 @@ class TenderService
 
     public function registerInterest(string $saleEventId, string $partyId): array
     {
+        // BR-15: structurally barred from participating under any
+        // circumstance — blocked at the earliest Tender touchpoint, not
+        // just at the eventual bid.
+        if ((new AuthorizationService())->isSuperAdmin($partyId)) {
+            throw new \RuntimeException('BR-15: the Super Admin holds a non-participatory regulatory role and may never participate in a sale event.');
+        }
+
         $this->requireTenderEvent($saleEventId);
         if ($this->interestModel->hasRegisteredInterest($saleEventId, $partyId)) {
             throw new \RuntimeException('You have already registered interest in this Tender.');

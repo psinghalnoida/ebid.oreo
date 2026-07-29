@@ -38,6 +38,13 @@ class BidController extends BaseController
             return redirect()->to('/login');
         }
 
+        // BR-15: structurally barred from pledging under any
+        // circumstance — checked before the EMD is ever held, not just
+        // at the later bid.
+        if ((new \App\Libraries\AuthorizationService())->isSuperAdmin($bidderId)) {
+            return redirect()->to('/')->with('error', 'BR-15: the Super Admin holds a non-participatory regulatory role and may never pledge an EMD deposit.');
+        }
+
         // BR-55: full KYC verification is mandatory before a User's
         // first EMD pledge, with no lower-value exemption.
         try {
