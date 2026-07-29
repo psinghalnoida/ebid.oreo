@@ -214,6 +214,18 @@ class SchedulerService
         return (new MediaQueueService())->processAll();
     }
 
+    // Tech Stack §3.10: "checked continuously" — the same cron sweep
+    // runs the real SNTP drift check on every pass. Returns the check's
+    // own ID as a single-element list only when it actually raised a
+    // drift alert, so it composes with runAll()'s existing
+    // count()-based summary/audit-log-suppression logic without any
+    // special-casing.
+    public function processServerTimeCheck(): array
+    {
+        $check = (new ServerTimeIntegrityService())->runCheck();
+        return ($check['ntp_reachable'] && !$check['within_tolerance']) ? [$check['id']] : [];
+    }
+
     public function runAll(): array
     {
         $result = [
@@ -228,6 +240,7 @@ class SchedulerService
             'payoutBankChangesActivated' => $this->processPendingPayoutBankChanges(),
             'accountsArchived' => $this->processAccountDeletions(),
             'mediaJobsProcessed' => $this->processMediaQueue(),
+            'serverTimeDriftAlerts' => $this->processServerTimeCheck(),
         ];
 
         // BR-05: every scheduler run is a genuine "configuration/state

@@ -5098,3 +5098,59 @@ only the pre-existing, unrelated `test:auditlog`/D-62 gap and
 exercises `reviewDossier()` directly) and `test:rating`/`test:selleraudit`
 (exercise `delistSellerForFraud()`-adjacent paths) all still pass in
 full.
+
+### D-84: Server Time Integrity (Tech Stack §3.10)
+
+**Decision:** the new document's Tech Stack §3.10 requires: "All
+auction timing... is computed against a server clock synced to NTP
+against a verified time source, checked continuously. Any drift or
+manual clock adjustment beyond a defined tolerance triggers an
+automated alert to the Super Admin and is itself logged as an audit
+event." Nothing in this codebase did any of this.
+
+**Scope split, stated up front rather than glossed over:** actually
+keeping the OS clock synced to NTP (running an `ntpd`/`chrony` daemon)
+is a deployment/infrastructure concern — no PHP application process can
+force its own host's system clock to sync. What's buildable at the
+application layer, and what this closes, is the other half: querying
+an authoritative external time source, computing drift against this
+server's own clock, and raising an alert + audit event when it exceeds
+tolerance.
+
+**A real, confirmed sandbox constraint, not assumed:** this development
+environment's outbound network policy blocks both raw UDP (NTP is
+UDP/123) and arbitrary HTTPS egress — confirmed directly by testing a
+real UDP connection to `pool.ntp.org:123` (timed out, no response) and
+a real HTTPS request to a public time API (403, the proxy's own status
+endpoint showed `"connect_rejected"` / `"policy denial"` for both
+hosts), not inferred. This is the same category of external-dependency
+block as BR-46 (Gemini API key) and BR-52 (SabPaisa credentials), just
+for network-policy reasons instead of missing credentials.
+
+**What's built despite that constraint — real, not stubbed:**
+- `ServerTimeIntegrityService::querySntp()` — a genuine minimal SNTP client (RFC 4330 client mode), real UDP socket I/O and real NTP wire-format parsing (Transmit Timestamp field, NTP-to-Unix epoch conversion). No external vendor/account needed, the same category as `TotpService`'s real RFC 6238 implementation replacing Auth0.
+- `runCheck()` — computes drift, compares against a live, Super-Admin-editable tolerance (`SovereignRuleService`'s new `TechStack-3.10.server_time_drift_tolerance_seconds` rule, default 5.0s — §3.10 itself leaves the figure open, "a defined tolerance," same honestly-flagged-default pattern as `SettlementService::STALL_THRESHOLD_DAYS`), records a `server_time_check` row every run, and logs a `server_time.drift_alert` audit event (actor `null`, system-triggered) when reachable and over tolerance.
+- Wired into `SchedulerService::runAll()` — the same recurring cron sweep every other time-based mechanic in this codebase already runs through, satisfying "checked continuously."
+- Surfaced on the existing Super Admin Alerts page (`/admin/alerts`) alongside every other open-item queue, with a real `acknowledge` action (`POST /admin/alerts/server-time-drift/{id}/acknowledge`) that clears it and logs `server_time.drift_alert_acknowledged`.
+
+**A real bug found and fixed during verification, not just described:**
+Postgres/CI4 returns boolean columns as the strings `"t"`/`"f"`, not
+native PHP `bool` — both are PHP-truthy, so `SchedulerService`'s
+`!$check['within_tolerance']` would have silently misfired (treating
+every check, drifted or not, as alert-worthy) had it read the raw
+row. Caught by `test:servertimecheck`'s own assertions, not by
+inspection. Fixed by normalizing booleans once at the service boundary
+(`ServerTimeIntegrityService::normalizeBooleans()`), so every caller —
+scheduler, controller, tests — gets real PHP booleans without needing
+to know the driver's quirk.
+
+**Verified two ways, neither fabricated:**
+1. **Real SNTP protocol round trip**, since public NTP is unreachable here: a genuine, protocol-correct local SNTP responder (real UDP server, real 48-byte NTP packet construction) stands in for a public NTP host in `test:servertimecheck` — this exercises the exact same socket/parsing/drift-math code path that would run against a real `pool.ntp.org` in an unrestricted deployment, just pointed at 127.0.0.1. Confirmed: an unreachable host is handled honestly (no fabricated drift figure); a same-instant responder produces genuine near-zero drift, correctly within tolerance, no alert; a responder embedding a timestamp 200+ seconds off produces genuine measured drift exceeding tolerance, a real audit-log entry referencing the real check row, and appears in the unacknowledged-alerts list until acknowledged.
+2. **Real HTTP, real Super Admin session**: a genuine TOTP-verified Super Admin login, a real drifted check inserted via the real service, confirmed rendering on the live `/admin/alerts` page ("Server Time Drift Alerts (1)"), then a real `POST` to the acknowledge endpoint — confirmed the count drops to 0 on the next real page load and the DB row's `acknowledged_by_party_id` matches the real logged-in Super Admin.
+
+**Full regression on a freshly-migrated database (60 migrations from
+zero, 28 runnable engines including the new `test:servertimecheck`):
+zero new failures** — only the pre-existing `test:auditlog`/D-62 gap
+and `test:invoices`'s missing `Dompdf`. `test:sovereignrule` updated
+for the 7th wired rule (was 6) and still passes in full;
+`test:scheduler` (exercises `runAll()` directly) unaffected.
