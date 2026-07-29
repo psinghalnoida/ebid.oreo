@@ -4575,7 +4575,7 @@ a true expression engine (so any new freeform rule could be wired to code
 without a deploy) is the "rules-engine rewrite" the original audit
 flagged as out of scope, not this pass.
 
-### D-75: BR-17/BR-18/BR-55/PR-15 — Dual-Track Patron KYC Verification, Multi-Address & Banking, Mandatory Pre-Transaction Gate
+### D-76: BR-17/BR-18/BR-55/PR-15 — Dual-Track Patron KYC Verification, Multi-Address & Banking, Mandatory Pre-Transaction Gate
 
 **Decision:** The largest remaining open item, deliberately deferred
 since early in the project. The `party` table already had almost the
@@ -4651,7 +4651,7 @@ already handles other genuinely platform-wide compliance functions
    Sovereign Rule** (`BR-55.enhanced_due_diligence_threshold`, seeded at
    ₹5L), not a hardcoded guess — BR-55's own text explicitly leaves this
    open ("set by SaaS Admin... not fixed by this document"), which is
-   exactly what D-74's just-built Rules & Specifications module is for.
+   exactly what D-75's just-built Rules & Specifications module is for.
    Required adding this branch on top of `claude/pr04-sovereign-rule-revision`
    (PR-04, not yet merged) rather than duplicating `SovereignRuleService`
    — a deliberate stacked-PR dependency, same pattern used earlier this
