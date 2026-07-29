@@ -181,11 +181,64 @@ All three of the no-external-blocker items above are now built, merged into `mai
 - **✅ PR-04 (Sovereign Rule Revision) — CLOSED (D-75).** `SovereignRuleService` + a Super Admin "Rules & Specifications" UI (`/admin/rules`) genuinely drive five previously-hardcoded thresholds live: BR-43's bid ceiling, BR-27's EMD percent, BR-49's shared high-value threshold (read by both `SettlementService` and `PayoutControlService` from the same rule), and BR-38's shadow-ban/crawl-back thresholds. Every edit is versioned (`sovereign_rule_revision`) and audited (BR-05 hash chain), gated on a mandatory Reason for Modification. No generic rule-expression evaluator was built — a freeform rule is a governance record only, honestly scoped per the original audit's own "rules-engine rewrite" caveat.
 - **✅ BR-17/18/55 (KYC, multi-address, encrypted banking, enhanced due diligence) — CLOSED (D-76).** Full onboarding built on top of `party`'s existing Phase-0 schema: entity-type-specific questionnaire, a real AES-encrypted document vault, `party_address` (BR-18's four typed addresses), banking details, and a genuinely live gate (`KycService::requireVerifiedKyc()`) wired at the real user-facing pledge/listing entry points, not the Model layer. BR-55's enhanced-due-diligence threshold is itself a live Sovereign Rule (D-75's module), matching BR-55's own "not fixed by this document" text. Two pieces remain honestly manual rather than fabricated, per the project owner's explicit decision: PAN/GSTIN registry checks and Aadhaar tokenization are SaaS Admin manual actions, gated on real NSDL/GSTN/UIDAI API access that doesn't exist yet. Dossier review was deliberately routed to Super Admin rather than PR-15's literal "Tenant Admin," since KYC is party-level data with no owning tenant (BR-06: buyers are federated globally) — flagged and reasoned in `KycReviewController`'s own doc block.
 
-### Bottom line (current)
+### Bottom line (superseded by the re-audit below — kept for history)
 
 **Two items remain open — both externally gated, nothing more to build without external access:**
 1. **BR-46 — AI Pre-Audit** (blocked on a real Gemini API key)
 2. **BR-52 — Chargeback Mitigation** (blocked on the real payment gateway)
 
 There is no remaining "no external blocker" item on this list. Further progress requires the project owner to supply one of the two external dependencies above.
+
+---
+
+## Update — full re-audit against the replacement doc (BR-01–66 / PR-01–37)
+
+The project owner supplied a replacement governing document (D-77, see `docs/source-documents/README.md`) — 5 new BRs (62–66) and 1 new PR (37), a substantially more decided Tech Stack section, and Phase 2 now explicit. This pass is a systematic re-check, not a re-statement of the prior "two items" conclusion above: every one of the 66 BRs and 37 PRs was checked for real code coverage (`grep -rl "BR-XX\b" app/`), not assumed from a prior document's claims — the same method D-43/D-64/D-73's passes used, applied fresh against the new range.
+
+**Six real, previously-unflagged gaps found** (all pre-date the new document — they're gaps in the *original* BR-01–61 range that no prior audit pass caught, not something the new document introduced):
+
+- **BR-15 (Sovereign Isolation — Super Admin Non-Participation).** Zero enforcement anywhere. The Super Admin is supposed to be structurally barred from bidding, listing, or otherwise participating — nothing in `BiddingService`, `ListingController`, or any bid/offer/listing entry point checks for or blocks a Super Admin party ID.
+- **BR-07 (Salvage Asset Categorization & Scope Restriction).** The listing `category` field (`app/Views/listing/create.php`) is unrestricted free text (`<input type="text">`), not validated against BR-07's own 8-item permitted closed list. Nothing stops listing new retail-consumer goods, which BR-07 explicitly prohibits. The one file referencing "BR-07" in the codebase (`tenant_create.php`'s "Tenant Class (BR-07)" label) is a mislabeled comment — that field is governed by BR-09's tenant model, not BR-07 — so there is genuinely zero real BR-07 enforcement, not even a partial one.
+- **BR-19 / PR-16 (Polymorphic Role Mapping's compliance-lockout cascade).** BR-19's own rationale text promises "automated cross-role lockout if a compliance flag is revoked" — e.g. a seller delisted for fraud on one role should have every other role automatically locked too. No such cascade exists; each role's suspension/delisting is handled independently.
+- **BR-32 (Adjustable Buyer Fee & Escrow Deduction).** `buyer_fee_percent` exists only on the `tenant` table — a Tenant Admin can change their tenant's blanket default fee, but BR-32's actual text is "adjust the buyer's transaction fee **on any active listing**," implying per-listing/per-sale-event granularity. No such override exists; there is no listing- or sale-event-level fee column anywhere.
+- **BR-41 (Seller Rating Visibility Pre-Bid).** `seller_star_rating` is shown in the `browse.php` discovery grid but not on `listing/show.php` — the actual page a buyer views and bids from. BR-41 specifically requires it visible "throughout the live event," which the detail/bidding page is, and the grid summary isn't a substitute.
+- **PR-08 (Tenant Admin Onboarding & Promotion).** No Super Admin web UI exists to search the user directory and promote a buyer to Tenant Admin — only `spark grant:tenant-admin`, a CLI-only command. This one is already honestly self-flagged in the command's own comment ("Interim CLI bootstrap tool. No Super Admin panel exists yet...") — it just never made it into this audit document's tracked list until now. BR-44's auto-demote-prior-admin logic that PR-08 depends on **is** genuinely implemented inside that command (verified in `GrantTenantAdmin.php`); only the web UI itself is missing.
+
+**Two items checked and confirmed already built** despite the new Tech Stack section calling them out (i.e., the platform is already ahead of what the document asks for here):
+
+- **Audit-log DB-permission hardening (Tech Stack §3.6):** "no update or delete grant exists for any application role... including Super Admin's own operational database credentials." Genuinely true today — `2026-01-01-000028_CreateAuditLog.php` explicitly `REVOKE`s UPDATE/DELETE/TRUNCATE on `audit_log` from the application's own DB role and grants only INSERT/SELECT.
+- **BR-08 (Turnover-Based SaaS Monetization):** the flat 0.5% SaaS fee is genuinely computed at both forfeiture (`EmdService::calculateForfeitureAllocation`) and settlement (`EmdService::calculateSettlementFee`, default `$saasFeePercent = 0.5`) — just never tagged with a "BR-08" comment anywhere, which is why the coverage grep initially read as zero.
+
+**Two items checked and confirmed already satisfied by design**, no gap:
+
+- **BR-30 (Format-Specific Inspection Rules):** satisfied by construction — Express genuinely has no inspection window (nothing was built, matching the rule), and Easy/Buy-Now's 60-minute grace window is BR-14's already-built mechanism, which BR-30 explicitly delegates to.
+- **BR-37 (Rating Portability Across Tenants):** `star_rating`/`seller_star_rating` live on the `party` table itself, not any tenant-scoped table — structurally portable by design, satisfying BR-37 without needing a dedicated feature.
+
+**New in this document, not yet built (expected — this is new scope, not a missed gap):**
+
+- **BR-62–66 / PR-37 (Tenant API Access)** — an entirely new module. Zero code anywhere, as expected for a feature that didn't exist in the prior document.
+- **Server-time integrity (Tech Stack §3.10)** — NTP sync verification and drift alerting. No code anywhere. This one is genuinely new: the prior Tech Stack document didn't specify it, so it wasn't a gap before, but it's now a real, unbuilt requirement.
+- **Independent third-party security audit (Tech Stack §3.11)** — an organizational/procurement requirement (hire an external firm before go-live), not something to write code for.
+
+**Unchanged from the prior pass:**
+
+- **BR-46 (AI Pre-Audit)** — still blocked on a real Gemini API key.
+- **BR-52 (Chargeback Mitigation)** — the payment gateway is no longer undecided (the new Tech Stack names **SabPaisa**), but a live chargeback/representment workflow still needs real gateway API credentials to integrate against, not just a vendor name.
+
+### Bottom line (current)
+
+**Ten items now tracked as open** — six real gaps in already-shipped BRs, one entirely new module, one new tech-stack requirement, and the two pre-existing external-vendor blockers:
+
+1. BR-15 — Super Admin non-participation enforcement (no external blocker)
+2. BR-07 — category closed-list enforcement (no external blocker)
+3. BR-19 / PR-16 — compliance-lockout cascade (no external blocker)
+4. BR-32 — per-listing buyer fee override (no external blocker)
+5. BR-41 — seller rating on the listing detail page (no external blocker, small)
+6. PR-08 — Tenant Admin promotion web UI (no external blocker, small — the underlying BR-44 logic already exists)
+7. BR-62–66 / PR-37 — Tenant API Access (no external blocker, large — a whole new module)
+8. Server-time integrity / NTP drift monitoring (no external blocker)
+9. BR-46 — AI Pre-Audit (blocked on a Gemini API key)
+10. BR-52 — Chargeback Mitigation (blocked on real SabPaisa API credentials — vendor now named, credentials still needed)
+
+Items 1, 2, 3, 5, and 6 are all genuinely small — each is a single, bounded fix, not a redesign. Item 4 is small-to-medium (one new column + one edit path). Item 7 is the only large item with no external blocker.
 

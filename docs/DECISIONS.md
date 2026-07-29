@@ -4727,3 +4727,83 @@ decision above. Multi-tenant KYC nuances (should a Tenant Admin ever get
 visibility into a specific applicant's dossier) were not addressed —
 the Super Admin routing above covers the literal PR-15 gate requirement,
 not a broader KYC-visibility redesign.
+
+### D-77: Governing document replaced (BR-01–61/PR-01–36 → BR-01–66/PR-01–37); full re-audit
+
+**Decision:** The project owner supplied a replacement of the platform's
+single canonical governing document. Per its own "Status" line it
+supersedes the prior version, the same way the prior version superseded
+whatever came before it. Recorded verbatim in
+`docs/source-documents/eBid_Hub_Unified_BR_PR.docx` (now a real binary
+`.docx` — the prior file at that path was plain text saved with a
+`.docx` extension; recoverable via `git log -p` on that path if ever
+needed). `docs/source-documents/README.md` carries the full summary of
+what changed.
+
+**What's new:** BR-62–66 and PR-37 — a Tenant API Access module letting
+a Tenant integrate its own systems as an alternative to the portal UI,
+governed by the exact same approval/lifecycle/visibility rules as a
+portal submission (BR-13/14/16, no API-side approval bypass), OAuth2
+client-credentials through the existing Auth0 relationship, hard-scoped
+per-tenant at token issuance. The Tech Stack section is substantially
+more decided: **SabPaisa** is now named as the selected payment gateway
+(was TBD) — directly relevant to BR-52. KYC verification is explicitly
+specified as **manual, no automated vendor** — confirming D-76's
+approach was exactly right, not a one-off workaround. Two genuinely new,
+unbuilt tech-stack requirements: server-time integrity (NTP sync +
+drift alerting) and an independent third-party security audit before
+go-live (organizational, not a code task). Every already-built numeric
+rule (BR-27's 10% EMD, BR-43's 150% ceiling, BR-49's ₹10L threshold,
+BR-38's shadow-ban thresholds) was spot-checked unchanged against the
+new text.
+
+**A full, systematic re-audit followed** — every one of the 66 BRs and
+37 PRs checked for real code coverage (`grep -rl "BR-XX\b" app/`), not
+assumed from any prior audit's claims, the same method D-43/D-64/D-73's
+passes used. This surfaced **six real, previously-unflagged gaps that
+pre-date this document swap** — genuine holes in the original BR-01–61
+range that three prior audit passes (D-43, D-64, D-73) all missed:
+
+1. **BR-15** (Super Admin non-participation) — zero enforcement anywhere;
+   nothing blocks a Super Admin from bidding, listing, or participating.
+2. **BR-07** (category scope restriction) — the listing `category` field
+   is unrestricted free text; the platform's own permitted-categories
+   closed list is never enforced. The one file citing "BR-07" in the
+   codebase turned out to be a mislabeled comment on an unrelated field.
+3. **BR-19/PR-16** (compliance-lockout cascade) — BR-19's own text
+   promises automated cross-role lockout when one role's compliance flag
+   is revoked; no such cascade exists.
+4. **BR-32** (per-listing buyer fee override) — only a tenant-wide
+   default fee exists; BR-32's actual text requires adjusting the fee
+   "on any active listing," implying per-listing granularity.
+5. **BR-41** (seller rating pre-bid) — shown in the `browse.php`
+   discovery grid but missing from `listing/show.php`, the actual page a
+   buyer bids from.
+6. **PR-08** (Tenant Admin promotion UI) — no Super Admin web UI exists;
+   only a CLI command (`grant:tenant-admin`), already honestly
+   self-flagged in that command's own comment as an interim stand-in.
+   BR-44's auto-demote-prior-admin logic it depends on genuinely exists
+   inside that command — only the web UI itself is missing.
+
+**Two items double-checked and confirmed already built**, correcting an
+initial misreading of the new Tech Stack section as flagging fresh gaps:
+audit-log DB-permission hardening (§3.6) — genuinely enforced via a real
+`REVOKE UPDATE, DELETE, TRUNCATE` at the database layer in migration
+000028, not just an application-layer convention — and BR-08's 0.5%
+SaaS fee, genuinely computed in `EmdService` at both forfeiture and
+settlement, just never tagged with a "BR-08" comment (which is why the
+coverage grep initially read zero).
+
+**Two items confirmed satisfied by design, not gaps:** BR-30 (Express
+has no inspection window by not building one, matching the rule; Easy/
+Buy-Now's grace window is BR-14's already-built mechanism BR-30
+delegates to) and BR-37 (ratings live on `party`, not any tenant-scoped
+table — portable by construction).
+
+**Full open-items list is now ten**, replacing the prior "two items"
+bottom line in `docs/BR_PR_AUDIT.md` — see that document's own "Update —
+full re-audit" section for the complete, current list with fix-size
+estimates. Five of the six newly-found gaps (BR-15, BR-07, BR-19/PR-16,
+BR-41, PR-08) are each small, bounded fixes; BR-32 is small-to-medium;
+BR-62–66/PR-37 (Tenant API) is the only large item with no external
+blocker.
