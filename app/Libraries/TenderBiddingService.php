@@ -29,6 +29,14 @@ class TenderBiddingService
 
     public function placeBid(string $saleEventId, string $bidderPartyId, float $amount): array
     {
+        // BR-15: structurally barred from placing bids/offers under any
+        // circumstance — Tender uses its own eligibility gate rather than
+        // AuthorizationService::hasConflictOfInterest(), so this needs its
+        // own explicit check.
+        if ((new AuthorizationService())->isSuperAdmin($bidderPartyId)) {
+            throw new \RuntimeException('BR-15: the Super Admin holds a non-participatory regulatory role and may never bid, offer, or pledge on any listing.');
+        }
+
         $saleEvent = $this->saleEventModel->find($saleEventId);
         if (!$saleEvent || $saleEvent['sale_format'] !== 'tender') {
             throw new \RuntimeException('TenderBiddingService is only for Tender sale events');
