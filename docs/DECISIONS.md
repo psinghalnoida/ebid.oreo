@@ -5154,3 +5154,48 @@ zero new failures** — only the pre-existing `test:auditlog`/D-62 gap
 and `test:invoices`'s missing `Dompdf`. `test:sovereignrule` updated
 for the 7th wired rule (was 6) and still passes in full;
 `test:scheduler` (exercises `runAll()` directly) unaffected.
+
+### D-85: Fifth Full Re-Audit — One New Gap (BR-31), Six Confirmed Closed
+
+**Decision:** at the project owner's request, re-audited from scratch
+against the governing document — re-extracted directly from the current
+`.docx`, confirmed byte-for-byte identical to the copy D-77 recorded
+(`diff`, not assumed) — rather than trusting this session's own prior
+findings. Every one of 66 BRs and 37 PRs checked for real code coverage
+against the current, freshly-merged `main`.
+
+**Confirmed genuinely closed, not just trusted from PR descriptions**:
+BR-15, BR-07, BR-19/PR-16, BR-32, BR-41, PR-08, and Server Time
+Integrity (§3.10) — spot-checked each one's real implementation
+artifact directly in the merged codebase (e.g. `grep -rl "BR-15: the
+Super Admin holds" app/`, `ls app/Libraries/ComplianceLockoutService.php`).
+All present and correct. BR-62–66/PR-37 confirmed still genuinely zero
+code anywhere — still open, unchanged.
+
+**One new gap found, missed by four prior passes (D-43, D-64, D-73,
+D-77) and by this session's own BR-32 work**: BR-31 states the buyer's
+transaction fee is adjustable "within a fixed band: a floor of 0.5%...
+and a ceiling of 5%... which may never be exceeded." Neither
+`TenantController::createSubmit()`/`editSubmit()` (the tenant-wide
+default) nor `TenantModel` validates the posted `buyer_fee_percent`
+against this band — currently settable to any value at all, including
+0%, negative, or far above 5%. The BR-32 per-listing override built
+this session (`ListingController::updateFeeOverride()`) has the same
+gap: it validates 0–100 (a basic sanity bound against
+`EmdService::calculateSettlementFee()` throwing on a negative refund)
+but not BR-31's tighter 0.5–5 band. Sellers already pay a genuine,
+verified 0% — no fee-deduction code references a seller fee anywhere
+— so that half of BR-31 is satisfied by omission; only the band
+enforcement is missing.
+
+**Also spot-checked** (every item with a suspiciously low/zero `grep`
+hit count that wasn't an already-explained case): BR-20 (Super Admin
+credential isolation — real, substantive re-enrollment gate), BR-49/
+PR-27 (High-Value Disposal — a genuine `high_value_disposal_record`
+table insert, not just a threshold check), BR-45 (photo count 5–50 —
+real `MIN_PHOTOS`/`MAX_PHOTOS` consts enforced). All confirmed solid.
+
+See `docs/BR_PR_AUDIT.md`'s "Update — fifth full pass" section for the
+complete write-up and the current four-item bottom line: BR-31 (small,
+no blocker), BR-62–66/PR-37 (large, no blocker), BR-46/BR-52 (both
+still externally blocked).

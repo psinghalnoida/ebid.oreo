@@ -225,7 +225,7 @@ The project owner supplied a replacement governing document (D-77, see `docs/sou
 - **BR-46 (AI Pre-Audit)** — still blocked on a real Gemini API key.
 - **BR-52 (Chargeback Mitigation)** — the payment gateway is no longer undecided (the new Tech Stack names **SabPaisa**), but a live chargeback/representment workflow still needs real gateway API credentials to integrate against, not just a vendor name.
 
-### Bottom line (current)
+### Bottom line (superseded by the fifth-pass re-audit below — kept for history)
 
 **Ten items now tracked as open** — six real gaps in already-shipped BRs, one entirely new module, one new tech-stack requirement, and the two pre-existing external-vendor blockers:
 
@@ -241,4 +241,51 @@ The project owner supplied a replacement governing document (D-77, see `docs/sou
 10. BR-52 — Chargeback Mitigation (blocked on real SabPaisa API credentials — vendor now named, credentials still needed)
 
 Items 1, 2, 3, 5, and 6 are all genuinely small — each is a single, bounded fix, not a redesign. Item 4 is small-to-medium (one new column + one edit path). Item 7 is the only large item with no external blocker.
+
+## Update — fifth full pass, post-fix verification + one new gap (D-85)
+
+Re-audited from scratch against the same governing document (re-extracted
+directly from the current `.docx` in `docs/source-documents/`, byte-for-byte
+identical to the copy D-77 recorded — confirmed via `diff`, not assumed).
+All 66 BRs and 37 PRs checked for real code coverage (`grep -rl "BR-XX\b"
+app/` per item, cross-referenced against the current merged `main`), not
+assumed from this document's own prior "closed" claims.
+
+**Items 1–6 above (BR-15, BR-07, BR-19/PR-16, BR-32, BR-41, PR-08) and
+item 8 (Server Time Integrity) confirmed genuinely merged into `main`** —
+spot-checked each one's real implementation artifact directly (e.g.
+`grep -rl "BR-15: the Super Admin holds" app/`, `ls app/Libraries/
+ComplianceLockoutService.php`), not just trusted from the PRs' own
+descriptions. All present. Item 7 (BR-62–66/PR-37, Tenant API) confirmed
+still genuinely zero code anywhere (`grep -rl "BR-6[2-6]\b" app/` → no
+hits) — still open, still the only large item with no external blocker.
+
+**One new, previously-unflagged gap found**, missed by all four prior
+passes (D-43, D-64, D-73, D-77) and not introduced but also not caught by
+this session's own BR-32 work:
+
+- **BR-31 (Dual-Fee Billing & Zero-Seller Model).** The text is explicit: the buyer's transaction fee is "adjustable at the Tenant Admin's discretion within a fixed band: a floor of 0.5%... and a ceiling of 5%... which may never be exceeded." Neither `TenantController::createSubmit()`/`editSubmit()` (the tenant-wide default) nor `TenantModel` validates the posted `buyer_fee_percent` against this band at all — a Tenant Admin can currently set it to any value, including 0%, negative, or far above 5%. The per-listing override built this session for BR-32 (`ListingController::updateFeeOverride()`) has the same gap: it validates 0–100 (a basic sanity bound against `EmdService::calculateSettlementFee()` throwing on a negative refund) but not the tighter 0.5–5 band BR-31 actually specifies. Sellers already pay a genuine, verified 0% (no fee-deduction code references a seller fee anywhere) — that half of BR-31 is satisfied by omission; only the band-enforcement half is missing.
+
+**Everything else spot-checked this pass** (every item with a
+suspiciously low or zero `grep` hit count that wasn't already an
+explained case): BR-20 (Super Admin credential isolation — real,
+substantive re-enrollment gate, not a stray comment), BR-49/PR-27
+(High-Value Disposal — a genuine `high_value_disposal_record` table
+insert exists, not just a threshold check), BR-45 (photo count 5–50 —
+real `MIN_PHOTOS`/`MAX_PHOTOS` consts enforced in `MediaService`). All
+confirmed solid.
+
+### Bottom line (current)
+
+**Ten items still tracked, now with one substitution**: BR-31's fee-band
+validation gap replaces BR-15/BR-07/BR-19/BR-32/BR-41/PR-08/Server-Time
+Integrity, all six of which are now closed and merged.
+
+1. BR-31 — buyer-fee band (0.5%–5%) never validated server-side, tenant-wide or per-listing (no external blocker, small)
+2. BR-62–66 / PR-37 — Tenant API Access (no external blocker, large — a whole new module)
+3. BR-46 — AI Pre-Audit (blocked on a Gemini API key)
+4. BR-52 — Chargeback Mitigation (blocked on real SabPaisa API credentials)
+
+Item 1 is a single, bounded fix (two validation checks, no schema
+change). Item 2 is the only large item with no external blocker.
 
