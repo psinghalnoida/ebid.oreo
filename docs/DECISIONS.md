@@ -4807,3 +4807,34 @@ estimates. Five of the six newly-found gaps (BR-15, BR-07, BR-19/PR-16,
 BR-41, PR-08) are each small, bounded fixes; BR-32 is small-to-medium;
 BR-62–66/PR-37 (Tenant API) is the only large item with no external
 blocker.
+
+### D-78: BR-41 — Seller Rating Visibility Pre-Bid
+
+**Decision:** D-77's re-audit found `seller_star_rating` shown in the
+`browse.php` discovery grid but genuinely absent from
+`listing/show.php` — the actual page a buyer views and bids from. An
+older audit pass (D-43) had claimed this was "confirmed correctly
+built"; re-verified directly against the current code before touching
+anything, and that claim no longer held (`ListingController::show()`'s
+`findActiveById()` call does no join and never fetched the seller's
+rating at all). BR-41's exact text: "Even in fully anonymous, price-only
+auction formats (Easy, Express), the seller's own sellerStarRating
+remains visible to all bidding buyers throughout the live event" — and
+its own rationale is explicit that this is not a BR-16 anonymity breach,
+since it exposes only the seller's own public reputation number, never
+their identity.
+
+Fixed by fetching the seller's `seller_star_rating` in
+`ListingController::show()` (one `PartyModel::find()` call) and
+rendering it next to the Lot ID/Media line — no seller name, mobile, or
+any other identifying field passed to the view, keeping the double-blind
+identity design intact while satisfying BR-41's actual requirement.
+
+**Verified over real HTTP**: a real tenant, seller (`seller_star_rating
+= 4.3`), and active listing inserted directly; `GET
+/listings/{id}` on a live server genuinely renders `★ 4.3` next to the
+Lot ID line — confirmed in the raw response body, not just code review.
+
+**Full regression on a freshly-migrated database (58 migrations from
+zero): 488 assertions across 27 runnable engines, zero new failures** —
+only the pre-existing, unrelated `test:auditlog`/D-62 gap.

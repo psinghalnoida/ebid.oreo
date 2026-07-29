@@ -10,7 +10,12 @@
     <?= esc(strtoupper($listing['status'])) ?>
   </span>
   <h1 style="font-size:26px; margin:12px 0 4px;"><?= esc($listing['category']) ?><?= $listing['subcategory'] ? ' / ' . esc($listing['subcategory']) : '' ?></h1>
-  <p style="color:var(--ink-3); font-size:13px;">Lot ID: <?= esc($listing['id']) ?> · Media: <?= esc(strtoupper($listing['media_tier'])) ?></p>
+  <p style="color:var(--ink-3); font-size:13px;">
+    Lot ID: <?= esc($listing['id']) ?> · Media: <?= esc(strtoupper($listing['media_tier'])) ?>
+    <?php if ($sellerStarRating !== null): ?>
+      · Seller Rating: <span style="color:var(--emerald-deep); font-weight:700;">★ <?= esc(number_format($sellerStarRating, 1)) ?></span>
+    <?php endif; ?>
+  </p>
 
   <?php if (session()->get('logged_in_party_id')): ?>
     <form method="post" action="/listings/<?= esc($listing['id']) ?>/<?= $isFavorited ? 'unfavorite' : 'favorite' ?>" style="margin-top:8px;">

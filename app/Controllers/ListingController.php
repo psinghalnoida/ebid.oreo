@@ -265,6 +265,14 @@ class ListingController extends BaseController
                 ->get()->getResultArray();
         }
 
+        // BR-41: "the seller's own sellerStarRating remains visible to all
+        // bidding buyers throughout the live event" — even in the fully
+        // anonymous Easy/Express formats. Not a breach of bidder anonymity
+        // (BR-16): this exposes only the seller's own public reputation
+        // number, never their identity.
+        $seller = (new \App\Models\PartyModel())->find($listing['seller_party_id']);
+        $sellerStarRating = $seller ? (float) $seller['seller_star_rating'] : null;
+
         $viewerId = session()->get('logged_in_party_id');
         return view('listing/show', [
             'title' => 'Listing — eBid Hub', 'listing' => $listing, 'saleEvent' => $saleEvent,
@@ -276,6 +284,7 @@ class ListingController extends BaseController
             'settlementRecord' => $settlementRecord,
             'relatedListings' => $relatedListings,
             'isFavorited' => $viewerId ? (new \App\Models\ListingFavoriteModel())->isFavorited($viewerId, $listingId) : false,
+            'sellerStarRating' => $sellerStarRating,
         ]);
     }
 
