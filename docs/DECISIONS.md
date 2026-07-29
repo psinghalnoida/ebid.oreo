@@ -4971,3 +4971,60 @@ zero): 488 assertions across 27 runnable engines, zero new failures** —
 only the pre-existing, unrelated `test:auditlog`/D-62 gap and
 `test:invoices`'s missing `Dompdf` package (both unrelated to this
 change).
+
+### D-82: BR-32 — Per-Listing Buyer Fee Override
+
+**Decision:** D-77's re-audit found `buyer_fee_percent` only existed
+on the `tenant` table — a Tenant Admin could change the blanket
+tenant-wide default, but BR-32's actual text is "adjust the buyer's
+transaction fee **on any active listing**," implying per-listing
+granularity distinct from the tenant default. No such override
+existed anywhere.
+
+**What's built:** a new nullable `listing.buyer_fee_percent_override`
+column (migration 000059). When set, it takes precedence over
+`tenant.buyer_fee_percent` at the two real places a buyer fee actually
+gets applied to money:
+- `SettlementService::checkCompletion()` — the successful-sale fee split (tenant/SaaS/buyer-refund) via `EmdService::calculateSettlementFee()`.
+- `DisputeService::executeRuling()`'s `order_forfeiture` outcome — the same fee rate feeds `EmdService::calculateForfeitureAllocation()`'s split, so a forfeiture on the same listing doesn't silently fall back to a different (stale) rate than a completed sale would have used.
+
+(`CascadeService::forfeitHold()` also computes a forfeiture allocation
+from a `buyer_fee_percent`, but `processDefault()` — its only entry
+point — is never actually called from any production code path today,
+only from test commands with a hardcoded rate passed directly; the
+scheduler only calls `initiateCascade()`. This is a genuine pre-existing
+gap in BR-28's automatic-default wiring, not something this change
+touches — left as-is rather than silently patched to look consistent
+with dead code.)
+
+**Where:** a "Buyer Fee Override" form on the listing detail page
+(`listing/show.php`), shown when `status === 'active'` (matching
+BR-32's "any active listing" wording exactly), gated by the existing
+`tenantAdmin:listing` route filter — same access boundary as
+approve/reject. `POST /listings/{id}/fee-override`
+(`ListingController::updateFeeOverride()`): a blank value clears the
+override back to the tenant default; 0–100 validated; both actions are
+audit-logged (`listing.buyer_fee_override_set` /
+`listing.buyer_fee_override_cleared`).
+
+**Verified over real HTTP**, not just code review: fixtured a tenant
+(5% default), a listing with a real Tenant Admin session setting a
+2% override via the actual form endpoint, then drove a real
+Buy-Now settlement to completion through all four real
+`/settlements/{id}/...` confirm/rate endpoints (seller NOC, buyer NOC,
+both ratings) as two real logged-in parties. Confirmed in Postgres the
+resulting `emd_hold` fee split used the listing's 2% override
+(tenant amount ₹1,425, SaaS ₹475, buyer refund ₹8,100 on a ₹95,000
+sale) — not the tenant's 5% default (which would have been ₹4,275 /
+₹475 / ₹5,250). A control listing with no override on the same tenant
+correctly settled at the 5% default, confirming the fallback still
+works. Also confirmed: an out-of-range value (150%) is rejected with
+no change; clearing the override renders the "tenant default" label
+again; both actions produce the expected audit-log entry.
+
+**Full regression on a freshly-migrated database (59 migrations from
+zero): 488 assertions across 27 runnable engines, zero new failures** —
+only the pre-existing, unrelated `test:auditlog`/D-62 gap and
+`test:invoices`'s missing `Dompdf` package. `test:settlement` and
+`test:dispute` — the two suites exercising the exact code paths
+touched here — both still pass in full.
