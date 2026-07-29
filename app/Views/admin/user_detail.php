@@ -31,6 +31,20 @@
     <?php endforeach; ?>
   </ul>
 
+  <div style="border:1px solid var(--line); border-radius:12px; padding:14px; margin-top:12px;">
+    <p style="font-size:13px; font-weight:700; margin:0 0 8px;">Promote to Tenant Admin</p>
+    <p style="font-size:11px; color:var(--ink-3); margin:0 0 10px;">PR-08. BR-44: this auto-demotes whoever currently holds Tenant Admin for the selected tenant.</p>
+    <form method="post" action="/admin/users/<?= esc($party['id']) ?>/promote-tenant-admin" style="display:flex; gap:8px;">
+      <select name="tenant_id" required style="flex:1; padding:8px; border:1px solid var(--line); border-radius:8px; font-size:12px;">
+        <option value="">Select a tenant…</option>
+        <?php foreach ($tenants as $t): ?>
+          <option value="<?= esc($t['id']) ?>"><?= esc($t['name']) ?></option>
+        <?php endforeach; ?>
+      </select>
+      <button type="submit" style="padding:8px 14px; border-radius:8px; border:none; background:var(--emerald-deep); color:#fff; font-size:12px; font-weight:700;">Grant</button>
+    </form>
+  </div>
+
   <h3 style="font-size:15px; margin-top:20px;">Recent Purchases (as buyer)</h3>
   <table style="width:100%; border-collapse:collapse; font-size:12px;">
     <?php foreach ($purchases as $p): ?>

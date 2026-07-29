@@ -4927,3 +4927,47 @@ still succeeds unaffected (a real ₹10,000 hold created).
 **Full regression on a freshly-migrated database (58 migrations from
 zero): 488 assertions across 27 runnable engines, zero new failures** —
 only the pre-existing, unrelated `test:auditlog`/D-62 gap.
+
+### D-81: PR-08 — Tenant Admin Promotion Web UI
+
+**Decision:** D-77's re-audit confirmed `grant:tenant-admin` was still
+CLI-only — the command's own comment self-flagged this ("No Super
+Admin panel exists yet"). PR-08 requires this be a Super Admin web
+action, not an operator running a spark command. The underlying
+`PartyRoleModel::promoteTenantAdmin()` logic (including BR-44's
+auto-demotion of whoever previously held the role for that tenant) was
+already correct and unit-tested via the CLI path — this pass wraps it
+in a web UI rather than rewriting it.
+
+**Where:** added a "Promote to Tenant Admin" form directly to the
+existing Super Admin user-detail page (`/admin/users/{id}`,
+`UserController::detail()`), next to the Roles list already shown
+there — a tenant `<select>` plus a Grant button, posting to the new
+`UserController::promoteTenantAdmin()` action
+(`POST /admin/users/{id}/promote-tenant-admin`, `superAdmin`-filtered,
+same access boundary as every other admin surface). Chose the existing
+user-detail page over a new standalone page since the Super Admin is
+already looking at the specific party being promoted and their current
+roles right there — a dedicated new page would just duplicate that
+lookup.
+
+**Verified over real HTTP**, not just code review: registered two real
+parties end-to-end (mobile → OTP → mPIN), granted one `super_admin` via
+`spark grant:super-admin`, then completed **real TOTP enrollment**
+(`/admin/setup-totp`, RFC 6238 code computed directly from
+`TotpService::generateCode()` via reflection) and logged in through the
+isolated `/admin/login` path — the same real security boundary
+`SuperAdminFilter` checks, not a session shortcut. Seeded a tenant with
+an existing Tenant Admin, then submitted the real promote form for the
+second registered party:
+- The prior Tenant Admin's `party_role` row is genuinely `revoked_at`-stamped (BR-44), the new one inserted active — confirmed directly in Postgres, not assumed.
+- `admin.tenant_admin_granted` audit-log entry recorded with the correct actor, tenant, and `demotedPreviousAdminId`.
+- The user-detail page reflects the new role on next load.
+- An invalid/missing `tenant_id` is rejected with a flash error, no role change.
+- A regular (non-Super-Admin) session hitting `/admin/users` is redirected to `/admin/login`, confirming the existing `superAdmin` filter still gates the new route correctly.
+
+**Full regression on a freshly-migrated database (58 migrations from
+zero): 488 assertions across 27 runnable engines, zero new failures** —
+only the pre-existing, unrelated `test:auditlog`/D-62 gap and
+`test:invoices`'s missing `Dompdf` package (both unrelated to this
+change).
