@@ -39,6 +39,7 @@
   <a href="/admin/rating-reviews" class="btn btn-ghost" style="margin-left:8px;">Rating Reviews</a>
   <a href="/admin/consent-audit" class="btn btn-ghost" style="margin-left:8px;">Consent Audit</a>
   <a href="/admin/rules" class="btn btn-ghost" style="margin-left:8px;">Rules &amp; Specifications</a>
+  <a href="/admin/kyc" class="btn btn-ghost" style="margin-left:8px;">KYC Review Queue</a>
 
   <h3 style="font-size:15px; margin-top:28px;">Today</h3>
   <div style="display:flex; gap:16px; margin:10px 0;">

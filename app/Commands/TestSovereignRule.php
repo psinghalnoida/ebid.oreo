@@ -55,18 +55,19 @@ class TestSovereignRule extends BaseCommand
         ]);
         $emdHoldModel->createHold($saleEvent['id'], $buyer['id'], 'van', EmdService::calculateBaselineEmd('easy', null, 100000.0));
 
-        CLI::write("\n=== Step 1: listAll() seeds the 5 wired rules at their exact original hardcoded values ===", 'yellow');
+        CLI::write("\n=== Step 1: listAll() seeds the 6 wired rules at their exact original hardcoded values ===", 'yellow');
         $all = $rules->listAll();
         $byKey = [];
         foreach ($all as $r) {
             if ($r['rule_key']) $byKey[$r['rule_key']] = $r;
         }
-        $this->assert(count($byKey) === 5, 'All 5 wired rules are seeded');
+        $this->assert(count($byKey) === 6, 'All 6 wired rules are seeded');
         $this->assert((float) $byKey['BR-43.bid_ceiling_multiplier']['numeric_value'] === 1.5, 'BR-43 seeded at the original 1.5 (150%)');
         $this->assert((float) $byKey['BR-27.emd_percent']['numeric_value'] === 0.10, 'BR-27 seeded at the original 0.10 (10%)');
         $this->assert((float) $byKey['BR-49.high_value_threshold']['numeric_value'] === 1000000.0, 'BR-49 seeded at the original ₹10L');
         $this->assert((float) $byKey['BR-38.shadow_ban_threshold']['numeric_value'] === 1.5, 'BR-38 shadow-ban seeded at the original 1.5★');
         $this->assert((float) $byKey['BR-38.crawl_back_threshold']['numeric_value'] === 2.0, 'BR-38 crawl-back seeded at the original 2.0★');
+        $this->assert((float) $byKey['BR-55.enhanced_due_diligence_threshold']['numeric_value'] === 500000.0, 'BR-55 EDD threshold seeded at the original ₹5L');
 
         CLI::write("\n=== Step 2: mandatory Reason for Modification is genuinely enforced ===", 'yellow');
         try {
@@ -144,13 +145,13 @@ class TestSovereignRule extends BaseCommand
         $found = array_filter($refetchedAll, fn ($r) => $r['id'] === $freeform['id']);
         $this->assert(count($found) === 1, 'The freeform rule appears in listAll() alongside the wired ones');
 
-        // These 5 rules are genuinely live, platform-wide, and persist in
+        // These 6 rules are genuinely live, platform-wide, and persist in
         // the database — unlike every other Test* command, which only
         // creates its own isolated tenant/party/listing rows, this one
         // mutates shared configuration every other engine (and a real
         // deployment) depends on. Restore the originals so this test run
         // doesn't leave the platform silently reconfigured afterward.
-        CLI::write("\n=== Teardown: restoring all 5 wired rules to their original values ===", 'yellow');
+        CLI::write("\n=== Teardown: restoring all 6 wired rules to their original values ===", 'yellow');
         foreach (SovereignRuleService::seedDefinitions() as $key => $def) {
             $current = $byKey[$key];
             $rules->update($current['id'], $def['title'], $def['statement'], $def['logic'], $def['numeric_value'], 'test:sovereignrule teardown — restoring platform default', $seller['id']);
@@ -162,8 +163,8 @@ class TestSovereignRule extends BaseCommand
         $this->assert(
             $restored['BR-43.bid_ceiling_multiplier'] === 1.5 && $restored['BR-27.emd_percent'] === 0.10
             && $restored['BR-49.high_value_threshold'] === 1000000.0 && $restored['BR-38.shadow_ban_threshold'] === 1.5
-            && $restored['BR-38.crawl_back_threshold'] === 2.0,
-            'All 5 rules restored to their original values — this test leaves no live config changed behind'
+            && $restored['BR-38.crawl_back_threshold'] === 2.0 && $restored['BR-55.enhanced_due_diligence_threshold'] === 500000.0,
+            'All 6 rules restored to their original values — this test leaves no live config changed behind'
         );
 
         CLI::write("\n" . ($this->fail === 0 ? "🎉 ALL {$this->pass} ASSERTIONS PASSED" : "❌ {$this->fail} FAILURES, {$this->pass} passed"), $this->fail === 0 ? 'green' : 'red');

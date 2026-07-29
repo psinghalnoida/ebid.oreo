@@ -38,6 +38,14 @@ class BidController extends BaseController
             return redirect()->to('/login');
         }
 
+        // BR-55: full KYC verification is mandatory before a User's
+        // first EMD pledge, with no lower-value exemption.
+        try {
+            (new \App\Libraries\KycService())->requireVerifiedKyc($bidderId, 'pledging an EMD deposit');
+        } catch (\RuntimeException $e) {
+            return redirect()->to('/kyc')->with('error', $e->getMessage());
+        }
+
         $saleEvent = $this->saleEventModel->find($saleEventId);
         $baseline = EmdService::calculateBaselineEmd(
             $saleEvent['sale_format'],
@@ -47,6 +55,13 @@ class BidController extends BaseController
 
         $existing = $this->emdHoldModel->findBySaleEventAndParty($saleEventId, $bidderId);
         if (!$existing || $existing['status'] !== 'held') {
+            // BR-55: enhanced due diligence above the live threshold —
+            // gates this specific pledge, not the whole account.
+            try {
+                (new \App\Libraries\KycService())->checkEnhancedDueDiligence($bidderId, $baseline);
+            } catch (\RuntimeException $e) {
+                return redirect()->to("/listings/{$saleEvent['listing_id']}")->with('error', $e->getMessage());
+            }
             $this->emdHoldModel->createHold($saleEventId, $bidderId, 'van', $baseline);
             (new \App\Libraries\AuditLogService())->log('emd.held', $bidderId, [
                 'saleEventId' => $saleEventId, 'amount' => $baseline, 'channel' => 'van',

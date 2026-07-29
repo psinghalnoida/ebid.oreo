@@ -43,6 +43,14 @@ class EmdConsentController extends BaseController
         $partyId = session()->get('logged_in_party_id');
         if (!$partyId) return redirect()->to('/login');
 
+        // BR-55: full KYC verification is mandatory before a User's
+        // first EMD pledge, with no lower-value exemption.
+        try {
+            (new \App\Libraries\KycService())->requireVerifiedKyc($partyId, 'pledging an EMD deposit');
+        } catch (\RuntimeException $e) {
+            return redirect()->to('/kyc')->with('error', $e->getMessage());
+        }
+
         if ($this->request->getPost('confirmed') !== '1') {
             return redirect()->to("/sale-events/{$saleEventId}/emd-consent/{$action}")
                 ->with('error', 'You must explicitly confirm before your deposit is pledged.');
@@ -54,6 +62,14 @@ class EmdConsentController extends BaseController
             $saleEvent['expected_value'] !== null ? (float) $saleEvent['expected_value'] : null,
             $saleEvent['reserve_value'] !== null ? (float) $saleEvent['reserve_value'] : null
         );
+
+        // BR-55: enhanced due diligence above the live threshold — gates
+        // this specific pledge, not the whole account.
+        try {
+            (new \App\Libraries\KycService())->checkEnhancedDueDiligence($partyId, $baseline);
+        } catch (\RuntimeException $e) {
+            return redirect()->to("/listings/{$saleEvent['listing_id']}")->with('error', $e->getMessage());
+        }
 
         $forfeitureText = 'if the auction closes and you fail to complete your obligation, this deposit is forfeited — allocated to the Tenant, SaaS, and (where applicable) the seller per the platform\'s standard forfeiture rules.';
 
