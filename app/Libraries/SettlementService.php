@@ -19,7 +19,11 @@ class SettlementService
     // BR-49: explicitly stated in the document itself, not a placeholder
     // — "a single ₹10 Lakh threshold applies uniformly across all
     // tenants and sale formats — no tenant-specific carve-outs."
-    private const HIGH_VALUE_DISPOSAL_THRESHOLD = 1000000.0;
+    // PR-04/D-75: now the Super Admin's live "BR-49.high_value_threshold"
+    // rule — the same rule PayoutControlService reads for its own
+    // high-value payout review gate, so editing it once genuinely
+    // affects both. This constant is only the fallback default.
+    private const HIGH_VALUE_DISPOSAL_THRESHOLD_DEFAULT = 1000000.0;
 
     // BR-53: the BR text itself leaves the rate open pending tax-advisor
     // confirmation — the Super Admin (project owner) has confirmed 10%
@@ -209,7 +213,8 @@ class SettlementService
     private function maybeRecordHighValueDisposal(string $settlementId, array $settlement): void
     {
         $finalValue = (float) $settlement['final_price'];
-        if ($finalValue <= self::HIGH_VALUE_DISPOSAL_THRESHOLD) {
+        $threshold = SovereignRuleService::getNumeric('BR-49.high_value_threshold', self::HIGH_VALUE_DISPOSAL_THRESHOLD_DEFAULT);
+        if ($finalValue <= $threshold) {
             return;
         }
 

@@ -207,3 +207,12 @@ $routes->get('/dos-and-donts', 'InfoController::dosAndDonts');
 $routes->get('/security-trust', 'InfoController::securityTrust');
 $routes->get('/fees', 'InfoController::feeSchedule');
 $routes->get('/terminology', 'InfoController::terminology');
+
+// Sovereign Rule Revision (PR-04/BR-01/BR-04) — Rules & Specifications
+// module. /new must be registered before the generic (:segment) edit
+// route below it, same ordering pattern as /admin/tenants/create.
+$routes->get('/admin/rules', 'SovereignRuleController::index', ['filter' => 'superAdmin']);
+$routes->get('/admin/rules/new', 'SovereignRuleController::createForm', ['filter' => 'superAdmin']);
+$routes->post('/admin/rules/new', 'SovereignRuleController::createSubmit', ['filter' => 'superAdmin']);
+$routes->get('/admin/rules/(:segment)', 'SovereignRuleController::editForm/$1', ['filter' => 'superAdmin']);
+$routes->post('/admin/rules/(:segment)/edit', 'SovereignRuleController::editSubmit/$1', ['filter' => 'superAdmin']);

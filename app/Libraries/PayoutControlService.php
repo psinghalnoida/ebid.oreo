@@ -24,7 +24,11 @@ class PayoutControlService
 
     // BR-49/D-49's confirmed ₹10L threshold, reused here rather than a
     // second invented number, per the project owner's explicit choice.
-    private const HIGH_VALUE_THRESHOLD = 1000000.0;
+    // PR-04/D-75: now reads the same live "BR-49.high_value_threshold"
+    // Super Admin rule SettlementService reads — editing it in one place
+    // genuinely changes both the disposal-reporting trigger and this
+    // payout review gate together, since they're the same rule.
+    private const HIGH_VALUE_THRESHOLD_DEFAULT = 1000000.0;
 
     // Not specified by BR-50's text (which says "a newly-changed
     // account" without stating how long "newly" means) — a reasonable
@@ -157,7 +161,8 @@ class PayoutControlService
 
     private function needsReview(string $partyId, float $amount): bool
     {
-        if ($amount < self::HIGH_VALUE_THRESHOLD) {
+        $threshold = SovereignRuleService::getNumeric('BR-49.high_value_threshold', self::HIGH_VALUE_THRESHOLD_DEFAULT);
+        if ($amount < $threshold) {
             return false;
         }
         $party = $this->partyModel->find($partyId);
