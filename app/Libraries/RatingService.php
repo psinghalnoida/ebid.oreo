@@ -464,6 +464,15 @@ class RatingService
             'delistedPartyId' => $partyId, 'reason' => $confirmedFraudReason, 'listingsSuspended' => count($activeListings),
         ]);
 
+        // PR-16: a confirmed-fraud finding is a compliance-flag
+        // revocation in substance -- cascades an automatic global
+        // lockout to every other role this Party holds (a delisted
+        // seller who also happens to be a Tenant Admin elsewhere
+        // shouldn't keep that access either).
+        (new ComplianceLockoutService())->cascadeLockout(
+            $partyId, 'Seller delisted for confirmed fraud: ' . $confirmedFraudReason, $superAdminId
+        );
+
         return ['delisted' => true, 'listingsSuspended' => count($activeListings)];
     }
 
