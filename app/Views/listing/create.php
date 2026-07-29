@@ -18,9 +18,13 @@
     <input type="text" name="physical_condition" required placeholder="e.g. Fire-damaged, functional unverified"
       style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
 
-    <label style="font-size:12px; color:var(--ink-3);">Category</label>
-    <input type="text" name="category" required placeholder="e.g. Industrial Surplus"
-      style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
+    <label style="font-size:12px; color:var(--ink-3);">Category (BR-07)</label>
+    <select name="category" required style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
+      <option value="">Select a category…</option>
+      <?php foreach (\App\Libraries\ListingLifecycleService::PERMITTED_CATEGORIES as $c): ?>
+        <option value="<?= esc($c) ?>"><?= esc($c) ?></option>
+      <?php endforeach; ?>
+    </select>
 
     <label style="font-size:12px; color:var(--ink-3);">Subcategory (optional)</label>
     <input type="text" name="subcategory"

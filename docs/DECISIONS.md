@@ -4838,3 +4838,38 @@ Lot ID line — confirmed in the raw response body, not just code review.
 **Full regression on a freshly-migrated database (58 migrations from
 zero): 488 assertions across 27 runnable engines, zero new failures** —
 only the pre-existing, unrelated `test:auditlog`/D-62 gap.
+
+### D-79: BR-07 — Salvage Asset Categorization & Scope Restriction
+
+**Decision:** D-77's re-audit found the listing `category` field was
+completely unrestricted free text — nothing stopped listing "New iPhone
+15 Pro Max" or any other new retail-consumer good, which BR-07
+explicitly prohibits. The one file in the codebase citing "BR-07" turned
+out to be a mislabeled comment on `tenant_create.php`'s Tenant Class
+field, unrelated to listing categorization — genuinely zero enforcement
+existed anywhere.
+
+Added `ListingLifecycleService::PERMITTED_CATEGORIES`, the exact 8-item
+closed list from BR-07's own text (Salvaged Claims Goods, Second-Hand/
+Used Goods, Abandoned Goods, Antiques, Repossessed Banking Assets,
+Industrial/Commercial Surplus, Custom/Confiscated Goods, Lost-and-Found
+Inventories) — matching the established `REJECTION_REASONS` closed-list
+pattern already used in the same service. `listing/create.php`'s
+category field is now a `<select>` sourced from that list; both
+`ListingController::createSubmit()` and `editSubmit()` validate the
+posted value server-side against it — the dropdown constrains the
+common path, but a raw POST could otherwise bypass client-side-only
+validation, same reasoning as every other closed-list check in this
+codebase.
+
+**Verified over real HTTP**: a real KYC-verified, tenant-approved seller
+attempted to create a listing with category "New iPhone 15 Pro Max" —
+genuinely rejected with a BR-07 error, zero listing rows created.
+The identical seller/tenant then submitted "Industrial/Commercial
+Surplus" — genuinely succeeded, a real listing row created with that
+exact category. Confirmed the create form's `<select>` renders all 8
+permitted categories.
+
+**Full regression on a freshly-migrated database (58 migrations from
+zero): 488 assertions across 27 runnable engines, zero new failures** —
+only the pre-existing, unrelated `test:auditlog`/D-62 gap.

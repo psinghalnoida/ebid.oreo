@@ -146,10 +146,23 @@ class ListingController extends BaseController
             ]);
         }
 
+        // BR-07: the listing category must come from the platform's own
+        // closed list — new retail-consumer goods are explicitly
+        // prohibited by the same rule. Checked server-side, not trusted
+        // from the form (the dropdown already constrains it client-side,
+        // but a raw POST could bypass that).
+        $category = $this->request->getPost('category');
+        if (!in_array($category, ListingLifecycleService::PERMITTED_CATEGORIES, true)) {
+            return view('listing/create', [
+                'title' => 'List an Asset — eBid Hub',
+                'tenants' => $this->tenantModel->findAll(),
+                'error' => 'BR-07: category must be one of the platform\'s permitted categories.',
+            ]);
+        }
+
         // BR-60: representative imagery can only be selected under a
         // genuinely active, approved waiver for this tenant+category —
         // checked server-side, not trusted from the form.
-        $category = $this->request->getPost('category');
         $wantsRepresentativeMedia = $this->request->getPost('media_is_representative_under_waiver') === '1';
         $representativeMediaFlag = false;
         if ($wantsRepresentativeMedia) {
@@ -333,9 +346,16 @@ class ListingController extends BaseController
             return service('response')->setStatusCode(403)->setBody('Only the listing\'s seller may edit it.');
         }
 
+        // BR-07: same closed-list enforcement as creation — an edit can't
+        // move a listing into a prohibited category either.
+        $newCategory = $this->request->getPost('category') ?: $listing['category'];
+        if (!in_array($newCategory, ListingLifecycleService::PERMITTED_CATEGORIES, true)) {
+            return redirect()->to("/listings/{$listingId}")->with('error', 'BR-07: category must be one of the platform\'s permitted categories.');
+        }
+
         $newData = [
             'physical_condition' => $this->request->getPost('physical_condition') ?: $listing['physical_condition'],
-            'category' => $this->request->getPost('category') ?: $listing['category'],
+            'category' => $newCategory,
             'subcategory' => $this->request->getPost('subcategory') ?: $listing['subcategory'],
             'quantity' => $this->request->getPost('quantity') ?: $listing['quantity'],
             'quantity_basis' => $listing['quantity_basis'],

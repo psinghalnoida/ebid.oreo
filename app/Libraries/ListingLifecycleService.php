@@ -22,6 +22,23 @@ class ListingLifecycleService
         'incomplete_metadata' => 'Incomplete metadata',
     ];
 
+    // BR-07: "Permitted categories: Salvaged Claims Goods, Second-Hand/
+    // Used Goods, Abandoned Goods, Antiques, Repossessed Banking Assets,
+    // Industrial/Commercial Surplus, Custom/Confiscated Goods, and
+    // Lost-and-Found inventories" — the platform's own closed list,
+    // explicitly excluding new retail-consumer goods. Was previously a
+    // free-text field with no enforcement at all.
+    public const PERMITTED_CATEGORIES = [
+        'Salvaged Claims Goods',
+        'Second-Hand/Used Goods',
+        'Abandoned Goods',
+        'Antiques',
+        'Repossessed Banking Assets',
+        'Industrial/Commercial Surplus',
+        'Custom/Confiscated Goods',
+        'Lost-and-Found Inventories',
+    ];
+
     private ListingModel $listingModel;
     private SaleEventModel $saleEventModel;
     private BidModel $bidModel;
