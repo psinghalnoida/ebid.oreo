@@ -340,6 +340,37 @@ class ListingController extends BaseController
         return redirect()->to("/listings/{$listingId}");
     }
 
+    // BR-32: "the Tenant Admin can adjust the buyer's transaction fee
+    // on any active listing" -- distinct from the tenant-wide default.
+    // Access enforced by the tenantAdmin route filter.
+    public function updateFeeOverride(string $listingId)
+    {
+        $listing = $this->listingModel->find($listingId);
+        if (!$listing) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $raw = trim((string) $this->request->getPost('buyer_fee_percent_override'));
+        if ($raw === '') {
+            $this->listingModel->update($listingId, ['buyer_fee_percent_override' => null]);
+            (new \App\Libraries\AuditLogService())->log('listing.buyer_fee_override_cleared', session()->get('logged_in_party_id'), [
+                'listingId' => $listingId,
+            ], $this->request->getIPAddress(), (string) $this->request->getUserAgent());
+            return redirect()->to("/listings/{$listingId}")->with('error', 'Buyer fee override cleared — the tenant default applies again.');
+        }
+
+        if (!is_numeric($raw) || (float) $raw < 0 || (float) $raw > 100) {
+            return redirect()->to("/listings/{$listingId}")->with('error', 'BR-32: the buyer fee override must be a percentage between 0 and 100.');
+        }
+
+        $this->listingModel->update($listingId, ['buyer_fee_percent_override' => (float) $raw]);
+        (new \App\Libraries\AuditLogService())->log('listing.buyer_fee_override_set', session()->get('logged_in_party_id'), [
+            'listingId' => $listingId, 'buyerFeePercentOverride' => (float) $raw,
+        ], $this->request->getIPAddress(), (string) $this->request->getUserAgent());
+
+        return redirect()->to("/listings/{$listingId}")->with('error', "Buyer fee override set to {$raw}% for this listing.");
+    }
+
     // Was fully built and tested (archive-and-recreate, refunds active
     // bids) but had no HTTP route at all until now.
     public function editSubmit(string $listingId)

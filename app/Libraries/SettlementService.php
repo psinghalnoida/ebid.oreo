@@ -141,12 +141,19 @@ class SettlementService
         if ($allDone && $settlement['status'] !== 'completed') {
             $saleEvent = $this->saleEventModel->find($settlement['sale_event_id']);
             $tenant = $this->tenantModel->find($saleEvent['tenant_id']);
+            $listing = $this->listingModel->find($saleEvent['listing_id']);
             $hold = $this->emdHoldModel->findBySaleEventAndParty($settlement['sale_event_id'], $settlement['buyer_party_id']);
+
+            // BR-32: a per-listing override, set by the Tenant Admin, takes
+            // precedence over the tenant's blanket default fee.
+            $buyerFeePercent = $listing['buyer_fee_percent_override'] !== null
+                ? (float) $listing['buyer_fee_percent_override']
+                : (float) $tenant['buyer_fee_percent'];
 
             $feeWasSettled = false;
             if ($hold && $hold['status'] === 'held') {
                 $fees = EmdService::calculateSettlementFee(
-                    (float) $settlement['final_price'], (float) $tenant['buyer_fee_percent'], (float) $hold['amount']
+                    (float) $settlement['final_price'], $buyerFeePercent, (float) $hold['amount']
                 );
                 // BR-50: a high-value refund to a recently-changed bank
                 // account is deferred to Tenant/SaaS Admin review instead

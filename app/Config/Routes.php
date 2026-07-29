@@ -23,6 +23,7 @@ $routes->get('/listings/(:segment)', 'ListingController::show/$1');
 $routes->post('/listings/(:segment)/submit-for-approval', 'ListingController::submitForApproval/$1');
 $routes->post('/listings/(:segment)/approve', 'ListingController::approve/$1', ['filter' => 'tenantAdmin:listing']);
 $routes->post('/listings/(:segment)/reject', 'ListingController::reject/$1', ['filter' => 'tenantAdmin:listing']);
+$routes->post('/listings/(:segment)/fee-override', 'ListingController::updateFeeOverride/$1', ['filter' => 'tenantAdmin:listing']);
 $routes->post('/listings/(:segment)/sale-events', 'SaleEventController::createSubmit/$1');
 
 $routes->post('/sale-events/(:segment)/approve', 'SaleEventController::approve/$1', ['filter' => 'tenantAdmin:saleEvent']);

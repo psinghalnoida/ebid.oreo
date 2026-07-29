@@ -162,6 +162,24 @@
     </div>
   <?php endif; ?>
 
+  <?php if ($listing['status'] === 'active'): ?>
+    <div style="background:var(--line-soft); padding:16px; border-radius:12px; margin-top:16px;">
+      <p style="font-size:12px; color:var(--ink-3); margin:0 0 10px;">
+        Tenant Admin action — requires the tenant_admin role for this listing's tenant (BR-32).
+        Current buyer fee: <?= $listing['buyer_fee_percent_override'] !== null
+          ? esc(number_format((float) $listing['buyer_fee_percent_override'], 2)) . '% (listing override)'
+          : 'tenant default' ?>
+      </p>
+      <form method="post" action="/listings/<?= esc($listing['id']) ?>/fee-override">
+        <label style="font-size:11px; color:var(--ink-3);">Buyer Fee Override (%) — leave blank to clear and use the tenant default</label>
+        <input type="number" step="0.01" min="0" max="100" name="buyer_fee_percent_override"
+          value="<?= $listing['buyer_fee_percent_override'] !== null ? esc($listing['buyer_fee_percent_override']) : '' ?>"
+          style="display:block; width:100%; padding:8px; margin:4px 0 6px; border:1px solid var(--line); border-radius:8px; font-size:12px;">
+        <button type="submit" class="btn btn-ghost">Set Buyer Fee</button>
+      </form>
+    </div>
+  <?php endif; ?>
+
   <?php if ($listing['status'] === 'upcoming' && !$saleEvent): ?>
     <div style="display:flex; gap:16px; margin-top:16px;">
       <form method="post" action="/listings/<?= esc($listing['id']) ?>/sale-events" style="flex:1;">
