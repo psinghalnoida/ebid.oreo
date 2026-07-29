@@ -12,7 +12,10 @@
     <input type="text" name="name" required
       style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
     <label style="font-size:12px; color:var(--ink-3);">Subdomain</label>
-    <input type="text" name="subdomain" required
+    <input type="text" name="subdomain" required placeholder="e.g. pnb"
+      style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
+    <label style="font-size:12px; color:var(--ink-3);">Custom Domain (BR-06, optional)</label>
+    <input type="text" name="custom_domain" placeholder="e.g. www.salvagemanagers.com"
       style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
     <label style="font-size:12px; color:var(--ink-3);">Tenant Class (BR-07)</label>
     <select name="tenant_class" style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">

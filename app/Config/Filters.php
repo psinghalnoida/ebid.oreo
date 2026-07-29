@@ -36,6 +36,7 @@ class Filters extends BaseFilters
         'performance'   => PerformanceMetrics::class,
         'tenantAdmin'   => \App\Filters\TenantAdminFilter::class,
         'superAdmin'    => \App\Filters\SuperAdminFilter::class,
+        'tenantResolve' => \App\Filters\TenantResolutionFilter::class,
     ];
 
     /**
@@ -77,6 +78,7 @@ class Filters extends BaseFilters
             // 'honeypot',
             // 'csrf',
             // 'invalidchars',
+            'tenantResolve', // BR-06: Host-header tenant resolution, every request
         ],
         'after' => [
             // 'honeypot',
