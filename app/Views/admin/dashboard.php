@@ -36,6 +36,7 @@
   <a href="/admin/media-waivers" class="btn btn-ghost" style="margin-left:8px;">Media Waivers</a>
   <a href="/admin/aml" class="btn btn-ghost" style="margin-left:8px;">AML Monitoring</a>
   <a href="/admin/payout-reviews" class="btn btn-ghost" style="margin-left:8px;">Payout Reviews</a>
+  <a href="/admin/tenant-invoices" class="btn btn-ghost" style="margin-left:8px;">Tenant Invoices</a>
   <a href="/admin/rating-reviews" class="btn btn-ghost" style="margin-left:8px;">Rating Reviews</a>
   <a href="/admin/consent-audit" class="btn btn-ghost" style="margin-left:8px;">Consent Audit</a>
   <a href="/admin/rules" class="btn btn-ghost" style="margin-left:8px;">Rules &amp; Specifications</a>
@@ -66,14 +67,14 @@
   <h3 style="font-size:16px; margin-top:28px;">Tenants</h3>
   <table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:13px;">
     <tr style="text-align:left; color:var(--ink-3); font-size:11px; text-transform:uppercase;">
-      <th style="padding:8px 0;">Name</th><th>Class</th><th>Subdomain</th><th>Buyer Fee</th>
+      <th style="padding:8px 0;">Name</th><th>Class</th><th>Subdomain</th><th>Subscription Tier</th>
     </tr>
     <?php foreach ($tenants as $t): ?>
     <tr style="border-top:1px solid var(--line);">
       <td style="padding:8px 0;"><a href="/admin/tenants/<?= esc($t['id']) ?>" style="color:var(--emerald);"><?= esc($t['name']) ?></a></td>
       <td><?= esc($t['tenant_class']) ?></td>
       <td><?= esc($t['subdomain']) ?></td>
-      <td><?= esc($t['buyer_fee_percent']) ?>%</td>
+      <td><?= esc(ucwords(str_replace('_', ' ', $t['subscription_tier']))) ?></td>
     </tr>
     <?php endforeach; ?>
   </table>

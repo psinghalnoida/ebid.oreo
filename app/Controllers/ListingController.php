@@ -293,8 +293,11 @@ class ListingController extends BaseController
         $sellerStarRating = $seller ? (float) $seller['seller_star_rating'] : null;
 
         $viewerId = session()->get('logged_in_party_id');
+        // BR-32 (D-87/D-88): gates whether the Fee Payer Election's
+        // Seller-Pays option is offered on the sale-event attach forms.
+        $tenant = $this->tenantModel->find($listing['tenant_id']);
         return view('listing/show', [
-            'title' => 'Listing — eBid Hub', 'listing' => $listing, 'saleEvent' => $saleEvent,
+            'title' => 'Listing — eBid Hub', 'listing' => $listing, 'saleEvent' => $saleEvent, 'tenant' => $tenant,
             'offers' => $offers, 'expressState' => $expressState, 'tenderState' => $tenderState, 'media' => $media,
             'queuedMediaJobs' => $queuedMediaJobs,
             'isOwner' => $viewerId === $listing['seller_party_id'],
@@ -338,37 +341,6 @@ class ListingController extends BaseController
             return redirect()->to("/listings/{$listingId}")->with('error', $e->getMessage());
         }
         return redirect()->to("/listings/{$listingId}");
-    }
-
-    // BR-32: "the Tenant Admin can adjust the buyer's transaction fee
-    // on any active listing" -- distinct from the tenant-wide default.
-    // Access enforced by the tenantAdmin route filter.
-    public function updateFeeOverride(string $listingId)
-    {
-        $listing = $this->listingModel->find($listingId);
-        if (!$listing) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
-        }
-
-        $raw = trim((string) $this->request->getPost('buyer_fee_percent_override'));
-        if ($raw === '') {
-            $this->listingModel->update($listingId, ['buyer_fee_percent_override' => null]);
-            (new \App\Libraries\AuditLogService())->log('listing.buyer_fee_override_cleared', session()->get('logged_in_party_id'), [
-                'listingId' => $listingId,
-            ], $this->request->getIPAddress(), (string) $this->request->getUserAgent());
-            return redirect()->to("/listings/{$listingId}")->with('error', 'Buyer fee override cleared — the tenant default applies again.');
-        }
-
-        if (!is_numeric($raw) || (float) $raw < 0 || (float) $raw > 100) {
-            return redirect()->to("/listings/{$listingId}")->with('error', 'BR-32: the buyer fee override must be a percentage between 0 and 100.');
-        }
-
-        $this->listingModel->update($listingId, ['buyer_fee_percent_override' => (float) $raw]);
-        (new \App\Libraries\AuditLogService())->log('listing.buyer_fee_override_set', session()->get('logged_in_party_id'), [
-            'listingId' => $listingId, 'buyerFeePercentOverride' => (float) $raw,
-        ], $this->request->getIPAddress(), (string) $this->request->getUserAgent());
-
-        return redirect()->to("/listings/{$listingId}")->with('error', "Buyer fee override set to {$raw}% for this listing.");
     }
 
     // Was fully built and tested (archive-and-recreate, refunds active

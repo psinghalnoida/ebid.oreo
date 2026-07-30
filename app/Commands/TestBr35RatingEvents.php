@@ -43,7 +43,7 @@ class TestBr35RatingEvents extends BaseCommand
         $db = \Config\Database::connect();
 
         CLI::write('=== Setup ===', 'yellow');
-        $tenant = $tenantModel->createTenant(['name' => 'BR35 Test Tenant', 'tenant_class' => 'general', 'subdomain' => 'br35test', 'buyer_fee_percent' => 5.00]);
+        $tenant = $tenantModel->createTenant(['name' => 'BR35 Test Tenant', 'tenant_class' => 'general', 'subdomain' => 'br35test']);
         $seller = $partyModel->createParty('+919555403001');
         $tenantAdmin = $partyModel->createParty('+919555403002');
         $superAdmin = $partyModel->createParty('+919555403003');
@@ -71,7 +71,7 @@ class TestBr35RatingEvents extends BaseCommand
         $bid = $bidModel->createBid($se1['id'], $defaulter['id'], 140000);
         $bidModel->createBid($se1['id'], $h2Bidder['id'], 130000);
         $bidModel->createBid($se1['id'], $h3Bidder['id'], 120000);
-        $cascade->processDefault($se1['id'], $bid['id'], 5.00);
+        $cascade->processDefault($se1['id'], $bid['id']);
 
         $ev1 = $db->table('rating_event')->where('party_id', $defaulter['id'])->where('event_key', 'default_1st')->get()->getRowArray();
         $this->assert($ev1 !== null, 'A real rating_event row exists for the 1st default, tagged with the correct event_key');
@@ -96,7 +96,7 @@ class TestBr35RatingEvents extends BaseCommand
         $rankedAfterFirst = $bidModel->findRankedBids($se1['id'], 3);
         $secondDefaulterBidId = $rankedAfterFirst[1]['id'];
         $secondDefaulterPartyId = $rankedAfterFirst[1]['bidder_party_id'];
-        $cascade->processDefault($se1['id'], $secondDefaulterBidId, 5.00);
+        $cascade->processDefault($se1['id'], $secondDefaulterBidId);
         $ev2 = $db->table('rating_event')->where('party_id', $secondDefaulterPartyId)->where('event_key', 'default_2nd')->get()->getRowArray();
         $this->assert($ev2 !== null, 'A 2nd Default event genuinely exists for the correct (different) bidder');
         $this->assert(abs((float) $ev2['previous_value'] - (float) $ev2['new_value'] - 1.5) < 0.01, '2nd Default is genuinely -1.5★, not the same magnitude as the 1st');

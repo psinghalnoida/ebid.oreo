@@ -5,27 +5,36 @@ namespace App\Libraries;
 class InvoiceService
 {
     private const GST_RATE_PERCENT = 18.0;
+    private const PLATFORM_NAME = 'TradeSphereX (ADWITIX)';
 
-    public function generateForSettlement(string $settlementId, array $settlement, array $tenant, float $tenantAmount, float $saasAmount): array
+    // BR-56/BR-31/32 (D-87/D-88): the Success Fee is 100% platform
+    // revenue now — one GST-compliant invoice per settlement, issued
+    // directly by the platform to whichever party paid it under that
+    // session's Fee Payer Election (the Trader under Buyer-Pays, the
+    // Market Maker under Seller-Pays). Replaces the old two-invoice
+    // tenant_to_buyer/saas_to_tenant split, which no longer has a real
+    // counterpart now that the Tenant doesn't share in the fee.
+    public function generateForSettlement(string $settlementId, array $settlement, float $feeAmount, string $feePayer): array
     {
         $db = \Config\Database::connect();
 
-        $buyer = (new \App\Models\PartyModel())->find($settlement['buyer_party_id']);
-        $tenantInvoice = $this->createInvoice($db, $settlementId, 'tenant_to_buyer',
-            $tenant['name'], $buyer['mobile_number'] ?? 'Buyer', $tenantAmount
-        );
-
-        $saasInvoice = $this->createInvoice($db, $settlementId, 'saas_to_tenant',
-            'eBid Hub (SaaS)', $tenant['name'], $saasAmount
-        );
+        if ($feePayer === 'seller_pays') {
+            $seller = (new \App\Models\PartyModel())->find($settlement['seller_party_id']);
+            $invoice = $this->createInvoice($db, $settlementId, 'platform_to_seller',
+                self::PLATFORM_NAME, $seller['mobile_number'] ?? 'Market Maker', $feeAmount
+            );
+        } else {
+            $buyer = (new \App\Models\PartyModel())->find($settlement['buyer_party_id']);
+            $invoice = $this->createInvoice($db, $settlementId, 'platform_to_buyer',
+                self::PLATFORM_NAME, $buyer['mobile_number'] ?? 'Trader', $feeAmount
+            );
+        }
 
         (new AuditLogService())->log('invoice.generated', null, [
-            'settlementId' => $settlementId,
-            'tenantInvoiceNumber' => $tenantInvoice['invoice_number'],
-            'saasInvoiceNumber' => $saasInvoice['invoice_number'],
+            'settlementId' => $settlementId, 'feePayer' => $feePayer, 'invoiceNumber' => $invoice['invoice_number'],
         ]);
 
-        return ['tenantInvoice' => $tenantInvoice, 'saasInvoice' => $saasInvoice];
+        return ['invoice' => $invoice];
     }
 
     private function createInvoice($db, string $settlementId, string $type, string $issuedBy, string $issuedTo, float $baseAmount): array
@@ -58,10 +67,13 @@ class InvoiceService
 
     // BR-56: a party only ever has a legitimate view of an invoice if
     // they were the buyer or seller on the settlement it was generated
-    // for — a buyer sees the tenant_to_buyer invoice billed to them, a
-    // seller sees the commission invoice deducted from their sale.
-    // saas_to_tenant invoices are platform-internal (Tenant/SaaS only,
-    // not buyer/seller-facing) and are correctly excluded here.
+    // for. Either party to a settlement can see whichever fee invoice was
+    // actually issued for it — 'tenant_to_buyer' is the pre-D-87 legacy
+    // type kept for historical invoices; 'platform_to_buyer'/
+    // 'platform_to_seller' are the current ones (D-87/D-88). The old
+    // 'saas_to_tenant' type is platform-internal and correctly excluded.
+    private const USER_FACING_INVOICE_TYPES = ['tenant_to_buyer', 'platform_to_buyer', 'platform_to_seller'];
+
     public function findForParty(string $partyId, int $limit, int $offset): array
     {
         $db = \Config\Database::connect();
@@ -73,7 +85,7 @@ class InvoiceService
                 ->where('s.buyer_party_id', $partyId)
                 ->orWhere('s.seller_party_id', $partyId)
             ->groupEnd()
-            ->where('i.invoice_type', 'tenant_to_buyer')
+            ->whereIn('i.invoice_type', self::USER_FACING_INVOICE_TYPES)
             ->orderBy('i.created_at', 'DESC')
             ->limit($limit, $offset)
             ->get()->getResultArray();
@@ -88,7 +100,7 @@ class InvoiceService
                 ->where('s.buyer_party_id', $partyId)
                 ->orWhere('s.seller_party_id', $partyId)
             ->groupEnd()
-            ->where('i.invoice_type', 'tenant_to_buyer')
+            ->whereIn('i.invoice_type', self::USER_FACING_INVOICE_TYPES)
             ->countAllResults();
     }
 

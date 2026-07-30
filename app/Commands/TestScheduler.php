@@ -41,7 +41,7 @@ class TestScheduler extends BaseCommand
         $db = \Config\Database::connect();
 
         CLI::write('=== Setup ===', 'yellow');
-        $tenant = $tenantModel->createTenant(['name' => 'Scheduler Test Tenant', 'tenant_class' => 'general', 'subdomain' => 'schedulertest', 'buyer_fee_percent' => 5.00]);
+        $tenant = $tenantModel->createTenant(['name' => 'Scheduler Test Tenant', 'tenant_class' => 'general', 'subdomain' => 'schedulertest']);
         $seller = $partyModel->createParty('+919666601001');
         $buyer1 = $partyModel->createParty('+919666601002');
         $buyer2 = $partyModel->createParty('+919666601003');

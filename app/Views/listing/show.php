@@ -162,25 +162,8 @@
     </div>
   <?php endif; ?>
 
-  <?php if ($listing['status'] === 'active'): ?>
-    <div style="background:var(--line-soft); padding:16px; border-radius:12px; margin-top:16px;">
-      <p style="font-size:12px; color:var(--ink-3); margin:0 0 10px;">
-        Tenant Admin action — requires the tenant_admin role for this listing's tenant (BR-32).
-        Current buyer fee: <?= $listing['buyer_fee_percent_override'] !== null
-          ? esc(number_format((float) $listing['buyer_fee_percent_override'], 2)) . '% (listing override)'
-          : 'tenant default' ?>
-      </p>
-      <form method="post" action="/listings/<?= esc($listing['id']) ?>/fee-override">
-        <label style="font-size:11px; color:var(--ink-3);">Buyer Fee Override (%) — leave blank to clear and use the tenant default</label>
-        <input type="number" step="0.01" min="0" max="100" name="buyer_fee_percent_override"
-          value="<?= $listing['buyer_fee_percent_override'] !== null ? esc($listing['buyer_fee_percent_override']) : '' ?>"
-          style="display:block; width:100%; padding:8px; margin:4px 0 6px; border:1px solid var(--line); border-radius:8px; font-size:12px;">
-        <button type="submit" class="btn btn-ghost">Set Buyer Fee</button>
-      </form>
-    </div>
-  <?php endif; ?>
-
   <?php if ($listing['status'] === 'upcoming' && !$saleEvent): ?>
+    <?php $sellerPaysAllowed = !empty($tenant) && $tenant['subscription_tier'] !== 'coco_starter'; ?>
     <div style="display:flex; gap:16px; margin-top:16px;">
       <form method="post" action="/listings/<?= esc($listing['id']) ?>/sale-events" style="flex:1;">
         <input type="hidden" name="sale_format" value="easy">
@@ -193,6 +176,7 @@
         <label style="font-size:12px; color:var(--ink-3);">End</label>
         <input type="datetime-local" name="scheduled_end_at" required
           style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
+        <?= view('listing/_fee_payer_field', ['sellerPaysAllowed' => $sellerPaysAllowed]) ?>
         <button type="submit" class="btn btn-emerald">Attach Easy</button>
       </form>
       <form method="post" action="/listings/<?= esc($listing['id']) ?>/sale-events" style="flex:1;">
@@ -200,6 +184,7 @@
         <label style="font-size:12px; color:var(--ink-3);">Expected Value (₹) — Buy-Now</label>
         <input type="number" name="expected_value" required
           style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
+        <?= view('listing/_fee_payer_field', ['sellerPaysAllowed' => $sellerPaysAllowed]) ?>
         <button type="submit" class="btn btn-ghost">Attach Buy-Now</button>
       </form>
       <form method="post" action="/listings/<?= esc($listing['id']) ?>/sale-events" style="flex:1;">
@@ -207,6 +192,7 @@
         <label style="font-size:12px; color:var(--ink-3);">Reserve Value (₹) — Express Auction</label>
         <input type="number" name="reserve_value" required
           style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
+        <?= view('listing/_fee_payer_field', ['sellerPaysAllowed' => $sellerPaysAllowed]) ?>
         <button type="submit" class="btn btn-ghost">Attach Express</button>
       </form>
       <form method="post" action="/listings/<?= esc($listing['id']) ?>/sale-events" style="flex:1;">
@@ -227,7 +213,7 @@
 
   <?php if ($saleEvent): ?>
     <div style="border:1px solid var(--line); border-radius:16px; padding:22px; margin-top:20px;">
-      <p style="font-size:11px; color:var(--ink-3); text-transform:uppercase; letter-spacing:0.5px;"><?= esc($saleEvent['ern']) ?> · <?= esc(strtoupper($saleEvent['sale_format'])) ?> · <?= esc(strtoupper($saleEvent['status'])) ?></p>
+      <p style="font-size:11px; color:var(--ink-3); text-transform:uppercase; letter-spacing:0.5px;"><?= esc($saleEvent['ern']) ?> · <?= esc(strtoupper($saleEvent['sale_format'])) ?> · <?= esc(strtoupper($saleEvent['status'])) ?><?php if ($saleEvent['sale_format'] !== 'tender' && !empty($saleEvent['fee_payer'])): ?> · Fee: <?= $saleEvent['fee_payer'] === 'seller_pays' ? 'Seller-Pays' : 'Buyer-Pays' ?><?php endif; ?></p>
 
       <?php if (!empty($settlementRecord)): ?>
         <a href="/settlements/<?= esc($settlementRecord['id']) ?>" class="btn btn-emerald" style="display:inline-block; margin-bottom:12px; font-size:12px; padding:8px 14px;">

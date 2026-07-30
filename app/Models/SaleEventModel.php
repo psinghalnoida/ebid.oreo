@@ -24,6 +24,7 @@ class SaleEventModel extends Model
         'emergency_stopped_at', 'emergency_stop_reason', 'updated_at',
         'defect_disclosure_known_damage', 'defect_disclosure_missing_components',
         'defect_disclosure_nonfunctional_aspects', 'defect_disclosure_completed_at',
+        'fee_payer',
     ];
 
     public function createSaleEvent(array $data): array

@@ -26,7 +26,10 @@ class TenantController extends BaseController
         $name = $this->request->getPost('name');
         $tenantClass = $this->request->getPost('tenant_class') ?: 'general';
         $subdomain = $this->request->getPost('subdomain');
-        $buyerFeePercent = $this->request->getPost('buyer_fee_percent') ?: 5.00;
+        $subscriptionTier = $this->request->getPost('subscription_tier') ?: 'coco_starter';
+        if (!in_array($subscriptionTier, TenantModel::SUBSCRIPTION_TIERS, true)) {
+            return redirect()->to('/admin/tenants/create')->with('error', 'Invalid subscription tier.');
+        }
         // BR-06: "a dedicated subdomain ... or custom domain" — optional,
         // set once at whitelisting time like subdomain itself (see
         // tenant_view.php's own note on why domain fields aren't casually
@@ -40,7 +43,7 @@ class TenantController extends BaseController
         try {
             $tenant = $this->tenantModel->createTenant([
                 'name' => $name, 'tenant_class' => $tenantClass,
-                'subdomain' => $subdomain, 'custom_domain' => $customDomain, 'buyer_fee_percent' => $buyerFeePercent,
+                'subdomain' => $subdomain, 'custom_domain' => $customDomain, 'subscription_tier' => $subscriptionTier,
             ]);
         } catch (\Throwable $e) {
             return redirect()->to('/admin/tenants/create')->with('error', 'Could not create tenant — subdomain or custom domain may already be in use.');
@@ -86,9 +89,14 @@ class TenantController extends BaseController
             return redirect()->to("/admin/tenants/{$tenantId}")->with('error', 'Brand color must be a 6-digit hex code, e.g. #0F6E4E.');
         }
 
+        $subscriptionTier = $this->request->getPost('subscription_tier') ?: $tenant['subscription_tier'];
+        if (!in_array($subscriptionTier, TenantModel::SUBSCRIPTION_TIERS, true)) {
+            return redirect()->to("/admin/tenants/{$tenantId}")->with('error', 'Invalid subscription tier.');
+        }
+
         $update = [
             'name' => $this->request->getPost('name') ?: $tenant['name'],
-            'buyer_fee_percent' => $this->request->getPost('buyer_fee_percent') ?: $tenant['buyer_fee_percent'],
+            'subscription_tier' => $subscriptionTier,
             'branding_primary_color' => $postedColor ?: $tenant['branding_primary_color'],
             'terms_url' => $this->request->getPost('terms_url') ?: $tenant['terms_url'],
         ];

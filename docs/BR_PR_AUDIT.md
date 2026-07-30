@@ -275,7 +275,7 @@ insert exists, not just a threshold check), BR-45 (photo count 5–50 —
 real `MIN_PHOTOS`/`MAX_PHOTOS` consts enforced in `MediaService`). All
 confirmed solid.
 
-### Bottom line (current)
+### Bottom line (superseded by D-87/D-88 — kept for history)
 
 **Ten items still tracked, now with one substitution**: BR-31's fee-band
 validation gap replaces BR-15/BR-07/BR-19/BR-32/BR-41/PR-08/Server-Time
@@ -288,4 +288,31 @@ Integrity, all six of which are now closed and merged.
 
 Item 1 is a single, bounded fix (two validation checks, no schema
 change). Item 2 is the only large item with no external blocker.
+
+## Update — D-87/D-88: governing document replaced, commission model rebuilt
+
+`ADWITIX_Master.docx` replaced `eBid_Hub_Unified_BR_PR.docx` as the
+canonical governing document (D-87), rewriting BR-08/09/31–34/56/12
+and PR-06/32 around a new Section 5 Business Model. Item 1 above
+(BR-31's buyer-fee band) is **moot, not fixed** — BR-31 no longer
+describes a tenant-adjustable 0.5%–5% band at all; it's now a single,
+platform-wide, non-tenant-adjustable declining schedule
+(`EmdService::calculateSuccessFee()`), so there is no band left to
+validate. D-88 built the full replacement: the new Success Fee
+schedule, the Fee Payer Election (`sale_event.fee_payer`), and the
+monthly Tenant-billing mechanism (`TenantBillingService` +
+`tenant_fee_ledger`/`tenant_monthly_invoice`) that collects a
+Seller-Pays fee given the platform never touches the seller's 100%
+sale-value proceeds directly. Full detail in `docs/DECISIONS.md` D-88.
+
+### Bottom line (current)
+
+**Three items tracked** — BR-31's gap is superseded (see above), not
+counted separately:
+
+1. BR-62–66 / PR-37 — Tenant API Access (no external blocker, large — a whole new module)
+2. BR-46 — AI Pre-Audit (blocked on a Gemini API key)
+3. BR-52 — Chargeback Mitigation (blocked on real SabPaisa API credentials)
+
+Item 1 is the only large item with no external blocker.
 
