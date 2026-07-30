@@ -5239,3 +5239,69 @@ card; the homepage's footer genuinely includes the new link.
 `test:auth`/`test:browse` spot-checked clean (a pure additive
 routing/docs change, no business logic touched — full 28-engine
 regression not needed).
+
+### D-87: Governing Document Replaced — `ADWITIX_Master.docx` (Documentation Only)
+
+**Decision:** the project owner provided a new master document,
+explicitly instructed as "the Bible of this project," replacing
+`eBid_Hub_Unified_BR_PR.docx` (BR-01–66/PR-01–37) with
+`ADWITIX_Master.docx` (BR-01–68/PR-01–37), which the document's own
+Status line describes as "Fully reconciled — supersedes all prior
+governance drafts, the separately-issued Consolidated Specification,
+and all standalone Business Model documents." Read in full (all 1083
+extracted paragraphs, via the zip+XML extraction technique established
+in D-77, since it's the only reliable way to read this file) before
+any action was taken. Recorded here per the project owner's explicit
+authorization — this entry covers the doc swap only; no application
+code was touched in this commit.
+
+**What's genuinely new, not just reorganized:**
+- **Section 5, a complete Business Model** — product tiers (CoCo Starter/Concierge, TSX Launch/Growth/Enterprise), a subscription discount ladder, storage/media allowances, professional services, and revenue-line priorities. This is the exact content `public/pricing.html` (D-86) already presents — confirms that page was built correctly against this same source, even though it arrived in a separate upload beforehand.
+- **BR-67 (Branded Terminology Layer)** and **BR-68 (Visual Identity)** — formalize "TradeSphereX"/TSX branding and the color/typography system already used on the pricing page, as presentation-layer mappings over the existing technical role names, not a data-model rename.
+- Tech Stack (Section 3), the Phased Roadmap (Section 4), and every BR/PR not named below are unchanged from the prior document — spot-checked directly (PR-08, PR-13, PR-16 all read identically to the prior version).
+
+**The commission model is fundamentally rewritten — flagged here for
+the project owner's explicit decision before any code changes, not
+silently assumed.** The document's own Status line names six rewritten
+items: BR-08, BR-09, BR-31 through BR-34, BR-56, BR-12, and PR-06/PR-32.
+The old model — a flat 0.5% SaaS fee plus a tenant-adjustable 0.5%–5%
+buyer-fee band (`tenant.buyer_fee_percent`, plus the per-listing
+override this session added for BR-32, D-82, merged as PR #26) — is
+replaced by:
+- A single, platform-wide, **non-tenant-adjustable** declining Success Fee schedule by final sale value: ≤₹10L 2.00%, ₹10L–50L 1.50%, ₹50L–2Cr 1.00%, ₹2Cr–10Cr 0.75%, above ₹10Cr 0.50% (negotiable) — minimum ₹500+GST.
+- A new **Fee Payer Election**, set by the Market Maker (seller) per Trading Session (Sale Event) before it opens and locked once bidding starts: Buyer-Pays (default, matching today's zero-seller-cost behavior) or Seller-Pays (the fee is deducted from the seller's proceeds instead, letting a seller match a 0%-buyer-premium competitor). No equivalent field exists anywhere in the current schema or UI.
+- Section 5.4/5.8 describe the Success Fee as the platform's own revenue line, with no mention of a separate Tenant share — a real, substantive change from the old model's `tenantAmount`/`saasAmount` split (`EmdService::calculateSettlementFee()`/`calculateForfeitureAllocation()`), not just a rate adjustment.
+
+**Directly affects already-shipped, tested code**, specifically:
+`EmdService::calculateSettlementFee()`/`calculateForfeitureAllocation()`
+(the tenant/SaaS split and flat-percent lookup), `SettlementService::
+checkCompletion()` and `DisputeService::executeRuling()`'s
+`order_forfeiture` path (both read `tenant.buyer_fee_percent` /
+`listing.buyer_fee_percent_override`), `TenantController` (the
+`buyer_fee_percent` field itself), `SaleEventController`/`SaleEventModel`
+(no `fee_payer` field exists), and `InvoiceService`/BR-56 invoice
+attribution (must follow the election, not always "buyer"). This also
+means the per-listing buyer-fee override built this session (D-82,
+merged PR #26) and the just-identified BR-31 band-validation gap
+(D-85, PR #29, currently on hold per the project owner's instruction)
+are **both superseded by this rewrite** — BR-31 no longer describes a
+tenant-adjustable band with a floor/ceiling at all, so that specific
+gap no longer applies to the new text; a different, larger rebuild
+(the declining schedule + Fee Payer Election) is needed instead.
+
+**Also noted, not yet resolved**: the document's own PR-13 (Sale Event
+creation) and PR-22 (Settlement) operational-step lists were not
+updated to mention capturing/applying Fee Payer Election explicitly —
+PR-22 step 6 still reads "the system deducts commission/SaaS fee from
+the held EMD," the old model's phrasing — while BR-31/32/33 elsewhere
+in the same document are explicit that settlement now branches on the
+election. Flagged as an internal inconsistency in the source document
+itself, not resolved by assumption.
+
+**Not yet done, deliberately**: no fee/settlement code was rewritten in
+this commit. Given the scope (money-calculation logic across multiple
+already-tested subsystems, a new schema field, and a genuinely new UI
+flow for Fee Payer Election) and BR-01's own instruction to "halt and
+raise clarifying questions rather than making unilateral assumptions,"
+this is surfaced to the project owner as its own scoped follow-up
+rather than built unprompted.
