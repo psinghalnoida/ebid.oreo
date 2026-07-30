@@ -5199,3 +5199,43 @@ See `docs/BR_PR_AUDIT.md`'s "Update — fifth full pass" section for the
 complete write-up and the current four-item bottom line: BR-31 (small,
 no blocker), BR-62–66/PR-37 (large, no blocker), BR-46/BR-52 (both
 still externally blocked).
+
+### D-86: Pricing Page (TradeSphereX) Recorded and Wired In
+
+**Decision:** the project owner provided a complete, ready-made
+standalone pricing page — tenant subscription tiers (CoCo Starter/TSX
+Launch/TSX Growth/TSX Enterprise), a live Success Fee calculator, and a
+full feature-comparison table — under the "TradeSphereX" brand (by
+ADWITIX). Its role terminology maps 1:1 onto this platform's own roles:
+Custodian = Super Admin (the same BR-15 non-participatory role),
+TSX Master = Tenant Admin, Market Maker = Seller, Trader = Buyer. Not a
+different product; a marketing/pricing skin for the same platform.
+
+**What's built:** served verbatim, not re-themed into `layouts/main` —
+the page is a complete, self-contained document (own fonts, styles,
+and calculator script) handed over as a finished artifact, and altering
+it wasn't asked for. Canonical copy at `public/pricing.html` (also
+directly reachable there, CI4's static webroot, same as
+`robots.txt`/`favicon.ico`); a clean `/pricing` route added via a
+minimal `PricingController` that reads and outputs that same file
+verbatim, matching the site's existing clean-URL convention (`/terms`,
+`/privacy`, `/fees`). A durable provenance copy also kept at
+`docs/source-documents/eBid_Hub_Pricing_TradeSphereX.html`, matching
+this repo's established pattern for source documents.
+
+**Site map updated**: a "Pricing" card added to the Trust & Support hub
+(`/trust-support` — this codebase's actual page index, there being no
+literal `sitemap.xml`), described distinctly from the existing "Fee &
+Charges Schedule" card (`/fees`, buyer/seller transaction-fee mechanics)
+to avoid confusion — this new page is about tenant *subscription*
+pricing. A "Pricing" link also added to the site-wide footer nav
+alongside Trust & Support/Terms/Privacy.
+
+**Verified over real HTTP**: `GET /pricing` and `GET /pricing.html`
+both return 200 with the page content byte-for-byte identical to the
+source file (only difference: CI4's dev-mode debug-toolbar injection,
+harmless and dev-only). `/trust-support` genuinely renders the new
+card; the homepage's footer genuinely includes the new link.
+`test:auth`/`test:browse` spot-checked clean (a pure additive
+routing/docs change, no business logic touched — full 28-engine
+regression not needed).

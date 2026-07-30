@@ -54,6 +54,7 @@ on this file still has that original content if needed). What's new:
 - **`eBid_Hub_Dispute_Resolution_Process_DRAFT.docx`**, **`eBid_Hub_Grievance_Redressal_Policy_DRAFT.docx`**, **`eBid_Hub_Refund_and_Cancellation_Policy_DRAFT.docx`** — supporting policy drafts
 - **`eBid_Hub_Dos_and_Donts.docx`** — platform conduct guidance
 - **`eBid_Hub_FAQ.jsx`**, **`eBid_Hub_Terminology.jsx`**, **`eBid_Hub_Star_Ratings.jsx`**, **`eBid_Hub_Security_and_Trust.jsx`**, **`eBid_Hub_Trust_and_Support.jsx`** — buyer/seller-facing content components, written as JSX for direct use in the frontend
+- **`eBid_Hub_Pricing_TradeSphereX.html`** — the tenant subscription-pricing page, provided as a complete, ready-made standalone document (own fonts/styles/Success Fee calculator). Uses "TradeSphereX" branding (by ADWITIX) with role terminology mapped 1:1 onto the platform's own roles — Custodian = Super Admin (BR-15's non-participatory role), TSX Master = Tenant Admin, Market Maker = Seller, Trader = Buyer. Served verbatim (not re-themed into `layouts/main`) at `/pricing`; the canonical served copy lives at `public/pricing.html`.
 
 ## Why these are in the repo now
 
