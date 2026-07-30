@@ -75,12 +75,19 @@ class DisputeService
 
         $evidenceDeadline = (new \DateTimeImmutable())->modify('+' . self::FILING_WINDOW_DAYS . ' days');
 
-        return $this->disputeModel->createDispute([
+        $dispute = $this->disputeModel->createDispute([
             'sale_event_id' => $saleEventId, 'filed_by_party_id' => $filedByPartyId,
             'respondent_party_id' => $respondentId, 'category' => $category, 'description' => $description,
             'status' => 'evidence_window', 'evidence_deadline_at' => $evidenceDeadline->format('Y-m-d H:i:s'),
             'ruling_authority_type' => $this->ruleForCategory($category),
         ]);
+
+        // PR-37: dispute-filed events fire their own webhook.
+        (new \App\Libraries\TenantWebhookService())->fire($saleEvent['tenant_id'], 'dispute.filed', [
+            'disputeId' => $dispute['id'], 'saleEventId' => $saleEventId, 'category' => $category,
+        ]);
+
+        return $dispute;
     }
 
     public function submitEvidence(string $disputeId, string $partyId, string $content): array

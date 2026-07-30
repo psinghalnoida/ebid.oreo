@@ -256,6 +256,9 @@ class SchedulerService
             'mediaJobsProcessed' => $this->processMediaQueue(),
             'serverTimeDriftAlerts' => $this->processServerTimeCheck(),
             'tenantMonthlyInvoicesGenerated' => $this->processTenantMonthlyBilling(),
+            // PR-37: retries any webhook delivery still pending, whose
+            // next_attempt_at has come due.
+            'tenantWebhooksRetried' => (new TenantWebhookService())->retryDue(),
         ];
 
         // BR-05: every scheduler run is a genuine "configuration/state

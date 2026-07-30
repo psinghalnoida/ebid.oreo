@@ -197,6 +197,14 @@ class SettlementService
                 'tdsRatePercent' => self::TDS_RATE_PERCENT, 'tdsAmount' => $tdsAmount,
             ]);
 
+            // PR-37: "Sale closure, settlement completion, and
+            // dispute-filed events each fire their own webhook, scoped to
+            // BR-63 visibility."
+            (new TenantWebhookService())->fire($saleEvent['tenant_id'], 'settlement.completed', [
+                'settlementId' => $settlementId, 'saleEventId' => $settlement['sale_event_id'],
+                'finalPrice' => (float) $settlement['final_price'],
+            ]);
+
             // BR-38: a completed settlement is a genuine clean
             // transaction for BOTH parties — the exit path was fully
             // built (RatingService::recordCleanTransactionForCrawlBack)

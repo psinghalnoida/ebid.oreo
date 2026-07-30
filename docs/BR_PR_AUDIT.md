@@ -305,7 +305,7 @@ monthly Tenant-billing mechanism (`TenantBillingService` +
 Seller-Pays fee given the platform never touches the seller's 100%
 sale-value proceeds directly. Full detail in `docs/DECISIONS.md` D-88.
 
-### Bottom line (current)
+### Bottom line (superseded by D-89 — kept for history)
 
 **Three items tracked** — BR-31's gap is superseded (see above), not
 counted separately:
@@ -315,4 +315,21 @@ counted separately:
 3. BR-52 — Chargeback Mitigation (blocked on real SabPaisa API credentials)
 
 Item 1 is the only large item with no external blocker.
+
+## Update — D-89: BR-62-66/PR-37 built
+
+Item 1 above is built: OAuth2 client-credentials (self-hosted
+substitution for the named Auth0 dependency, same pattern as BR-04's
+TotpService), BR-66 tier-gated push/pull endpoints reusing the exact
+same portal governance checks, BR-63 tenant-scoped visibility, and
+PR-37's webhook events wired into the real lifecycle trigger points.
+Full detail in `docs/DECISIONS.md` D-89.
+
+### Bottom line (current)
+
+**Two items left, both external-credential blocks — nothing left with
+an internal-only blocker**:
+
+1. BR-46 — AI Pre-Audit (blocked on a Gemini API key)
+2. BR-52 — Chargeback Mitigation (blocked on real SabPaisa API credentials)
 
