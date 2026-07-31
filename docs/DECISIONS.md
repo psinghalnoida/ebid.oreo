@@ -6064,3 +6064,32 @@ point at the Trading Session Chronicle, which is actually 7.10 — a
 pre-existing numbering slip from D-94's own build, caught only because
 this edit required re-reading every cross-reference in the section
 carefully rather than assuming they were already correct.
+
+### D-96: formal legal statements added to the Trading Session Chronicle
+
+The project owner supplied four standard legal/governance statement
+blocks — Opening, Process & Governance, Record Integrity, and Closing
+Statement & Disclaimer — deliberately worded to avoid unverifiable
+claims ("tamper-proof," "highest transparency") and to establish the
+report as a *summary* of the underlying digital record rather than the
+record itself, a materially stronger legal position if a Chronicle is
+ever produced as evidence.
+
+Added verbatim as static view content (no `report_data`/schema change
+— identical for every report, not per-instance data) to both surfaces
+that present a certified Chronicle: `app/Views/chronicle/pdf.php`
+(Opening + Process & Governance right after the header, Record
+Integrity + Closing Statement at the end, replacing the old one-line
+closing note) and `app/Views/chronicle/verify.php` (the Opening
+Statement's text under the page intro, Record Integrity + Closing
+Statement above the existing chain-reference line). The PDF's old
+closing note's one genuinely functional line — the verification
+URL — was kept, appended after the new Closing Statement rather than
+dropped.
+
+Verified for real: `test:chronicle` re-run clean (22/22, unaffected —
+these are static template strings, not report_data), then a fresh
+Chronicle generated and both surfaces fetched over real HTTP —
+confirmed all four statements render in the actual PDF (`pdftotext`
+extraction) and on the live verify page, not just added to source and
+assumed to work.
