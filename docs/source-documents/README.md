@@ -5,45 +5,29 @@ against — not generated from the code, the other way around. When any
 business rule, process workflow, or design decision in `docs/DECISIONS.md`
 cites a BR or PR number, it's referencing these files directly.
 
-**`eBid_Hub_Unified_BR_PR.docx`** is the single most important file here.
-It's the canonical Business Rules and Process Rules specification — the
+**`ADWITIX_Master.docx`** is the single most important file here — and,
+as of 2026-07-30, the canonical replacement for the retired
+`eBid_Hub_Unified_BR_PR.docx` (recoverable via `git log -p` on this
+file's old path if ever needed). It's the single, absolute source of
+truth for the platform's Business Rules and Process Workflows — the
 actual basis for this whole project. Any time the code and this
 document disagree, this document wins; `docs/DECISIONS.md` explains the
 reasoning whenever the build diverges or a rule needed clarification
 from the project owner.
 
-**Updated 2026-07-29** (was BR-01–BR-61 / PR-01–PR-36; now BR-01–BR-66 /
-PR-01–PR-37) — the project owner's replacement supersedes the prior
-version per its own "Status" line, same as the prior version did before
-it. It's a real binary `.docx` (the earlier version in this repo's
-history was plain text saved with a `.docx` extension — `git log -p`
-on this file still has that original content if needed). What's new:
-- **BR-62–BR-66 / PR-37: Tenant API Access** — a whole new module letting
-  a Tenant integrate its own systems via API as an alternative to the
-  portal UI, governed by the exact same approval/lifecycle rules as a
-  portal submission (no API-side approval bypass), OAuth2 client-credentials
-  scoped per-tenant via the existing Auth0 relationship, visibility capped
-  at whatever the Visibility Matrix (BR-16) already grants that role.
-- **Section 3 (Tech Stack) is substantially more decided**: the payment
-  gateway is no longer TBD — **SabPaisa** is named as the selected PG
-  (RBI-authorised, VAN/UPI collection, Payouts API). KYC verification is
-  explicitly specified as **manual, no automated vendor** — Tenant Admin/
-  Super Admin review only, matching this repo's own D-76 KYC decision.
-  New requirements not yet built: server-time integrity (NTP sync + drift
-  alerting), audit-log DB-permission hardening (no UPDATE/DELETE grant at
-  the database layer, not just the application layer), and an independent
-  third-party security audit before go-live. SMS OTP, bank verification/
-  penny-drop, and email provider all remain TBD.
-- Every already-built numeric rule spot-checked against the new text
-  (BR-27 EMD 10%, BR-43's 150% ceiling, BR-49's ₹10L threshold, BR-38's
-  shadow-ban thresholds) is unchanged. BR-27 gained one new clause: a
-  Payment Gateway collection charge must be charged to the buyer on top
-  of the stated EMD, never deducted from it — relevant once BR-52's real
-  gateway integration happens, not yet actionable.
-- Section 4 (Phased Roadmap) is now explicit that this document is Phase
-  1 only, with Phase 2 (a full Reverse-Auction/Procurement format, plus
-  a Market Intelligence pricing-guide feature) intentionally out of
-  scope for now, not overlooked.
+**Replaced 2026-07-30** (was BR-01–BR-66/PR-01–PR-37 in
+`eBid_Hub_Unified_BR_PR.docx`; now BR-01–BR-68/PR-01–PR-37 in
+`ADWITIX_Master.docx`) — the project owner's own "Status" line
+describes this as "Fully reconciled — supersedes all prior governance
+drafts, the separately-issued Consolidated Specification, and all
+standalone Business Model documents." A real binary `.docx`. What's new:
+
+- **A complete Section 5 (Business Model) — new, not present in any prior version.** Product tiers (CoCo Starter/Concierge, TSX Launch/Growth/Enterprise), a subscription discount ladder, storage/media allowances per tier, optional professional services and Enterprise add-ons, and the platform's overall revenue-line priorities.
+- **The commission model is fundamentally rewritten** (BR-08, BR-09, BR-31 through BR-34, BR-56, BR-12, and PR-06/PR-32 — six contradictions the document itself names as resolved by this pass). The old flat-0.5%-SaaS-plus-tenant-adjustable-0.5%–5%-band model is replaced by a **single, platform-wide, non-tenant-adjustable declining Success Fee schedule** (2.00% down to 0.50% by final sale value, minimum ₹500+GST — Section 5.4) plus a new **Fee Payer Election** per Trading Session/Sale Event (Buyer-Pays, the default, or Seller-Pays — a genuinely new field with no equivalent in the prior model). The Tenant Admin no longer sets any fee rate at all. **This directly affects already-shipped code** — see `docs/DECISIONS.md` D-87 for the specific implications flagged for the project owner before any rebuild.
+- **BR-67: Branded Terminology Layer** (new) — formalizes "TradeSphereX"/TSX as the commercial-facing brand name mapped onto the existing technical roles (Tenant→TSX, Tenant Admin→TSX Master, Seller→Market Maker, Buyer→Trader, Super Admin→Custodian, Listing→Lot, Sale Event→Trading Session) — explicitly a presentation-layer mapping, not a data-model rename. Matches the branding already used in `public/pricing.html` (D-86).
+- **BR-68: Visual Identity** (new) — a canonical color/typography system for ADWITIX-branded surfaces, matching the palette already used on the pricing page.
+- Tech Stack (Section 3) is otherwise unchanged from the prior version: SabPaisa as PG, KYC manual-only, server-time integrity, audit-log DB-permission hardening, and independent security audit all confirmed the same as before.
+- Section 4 (Phased Roadmap) confirms Phase 1 scope unchanged, now explicit that Section 5's commercial model is Phase 1, in-scope, "now the sole authority on pricing, superseding the flat-fee figures originally stated in BR-08/BR-31."
 
 ## The rest of the documents
 
@@ -54,7 +38,7 @@ on this file still has that original content if needed). What's new:
 - **`eBid_Hub_Dispute_Resolution_Process_DRAFT.docx`**, **`eBid_Hub_Grievance_Redressal_Policy_DRAFT.docx`**, **`eBid_Hub_Refund_and_Cancellation_Policy_DRAFT.docx`** — supporting policy drafts
 - **`eBid_Hub_Dos_and_Donts.docx`** — platform conduct guidance
 - **`eBid_Hub_FAQ.jsx`**, **`eBid_Hub_Terminology.jsx`**, **`eBid_Hub_Star_Ratings.jsx`**, **`eBid_Hub_Security_and_Trust.jsx`**, **`eBid_Hub_Trust_and_Support.jsx`** — buyer/seller-facing content components, written as JSX for direct use in the frontend
-- **`eBid_Hub_Pricing_TradeSphereX.html`** — the tenant subscription-pricing page, provided as a complete, ready-made standalone document (own fonts/styles/Success Fee calculator). Uses "TradeSphereX" branding (by ADWITIX) with role terminology mapped 1:1 onto the platform's own roles — Custodian = Super Admin (BR-15's non-participatory role), TSX Master = Tenant Admin, Market Maker = Seller, Trader = Buyer. Served verbatim (not re-themed into `layouts/main`) at `/pricing`; the canonical served copy lives at `public/pricing.html`.
+- **`eBid_Hub_Pricing_TradeSphereX.html`** — the tenant subscription-pricing page, provided as a complete, ready-made standalone document (own fonts/styles/Success Fee calculator), matching `ADWITIX_Master.docx` Section 5 (Business Model) and BR-68's visual identity system exactly. Uses "TradeSphereX" branding per BR-67's Branded Terminology Layer — Custodian = Super Admin, TSX Master = Tenant Admin, Market Maker = Seller, Trader = Buyer. Served verbatim (not re-themed into `layouts/main`) at `/pricing`; the canonical served copy lives at `public/pricing.html`.
 
 ## Why these are in the repo now
 
