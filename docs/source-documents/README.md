@@ -31,6 +31,8 @@ standalone Business Model documents." A real binary `.docx`. What's new:
 
 **Restructured 2026-07-30 (same day, follow-up pass)** — a new **Section 1 (Terminology)** was inserted at the front of the document, ahead of the Business Rules, and every other section shifted down by one (old Sections 1–5 are now 2–6; every internal cross-reference, e.g. "Section 5.4," was updated to match, e.g. "Section 6.4"). Section 1 has two parts: **Part A** is BR-67's technical-to-branded mapping table, moved here from inside BR-67 (BR-67 itself stays in Section 2 as a citable rule, now pointing here instead of duplicating the table). **Part B** is a 36-term plain-language glossary — the 30 terms from `eBid_Hub_Terminology.jsx` transcribed into the document, plus 4 new entries (Success Fee, Fee Payer Election, Subscription Tier, Tenant API Access) covering concepts introduced by the D-87/88/89 rebuilds after that glossary was originally written. Full detail in `docs/DECISIONS.md` D-90.
 
+**Amended 2026-07-31** — BR-53's TDS rate, which this document had left open ("not fixed by this document") pending tax-advisor confirmation, now states the confirmed **10%** rate directly. The project owner confirmed this figure back in D-71, and the code has computed and stored it that way on every settlement since, but the document text was never updated to match through the D-77 replacement — caught by an independent counter-audit against a fresh PDF export, not by this document going stale on its own. Full detail in `docs/DECISIONS.md` D-93.
+
 ## The rest of the documents
 
 - **`eBid_Hub_Vision_Document.docx`** — the platform's founding vision and positioning

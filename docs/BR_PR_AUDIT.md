@@ -370,10 +370,48 @@ already branding that role "Custodian". Verified with a new
 against a running server confirming the branded terms actually render.
 Full detail in `docs/DECISIONS.md` D-92.
 
-### Bottom line (current)
+### Bottom line (superseded below — kept for history)
 
 **Two items left, both external-credential blocks — nothing left with
 an internal-only blocker**:
+
+1. BR-46 — AI Pre-Audit (blocked on a Gemini API key)
+2. BR-52 — Chargeback Mitigation (blocked on real SabPaisa API credentials)
+
+## Update — D-93: independent counter-audit against a fresh PDF export
+
+The project owner supplied a freshly-exported PDF and asked for a
+genuine two-directional check: is everything except BR-46/BR-52
+actually built, and is everything decided actually written into the
+document. Confirmed via `pdftotext` extraction and a fresh `grep -rl
+"BR-XX\b" app/` sweep across all 68 BRs, not by trusting this
+document's own prior claims. Two real, previously-untracked findings
+came out of it, both now fixed:
+
+- **BR-65 (API Versioning Policy)** — the text explicitly bars a
+  visible version number; the API shipped as `/api/v1/...` anyway.
+  D-89 never actually addressed BR-65 despite building the rest of
+  BR-62–66. **Fixed** — routes renamed to `/api/...`, verified over
+  real HTTP.
+- **BR-68 (Visual Identity)** — matched exactly on `pricing.html`
+  (the only surface that existed when it was checked), but the live
+  portal used an unrelated older palette. The project owner confirmed
+  this should be app-wide, the same call made for BR-67. **Fixed** —
+  `layouts/main.php`'s token values repainted to BR-68's palette and
+  typography, verified over real HTTP.
+
+Also found: **BR-53's TDS rate** was confirmed by the project owner at
+10% back in D-71, computed correctly in code ever since, but the
+document text still read "not fixed by this document" — never carried
+forward through the D-77 document replacement. **Fixed** — document
+text updated to state the confirmed 10% rate, via the docx skill.
+
+Full detail in `docs/DECISIONS.md` D-93.
+
+### Bottom line (current)
+
+**Two items left, both external-credential blocks — nothing left with
+an internal-only blocker, same two items as every pass since D-92**:
 
 1. BR-46 — AI Pre-Audit (blocked on a Gemini API key)
 2. BR-52 — Chargeback Mitigation (blocked on real SabPaisa API credentials)

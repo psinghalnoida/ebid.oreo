@@ -23,7 +23,7 @@
   .pc-row .k{font-size:11.5px; color:var(--ink-3); font-weight:600;}
   .pc-row .v{font-size:13.5px; font-weight:700;}
   .pc-row .v.big{font-size:22px; color:var(--emerald); font-weight:800;}
-  .pc-cta{width:100%; padding:12px; background:var(--emerald); color:#fff; border:none; font-weight:700; font-family:'Sora',sans-serif; border-radius:var(--radius-pill); cursor:pointer; font-size:13.5px; text-align:center; display:block;}
+  .pc-cta{width:100%; padding:12px; background:var(--emerald); color:#fff; border:none; font-weight:700; font-family:'Inter',sans-serif; border-radius:var(--radius-pill); cursor:pointer; font-size:13.5px; text-align:center; display:block;}
 
   .listings-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:18px; margin-top:30px;}
 
@@ -57,7 +57,7 @@
 
   .cta-band{background:var(--emerald); color:#fff; border-radius:22px; padding:40px; display:flex; justify-content:space-between; align-items:center; margin:50px 0;}
   .cta-band h3{margin:0 0 6px; font-size:22px; font-weight:800; letter-spacing:-0.4px;}
-  .cta-band p{margin:0; color:#CFE8DD; font-size:13.5px;}
+  .cta-band p{margin:0; color:var(--emerald-soft); font-size:13.5px;}
   .cta-band .btn{background:#fff; color:var(--emerald-deep);}
 
   .empty-state{grid-column:1/-1; text-align:center; padding:50px 24px; background:var(--line-soft); border-radius:var(--radius); color:var(--ink-3); font-size:14px;}
