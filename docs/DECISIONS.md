@@ -5577,3 +5577,128 @@ portal and confirmed its still-unexpired token 401s immediately.
 Full CLI regression suite re-run clean (30/32 — the same two
 pre-existing, unrelated `dompdf`/`ebidhub_ci4` environment gaps noted
 in D-88, not new).
+
+### D-90: `ADWITIX_Master.docx` Restructured — New Section 1 (Terminology), Full Renumbering
+
+Raised directly by the project owner: BR-67 (Branded Terminology Layer)
+had never actually been implemented anywhere in the live application —
+checked directly (`grep` across `app/Views/`), only the four view
+files written in D-88/D-89 use any branded term at all, and none of
+them do so systematically. Confirmed this is a genuine miss, not a
+documentation slip: five full audit passes (`docs/BR_PR_AUDIT.md`)
+never once tracked BR-67 as a gap, because its own text ("does not
+rename any entity, field, or role in the data model") reads as
+satisfied by omission if only the data-model half of its requirement
+is checked — the other half ("Front-end copy... render the branded
+term") was never verified. That real application-side build is not
+part of this entry — it's still outstanding, tracked separately.
+
+This entry is the immediate, documentation-only fix the project owner
+asked for first: a real, standalone Terminology section, prominent
+like Technology Stack, positioned so a reader meets the vocabulary
+before the Business Rules — not a code change.
+
+**What changed, in `ADWITIX_Master.docx`:**
+
+- **A new Section 1 (Terminology)**, inserted before the Business
+  Rules. **Part A** is BR-67's technical-to-branded mapping table
+  (Tenant→TSX, Tenant Admin→TSX Master, Seller→Market Maker, Buyer→
+  Trader, Super Admin→Custodian, Listing→Lot, Sale Event→Trading
+  Session), moved here verbatim from inside BR-67 — not duplicated,
+  BR-67 (Section 2) now points to it instead of carrying its own copy,
+  since it's still a real citable rule (it governs *when* each
+  vocabulary applies, not just *what* the words are). **Part B** is a
+  36-term plain-language glossary: the project owner pointed to
+  `eBid_Hub_Terminology.jsx` — a real, pre-existing 30-term glossary
+  (EMD, H1/H2/H3, Cascading Default, Star Rating, Crawl-Back, Standing
+  Review, etc.) provided earlier in this project and already live as
+  the front-end glossary page — transcribed faithfully into the
+  document. Four new entries were added, flagged explicitly as an
+  addition rather than blended silently into the transcription:
+  **Success Fee**, **Fee Payer Election**, **Subscription Tier**, and
+  **Tenant API Access** — real mechanics introduced by D-87/88/89,
+  after that glossary was originally written, with no entry anywhere
+  a reader could check.
+- **Full renumbering, not a "Section 0" workaround.** The project
+  owner explicitly asked for Terminology to be Section 1 itself, not
+  appended as a zero-indexed section to avoid touching the existing
+  numbers. Old Sections 1–5 (Business Rules, Process Workflows,
+  Technology Stack, Phased Roadmap, Business Model) are now 2–6, and
+  every one of their internal subsection numbers shifted with them
+  (old 3.1–3.13 → 4.1–4.13, old 4.1–4.3 → 5.1–5.3, old 5.1–5.11 →
+  6.1–6.11). Every internal cross-reference to a section number — "Section
+  5.4," "Section 5.2," "Sections 1 through 4," etc. — was found and
+  updated to match; the Income Tax Act's own "Section 194-O" (an
+  external legal citation, not a cross-reference to this document) was
+  deliberately left untouched, confirmed by scoping the remap to
+  section numbers 1 through 5 only.
+
+**How it was verified, not just asserted:** every "Section N" and
+"N.M heading" pattern in the document was inventoried by direct
+search before any edit (23 inline cross-references, 10 section
+headers, 27 subsection headings), each edit was applied with an
+assert-exactly-one-occurrence guard, and the full renumbered text was
+re-extracted and read end-to-end afterward to confirm every reference
+now points at the right section with no gaps or duplicates. The docx
+skill's XSD schema validator passed clean (1131 → 1175 paragraphs, the
+expected delta for the new heading/table/glossary content — the
+mapping table's own paragraph count is unchanged, since it was moved,
+not duplicated).
+
+**Not done here, on purpose**: the actual live-application terminology
+rollout (BR-67 rendered in the real portal UI) that this whole
+discussion started from. That's the project owner's own next question
+— tracked as its own build, not silently folded into this
+documentation fix.
+
+### D-91: Root `README.md` Was Stale — Fixed, Plus BR-67 Rollout Gap Now Tracked
+
+The project owner quoted text describing `docs/source-documents/` as
+still centered on the retired `eBid_Hub_Unified_BR_PR.docx`
+(BR-01–61/PR-01–36) and asked whether the live codebase's source of
+truth had silently diverged from `ADWITIX_Master.docx`. Checked
+directly rather than assumed: `docs/source-documents/README.md` and
+`docs/BR_PR_AUDIT.md` were both already correct (D-87/D-89/D-90 kept
+them in sync as the work happened) — but the **root `README.md`**,
+which nobody had touched since well before this session's work, still
+carried the old doc name and BR/PR range verbatim. That's genuinely
+where the quoted text traces back to — not a different project, not a
+hallucination, an actual stale file in this repo.
+
+While fixing it, the rest of the root README's factual claims were
+checked against the real repository state rather than assumed correct
+by association, and several more were found stale:
+
+- **Migration count**: said 26, actually 62.
+- **Test suite count**: said "254+ assertions across fifteen test
+  suites," actually 32 permanent `test:*` commands — the Step 10
+  deployment-verification list only named 15 of them; the other 17
+  (KYC, AML, Standing Review, payout control, audit-log lockdown,
+  Sovereign Rule, server-time integrity, Success Fee, Tenant API
+  Access, etc.) were simply never added as the project grew.
+- **"What this is" feature summary**: hadn't been updated since an
+  early point in the project — missing KYC, AML, Standing Review,
+  payout control, server-time integrity, the Sovereign Rule module,
+  and the entire current commercial model (Success Fee schedule, Fee
+  Payer Election, subscription tiers, Tenant API Access) — genuinely
+  large chunks of what's actually built were invisible to a first-time
+  reader of this file.
+- **`main`/`dev` branch guidance was backwards**: the README claimed
+  `main` was behind `dev`; checked directly (`git log
+  origin/main..origin/dev`) — `dev` hasn't moved since PR #12 and is
+  now an ancestor of `main`, not ahead of it. Also flagged: none of
+  D-87 through D-90 (the ADWITIX doc replacement, the current
+  commercial model, Tenant API Access, the Terminology restructuring)
+  are in `main` or `dev` yet — all four sit on open, stacked PRs
+  (#31→#32→#33→#34).
+
+**Separately, a real gap surfaced by this same conversation and now
+formally tracked**: BR-67 (Branded Terminology Layer)'s live-UI
+rollout — confirmed missing in the exchange leading into D-90, but
+never actually added to `docs/BR_PR_AUDIT.md`'s own gap list at the
+time. Added now as the sole remaining item with no external blocker.
+
+Fixed: root `README.md` (doc reference, feature summary, branch
+guidance, migration count, full 32-command test list) and
+`docs/BR_PR_AUDIT.md` (BR-67 rollout gap added to the bottom line).
+`docs/source-documents/README.md` needed no changes — already correct.

@@ -333,3 +333,26 @@ an internal-only blocker**:
 1. BR-46 — AI Pre-Audit (blocked on a Gemini API key)
 2. BR-52 — Chargeback Mitigation (blocked on real SabPaisa API credentials)
 
+## Update — D-90: BR-67 rollout gap found, master doc restructured (docs-only)
+
+Raised directly by the project owner: BR-67 (Branded Terminology Layer)
+was checked against the live application for the first time — no prior
+audit pass had ever verified the half of BR-67's own text that isn't
+about the data model ("Front-end copy... render the branded term").
+Confirmed via direct `grep` across `app/Views/`: only four view files
+use any branded term at all, and none do so systematically. This is a
+real, previously-unflagged gap, now tracked below. `ADWITIX_Master.docx`
+itself was restructured the same day (new Section 1: Terminology, full
+section renumbering) — documentation only, no code changed by that
+part. Full detail in `docs/DECISIONS.md` D-90.
+
+### Bottom line (current)
+
+**Three items — one newly surfaced, no internal-only blocker on any of them:**
+
+1. **BR-67 — Branded Terminology Layer, live-UI rollout** (no external blocker, medium — apply the TSX/Market Maker/Trader/etc. mapping consistently across the portal's views, not just the four files that happen to use it today)
+2. BR-46 — AI Pre-Audit (blocked on a Gemini API key)
+3. BR-52 — Chargeback Mitigation (blocked on real SabPaisa API credentials)
+
+Item 1 is the only item left with no external blocker.
+
