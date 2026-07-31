@@ -24,7 +24,7 @@
 
   <table style="width:100%; border-collapse:collapse; font-size:13px;">
     <tr style="text-align:left; color:var(--ink-3); font-size:10px; text-transform:uppercase;">
-      <th style="padding:6px 0;">Date</th><th>Format</th><th>Price</th><th>Seller</th><th>Status</th><th>Rated</th><th>Dispute</th>
+      <th style="padding:6px 0;">Date</th><th>Format</th><th>Price</th><th><?= tsx_term('Seller') ?></th><th>Status</th><th>Rated</th><th>Dispute</th>
     </tr>
     <?php foreach ($purchases as $p): ?>
     <tr style="border-top:1px solid var(--line);">

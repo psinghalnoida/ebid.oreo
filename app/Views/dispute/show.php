@@ -28,7 +28,7 @@
     </form>
 
     <div style="background:var(--line-soft); padding:14px; border-radius:10px; margin-top:16px;">
-      <p style="font-size:12px; color:var(--ink-3); margin:0 0 8px;">Ruling action — requires the correct authority (Tenant Admin or Super Admin per category, BR-40)</p>
+      <p style="font-size:12px; color:var(--ink-3); margin:0 0 8px;">Ruling action — requires the correct authority (<?= tsx_term('Tenant Admin') ?> or <?= tsx_term('Super Admin') ?> per category, BR-40)</p>
       <form method="post" action="/disputes/<?= esc($dispute['id']) ?>/rule">
         <select name="outcome" style="padding:8px; border:1px solid var(--line); border-radius:8px; font-size:12px; margin-bottom:6px; width:100%;">
           <option value="dismissed">Dismiss the claim</option>
@@ -49,7 +49,7 @@
       <p style="margin:0 0 10px;"><strong>Rationale:</strong> <?= esc($dispute['ruling_rationale']) ?></p>
       <?php if ($dispute['ruling_authority_type'] === 'tenant_admin'): ?>
         <form method="post" action="/disputes/<?= esc($dispute['id']) ?>/appeal">
-          <button type="submit" class="btn btn-ghost" style="font-size:12px;">Appeal to Super Admin</button>
+          <button type="submit" class="btn btn-ghost" style="font-size:12px;">Appeal to <?= tsx_term('Super Admin') ?></button>
         </form>
       <?php endif; ?>
     </div>
@@ -57,7 +57,7 @@
 
   <?php if ($dispute['status'] === 'appealed'): ?>
     <div style="background:var(--line-soft); padding:14px; border-radius:10px; margin-top:16px;">
-      <p style="font-size:12px; color:var(--ink-3); margin:0 0 8px;">Super Admin appeal ruling</p>
+      <p style="font-size:12px; color:var(--ink-3); margin:0 0 8px;"><?= tsx_term('Super Admin') ?> appeal ruling</p>
       <form method="post" action="/disputes/<?= esc($dispute['id']) ?>/rule-appeal">
         <textarea name="rationale" required placeholder="Appeal rationale" rows="2" style="display:block; width:100%; padding:8px; border:1px solid var(--line); border-radius:8px; font-size:12px;"></textarea>
         <button type="submit" class="btn btn-emerald" style="margin-top:8px; font-size:12px;">Rule on Appeal</button>

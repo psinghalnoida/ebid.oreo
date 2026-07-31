@@ -10,7 +10,7 @@
       <option value="condition_delivery">Condition/Delivery Dispute</option>
       <option value="non_lifting_collection">Non-Lifting/Collection Dispute</option>
       <option value="auction_rejection">Auction Rejection Dispute</option>
-      <option value="buyer_non_response">Buyer Non-Response Dispute</option>
+      <option value="buyer_non_response"><?= tsx_term('Buyer') ?> Non-Response Dispute</option>
     </select>
     <label style="font-size:12px; color:var(--ink-3);">Description</label>
     <textarea name="description" required rows="5" style="display:block; width:100%; padding:12px; margin:6px 0 20px; border:1px solid var(--line); border-radius:10px;"></textarea>
