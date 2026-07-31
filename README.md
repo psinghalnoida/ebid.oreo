@@ -11,27 +11,40 @@ CodeIgniter 4 (PHP) with server-rendered views.
 All four sale formats (Easy, Buy-Now, Express, Tender) fully built and
 tested, a tested EMD escrow engine, a four-score rating system with
 Crawl-Back recovery, a real Dispute Resolution Framework, real Tenant
-Admin and Super Admin (TOTP 2FA) role-based access control, and a full
-Trust & Support content section — all built and verified against real
-PostgreSQL data before ever being pushed. 254+ automated assertions
-across fifteen test suites.
+Admin and Super Admin (TOTP 2FA) role-based access control, full KYC
+onboarding, AML monitoring, Standing Review, payout account control,
+server-time integrity, a Sovereign Rule module for Super Admin-tunable
+thresholds, the current TSX/TradeSphereX commercial model (a declining
+Success Fee schedule, per-Trading-Session Fee Payer Election,
+subscription tiers with monthly Tenant billing for Seller-Pays fees), a
+Tenant API Access module (OAuth2 client-credentials, tier-gated
+push/pull endpoints, webhook delivery), and a full Trust & Support
+content section — all built and verified against real PostgreSQL data
+before ever being pushed. 32 permanent test-command suites (see Step 10
+below), each with real assertions re-run on every change, not
+throwaway scripts.
 
 ## ⚠️ Before deploying — read this first
 
-**`main` is currently behind `dev` and does not yet reflect everything
-described in this README.** All active development happens on `dev`;
-`main` only advances when Piyush explicitly approves a merge as a
-deliberate checkpoint (see `docs/DECISIONS.md` for that convention).
-Before following the deployment guide below, confirm which branch you're
-actually deploying:
+**`main` is currently the more current branch — `dev` has not been
+updated since PR #12 and is now behind `main`, not ahead of it.** Newer
+work than either branch reflects also exists: the ADWITIX_Master.docx
+governing-document replacement, the current TSX commercial model
+(Success Fee schedule, Fee Payer Election, subscription-tier Tenant
+billing), the Tenant API Access module, and the Terminology
+restructuring all currently sit on open, unmerged pull requests
+(#31 → #32 → #33 → #34, stacked in that order) — none of that is in
+`main` or `dev` yet. Before following the deployment guide below,
+confirm which branch/PR you're actually deploying:
 
 ```bash
 git log --oneline -3 origin/main
 git log --oneline -3 origin/dev
+gh pr list --state open   # or check github.com directly
 ```
 
-If `main` is behind and you want the full platform described here, that
-merge needs to happen first — check with Piyush.
+If you want the full platform described here, those PRs need to be
+reviewed and merged first — check with Piyush.
 
 ## Start here
 
@@ -50,10 +63,14 @@ merge needs to happen first — check with Piyush.
   rule and process workflow against what's actually built, with what
   remains prioritized.
 - **`docs/source-documents/`** — the original governing documents this
-  entire project is built against, including `eBid_Hub_Unified_BR_PR.docx`
-  itself (the canonical BR-01–61/PR-01–36 specification every business
-  rule in this codebase traces back to). Not generated from the code —
-  the other way around.
+  entire project is built against, including `ADWITIX_Master.docx`
+  itself (the canonical BR-01–68/PR-01–37 specification every business
+  rule in this codebase traces back to, including a Section 1
+  Terminology section — a branded/technical term mapping plus a
+  36-term platform glossary — positioned ahead of the Business Rules).
+  Replaced the retired `eBid_Hub_Unified_BR_PR.docx` on 2026-07-30 (see
+  `docs/DECISIONS.md` D-87). Not generated from the code — the other
+  way around.
 - **The deployment guide below** — for putting this on the actual i2k2
   server.
 
@@ -223,10 +240,13 @@ depends on this being correct.
 sudo php spark migrate
 ```
 
-This creates every table the application needs — as of this build, 26
+This creates every table the application needs — as of this build, 62
 migrations covering parties, tenants, listings, all four sale formats,
-EMD escrow, ratings, settlement, disputes, Tender's full workflow, and
-account recovery/media compression. Confirm with:
+EMD escrow, ratings, settlement, disputes, Tender's full workflow,
+account recovery/media compression, KYC, AML/Standing Review, payout
+control, server-time integrity, the Sovereign Rule module, the
+declining Success Fee schedule/Fee Payer Election/Tenant monthly
+billing, and Tenant API Access. Confirm with:
 
 ```bash
 sudo -u postgres psql -d ebidhub -c "\dt"
@@ -258,6 +278,23 @@ sudo php spark test:tenderfoundation       # Tender interest/eligibility/documen
 sudo php spark test:tenderbidding          # Tender increment + dual-window timing
 sudo php spark test:tenderreview           # Tender post-auction review workflow
 sudo php spark test:easyexpresscorrections # Easy/Express increment corrections
+sudo php spark test:kyc                    # KYC onboarding, verification, BR-55 gate
+sudo php spark test:aml                    # AML monitoring flags
+sudo php spark test:standingreview         # Standing Review, CBS violation ladder
+sudo php spark test:payoutcontrol          # Payout bank-change control, cooling-off
+sudo php spark test:crawlback              # Shadow ban / Crawl-Back thresholds
+sudo php spark test:auditlog               # Immutable audit trail, DB-level lockdown
+sudo php spark test:sovereignrule          # Super Admin-tunable thresholds
+sudo php spark test:servertimecheck        # NTP sync + drift alerting
+sudo php spark test:invoices               # Invoice history, PDF generation
+sudo php spark test:successfee             # Success Fee schedule, Fee Payer Election, Tenant billing
+sudo php spark test:tenantapi              # Tenant API Access: OAuth2, tier gating, webhooks
+sudo php spark test:media                  # Media upload queue, compression
+sudo php spark test:selleraudit            # Consent audit trail
+sudo php spark test:phase3a                # Account edit scoping
+sudo php spark test:discovery              # Trending/recommendation feed
+sudo php spark test:browse                 # CLV preference matching
+sudo php spark test:br35                   # Dispute-driven rating event attribution
 ```
 
 If any of these fail here but passed during development, something about
@@ -479,6 +516,6 @@ Add:
 
 ## Verifying the build (quick reference)
 
-See Step 10 above for the full list of fifteen test commands — all real,
+See Step 10 above for the full list of 32 test commands — all real,
 permanent verification tooling, not throwaway scripts. Rerun any of them
 after making a change to confirm nothing broke.

@@ -5650,3 +5650,55 @@ rollout (BR-67 rendered in the real portal UI) that this whole
 discussion started from. That's the project owner's own next question
 — tracked as its own build, not silently folded into this
 documentation fix.
+
+### D-91: Root `README.md` Was Stale — Fixed, Plus BR-67 Rollout Gap Now Tracked
+
+The project owner quoted text describing `docs/source-documents/` as
+still centered on the retired `eBid_Hub_Unified_BR_PR.docx`
+(BR-01–61/PR-01–36) and asked whether the live codebase's source of
+truth had silently diverged from `ADWITIX_Master.docx`. Checked
+directly rather than assumed: `docs/source-documents/README.md` and
+`docs/BR_PR_AUDIT.md` were both already correct (D-87/D-89/D-90 kept
+them in sync as the work happened) — but the **root `README.md`**,
+which nobody had touched since well before this session's work, still
+carried the old doc name and BR/PR range verbatim. That's genuinely
+where the quoted text traces back to — not a different project, not a
+hallucination, an actual stale file in this repo.
+
+While fixing it, the rest of the root README's factual claims were
+checked against the real repository state rather than assumed correct
+by association, and several more were found stale:
+
+- **Migration count**: said 26, actually 62.
+- **Test suite count**: said "254+ assertions across fifteen test
+  suites," actually 32 permanent `test:*` commands — the Step 10
+  deployment-verification list only named 15 of them; the other 17
+  (KYC, AML, Standing Review, payout control, audit-log lockdown,
+  Sovereign Rule, server-time integrity, Success Fee, Tenant API
+  Access, etc.) were simply never added as the project grew.
+- **"What this is" feature summary**: hadn't been updated since an
+  early point in the project — missing KYC, AML, Standing Review,
+  payout control, server-time integrity, the Sovereign Rule module,
+  and the entire current commercial model (Success Fee schedule, Fee
+  Payer Election, subscription tiers, Tenant API Access) — genuinely
+  large chunks of what's actually built were invisible to a first-time
+  reader of this file.
+- **`main`/`dev` branch guidance was backwards**: the README claimed
+  `main` was behind `dev`; checked directly (`git log
+  origin/main..origin/dev`) — `dev` hasn't moved since PR #12 and is
+  now an ancestor of `main`, not ahead of it. Also flagged: none of
+  D-87 through D-90 (the ADWITIX doc replacement, the current
+  commercial model, Tenant API Access, the Terminology restructuring)
+  are in `main` or `dev` yet — all four sit on open, stacked PRs
+  (#31→#32→#33→#34).
+
+**Separately, a real gap surfaced by this same conversation and now
+formally tracked**: BR-67 (Branded Terminology Layer)'s live-UI
+rollout — confirmed missing in the exchange leading into D-90, but
+never actually added to `docs/BR_PR_AUDIT.md`'s own gap list at the
+time. Added now as the sole remaining item with no external blocker.
+
+Fixed: root `README.md` (doc reference, feature summary, branch
+guidance, migration count, full 32-command test list) and
+`docs/BR_PR_AUDIT.md` (BR-67 rollout gap added to the bottom line).
+`docs/source-documents/README.md` needed no changes — already correct.
