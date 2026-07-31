@@ -182,6 +182,14 @@ $routes->get('/account/earnings', 'AccountController::earnings');
 $routes->get('/account/invoices', 'InvoiceController::index');
 $routes->get('/account/invoices/(:segment)/pdf', 'InvoiceController::pdf/$1');
 
+// Section 7.10 (ADWITIX_Master.docx): Trading Session Chronicle.
+// verify()/verifyPdf() are deliberately token-only, no session filter --
+// that's the whole point of a QR code reachable by anyone with the exact
+// unguessable token, per Section 7.8's stated exception.
+$routes->get('/chronicles/(:segment)/download', 'ChronicleController::download/$1');
+$routes->get('/chronicle/verify/(:segment)', 'ChronicleController::verify/$1');
+$routes->get('/chronicle/verify/(:segment)/pdf', 'ChronicleController::verifyPdf/$1');
+
 // Phase 3A: real, dedicated, paginated/filterable transaction pages
 $routes->get('/my-bids', 'MyActivityController::myBids');
 $routes->get('/my-offers', 'MyActivityController::myOffers');

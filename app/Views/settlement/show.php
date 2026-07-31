@@ -124,6 +124,15 @@
     </div>
   <?php endif; ?>
 
+  <?php if (!empty($chronicle)): ?>
+    <h3 style="font-size:15px; margin-top:24px;">Trading Session Chronicle (Section 7.10)</h3>
+    <div style="border:1px solid var(--line); border-radius:12px; padding:16px; margin-top:10px;">
+      <p style="font-size:12px; color:var(--ink-3); margin:0 0 8px;"><?= esc($chronicle['reference_number']) ?> — certified <?= esc(substr($chronicle['generated_at'], 0, 16)) ?> UTC</p>
+      <a href="/chronicles/<?= esc($chronicle['id']) ?>/download" class="btn btn-ghost" style="font-size:12px;">Download Certified PDF</a>
+      <a href="/chronicle/verify/<?= esc($chronicle['verification_token']) ?>" class="btn btn-ghost" style="font-size:12px;">Public Verification Page</a>
+    </div>
+  <?php endif; ?>
+
   <?php if (!empty($auditEvents)): ?>
     <h3 style="font-size:15px; margin-top:24px;">Audit Trail (BR-05)</h3>
     <?php foreach ($auditEvents as $ev): ?>

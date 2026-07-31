@@ -32,6 +32,7 @@ class SettlementController extends BaseController
         }
         $saleEvent = $this->saleEventModel->find($s['sale_event_id']);
         $invoices = (new \App\Libraries\InvoiceService())->findForSettlement($settlementId);
+        $chronicle = (new \App\Libraries\ChronicleService())->findForSaleEvent($s['sale_event_id']);
 
         $db = \Config\Database::connect();
         $dispute = $db->table('dispute')->where('sale_event_id', $s['sale_event_id'])->orderBy('created_at', 'DESC')->get()->getRowArray();
@@ -50,7 +51,7 @@ class SettlementController extends BaseController
         return view('settlement/show', [
             'title' => 'Settlement — eBid Hub', 'settlement' => $s, 'saleEvent' => $saleEvent,
             'callerId' => $this->requireLogin(), 'invoices' => $invoices,
-            'dispute' => $dispute, 'auditEvents' => $auditEvents,
+            'dispute' => $dispute, 'auditEvents' => $auditEvents, 'chronicle' => $chronicle,
         ]);
     }
 

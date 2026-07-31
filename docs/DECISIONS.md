@@ -5897,3 +5897,170 @@ reproduced again in bulk-sequential runs and disappeared entirely when
 each suite ran against its own freshly-migrated database — same root
 cause, same conclusion: pre-existing sandbox behavior, not a
 regression from this work.
+
+### D-94: AX Knowledge & Chronicle Framework — Section 7 added, Phase 1 (Trading Session Chronicle) built
+
+The project owner supplied a concept paper (AX Knowledge & Chronicle
+Framework, v1.0) and asked to discuss it, add it to the master
+document, and scope a Phase 1 slice for immediate build — all in one
+sitting, not spread across separate approvals.
+
+**Discussion first, as asked.** Before writing anything, the framework
+was mapped against what already exists: three of its Information
+Hierarchy levels already have a home under different names (Lot =
+Listing, Event = Sale Event/Trading Session, Transaction = Settlement);
+Evidence already exists as PR-09's media pipeline, just unclassified;
+Case and Asset (as a lifecycle entity, distinct from BR-47's lighter
+Related Auctions grouping) are genuinely new; the word "Dossier"
+already meant something specific and narrower in this codebase (the
+KYC verification packet, `KycReviewController`) before this framework
+introduced a broader meaning. Three decisions were needed before
+anything could be written or built, and were resolved via
+`AskUserQuestion`:
+
+1. **Phase placement** — the project owner didn't pick a side of the
+   binary offered; instead: build the essential seller-facing report
+   in Phase 1, defer the rest, and figure out exactly what's
+   "essential" together before writing the section. That's what
+   happened next.
+2. **Dossier naming** — fold the existing KYC verification packet in
+   as one Dossier type ("Compliance Dossier") rather than renaming
+   existing code or treating the words as an accidental collision.
+3. **Contributors** (BR-21 overlap) — explicitly left open, "needs
+   more design thought first." Not scoped into either phase; Section
+   7.5 states this plainly rather than picking a default.
+
+**Scoping Phase 1 together, concretely** — the project owner described
+the actual report wanted, not an abstract slice of the framework: "a
+report duly authenticated by the system after the completion of sale
+... what was listed, what happened chronologically, what's the
+result ... how many people participated and how they bid, how much
+improvement was done, what transaction occurred, how transparency was
+maintained yet secrecy observed." Mapped directly onto the framework's
+own Event Chronicle concept, scoped as a **Trading Session Chronicle**.
+Two follow-up calls, also via `AskUserQuestion`: the narrative is
+**template-based, not AI-authored** (AI needs a real Gemini credential,
+the same blocker BR-46 is already waiting on — no reason to create a
+second thing waiting on it); and the QR-linked digital verification
+page is **included in Phase 1**, not deferred, so the Chronicle is
+genuinely authenticated, not just generated.
+
+**Section 7 written into `ADWITIX_Master.docx`** (unzip → OOXML edit
+via the docx skill → zip → `validate.py`, 1175→1248 paragraphs, all
+validations passed) — Vision, Guiding Principles, Information
+Hierarchy, Chronicle Hierarchy, Contributors (flagged undecided),
+Information Classification, Dossiers, Access & Visibility, and AI's
+role, all as design reference (7.1–7.9); 7.10 states the Trading
+Session Chronicle as active Phase 1 scope; 7.11 is a table of
+everything deferred to Phase 2 and what each item needs first — the
+same treatment Section 5 already gives Procurement and Market
+Intelligence. Table of Contents updated to list Section 7.
+
+**Built**, on top of what already exists rather than a new parallel
+data layer:
+
+- **Migration** (`2026-01-01-000063`): `trading_session_chronicle` —
+  `report_data` is a JSON snapshot captured once at generation, not
+  re-derived on every render, so a certified Chronicle stays exactly
+  what it was when certified even if later activity touches the same
+  Sale Event (Section 7.10's "once certified, immutable" principle,
+  matching BR-13's existing treatment of Listings). `version`/
+  `superseded_by_chronicle_id` columns support future re-certification
+  without a schema change, though nothing in this build triggers one.
+- **`ChronicleService::generate()`** — compiles the report directly
+  from `listing`/`sale_event`/`bid`/`offer`/`settlement` and the BR-05
+  audit trail (reusing `SettlementController::show`'s existing
+  `LIKE`-based scoped-timeline query, not a new indexing scheme). Logs
+  to the audit trail first via `AuditLogService`, then folds that
+  entry's own `record_hash` into `report_data` before computing the
+  stored `content_hash` — so the Chronicle carries a live, independently
+  checkable pointer into the hash chain, and `content_hash` is a
+  direct, trivially re-verifiable hash of exactly what's in the row
+  (confirmed by `test:chronicle`, not just asserted).
+- **BR-16 masking, verified not assumed**: `compileParticipation()`
+  never puts a `bidder_party_id`/`buyer_party_id` into `report_data` —
+  counts and amounts only, the same convention `listing/show.php`'s
+  offer list already uses. `test:chronicle` asserts all three real
+  party IDs from the fixture are absent from the full serialized
+  report, not just that the code "looks like" it omits them.
+  Historical versions of a Chronicle would face the same rule.
+- **Wired into `SettlementService::checkCompletion()`** — generated
+  for every completed settlement regardless of format or fee payer
+  (unlike the BR-56 invoice a few lines above it, nothing in Section
+  7.10 carves Tender out).
+- **`ChronicleController`** — two deliberately different access paths
+  per Section 7.8: `download()` is session-authenticated (Seller via
+  `ChronicleService::findIfAuthorized()`, or that Tenant's Admin via
+  `AuthorizationService::isTenantAdminForSettlement()`, already used
+  elsewhere for the exact same purpose); `verify()`/`verifyPdf()` are
+  token-only with no session filter at all, by design — reachable by
+  anyone holding the QR's exact 48-hex-char `random_bytes(24)` token,
+  since a QR scanned by an outside party (an auditor, a regulator)
+  can't carry a login session with it. `/chronicles/{id}/download`,
+  `/chronicle/verify/{token}`, `/chronicle/verify/{token}/pdf` added to
+  `Routes.php`.
+- **QR generation**: `endroid/qr-code` added via Composer (no prior QR
+  dependency existed). `dompdf` embeds the PNG as a data URI directly
+  in the certified PDF; the public verify page links the same PDF and
+  additionally surfaces the Lot's photographs/documents and the
+  audit-trail excerpt.
+- **`settlement/show.php`** gained a "Trading Session Chronicle"
+  section with both links, next to the existing Invoices/TDS sections
+  it was modeled on.
+
+**Verification**: `test:chronicle` (22 assertions) — automatic
+generation with no explicit call from the test, the CHR-YYYYMMDD-xxxx
+reference format, report content correctness (category, final price,
+Reserve Value, a real 20.00% improvement computed from the fixture's
+actual numbers, the confirmed 10% TDS rate), BR-16 masking as described
+above, the hash/audit-chain tie-in, and both retrieval paths
+(`getByToken()` for the QR route, `findIfAuthorized()` for the
+session-authenticated one, including a real denial for a party who
+wasn't the Seller). Real HTTP: the public verify page renders and
+correctly shows "Digital Verification: ... matches what was
+certified"; `/chronicle/verify/{token}/pdf` returns a genuine 2-page
+PDF (`pdfinfo` confirmed, not just a 200 status) with the timeline,
+participation, and QR block all present; an invalid token 404s. Full
+regression re-run on freshly-migrated databases
+(`settlement`/`dispute`/`successfee`/`tenantapi`/`terminology`/
+`invoices`/`br35`, the suites most likely affected by touching
+`SettlementService`) — all pass, including `test:settlement`'s
+stall-resolution path, which also funnels through `checkCompletion()`.
+
+Not built, per the decisions above: Case/Asset entities, the other
+Chronicle types, Contributors, the full Information Classification
+taxonomy, the other four Dossier types, the full six-tier Access
+model, and AI-authored narrative — all Section 7.11, all explicitly
+Phase 2.
+
+### D-95: Section 7 phases named — AX Chronicle / AX Intelligence
+
+The project owner shared an external proposal (a screenshot of a
+separate ChatGPT conversation) to name D-94's two phases: Phase 1 as
+"AX Chronicle" ("Capture. Certify. Preserve."), Phase 2 as "AX
+Intelligence" ("Understand. Learn. Recommend."), with a comparison
+table (Records/Learns, Reports/Intelligence, Timeline/Knowledge,
+Evidence/Insights, PDF/AI Narrative, Downloads/Dossiers, Statistics/
+Recommendations, Simple permissions/Enterprise governance) that maps
+cleanly onto what Section 7.10/7.11 already are — this isn't new
+scope, just names for the existing split. Confirmed: rename now, and
+flag the proposal's Enterprise-tier commercial gating idea (every
+customer gets AX Chronicle from day one; AX Intelligence sold as the
+paid differentiator for higher-tier plans) as open for later, not a
+commercial term of this document yet.
+
+**Applied to `ADWITIX_Master.docx`** (unzip → text-only run edits →
+zip → `validate.py`, 1248→1250 paragraphs, all validations passed):
+the Status line, 7.3, 7.6, and 7.8's prose references, and the 7.4
+Chronicle Hierarchy bullets now name both phases; 7.10 and 7.11's
+headings gained "AX Chronicle (Phase 1)" / "AX Intelligence (Phase 2)"
+and their taglines as new italic subtitle paragraphs. 7.11's intro
+paragraph now states the Enterprise-tier question explicitly, framed
+as raised-and-open, not decided.
+
+**Also fixed while in the same section**: five internal cross-references
+that pointed at "(7.9)" (AI Within the Framework) when they meant to
+point at the Trading Session Chronicle, which is actually 7.10 — a
+pre-existing numbering slip from D-94's own build, caught only because
+this edit required re-reading every cross-reference in the section
+carefully rather than assuming they were already correct.
