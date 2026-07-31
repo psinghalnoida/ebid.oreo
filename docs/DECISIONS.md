@@ -5461,3 +5461,119 @@ override, BR-32 as it existed before the master-doc rewrite) and D-85
 (the on-hold BR-31 buyer-fee-band validation gap, PR #29) — both
 described a fee model this build fully replaces. PR #29 should be
 closed or reconciled against this work rather than merged separately.
+
+### D-89: BR-62-66/PR-37 Built — Tenant API Access Module
+
+The last item on the audit's own bottom line with no external blocker
+(docs/BR_PR_AUDIT.md). Built directly, per the user's explicit
+instruction, following the exact re-audit finding: a whitelisted
+Tenant can integrate its own systems with the platform as an
+alternative to the portal UI, governed identically to a portal
+submission — no privilege the portal doesn't already grant, none
+bypassed (BR-62).
+
+**BR-64 substitution, flagged explicitly, same pattern as
+`TotpService`**: BR-64 names OAuth2 client-credentials "through the
+platform's existing Auth0 relationship." Auth0 is a paid external
+vendor requiring its own account — the same category of dependency as
+the payment gateway/SMS provider (D-23), deferred the same way. Built
+a real, self-hosted client-credentials flow instead
+(`ApiCredentialService`): genuine random `client_id`/`client_secret`
+issuance, bcrypt secret hashing, and a genuinely HMAC-signed
+short-lived bearer token — not a fake stand-in. BR-64's "hard-scoped
+to a single tenantId at the token-issuance level" requirement is real:
+the tenantId is inside the signed payload, and every request re-checks
+the underlying credential is still `active` in the DB, so a revoked
+credential's outstanding tokens stop working immediately rather than
+only at next refresh — verified directly (`test:tenantapi` and real
+HTTP: revoked via the portal, the same still-unexpired token
+immediately 401s).
+
+**BR-66 tier gating, built on the D-88 `subscription_tier` field**:
+CoCo Starter has no API access at all (enforced in `ApiAuthFilter`,
+and again defensively in `TenantApiSettingsController::issueCredential`
+so a CoCo Starter TSX can't even mint a credential); TSX Launch is
+read-only; TSX Growth adds Lot push; TSX Enterprise adds Sale System
+push. `TenantModel::hasApiAccess()`/`canPushListings()`/
+`canPushSaleEvents()` are the single source of truth both the filter
+and the controller actions check.
+
+**BR-63 visibility parity**: a listing/sale-event outside the calling
+credential's own tenant 404s, not 403s — a probing client learns
+nothing about another tenant's ID space. Verified directly: an
+Enterprise-tier token reading a Growth-tenant's listing ID gets
+`not_found`; the Growth tenant's own token reading the same ID
+succeeds.
+
+**PR-37's own gap, flagged rather than silently resolved**: its
+Operational Sequence says a pushed listing "enters PENDING_APPROVAL
+(BR-13), identical to a portal submission" — but BR-11's own photo
+requirement (5-50 photos, one marked primary) is what actually moves a
+portal listing out of INVENTORY via `submitForApproval()`, and PR-37's
+own step list has no media-push step at all. Resolved conservatively,
+not by picking the shortcut: `TenantApiController::pushListing()`
+creates the listing at INVENTORY, same as the portal, rather than
+skipping BR-11's gate — BR-62's "bypasses none" principle taken
+literally over PR-37's summary-level wording. Noted here as a real,
+narrow gap in the source document's own text, the same category as
+D-87's PR-13/PR-22 wording lag, not resolved by assumption.
+
+**Built**:
+- Migration `2026-01-01-000062_CreateTenantApiAccess` —
+  `tenant_api_credential` (client_id/secret-hash/status), `tenant.
+  webhook_url`/`webhook_signing_secret`, `tenant_webhook_delivery`
+  (event log with bounded retry, the same "stage now, scheduler
+  finalizes later" shape as `media_upload_job`/PR-09 and the BR-50
+  payout cooling-off).
+- `ApiCredentialService` (issuance/revocation/authenticate/
+  validateToken) and `ApiAuthFilter` (Bearer token validation +
+  baseline tier gate, wired as the `apiAuth` route filter alias).
+- `TenantApiController` — `POST /api/v1/oauth/token`, `POST/GET
+  /api/v1/listings[/{id}]`, `POST/GET /api/v1/listings/{id}/sale-events`
+  and `/api/v1/sale-events/{id}` — reusing the exact same governance
+  calls `ListingController`/`SaleEventController` use (BR-15 Super
+  Admin exclusion, BR-55 KYC, BR-38 delisting/ceiling, BR-09 approved-
+  seller, BR-07 category closed-list, BR-24 shipping validation, BR-60
+  media waiver, BR-31/32 Fee Payer Election tier gating), not a parallel
+  or looser rule set. Tender is excluded entirely, matching PR-37's own
+  explicit exclusion.
+- `TenantWebhookService` — fires `listing.approved`,
+  `sale_event.created`, `listing.archived` (with `supersededBy`),
+  `settlement.completed`, and `dispute.filed`, wired into the exact
+  existing lifecycle methods (`ListingLifecycleService::approve()`/
+  `approveSaleEvent()`/`requestMaterialEdit()`, `SettlementService::
+  checkCompletion()`, `DisputeService::fileDispute()`) rather than a
+  parallel event system. HMAC-signed (`X-TSX-Signature`) — not
+  explicitly required by PR-37's text, added as a reasonable security
+  default and flagged as such, the same category as this codebase's
+  other unrequested-but-sensible defaults. Bounded retry (5 attempts,
+  fixed 5-minute backoff — PR-37 specifies neither figure), wired into
+  `SchedulerService::runAll()`.
+- Tenant Admin API Access settings page (`/tenants/{id}/api-access`):
+  issue/revoke credentials (secret shown once, standard OAuth2
+  practice), set the webhook URL. New `test:tenantapi` (25/25:
+  tier-gating helpers, the full OAuth2 flow including a genuinely
+  rejected wrong secret and a genuinely tampered/rejected token,
+  immediate-effect revocation, webhook delivery against a real
+  unreachable address with real connection-failure logging, and the
+  bounded-retry give-up path).
+
+**Real-HTTP verification, not just the CLI suite**: issued real
+credentials via the actual Tenant Admin settings page for TSX Launch/
+Growth/Enterprise tenants (CoCo Starter correctly refused by the UI
+itself); exchanged real OAuth2 tokens; confirmed Launch (read-only)
+gets 403 `insufficient_tier` pushing a listing while Growth succeeds;
+confirmed BR-07's category closed-list rejects an invalid category;
+confirmed Growth gets 403 pushing a Sale System (Enterprise-only)
+while Enterprise succeeds, including a real Seller-Pays Fee Payer
+Election on the pushed sale event; confirmed cross-tenant `GET` 404s
+while same-tenant `GET` succeeds (BR-63); approved a pushed listing
+and its pushed Sale System through the real portal endpoints and
+confirmed `listing.approved`/`sale_event.created` webhook deliveries
+were genuinely logged (against a real unreachable address, so a real
+connection failure, not a mock); revoked a credential through the
+portal and confirmed its still-unexpired token 401s immediately.
+
+Full CLI regression suite re-run clean (30/32 — the same two
+pre-existing, unrelated `dompdf`/`ebidhub_ci4` environment gaps noted
+in D-88, not new).

@@ -241,3 +241,18 @@ $routes->post('/admin/kyc/(:segment)/verify-flag', 'KycReviewController::verifyF
 $routes->post('/admin/kyc/(:segment)/decide', 'KycReviewController::decide/$1', ['filter' => 'superAdmin']);
 $routes->post('/admin/kyc/(:segment)/clear-edd', 'KycReviewController::clearEdd/$1', ['filter' => 'superAdmin']);
 $routes->get('/admin/kyc-documents/(:segment)/download', 'KycReviewController::downloadDocument/$1', ['filter' => 'superAdmin']);
+
+// Tenant API Access (BR-62-66/PR-37) — Tenant Admin portal-side credential
+// and webhook management.
+$routes->get('/tenants/(:segment)/api-access', 'TenantApiSettingsController::index/$1', ['filter' => 'tenantAdmin:tenant']);
+$routes->post('/tenants/(:segment)/api-access/credentials', 'TenantApiSettingsController::issueCredential/$1', ['filter' => 'tenantAdmin:tenant']);
+$routes->post('/tenants/(:segment)/api-access/credentials/(:segment)/revoke', 'TenantApiSettingsController::revokeCredential/$1/$2', ['filter' => 'tenantAdmin:tenant']);
+$routes->post('/tenants/(:segment)/api-access/webhook-url', 'TenantApiSettingsController::updateWebhookUrl/$1', ['filter' => 'tenantAdmin:tenant']);
+
+// Tenant API Access (BR-62-66/PR-37) — the actual API surface, OAuth2
+// client-credentials-authenticated (apiAuth filter), not session-based.
+$routes->post('/api/v1/oauth/token', 'TenantApiController::issueToken');
+$routes->post('/api/v1/listings', 'TenantApiController::pushListing', ['filter' => 'apiAuth']);
+$routes->get('/api/v1/listings/(:segment)', 'TenantApiController::getListing/$1', ['filter' => 'apiAuth']);
+$routes->post('/api/v1/listings/(:segment)/sale-events', 'TenantApiController::pushSaleEvent/$1', ['filter' => 'apiAuth']);
+$routes->get('/api/v1/sale-events/(:segment)', 'TenantApiController::getSaleEvent/$1', ['filter' => 'apiAuth']);
