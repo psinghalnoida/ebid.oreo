@@ -13,7 +13,7 @@ class ListingModel extends Model
     protected $useTimestamps    = false;
 
     protected $allowedFields = [
-        'id', 'tenant_id', 'seller_party_id', 'physical_condition', 'category', 'subcategory',
+        'id', 'tenant_id', 'seller_party_id', 'title', 'physical_condition', 'category', 'subcategory',
         'quantity', 'quantity_basis', 'make_model', 'yard_location_address',
         'yard_location_pin', 'inspector_party_id', 'inspector_contact_note',
         'surveyor_party_id', 'custodian_party_id',

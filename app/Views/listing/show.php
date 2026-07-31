@@ -9,7 +9,7 @@
   <span class="pc-badge" style="background:var(--emerald-soft); color:var(--emerald-deep); padding:5px 12px; border-radius:100px; font-size:11px; font-weight:700;">
     <?= esc(strtoupper($listing['status'])) ?>
   </span>
-  <h1 style="font-size:26px; margin:12px 0 4px;"><?= esc($listing['category']) ?><?= $listing['subcategory'] ? ' / ' . esc($listing['subcategory']) : '' ?></h1>
+  <h1 style="font-size:26px; margin:12px 0 4px;"><?php if (!empty($listing['title'])): ?><?= esc($listing['title']) ?><?php else: ?><?= esc($listing['category']) ?><?= $listing['subcategory'] ? ' / ' . esc($listing['subcategory']) : '' ?><?php endif; ?></h1>
   <p style="color:var(--ink-3); font-size:13px;">
     Lot ID: <?= esc($listing['id']) ?> · Media: <?= esc(strtoupper($listing['media_tier'])) ?>
     <?php if ($sellerStarRating !== null): ?>

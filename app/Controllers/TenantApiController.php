@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Libraries\ApiCredentialService;
 use App\Libraries\ApiRequestContext;
 use App\Libraries\AuthorizationService;
+use App\Libraries\GeminiPreAuditService;
 use App\Libraries\KycService;
 use App\Libraries\ListingLifecycleService;
 use App\Libraries\RatingService;
@@ -68,6 +69,45 @@ class TenantApiController extends BaseController
     // before it genuinely reaches PENDING_APPROVAL. Flagged as a real gap
     // between PR-37's summary wording and BR-11's own requirement, not
     // silently resolved by assumption (see DECISIONS.md).
+    // BR-46, extended to the API surface: the portal's version is an
+    // interactive "check before you submit" button a seller clicks --
+    // that moment doesn't exist for a Tenant pushing Lots through its
+    // own backend. Exposed as its own stateless, side-effect-free
+    // endpoint (no listing ID, nothing persisted) so a Tenant's own
+    // frontend can call it before finalizing a push, giving its own
+    // sellers the same AI-assisted moment under the Tenant's own
+    // branding. Same tier floor as the push endpoint itself (BR-66) --
+    // no separate gate, since a Tenant that can't push Lots at all has
+    // nothing to pre-audit.
+    public function preAuditListing()
+    {
+        $tenantId = ApiRequestContext::tenantId();
+        $tenant = (new TenantModel())->find($tenantId);
+        if (!TenantModel::canPushListings($tenant['subscription_tier'])) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'error' => 'insufficient_tier', 'error_description' => 'BR-66: listing pre-audit requires TSX Growth or TSX Enterprise.',
+            ]);
+        }
+
+        $body = $this->request->getJSON(true) ?? [];
+        $draft = [
+            'category' => $body['category'] ?? null,
+            'subcategory' => $body['subcategory'] ?? null,
+            'physicalCondition' => $body['physicalCondition'] ?? null,
+            'quantity' => $body['quantity'] ?? null,
+            'quantityBasis' => $body['quantityBasis'] ?? 'unit',
+            'makeModel' => $body['makeModel'] ?? null,
+        ];
+
+        try {
+            $result = (new GeminiPreAuditService())->evaluate($draft);
+        } catch (\RuntimeException $e) {
+            return $this->response->setStatusCode(503)->setJSON(['available' => false, 'message' => $e->getMessage()]);
+        }
+
+        return $this->response->setJSON(array_merge(['available' => true], $result));
+    }
+
     public function pushListing()
     {
         $tenantId = ApiRequestContext::tenantId();

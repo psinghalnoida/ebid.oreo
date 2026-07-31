@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Libraries\GeminiPreAuditService;
 use App\Libraries\ListingLifecycleService;
 use App\Models\ListingModel;
 use App\Models\TenantModel;
@@ -63,6 +64,35 @@ class ListingController extends BaseController
         // Tenant selection/scoping by seller role (BR-09) is not yet built.
         $tenants = $this->tenantModel->findAll();
         return view('listing/create', ['title' => 'List an Asset — eBid Hub', 'tenants' => $tenants]);
+    }
+
+    // BR-46: a seller may trigger this before submitting -- purely
+    // advisory, never gates or auto-approves anything. Session-gated
+    // like the rest of listing creation, not tied to a listing ID
+    // (the draft hasn't been saved yet when a seller would use this).
+    public function preAudit()
+    {
+        $sellerId = $this->requireLogin();
+        if (!$sellerId) {
+            return $this->response->setStatusCode(401)->setJSON(['error' => 'unauthenticated']);
+        }
+
+        $draft = [
+            'category' => $this->request->getPost('category'),
+            'subcategory' => $this->request->getPost('subcategory'),
+            'physicalCondition' => $this->request->getPost('physical_condition'),
+            'quantity' => $this->request->getPost('quantity'),
+            'quantityBasis' => $this->request->getPost('quantity_basis') ?? 'unit',
+            'makeModel' => $this->request->getPost('make_model'),
+        ];
+
+        try {
+            $result = (new GeminiPreAuditService())->evaluate($draft);
+        } catch (\RuntimeException $e) {
+            return $this->response->setStatusCode(503)->setJSON(['available' => false, 'message' => $e->getMessage()]);
+        }
+
+        return $this->response->setJSON(array_merge(['available' => true], $result));
     }
 
     public function createSubmit()
@@ -187,6 +217,7 @@ class ListingController extends BaseController
             $listing = $this->listingModel->createListing([
                 'tenant_id' => $tenantId,
                 'seller_party_id' => $sellerId,
+                'title' => $this->request->getPost('title') ?: null,
                 'physical_condition' => $this->request->getPost('physical_condition'),
                 'category' => $this->request->getPost('category'),
                 'subcategory' => $this->request->getPost('subcategory') ?: null,
@@ -363,6 +394,7 @@ class ListingController extends BaseController
         }
 
         $newData = [
+            'title' => $this->request->getPost('title') ?: $listing['title'],
             'physical_condition' => $this->request->getPost('physical_condition') ?: $listing['physical_condition'],
             'category' => $newCategory,
             'subcategory' => $this->request->getPost('subcategory') ?: $listing['subcategory'],

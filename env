@@ -67,3 +67,14 @@
 #--------------------------------------------------------------------
 
 # logger.threshold = 4
+
+#--------------------------------------------------------------------
+# EXTERNAL SERVICES
+#--------------------------------------------------------------------
+
+# BR-46: AI Listing Quality Pre-Audit. Get a key from Google AI Studio
+# (https://aistudio.google.com/apikey) or Vertex AI. Until this is
+# set, the pre-audit is fully wired but returns "not currently
+# available" -- it never silently fakes a result.
+# GEMINI_API_KEY =
+# GEMINI_MODEL = gemini-2.0-flash
