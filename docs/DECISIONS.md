@@ -5702,3 +5702,93 @@ Fixed: root `README.md` (doc reference, feature summary, branch
 guidance, migration count, full 32-command test list) and
 `docs/BR_PR_AUDIT.md` (BR-67 rollout gap added to the bottom line).
 `docs/source-documents/README.md` needed no changes — already correct.
+
+### D-92: BR-67 Branded Terminology Layer — Built Into the Live App
+
+D-91 tracked the gap; this closes it. BR-67's own text ("does not
+rename any entity, field, or role in the data model") is a
+presentation-only rule, so the build is a single new helper plus a
+mechanical rollout across every view that renders one of the mapping
+table's 7 technical terms as visible text — nothing in the database,
+routes, PHP identifiers, or session keys changes.
+
+**The helper**: `app/Helpers/terminology_helper.php` defines
+`tsx_term(string $technical, bool $short = false, bool $plural =
+false): string`, a single static map matching Section 1 Part A's
+7-row table exactly (Tenant→TradeSphereX/TSX, Tenant Admin→TSX
+Master/TSXM, Seller→Market Maker/MM, Buyer→Trader/TRD, Super
+Admin→Custodian/CUS, Listing→Lot/LOT, Sale Event→Trading Session, no
+short form). Autoloaded globally via `app/Config/Autoload.php`
+(`$helpers = ['terminology']`) so every view can call it with no
+per-controller wiring. An unmapped input (e.g. `tsx_term('Party')`,
+or the platform's own name `eBid Hub`) passes through unchanged rather
+than erroring — `eBid Hub` is deliberately out of scope here, since
+it isn't one of BR-67's 7 mapped terms; it's a separate branding
+question the project owner hasn't raised.
+
+**Scope decided**: the same grep that flagged BR-67 originally
+(`grep -rlE "\bTenant Admin\b|\bTenant\b|\bSeller\b|\bBuyer\b|\bSuper
+Admin\b|\bListing\b|\bSale Event\b" app/Views/`) found 37 files.
+`app/Views/layouts/main.php` — the one file on every page, and
+conspicuously absent from that list — was checked separately and
+confirmed to genuinely not use any of the 7 words as visible text (it
+shows "eBid Hub" as the default un-branded platform name, and "Sell"/
+"Marketplace"/"Browse" nav labels); no change was needed there.
+`app/Views/admin/*` (17 files) — the platform operator's own console —
+was included in the rollout, not treated as internal-only: BR-67 maps
+Super Admin to Custodian just like the other 6 roles, and
+`public/pricing.html` (D-86) already describes this role as
+"Custodian" throughout its public marketing copy, so leaving the
+operator's own console using the unbranded term would have been the
+inconsistent choice, not the safe one.
+
+**Rollout mechanics**: each of the 37 files was re-scanned
+case-insensitively (`grep -niE "seller|buyer|listing|\btenant\b|tenant
+admin|super admin|sale event"`) to also catch plurals and lowercase
+mid-sentence uses the original case-sensitive grep missed, then every
+occurrence that is genuinely rendered, user-visible text (headings,
+labels, button text, table headers, status strings, alt text) was
+replaced with a `tsx_term()` call, matching surrounding
+capitalization (`strtolower()`/`strtoupper()` wrapped where the
+original was lowercase or all-caps). Left untouched throughout: route
+paths, PHP variable/array-key names (`$item['listing_id']`,
+`tenant_id`, `seller_star_rating`), CSS/HTML attribute names, form
+field `name=`/`id=` attributes, session keys, JS identifiers, and any
+BR/PR-number comment — exactly the boundary BR-67's own text draws.
+Two deliberate exclusions worth naming: `custodian_mobile` in
+`listing/create.php` is a physical yard custodian's contact field, an
+unrelated pre-existing use of the word, not the Super Admin role, and
+was left alone; `SaaS Admin`, used in a handful of admin views as a
+different literal string for what is likely the same role, was also
+left alone — fixing that inconsistency would be a real but separate
+cleanup, not part of applying BR-67's own 7-row map.
+
+Given the size (37 files), the mechanical replacement pass was
+delegated to three parallel background agents working disjoint file
+sets, after the mapping, the helper signature, and every inclusion/
+exclusion boundary above had already been decided — each diff was
+then read and lint-checked (`php -l`) before being committed, not
+merged unread.
+
+**Verification**: all 33 `test:*` CLI suites re-run against a freshly
+migrated database — 32 passed; `test:invoices` failed on a duplicate
+tenant-subdomain insert that reproduces on the unmodified pre-BR-67
+code too (confirmed via `git log` — neither `TestInvoices.php` nor
+`TenantModel.php` has been touched by any BR-67 commit), so it's a
+pre-existing test-command flake, not a regression, and is left
+unfixed as out of scope for this build. A new `test:terminology` suite
+(22 assertions) unit-tests the map itself, including the "does not
+rename the data model" guarantee (`TenantModel`'s table name and
+`SUBSCRIPTION_TIERS` constant are asserted to still be the real,
+unbranded values). Real HTTP checks against a running `spark serve`
+instance confirmed branded terms actually render: `/` shows "View
+Lot," "Market Maker(s)," "Trader," "TSX Master," "Custodian"; `/browse`
+shows "Browse All Lots" and "Market Maker rating"; `/admin/login`
+shows "Custodian Login"; `eBid Hub` still renders correctly in the nav
+brand slot, confirming it was correctly left alone.
+
+`docs/BR_PR_AUDIT.md`'s bottom line updated to remove BR-67 — only
+BR-46 (AI Pre-Audit, needs a Gemini API key) and BR-52 (Chargeback
+Mitigation, needs real SabPaisa API credentials) remain, both blocked
+on external credentials the project owner hasn't provided, not on any
+further build work.
