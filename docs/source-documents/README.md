@@ -33,6 +33,8 @@ standalone Business Model documents." A real binary `.docx`. What's new:
 
 **Amended 2026-07-31** — BR-53's TDS rate, which this document had left open ("not fixed by this document") pending tax-advisor confirmation, now states the confirmed **10%** rate directly. The project owner confirmed this figure back in D-71, and the code has computed and stored it that way on every settlement since, but the document text was never updated to match through the D-77 replacement — caught by an independent counter-audit against a fresh PDF export, not by this document going stale on its own. Full detail in `docs/DECISIONS.md` D-93.
 
+**Extended 2026-07-31 (same day)** — a new **Section 7 (AX Knowledge & Chronicle Framework)** was added, adapted from a concept paper the project owner supplied. Vision, Guiding Principles, the Information Hierarchy (Case → Asset → Lot → Event → Transaction → Evidence → Observation → Finding → Decision → Chronicle → Dossier → Knowledge Vault), the Chronicle Hierarchy, Contributors, Information Classification, Dossiers, Access & Visibility, and AI's role are all documented as design reference. Only 7.10 (the Trading Session Chronicle) is active Phase 1 scope; everything else is explicitly deferred to Phase 2 (7.11), the same treatment Section 5 already gives Procurement and Market Intelligence. The existing KYC verification packet is reclassified as one Dossier type ("Compliance Dossier") rather than a separate concept. Full detail in `docs/DECISIONS.md` D-94.
+
 ## The rest of the documents
 
 - **`eBid_Hub_Vision_Document.docx`** — the platform's founding vision and positioning
