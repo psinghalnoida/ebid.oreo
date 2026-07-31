@@ -5305,3 +5305,159 @@ flow for Fee Payer Election) and BR-01's own instruction to "halt and
 raise clarifying questions rather than making unilateral assumptions,"
 this is surfaced to the project owner as its own scoped follow-up
 rather than built unprompted.
+
+### D-88: Success Fee Rebuild, Fee Payer Election, and Monthly Tenant Billing — the D-87 Follow-Up, Built
+
+D-87 flagged the commission-model rewrite as too large a change to
+build unprompted and surfaced it back to the project owner. Discussed
+first, per BR-01. Two things came out of that discussion, both
+explicitly confirmed by the project owner before any code was written:
+
+**1. A genuine mechanical gap in BR-32/33's own text, resolved by the
+project owner's own proposed design.** BR-32 states that under
+Seller-Pays "the Success Fee is instead deducted from the seller's
+proceeds at the same settlement step," but BR-33 (same document) also
+states "the buyer pays 100% of the sale value directly to the seller,
+offline... the platform never touches this 100% value." Those two
+statements are mechanically incompatible — a platform that never
+touches the seller's proceeds cannot deduct a fee from them in real
+time. Raised to the project owner directly ("Let's discuss that. What
+is your question and your answer?"), who supplied the resolution
+himself: since individual sellers are moving to CoCo TSX and everyone
+else is institutional TSX, bill the Tenant a **monthly consolidated
+invoice** instead of trying to deduct per-transaction from a proceeds
+flow the platform structurally never sees. Confirmed as correct and
+authorized to build ("yes both understanding are correct... build new
+parameters. do the needful").
+
+**2. Seller-Pays restricted to non-CoCo-Starter tenants.** A CoCo
+Starter TSX has no ongoing subscription/billing relationship with
+ADWITIX (Section 5.2 — free to join) to invoice against, so it has no
+counterparty for the monthly bill above. Seller-Pays is therefore
+gated to TSX Launch/Growth/Enterprise only; a CoCo Starter TSX only
+ever runs Buyer-Pays. Confirmed by the same authorization.
+
+**Built, both in code and in `ADWITIX_Master.docx` itself** (the
+project owner's explicit instruction: "necessary action to be taken
+wherever required in master and the code"):
+
+- **`ADWITIX_Master.docx` amended** (via the `docx` skill, direct XML
+  edit + XSD validation, not regenerated) — BR-31's statement, BR-32's
+  statement and rationale, and the Section 5.4 Fee Payer Election
+  paragraph all rewritten to (a) state the monthly Tenant-invoice
+  mechanism explicitly instead of the mechanically-impossible
+  "deducted from seller's proceeds" phrasing, and (b) narrow
+  Seller-Pays to paid tiers only, replacing "available to every Tenant
+  on every tier, including CoCo." Verified by extracting the amended
+  paragraphs back out and reading them, and by the skill's own XSD
+  schema validator (paragraph count unchanged, 1131 → 1131).
+- **Migration `2026-01-01-000061_SuccessFeeAndFeePayerElection`** —
+  adds `tenant.subscription_tier` (coco_starter/tsx_launch/tsx_growth/
+  tsx_enterprise; distinct from the pre-existing, unrelated
+  `tenant_class` enum), drops `tenant.buyer_fee_percent`/
+  `saas_fee_percent` and `listing.buyer_fee_percent_override` (BR-32's
+  old per-listing override is fully obsolete under a fixed
+  platform-wide schedule), adds `sale_event.fee_payer`
+  (buyer_pays/seller_pays, default buyer_pays), and creates
+  `tenant_fee_ledger` (one row per Seller-Pays settlement, unbilled →
+  billed) + `tenant_monthly_invoice` (the consolidated bill), FK'd
+  together. Also extends `invoice_type` with `platform_to_buyer`/
+  `platform_to_seller` (old `tenant_to_buyer`/`saas_to_tenant` kept for
+  historical rows — Postgres can't drop enum values).
+- **`EmdService::calculateSuccessFee()`** (new) — the fixed bracket
+  schedule (2.00%/1.50%/1.00%/0.75%/0.50% by final sale value, ₹500
+  minimum), matching `public/pricing.html`'s own calculator exactly
+  (same boundaries, same flat-not-marginal per-bracket rate, same
+  floor). The >₹10Cr band's "negotiable" note in the master doc is
+  treated as an off-platform/manual arrangement, not an editable rate
+  — consistent with BR-09's "Tenant Admin no longer adjusts the fee
+  rate itself." `calculateSettlementFee()` rewritten for Buyer-Pays
+  only (drops the tenant/SaaS split — the fee is 100% platform revenue
+  now). `calculateForfeitureAllocation()` rewritten to take the
+  defaulting party's own bid/session value (not the smaller 10% EMD
+  amount) for the bracket lookup, and drops the `feePayer` distinction
+  entirely — BR-32's own text confirms "the fee amount and the
+  platform's revenue are identical either way," and a default has no
+  seller proceeds to draw from regardless of election, so the fee
+  always comes out of the forfeited EMD.
+- **`SettlementService::checkCompletion()`** — branches on
+  `sale_event.fee_payer`. Buyer-Pays: unchanged shape, fee deducted
+  from held EMD via `guardedSettle()`. Seller-Pays: EMD released in
+  full via `guardedRelease()` (the same BR-50 high-value review gate
+  applies to both paths), and a `tenant_fee_ledger` entry recorded via
+  the new `TenantBillingService::recordUnbilledFee()` — only when the
+  release actually happened synchronously, mirroring the existing
+  `$feeWasSettled` gating pattern so a fee isn't recorded for a release
+  still pending Tenant/SaaS Admin review.
+- **New `TenantBillingService`** — `recordUnbilledFee()`,
+  `generateMonthlyInvoices()` (consolidates per-Tenant unbilled ledger
+  entries into one GST invoice per calendar month, skips CoCo Starter
+  tenants defensively even though they should never have entries),
+  `markInvoicePaid()` (manual SaaS Admin action — no automated
+  dunning/suspension for a nonpaying Tenant exists, intentionally out
+  of scope for this build and flagged as such, not silently omitted).
+  Wired into `SchedulerService::runAll()`, gated to the 1st of the
+  month so a frequent cron sweep doesn't re-scan needlessly.
+- **`InvoiceService::generateForSettlement()`** rewritten — one
+  `platform_to_buyer`/`platform_to_seller` invoice per settlement
+  (BR-56: issued to whichever party paid the fee), replacing the old
+  two-invoice `tenant_to_buyer`/`saas_to_tenant` split that no longer
+  has a real counterpart now that the Tenant doesn't share in the fee.
+- **`DisputeService::executeRuling()`** (`order_forfeiture` branch) and
+  **`CascadeService::forfeitHold()`/`processDefault()`** — updated for
+  the new `calculateForfeitureAllocation()` signature; both now pass
+  the actual sale/bid value (not just the held EMD) for the bracket
+  lookup.
+- **`TenantController`/`TenantModel`** — `subscription_tier` capture
+  replaces `buyer_fee_percent` in create/edit. **`SaleEventController`/
+  `SaleEventModel`** — `fee_payer` capture on Buy-Now/Express/Easy
+  (never Tender, per BR-31's own exclusion), server-side rejecting
+  `seller_pays` for a `coco_starter` tenant with a BR-32-cited error.
+  **`ListingController::updateFeeOverride()`** and its route removed
+  outright (obsolete). Views updated to match: `listing/show.php` (fee
+  override UI removed, new tier-gated Fee Payer Election field added
+  to the three non-tender attach forms via a shared partial), tenant
+  admin create/view/list/dashboard (subscription tier select/display).
+- **New Tenant Admin billing view** (`/tenants/{id}/billing`) and
+  **SaaS Admin invoice list + mark-paid action**
+  (`/admin/tenant-invoices`), both following this codebase's existing
+  `PayoutReviewController` shape.
+- **Nine test-fixture files** (`TestTenderReview`, `TestPhase3aAccounts`,
+  `TestSellerAudit`, `TestBr35RatingEvents`, `TestSettlement`,
+  `TestScheduler`, `TestDispute`, `TestCascade`, `TestInvoices`) had
+  their stale `buyer_fee_percent` fixture key removed; `TestCascade`'s
+  and `TestSettlement`'s hardcoded 5%-flat-fee math assertions
+  rewritten for the new bracket schedule; new `test:successfee` added
+  (bracket boundaries, a full Seller-Pays settlement end-to-end, the
+  tenant_fee_ledger entry it produces, tier-gated monthly-invoice
+  generation including the CoCo Starter defensive skip, idempotent
+  re-run, and mark-paid).
+
+**Real-HTTP verification, not just the CLI suite**: registered and
+logged in a real seller party over HTTP (cookie-jar session, reading
+the dev-mode OTP off the actual HTML response, same pattern as every
+prior real-HTTP pass this session). Attempted `fee_payer=seller_pays`
+on a CoCo Starter tenant's listing — rejected with the exact BR-32
+error text, zero `sale_event` rows created. Same request against a
+TSX Launch tenant's listing — succeeded, `sale_event.fee_payer` stored
+as `seller_pays`, the listing page's Fee badge reads "Seller-Pays."
+Also confirmed the Fee Payer Election field's disabled state and
+tier-gating hint render correctly on the CoCo Starter listing's attach
+forms, and that `/tenants/{id}/billing` renders real (empty, for a
+brand-new tenant) ledger/invoice data with no errors under a real
+tenant_admin `party_role` grant. `test:successfee` (25/25) plus the
+full existing CLI suite re-run clean, with two pre-existing,
+unrelated-to-this-build environment gaps noted rather than silently
+worked around: `dompdf/dompdf` is declared in `composer.json` but not
+present in `vendor/` in this sandbox (blocks only the PDF-rendering
+assertion in `test:invoices`, not the invoice logic itself, which
+passed in full), and `TestAuditLog`'s tamper-simulation step shells
+out to a hardcoded `ebidhub_ci4` database name that doesn't match this
+environment's `ebidhub` — both pre-date this build and are unrelated
+to the Success Fee change.
+
+**Superseded by this entry**: D-82 (the per-listing buyer-fee
+override, BR-32 as it existed before the master-doc rewrite) and D-85
+(the on-hold BR-31 buyer-fee-band validation gap, PR #29) — both
+described a fee model this build fully replaces. PR #29 should be
+closed or reconciled against this work rather than merged separately.

@@ -37,7 +37,7 @@ class TestSettlement extends BaseCommand
         CLI::write('=== Setup: Buy-Now sale that reaches closed_sold ===', 'yellow');
         $tenant = $tenantModel->createTenant([
             'name' => 'Settlement Test Tenant', 'tenant_class' => 'general',
-            'subdomain' => 'settlementtest', 'buyer_fee_percent' => 5.00,
+            'subdomain' => 'settlementtest',
         ]);
         $seller = $partyModel->createParty('+919888801001');
         $buyer = $partyModel->createParty('+919888801002');
@@ -104,18 +104,21 @@ class TestSettlement extends BaseCommand
 
         $hold = $emdHoldModel->findBySaleEventAndParty($saleEvent['id'], $buyer['id']);
         $this->assert($hold['status'] === 'released', 'Buyer\'s EMD hold marked released');
-        // 5% of 95000 = 4750 fee; buyer held 10000; refund = 10000 - 4750 = 5250
-        $this->assert((float) $hold['recalculated_amount'] === 5250.0, "Buyer refund correctly calculated: {$hold['recalculated_amount']} (expected 5250)");
+        // BR-31 (D-87/D-88): Success Fee bracket for 95000 (<=10L) is 2% =
+        // 1900; buyer held 10000; refund = 10000 - 1900 = 8100. The fee is
+        // 100% platform revenue now -- forfeited_to_tenant_amount is
+        // always 0, forfeited_to_saas_amount carries the whole fee.
+        $this->assert((float) $hold['recalculated_amount'] === 8100.0, "Buyer refund correctly calculated: {$hold['recalculated_amount']} (expected 8100)");
+        $this->assert((float) $hold['forfeited_to_tenant_amount'] === 0.0, 'Tenant no longer shares in the Success Fee (D-87/D-88)');
         $this->assert(
-            (float) $hold['forfeited_to_tenant_amount'] + (float) $hold['forfeited_to_saas_amount'] === 4750.0,
-            'Fee split (tenant+saas) sums to the correct total (4750)'
+            (float) $hold['forfeited_to_saas_amount'] === 1900.0,
+            'Platform gets the full Success Fee (1900)'
         );
 
-        CLI::write("\n=== BR-42: EmdService.calculateSettlementFee direct math check ===", 'yellow');
-        $fees = EmdService::calculateSettlementFee(95000, 5.00, 10000, 0.5);
-        $this->assert($fees['saasAmount'] === 475.0, 'SaaS gets 0.5% of 95000 = 475');
-        $this->assert($fees['tenantAmount'] === 4275.0, 'Tenant gets the remainder of the 5% fee = 4275');
-        $this->assert($fees['buyerRefund'] === 5250.0, 'Buyer refund = 10000 - 4750 = 5250');
+        CLI::write("\n=== BR-31/42: EmdService.calculateSettlementFee direct math check ===", 'yellow');
+        $fees = EmdService::calculateSettlementFee(95000, 10000);
+        $this->assert($fees['saasAmount'] === 1900.0, 'Success Fee: 2% of 95000 (<=10L bracket) = 1900');
+        $this->assert($fees['buyerRefund'] === 8100.0, 'Buyer refund = 10000 - 1900 = 8100');
 
         CLI::write("\n=== BR-39: Stall resolution — a settlement that never gets rated ===", 'yellow');
         $buyer2 = $partyModel->createParty('+919888801003');

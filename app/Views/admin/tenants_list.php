@@ -11,14 +11,14 @@
 
   <table style="width:100%; border-collapse:collapse; font-size:13px;">
     <tr style="text-align:left; color:var(--ink-3); font-size:11px; text-transform:uppercase;">
-      <th style="padding:8px 0;">Name</th><th>Class</th><th>Subdomain</th><th>Buyer Fee</th>
+      <th style="padding:8px 0;">Name</th><th>Class</th><th>Subdomain</th><th>Subscription Tier</th>
     </tr>
     <?php foreach ($tenants as $t): ?>
     <tr style="border-top:1px solid var(--line);">
       <td style="padding:8px 0;"><a href="/admin/tenants/<?= esc($t['id']) ?>" style="color:var(--emerald);"><?= esc($t['name']) ?></a></td>
       <td><?= esc($t['tenant_class']) ?></td>
       <td><?= esc($t['subdomain']) ?></td>
-      <td><?= esc($t['buyer_fee_percent']) ?>%</td>
+      <td><?= esc(ucwords(str_replace('_', ' ', $t['subscription_tier']))) ?></td>
     </tr>
     <?php endforeach; ?>
   </table>

@@ -74,55 +74,86 @@ class EmdService
         return $fromTime->modify("+{$hours} hours");
     }
 
-    // BR-34: Forfeited EMD Allocation
-    public static function calculateForfeitureAllocation(
-        float $forfeitedAmount,
-        float $tenantFeePercent,
-        float $saasFeePercent,
-        bool $isFullCascadeFailure
-    ): array {
-        $tenantAmount = self::round2($forfeitedAmount * ($tenantFeePercent / 100));
-        $saasAmount = self::round2($forfeitedAmount * ($saasFeePercent / 100));
+    // BR-31 (ADWITIX_Master.docx Section 5.4/D-87/D-88): single,
+    // platform-wide, non-tenant-adjustable Success Fee, declining by
+    // final sale value. Replaces the old flat-0.5%-SaaS-plus-tenant-
+    // adjustable-0.5%-5%-band model — the Tenant Admin no longer sets any
+    // fee rate at all (BR-09). The >₹10Cr band is described as
+    // "negotiable" in the master doc, but since the Tenant Admin has no
+    // rate-setting authority left, a negotiated rate is necessarily an
+    // off-platform/manual arrangement, not an editable field here — 0.50%
+    // is what the platform's own calculator actually charges.
+    private const SUCCESS_FEE_MINIMUM = 500.0;
 
-        if ($isFullCascadeFailure) {
-            // BR-28: seller excluded entirely; remainder stays with the platform
-            $remainder = self::round2($forfeitedAmount - $tenantAmount - $saasAmount);
-            return [
-                'tenantAmount' => self::round2($tenantAmount + $remainder / 2),
-                'saasAmount' => self::round2($saasAmount + $remainder / 2),
-                'sellerAmount' => 0.0,
-            ];
-        }
-
-        $sellerAmount = self::round2($forfeitedAmount - $tenantAmount - $saasAmount);
-        return ['tenantAmount' => $tenantAmount, 'saasAmount' => $saasAmount, 'sellerAmount' => $sellerAmount];
+    public static function calculateSuccessFee(float $finalPrice): float
+    {
+        $fee = self::round2($finalPrice * self::successFeeRate($finalPrice));
+        return $fee < self::SUCCESS_FEE_MINIMUM ? self::SUCCESS_FEE_MINIMUM : $fee;
     }
 
-    // BR-33/BR-31: fee deduction on a SUCCESSFUL settlement (distinct from
-    // calculateForfeitureAllocation, which is for a DEFAULT). The buyer
-    // pays the seller the full sale value directly and offline (BR-10.1)
-    // — the platform's cut comes only from the buyer's held EMD, with the
-    // remainder refunded. Fee is a percentage of the final sale price,
-    // not of the held EMD amount (per the Fee & Charges Schedule).
-    public static function calculateSettlementFee(
-        float $finalPrice, float $buyerFeePercent, float $heldAmount, float $saasFeePercent = 0.5
+    private static function successFeeRate(float $finalPrice): float
+    {
+        if ($finalPrice <= 1000000) return 0.02;
+        if ($finalPrice <= 5000000) return 0.015;
+        if ($finalPrice <= 20000000) return 0.01;
+        if ($finalPrice <= 100000000) return 0.0075;
+        return 0.005;
+    }
+
+    // BR-34: Forfeited EMD Allocation. $saleValue is the price the
+    // defaulting party would have paid had they not defaulted (the bid/
+    // offer amount, or the sale event's winning current_price) — the
+    // Success Fee bracket (BR-31) is looked up against that value, not
+    // against $forfeitedAmount itself (which is only the 10% EMD, BR-27).
+    // BR-32: the fee amount is identical regardless of that session's Fee
+    // Payer Election, so no feePayer parameter is needed here — the fee
+    // always comes out of the defaulting party's own forfeited EMD, since
+    // a default means there is no completed sale and no seller proceeds
+    // to draw from either way.
+    public static function calculateForfeitureAllocation(
+        float $forfeitedAmount,
+        float $saleValue,
+        bool $isFullCascadeFailure
     ): array {
-        $feeTotal = round($finalPrice * ($buyerFeePercent / 100), 2);
-        $saasAmount = round($finalPrice * ($saasFeePercent / 100), 2);
-        $tenantAmount = round($feeTotal - $saasAmount, 2);
-        $buyerRefund = round($heldAmount - $feeTotal, 2);
+        if ($isFullCascadeFailure) {
+            // BR-28: seller excluded entirely; the whole forfeited amount
+            // is retained by the platform.
+            return ['platformAmount' => $forfeitedAmount, 'sellerAmount' => 0.0];
+        }
+
+        // Guarded against exceeding what was actually forfeited — only a
+        // theoretical case given BR-27's 10% EMD baseline vs. BR-31's
+        // 0.50%-2.00% schedule, not an expected real-world outcome.
+        $successFee = min(self::calculateSuccessFee($saleValue), $forfeitedAmount);
+        $sellerAmount = self::round2($forfeitedAmount - $successFee);
+        return ['platformAmount' => $successFee, 'sellerAmount' => $sellerAmount];
+    }
+
+    // BR-32/BR-33: fee deduction on a SUCCESSFUL Buyer-Pays settlement
+    // (distinct from calculateForfeitureAllocation, which is for a
+    // DEFAULT, and from Seller-Pays, which doesn't touch the EMD at all —
+    // see SettlementService::checkCompletion). The buyer pays the seller
+    // the full sale value directly and offline (BR-33) — the platform's
+    // cut comes only from the buyer's held EMD, with the remainder
+    // refunded. The Success Fee (BR-31) is 100% platform revenue now; the
+    // Tenant no longer shares in it (superseding the old tenant/SaaS
+    // split, D-87/D-88).
+    public static function calculateSettlementFee(float $finalPrice, float $heldAmount): array
+    {
+        $feeTotal = self::calculateSuccessFee($finalPrice);
+        $buyerRefund = self::round2($heldAmount - $feeTotal);
 
         if ($buyerRefund < 0) {
-            // Held EMD didn't cover the fee — should be rare (EMD is 10%,
-            // default fee is 5%), but not impossible if a tenant sets an
-            // unusually high buyer fee. Flagged rather than silently
-            // producing a negative refund.
+            // Held EMD didn't cover the fee — should be effectively
+            // impossible now (EMD is a flat 10%, the Success Fee tops out
+            // at 2%), but flagged rather than silently producing a
+            // negative refund.
             throw new \RuntimeException(
-                'EMD_CALCULATION_ERROR: held EMD (' . $heldAmount . ') is insufficient to cover the settlement fee (' . $feeTotal . ') — this tenant\'s buyer fee percent may be set too high relative to the EMD baseline'
+                'EMD_CALCULATION_ERROR: held EMD (' . $heldAmount . ') is insufficient to cover the Success Fee (' . $feeTotal . ')'
             );
         }
 
-        return ['tenantAmount' => $tenantAmount, 'saasAmount' => $saasAmount, 'buyerRefund' => $buyerRefund];
+        return ['saasAmount' => $feeTotal, 'buyerRefund' => $buyerRefund];
     }
 
     private static function round2(float $n): float

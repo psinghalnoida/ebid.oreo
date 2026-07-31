@@ -36,7 +36,7 @@ class TestTenderReview extends BaseCommand
         $review = new TenderReviewService();
 
         CLI::write('=== Setup: 3 eligible buyers, all bid ===', 'yellow');
-        $companyShop = $tenantModel->createTenant(['name' => 'Review Test Company Shop', 'tenant_class' => 'company_shop', 'subdomain' => 'tenderreviewtest', 'buyer_fee_percent' => 5.00]);
+        $companyShop = $tenantModel->createTenant(['name' => 'Review Test Company Shop', 'tenant_class' => 'company_shop', 'subdomain' => 'tenderreviewtest']);
         $seller = $partyModel->createParty('+919888601001');
         $tenantAdmin = $partyModel->createParty('+919888601002');
         $buyerA = $partyModel->createParty('+919888601003');

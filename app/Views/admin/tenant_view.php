@@ -18,9 +18,12 @@
     <label style="font-size:12px; color:var(--ink-3);">Name</label>
     <input type="text" name="name" value="<?= esc($tenant['name']) ?>"
       style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
-    <label style="font-size:12px; color:var(--ink-3);">Buyer Fee Percent</label>
-    <input type="number" step="0.01" name="buyer_fee_percent" value="<?= esc($tenant['buyer_fee_percent']) ?>"
-      style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
+    <label style="font-size:12px; color:var(--ink-3);">Subscription Tier (Section 5, BR-08/09) — the Success Fee itself is fixed platform-wide and not set here</label>
+    <select name="subscription_tier" style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
+      <?php foreach (\App\Models\TenantModel::SUBSCRIPTION_TIERS as $tier): ?>
+        <option value="<?= esc($tier) ?>" <?= $tenant['subscription_tier'] === $tier ? 'selected' : '' ?>><?= esc(ucwords(str_replace('_', ' ', $tier))) ?></option>
+      <?php endforeach; ?>
+    </select>
     <label style="font-size:12px; color:var(--ink-3);">Brand Primary Color (BR-06)</label>
     <input type="text" name="branding_primary_color" value="<?= esc($tenant['branding_primary_color'] ?? '') ?>" placeholder="#0F6E4E"
       style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">

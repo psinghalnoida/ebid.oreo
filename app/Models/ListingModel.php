@@ -21,7 +21,7 @@ class ListingModel extends Model
         'shipping_enabled', 'shipping_cost_type', 'shipping_fixed_cost', 'shipping_variable_rate_per_km',
         'media_is_representative_under_waiver',
         'status', 'rejection_reason', 'superseded_by_listing_id', 'archived_at', 'updated_at',
-        'media_tier', 'media_count', 'buyer_fee_percent_override',
+        'media_tier', 'media_count',
     ];
 
     public function setMediaCount(string $listingId, int $count): void

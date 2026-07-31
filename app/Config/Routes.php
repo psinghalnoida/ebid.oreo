@@ -23,7 +23,6 @@ $routes->get('/listings/(:segment)', 'ListingController::show/$1');
 $routes->post('/listings/(:segment)/submit-for-approval', 'ListingController::submitForApproval/$1');
 $routes->post('/listings/(:segment)/approve', 'ListingController::approve/$1', ['filter' => 'tenantAdmin:listing']);
 $routes->post('/listings/(:segment)/reject', 'ListingController::reject/$1', ['filter' => 'tenantAdmin:listing']);
-$routes->post('/listings/(:segment)/fee-override', 'ListingController::updateFeeOverride/$1', ['filter' => 'tenantAdmin:listing']);
 $routes->post('/listings/(:segment)/sale-events', 'SaleEventController::createSubmit/$1');
 
 $routes->post('/sale-events/(:segment)/approve', 'SaleEventController::approve/$1', ['filter' => 'tenantAdmin:saleEvent']);
@@ -151,6 +150,11 @@ $routes->post('/admin/payout-reviews/(:segment)/decide', 'PayoutReviewController
 // Pending rating downgrade reviews (BR-35/BR-36)
 $routes->get('/admin/rating-reviews', 'RatingReviewController::index');
 $routes->post('/admin/rating-reviews/(:segment)/approve', 'RatingReviewController::approve/$1');
+
+// Tenant monthly billing for Seller-Pays Success Fees (BR-32/33, D-88)
+$routes->get('/tenants/(:segment)/billing', 'TenantBillingController::forTenant/$1', ['filter' => 'tenantAdmin:tenant']);
+$routes->get('/admin/tenant-invoices', 'TenantBillingController::index', ['filter' => 'superAdmin']);
+$routes->post('/admin/tenant-invoices/(:segment)/mark-paid', 'TenantBillingController::markPaid/$1', ['filter' => 'superAdmin']);
 
 // Seller Management for Tenant Admin (BR-61, built on the real Standing Review system)
 $routes->get('/tenants/(:segment)/sellers', 'SellerManagementController::list/$1', ['filter' => 'tenantAdmin:tenant']);

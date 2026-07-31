@@ -35,7 +35,7 @@ class TestDispute extends BaseCommand
         $dispute = new DisputeService();
 
         CLI::write('=== Setup ===', 'yellow');
-        $tenant = $tenantModel->createTenant(['name' => 'Dispute Test Tenant', 'tenant_class' => 'general', 'subdomain' => 'disputetest', 'buyer_fee_percent' => 5.00]);
+        $tenant = $tenantModel->createTenant(['name' => 'Dispute Test Tenant', 'tenant_class' => 'general', 'subdomain' => 'disputetest']);
         $seller = $partyModel->createParty('+919777701001');
         $buyer = $partyModel->createParty('+919777701002');
         $tenantAdmin = $partyModel->createParty('+919777701003');

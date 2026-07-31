@@ -23,9 +23,13 @@
       <option value="institutional">Institutional</option>
       <option value="company_shop">Company Shop</option>
     </select>
-    <label style="font-size:12px; color:var(--ink-3);">Buyer Fee Percent</label>
-    <input type="number" step="0.01" name="buyer_fee_percent" value="5.00"
-      style="display:block; width:100%; padding:12px; margin:6px 0 20px; border:1px solid var(--line); border-radius:10px;">
+    <label style="font-size:12px; color:var(--ink-3);">Subscription Tier (Section 5, BR-08/09) — the Success Fee itself is fixed platform-wide and not set here</label>
+    <select name="subscription_tier" style="display:block; width:100%; padding:12px; margin:6px 0 20px; border:1px solid var(--line); border-radius:10px;">
+      <option value="coco_starter">CoCo Starter (Buyer-Pays only)</option>
+      <option value="tsx_launch">TSX Launch</option>
+      <option value="tsx_growth">TSX Growth</option>
+      <option value="tsx_enterprise">TSX Enterprise</option>
+    </select>
     <button type="submit" class="btn btn-emerald" style="width:100%;">Whitelist Tenant</button>
   </form>
 </main>
