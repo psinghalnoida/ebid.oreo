@@ -10,8 +10,8 @@
   <p style="font-size:12px; color:var(--ink-3);">BR-17/BR-18 — required before your first EMD deposit or first <?= tsx_term('Listing') ?> (BR-55).</p>
 
   <?php
-    $statusColors = ['pending' => '#9A9A93', 'submitted' => '#D98C4A', 'verified' => '#0F5C4C', 'suspended' => '#B5482F'];
-    $statusColor = $statusColors[$party['kyc_status']] ?? '#9A9A93';
+    $statusColors = ['pending' => '#9DA099', 'submitted' => '#E3A93C', 'verified' => '#B85C2C', 'suspended' => '#B5482F'];
+    $statusColor = $statusColors[$party['kyc_status']] ?? '#9DA099';
   ?>
   <div style="display:inline-block; padding:6px 14px; border-radius:100px; background:<?= $statusColor ?>1A; color:<?= $statusColor ?>; font-size:12px; font-weight:700; text-transform:uppercase; margin:10px 0 20px;">
     KYC Status: <?= esc(ucfirst($party['kyc_status'])) ?>

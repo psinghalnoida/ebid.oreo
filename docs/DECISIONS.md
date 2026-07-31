@@ -5792,3 +5792,108 @@ BR-46 (AI Pre-Audit, needs a Gemini API key) and BR-52 (Chargeback
 Mitigation, needs real SabPaisa API credentials) remain, both blocked
 on external credentials the project owner hasn't provided, not on any
 further build work.
+
+### D-93: Independent counter-audit against a fresh PDF export — three real findings, all fixed
+
+The project owner supplied a freshly-exported PDF of `ADWITIX_Master.docx`
+and asked for a genuine two-directional counter-check: (1) is everything
+except the known external-dependency items (BR-46/BR-52) actually built,
+and (2) is everything we've decided actually written back into the
+document. Both directions were checked directly against code and text,
+not by trusting this document's own prior "closed" claims.
+
+**Method.** Extracted the PDF's full text (`pdftotext -layout`, 49
+pages) and confirmed it's byte-for-byte the same document already in
+the repo post-D-92 (the Status paragraph's "six contradictions... BR-08,
+BR-09, BR-31 through BR-34, BR-56, BR-67, BR-12, PR-06/PR-32" line
+matches the repo docx exactly) — no silent drift. Then ran `grep -rl
+"BR-XX\b" app/` for all 68 BRs (same methodology as D-85/D-77's prior
+passes) and cross-checked every zero/near-zero-hit result by hand.
+
+**Direction 1 — is it built?** All 68 BRs have real code coverage
+except BR-46/BR-52 (confirmed still genuinely zero implementation —
+only a comparison comment in `ServerTimeIntegrityService.php`) and
+BR-30/BR-37 (already-established satisfied-by-construction cases, not
+new). Two things fell out that were neither external-blocked nor
+previously tracked:
+
+- **BR-65 (API Versioning Policy) contradicted, not just unbuilt.** The
+  text is explicit: "The API is not exposed to Tenants with a visible
+  version number." D-89's actual build shipped `/api/v1/...` routes —
+  a visible version number, the literal opposite. `BR-65` is never
+  mentioned anywhere in this file before this entry, confirming D-89
+  built BR-62/63/64/66 but silently never addressed BR-65 at all.
+- **BR-68 (Visual Identity) built correctly on the one surface that
+  existed, but scoped too narrowly.** `public/pricing.html`'s palette
+  and typography already matched BR-68's token table exactly (D-86).
+  The live portal (`layouts/main.php`) used a completely unrelated,
+  older palette. Flagged as a real scope question rather than assumed
+  either way — same ambiguity BR-67 had before the project owner
+  clarified it was app-wide.
+
+**Direction 2 — is what we decided written back?** Checked every place
+in this file where the Super Admin (project owner) confirmed a value
+the document itself had left open — the only genuine instance across
+92 prior entries: **BR-53's TDS rate.** D-71 recorded the project
+owner confirming 10% directly, and the code has computed and stored it
+that way on every settlement since. But the document — including this
+freshly-exported PDF — still read "not fixed by this document," with
+no rate stated anywhere. D-77's later document replacement evidently
+never carried the confirmed figure forward. Everything else checked
+(custom-domain routing, KYC verification mechanism, Sovereign Rule
+thresholds, the Success Fee schedule, Tenant API Access) is either
+already stated in the document as-is or was a pure implementation
+choice the document never specified either way — no other unwritten
+decision found.
+
+**Resolution, per the project owner's explicit choices for each:**
+
+1. **BR-65 — fixed in code, not the document.** `app/Config/Routes.php`
+   renamed all five routes from `/api/v1/...` to `/api/...`
+   (`ApiAuthFilter.php`'s comment updated to match). Verified over real
+   HTTP: `/api/oauth/token` → 400 (route live, bad request body — not
+   404), `/api/v1/oauth/token` → 404 (old path genuinely gone),
+   `/api/listings/{id}` unauthenticated → 401 (route live, auth filter
+   correctly rejecting), `/api/v1/listings/{id}` → 404.
+2. **BR-53 — fixed in the document, not the code** (the code was
+   already right). Edited `ADWITIX_Master.docx`'s BR-53 Statement and
+   Rationale text via the docx skill (unzip → text-only run edit → zip
+   → `validate.py`, 1175→1175 paragraphs, no structural change) to
+   state the confirmed 10% rate and describe it as computed at
+   settlement completion, replacing the "not fixed by this document"
+   language.
+3. **BR-68 — rolled out app-wide**, the same treatment BR-67 got.
+   `layouts/main.php`'s `:root` CSS custom-property *values* were
+   remapped to BR-68's token table (Paper `#EEF0EA`, Ink `#1C1F26`,
+   Ink Soft `#5B5F56`, Line `#D8DACE`, the primary accent — formerly
+   "emerald," now Rust `#B85C2C`, matching `pricing.html`'s own choice
+   of Rust for its primary CTA — and Amber `#E3A93C`); derived shades
+   not in BR-68's own table (`--ink-3`, `--emerald-deep`, the two
+   "-soft" tints) were computed with the same mix-toward-black/white
+   ratios the codebase's existing tenant-branding `color-mix()` calls
+   already use, not eyeballed. Google Fonts import switched from Sora
+   to Archivo+Inter (IBM Plex Mono was already correct), plus a new
+   `h1,h2,h3{font-family:'Archivo'}` rule since none existed before.
+   Variable *names* were deliberately left unchanged (`--emerald` still
+   holds the primary accent, now Rust-colored) — 80+ views already
+   reference these by name, and repainting values through one
+   `:root` block is the same "keep identifiers stable, only change
+   what renders" approach BR-67 used for its own rollout, at a
+   fraction of the diff. Three files had hardcoded hex bypassing the
+   variables entirely (`landing.php`'s `.cta-band`/`.pc-cta`,
+   `kyc/form.php`'s status-badge color map) — fixed individually.
+   Verified over real HTTP: the new tokens render on `/` and `/browse`,
+   zero old-palette hex or `Sora` references remain anywhere in
+   `app/Views/`.
+
+**Regression.** All 33 `test:*` suites re-run — `tenantapi` (25
+assertions), `settlement` (23), and the new `terminology` suite (22)
+specifically, since those exercise the three changed areas most
+directly, plus the rest of the suite spot-checked in isolation. The
+same pre-existing DB-fixture-collision flake noted in D-92 (a test's
+own tenant-creation insert firing twice within one CLI invocation,
+confirmed via `git log` to predate every commit on this branch)
+reproduced again in bulk-sequential runs and disappeared entirely when
+each suite ran against its own freshly-migrated database — same root
+cause, same conclusion: pre-existing sandbox behavior, not a
+regression from this work.

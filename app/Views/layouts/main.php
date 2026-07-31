@@ -12,22 +12,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= esc($title ?? 'eBid Hub') ?></title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
+  /* BR-68: Visual Identity — Ink/Ink Soft/Paper/Card/Line/Rust/Teal/Amber
+     tokens, Archivo/Inter/IBM Plex Mono typography. Variable names kept
+     stable (--emerald etc.) since 80+ views already reference them —
+     only the values change, matching the same approach BR-67 took for
+     variable/field names vs. rendered text. */
   :root{
-    --bg:#FCFCFA; --card:#FFFFFF; --ink:#141414; --ink-2:#5C5C5C; --ink-3:#9A9A93;
-    --emerald:#0F5C4C; --emerald-soft:#E3F0EB; --emerald-deep:#0B4438;
-    --amber:#D98C4A; --amber-soft:#FBEADA;
-    --line:#EDEDE9; --line-soft:#F4F4F1;
+    --bg:#EEF0EA; --card:#FFFFFF; --ink:#1C1F26; --ink-2:#5B5F56; --ink-3:#9DA099;
+    --emerald:#B85C2C; --emerald-soft:#F3E3D6; --emerald-deep:#934A23;
+    --amber:#E3A93C; --amber-soft:#FBF2E2;
+    --line:#D8DACE; --line-soft:#E5E7DF;
     --radius:16px; --radius-pill:100px;
   }
   *{box-sizing:border-box;}
-  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Sora',sans-serif; -webkit-font-smoothing:antialiased;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased;}
+  h1,h2,h3{font-family:'Archivo',sans-serif;}
   a{color:inherit; text-decoration:none;}
 
-  header.app-head{position:sticky; top:0; z-index:60; background:rgba(252,252,250,0.9); backdrop-filter:blur(10px); border-bottom:1px solid var(--line);}
+  header.app-head{position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.9); backdrop-filter:blur(10px); border-bottom:1px solid var(--line);}
   .head-inner{max-width:1240px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:16px 24px;}
-  .brand{font-weight:800; font-size:19px; letter-spacing:-0.4px;}
+  .brand{font-family:'Archivo',sans-serif; font-weight:800; font-size:19px; letter-spacing:-0.4px;}
   .brand span{color:var(--emerald);}
   nav.tabs{display:flex; gap:4px; background:var(--line-soft); padding:4px; border-radius:var(--radius-pill);}
   nav.tabs a{font-size:13px; font-weight:600; padding:8px 18px; border-radius:var(--radius-pill); color:var(--ink-2);}

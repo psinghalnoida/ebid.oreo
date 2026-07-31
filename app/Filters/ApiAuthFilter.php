@@ -9,7 +9,7 @@ use App\Libraries\ApiCredentialService;
 use App\Libraries\ApiRequestContext;
 use App\Models\TenantModel;
 
-// BR-62/64: authenticates every /api/v1 request via the OAuth2
+// BR-62/64: authenticates every /api request via the OAuth2
 // client-credentials bearer token (ApiCredentialService), hard-scopes it
 // to the token's own tenantId, and enforces the baseline BR-66 gate (a
 // CoCo Starter tenant has no API access at all, full stop). Endpoint-
