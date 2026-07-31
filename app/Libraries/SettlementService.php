@@ -234,6 +234,13 @@ class SettlementService
                     $settlementId, $settlement, $feeAmount, $saleEvent['fee_payer']
                 );
             }
+
+            // Section 7.10 (ADWITIX_Master.docx): a Trading Session
+            // Chronicle is generated for every completed settlement,
+            // regardless of format or fee payer -- unlike the invoice
+            // above, nothing in Section 7.10 carves Tender out.
+            $completedSettlement = $this->settlementModel->find($settlementId);
+            (new ChronicleService())->generate($settlementId, $completedSettlement, $feeAmount, $tdsAmount);
         }
 
         return $this->settlementModel->find($settlementId);

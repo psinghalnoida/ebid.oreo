@@ -416,3 +416,18 @@ an internal-only blocker, same two items as every pass since D-92**:
 1. BR-46 — AI Pre-Audit (blocked on a Gemini API key)
 2. BR-52 — Chargeback Mitigation (blocked on real SabPaisa API credentials)
 
+## Update — D-94: Section 7 (AX Knowledge & Chronicle Framework) added, Phase 1 built
+
+New scope, not a gap in an existing BR/PR — doesn't change the bottom
+line above. The project owner supplied a concept paper; it's now
+Section 7 of `ADWITIX_Master.docx`, with only 7.10 (the Trading
+Session Chronicle — a system-authenticated, QR-verifiable report per
+completed Sale Event) as active Phase 1 scope, built and verified
+(`test:chronicle`, 22 assertions, plus real HTTP checks of the public
+QR verification page and the certified PDF). Everything else in
+Section 7 (Case/Asset entities, the other Chronicle types, Contributors,
+the full Information Classification taxonomy, the other Dossier types,
+the full Access & Visibility model, AI-authored narrative) is Section
+7.11 — explicitly Phase 2, the same treatment already given Procurement
+and Market Intelligence. Full detail in `docs/DECISIONS.md` D-94.
+

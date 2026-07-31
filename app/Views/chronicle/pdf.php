@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { font-family: sans-serif; color: #1C1F26; font-size: 12.5px; line-height: 1.5; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  h2 { font-size: 14px; margin-top: 22px; margin-bottom: 6px; color: #B85C2C; }
+  .muted { color: #5B5F56; font-size: 11px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #D8DACE; font-size: 12px; }
+  .total-row td { font-weight: bold; border-top: 2px solid #1C1F26; }
+  .qr-block { float: right; text-align: center; margin-left: 16px; }
+  .qr-block img { width: 110px; height: 110px; }
+  .qr-block p { font-size: 9px; color: #5B5F56; margin-top: 4px; width: 110px; }
+  .header { overflow: hidden; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="qr-block">
+      <img src="<?= $qrDataUri ?>" alt="QR">
+      <p>Scan to verify this certified record</p>
+    </div>
+    <h1>Trading Session Chronicle</h1>
+    <p class="muted">
+      Reference: <?= esc($chronicle['reference_number']) ?> &middot;
+      Certified <?= esc(substr($chronicle['generated_at'], 0, 16)) ?> UTC &middot;
+      Version <?= esc($chronicle['version']) ?>
+    </p>
+  </div>
+
+  <h2>Executive Summary</h2>
+  <p>
+    This Trading Session (<?= esc($reportData['saleEvent']['ern']) ?>, <?= esc(strtoupper($reportData['saleEvent']['saleFormat'])) ?>)
+    closed at &#8377;<?= number_format((float) $reportData['result']['finalPrice'], 2) ?>
+    <?php if (($reportData['improvement']['improvementPercent'] ?? null) !== null): ?>
+      — <?= $reportData['improvement']['improvementPercent'] >= 0 ? 'an improvement of ' . number_format($reportData['improvement']['improvementPercent'], 2) . '%' : number_format(abs($reportData['improvement']['improvementPercent']), 2) . '% below' ?> Reserve Value.
+    <?php endif; ?>
+    <?= esc($reportData['participation']['distinctParticipants']) ?> distinct participant(s) took part.
+  </p>
+
+  <h2>What Was Listed</h2>
+  <table>
+    <tr><td>Category</td><td><?= esc($reportData['listing']['category']) ?><?= $reportData['listing']['subcategory'] ? ' / ' . esc($reportData['listing']['subcategory']) : '' ?></td></tr>
+    <tr><td>Condition</td><td><?= esc($reportData['listing']['physicalCondition']) ?></td></tr>
+    <tr><td>Quantity</td><td><?= esc($reportData['listing']['quantity']) ?> <?= esc($reportData['listing']['quantityBasis']) ?></td></tr>
+    <?php if ($reportData['listing']['makeModel']): ?><tr><td>Make/Model</td><td><?= esc($reportData['listing']['makeModel']) ?></td></tr><?php endif; ?>
+    <tr><td>Yard Location</td><td><?= esc($reportData['listing']['yardLocationAddress']) ?></td></tr>
+  </table>
+
+  <h2>Chronological Timeline</h2>
+  <table>
+    <tr><th>When (UTC)</th><th>Event</th></tr>
+    <?php foreach ($reportData['timeline'] as $event): ?>
+    <tr><td><?= esc(substr($event['occurredAt'], 0, 19)) ?></td><td><?= esc($event['eventType']) ?></td></tr>
+    <?php endforeach; ?>
+    <?php if (empty($reportData['timeline'])): ?><tr><td colspan="2" class="muted">No timeline entries recorded.</td></tr><?php endif; ?>
+  </table>
+
+  <h2>Participation &amp; Bidding</h2>
+  <p>
+    <?= esc($reportData['participation']['distinctParticipants']) ?> distinct participant(s) —
+    <?= esc($reportData['participation']['bidCount']) ?> bid(s), <?= esc($reportData['participation']['offerCount']) ?> offer(s).
+    Amounts only; participant identity is masked throughout per BR-16 (see Transparency &amp; Privacy below).
+  </p>
+  <?php if (!empty($reportData['participation']['bidProgression'])): ?>
+  <table>
+    <tr><th>Bid Amount</th><th>Placed At (UTC)</th></tr>
+    <?php foreach ($reportData['participation']['bidProgression'] as $bid): ?>
+    <tr><td>&#8377;<?= number_format((float) $bid['amount'], 2) ?></td><td><?= esc(substr($bid['placedAt'], 0, 19)) ?></td></tr>
+    <?php endforeach; ?>
+  </table>
+  <?php endif; ?>
+  <?php if (!empty($reportData['participation']['offerProgression'])): ?>
+  <table>
+    <tr><th>Offer Amount</th><th>Status</th><th>Submitted At (UTC)</th></tr>
+    <?php foreach ($reportData['participation']['offerProgression'] as $offer): ?>
+    <tr><td>&#8377;<?= number_format((float) $offer['amount'], 2) ?></td><td><?= esc($offer['status']) ?></td><td><?= esc(substr($offer['createdAt'], 0, 19)) ?></td></tr>
+    <?php endforeach; ?>
+  </table>
+  <?php endif; ?>
+
+  <h2>Result &amp; Improvement</h2>
+  <table>
+    <?php if ($reportData['improvement']['reserveValue'] !== null): ?>
+    <tr><td>Reserve Value</td><td>&#8377;<?= number_format((float) $reportData['improvement']['reserveValue'], 2) ?></td></tr>
+    <?php endif; ?>
+    <tr class="total-row"><td>Final Price</td><td>&#8377;<?= number_format((float) $reportData['result']['finalPrice'], 2) ?></td></tr>
+    <?php if ($reportData['improvement']['improvementPercent'] !== null): ?>
+    <tr><td>Improvement vs. Reserve Value</td><td><?= number_format($reportData['improvement']['improvementPercent'], 2) ?>%</td></tr>
+    <?php endif; ?>
+  </table>
+
+  <h2>Transaction Summary</h2>
+  <table>
+    <tr><td>Fee Payer</td><td><?= $reportData['transaction']['feePayer'] === 'seller_pays' ? 'Market Maker (Seller-Pays)' : 'Trader (Buyer-Pays)' ?></td></tr>
+    <tr><td>Success Fee</td><td>&#8377;<?= number_format((float) $reportData['transaction']['successFeeAmount'], 2) ?></td></tr>
+    <tr><td>TDS (<?= esc($reportData['transaction']['tdsRatePercent']) ?>%, Section 194-O)</td><td>&#8377;<?= number_format((float) $reportData['transaction']['tdsAmount'], 2) ?></td></tr>
+  </table>
+
+  <h2>Transparency &amp; Privacy</h2>
+  <p><?= esc($reportData['transparencyNote']) ?></p>
+
+  <p class="muted" style="margin-top:24px;">
+    This is a system-certified record. Its content hash is anchored to the platform's immutable audit trail
+    (Section 7.10 / BR-05 of ADWITIX_Master.docx). Scan the QR code above, or visit the verification link, to
+    confirm this copy matches the certified original: <?= esc($verifyUrl) ?>
+  </p>
+</body>
+</html>
