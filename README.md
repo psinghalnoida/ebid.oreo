@@ -20,7 +20,7 @@ subscription tiers with monthly Tenant billing for Seller-Pays fees), a
 Tenant API Access module (OAuth2 client-credentials, tier-gated
 push/pull endpoints, webhook delivery), and a full Trust & Support
 content section — all built and verified against real PostgreSQL data
-before ever being pushed. 32 permanent test-command suites (see Step 10
+before ever being pushed. 33 permanent test-command suites (see Step 10
 below), each with real assertions re-run on every change, not
 throwaway scripts.
 
@@ -295,6 +295,7 @@ sudo php spark test:phase3a                # Account edit scoping
 sudo php spark test:discovery              # Trending/recommendation feed
 sudo php spark test:browse                 # CLV preference matching
 sudo php spark test:br35                   # Dispute-driven rating event attribution
+sudo php spark test:terminology            # BR-67 tsx_term() branded terminology map
 ```
 
 If any of these fail here but passed during development, something about
@@ -516,6 +517,6 @@ Add:
 
 ## Verifying the build (quick reference)
 
-See Step 10 above for the full list of 32 test commands — all real,
+See Step 10 above for the full list of 33 test commands — all real,
 permanent verification tooling, not throwaway scripts. Rerun any of them
 after making a change to confirm nothing broke.
