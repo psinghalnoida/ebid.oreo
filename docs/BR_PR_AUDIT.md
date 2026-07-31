@@ -356,3 +356,25 @@ part. Full detail in `docs/DECISIONS.md` D-90.
 
 Item 1 is the only item left with no external blocker.
 
+## Update — D-92: BR-67 live-UI rollout built
+
+The one item left with no external blocker is now built. A new
+`tsx_term()` helper (`app/Helpers/terminology_helper.php`) is the
+single source of truth for BR-67's 7-row mapping; all 37 view files
+found to use any of the 7 mapped technical terms as visible text —
+not just the 4 that happened to already use branded terms — now
+render through it, including the SaaS admin console
+(`app/Views/admin/*`, 17 files), consistent with `public/pricing.html`
+already branding that role "Custodian". Verified with a new
+`test:terminology` CLI suite (22 assertions) plus real HTTP checks
+against a running server confirming the branded terms actually render.
+Full detail in `docs/DECISIONS.md` D-92.
+
+### Bottom line (current)
+
+**Two items left, both external-credential blocks — nothing left with
+an internal-only blocker**:
+
+1. BR-46 — AI Pre-Audit (blocked on a Gemini API key)
+2. BR-52 — Chargeback Mitigation (blocked on real SabPaisa API credentials)
+

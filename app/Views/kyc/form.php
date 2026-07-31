@@ -7,7 +7,7 @@
   <?php endif; ?>
 
   <h1 style="font-size:22px;">KYC Verification</h1>
-  <p style="font-size:12px; color:var(--ink-3);">BR-17/BR-18 — required before your first EMD deposit or first Listing (BR-55).</p>
+  <p style="font-size:12px; color:var(--ink-3);">BR-17/BR-18 — required before your first EMD deposit or first <?= tsx_term('Listing') ?> (BR-55).</p>
 
   <?php
     $statusColors = ['pending' => '#9A9A93', 'submitted' => '#D98C4A', 'verified' => '#0F5C4C', 'suspended' => '#B5482F'];

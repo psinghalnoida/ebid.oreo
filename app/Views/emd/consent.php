@@ -18,7 +18,7 @@
     <p style="font-size:13px; line-height:1.6; margin:0;">
       I understand that pledging <strong>₹<?= number_format($amount, 2) ?></strong> as Earnest Money Deposit
       for this bid means: if the auction closes and I fail to complete my obligation, this deposit is
-      <strong>forfeited</strong> — allocated to the Tenant, SaaS, and (where applicable) the seller per the
+      <strong>forfeited</strong> — allocated to the <?= tsx_term('Tenant') ?>, SaaS, and (where applicable) the <?= strtolower(tsx_term('Seller')) ?> per the
       platform's standard forfeiture rules.
     </p>
   </div>

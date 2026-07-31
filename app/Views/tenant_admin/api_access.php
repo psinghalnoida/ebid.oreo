@@ -63,6 +63,6 @@
     </form>
   <?php endif; ?>
 
-  <p style="margin-top:24px;"><a href="/tenants/<?= esc($tenant['id']) ?>/dashboard" style="color:var(--ink-3); font-size:12px;">&larr; Back to Tenant Dashboard</a></p>
+  <p style="margin-top:24px;"><a href="/tenants/<?= esc($tenant['id']) ?>/dashboard" style="color:var(--ink-3); font-size:12px;">&larr; Back to <?= tsx_term('Tenant') ?> Dashboard</a></p>
 </main>
 <?= $this->endSection() ?>

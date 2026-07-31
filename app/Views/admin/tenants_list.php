@@ -1,12 +1,12 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 <main style="max-width:820px; padding:40px 24px;">
-  <h1 style="font-size:22px;">Tenants</h1>
+  <h1 style="font-size:22px;"><?= tsx_term('Tenant', false, true) ?></h1>
   <form method="get" action="/admin/tenants" style="margin:16px 0;">
     <input type="text" name="q" value="<?= esc($q) ?>" placeholder="Search name or subdomain"
       style="width:300px; padding:10px 12px; border:1px solid var(--line); border-radius:10px;">
     <button type="submit" class="btn btn-ghost">Search</button>
-    <a href="/admin/tenants/create" class="btn btn-emerald" style="margin-left:8px;">+ Whitelist New Tenant</a>
+    <a href="/admin/tenants/create" class="btn btn-emerald" style="margin-left:8px;">+ Whitelist New <?= tsx_term('Tenant') ?></a>
   </form>
 
   <table style="width:100%; border-collapse:collapse; font-size:13px;">
@@ -22,7 +22,7 @@
     </tr>
     <?php endforeach; ?>
   </table>
-  <?php if (empty($tenants)): ?><p style="font-size:12px; color:var(--ink-3); margin-top:12px;">No matching tenants.</p><?php endif; ?>
+  <?php if (empty($tenants)): ?><p style="font-size:12px; color:var(--ink-3); margin-top:12px;">No matching <?= strtolower(tsx_term('Tenant', false, true)) ?>.</p><?php endif; ?>
 
   <p style="margin-top:20px;"><a href="/admin" style="color:var(--ink-3); font-size:12px;">&larr; Back to Dashboard</a></p>
 </main>

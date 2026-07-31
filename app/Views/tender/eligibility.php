@@ -9,7 +9,7 @@
   <h1 style="font-size:22px;">Manage Tender Eligibility</h1>
   <p style="color:var(--ink-3); font-size:13px;"><?= esc($saleEvent['ern']) ?></p>
 
-  <h3 style="font-size:15px; margin-top:24px;">Buyers Who Registered Interest</h3>
+  <h3 style="font-size:15px; margin-top:24px;"><?= tsx_term('Buyer', false, true) ?> Who Registered Interest</h3>
   <?php foreach ($interested as $i): ?>
     <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--line);">
       <span style="font-size:13px;">Party: <?= esc($i['party_id']) ?></span>
@@ -25,13 +25,13 @@
   <?php endforeach; ?>
   <?php if (empty($interested)): ?><p style="font-size:12px; color:var(--ink-3);">No interest registered yet.</p><?php endif; ?>
 
-  <h3 style="font-size:15px; margin-top:24px;">Add a Buyer Directly (by mobile number)</h3>
+  <h3 style="font-size:15px; margin-top:24px;">Add a <?= tsx_term('Buyer') ?> Directly (by mobile number)</h3>
   <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/tender/eligibility/grant" style="display:flex; gap:8px;">
     <input type="text" name="mobile_number" placeholder="+919876543210" style="flex:1; padding:10px; border:1px solid var(--line); border-radius:8px;">
     <button type="submit" class="btn btn-ghost">Add</button>
   </form>
 
-  <h3 style="font-size:15px; margin-top:24px;">Eligible Buyers (<?= count($eligible) ?>)</h3>
+  <h3 style="font-size:15px; margin-top:24px;">Eligible <?= tsx_term('Buyer', false, true) ?> (<?= count($eligible) ?>)</h3>
   <?php foreach ($eligible as $e): ?>
     <p style="font-size:13px; padding:8px 0; border-bottom:1px solid var(--line);"><?= esc($e['party_id']) ?> — <span style="color:var(--ink-3); font-size:11px;"><?= esc($e['source']) ?></span></p>
   <?php endforeach; ?>

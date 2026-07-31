@@ -7,11 +7,11 @@
   <div style="display:flex; gap:16px; margin:16px 0;">
     <div style="flex:1; border:1px solid var(--line); border-radius:12px; padding:14px;">
       <p style="font-size:20px; font-weight:800; margin:0;"><?= number_format((float) $party['star_rating'], 1) ?>★</p>
-      <p style="font-size:11px; color:var(--ink-3);">Buyer Rating · <?= (int) $party['offence_count_buyer'] ?> offences</p>
+      <p style="font-size:11px; color:var(--ink-3);"><?= tsx_term('Buyer') ?> Rating · <?= (int) $party['offence_count_buyer'] ?> offences</p>
     </div>
     <div style="flex:1; border:1px solid var(--line); border-radius:12px; padding:14px;">
       <p style="font-size:20px; font-weight:800; margin:0;"><?= number_format((float) $party['seller_star_rating'], 1) ?>★</p>
-      <p style="font-size:11px; color:var(--ink-3);">Seller Rating · <?= (int) $party['offence_count_seller'] ?> offences</p>
+      <p style="font-size:11px; color:var(--ink-3);"><?= tsx_term('Seller') ?> Rating · <?= (int) $party['offence_count_seller'] ?> offences</p>
     </div>
     <div style="flex:1; border:1px solid var(--line); border-radius:12px; padding:14px;">
       <p style="font-size:20px; font-weight:800; margin:0;"><?= (int) $party['standing_review_complaint_count'] ?></p>
@@ -32,11 +32,11 @@
   </ul>
 
   <div style="border:1px solid var(--line); border-radius:12px; padding:14px; margin-top:12px;">
-    <p style="font-size:13px; font-weight:700; margin:0 0 8px;">Promote to Tenant Admin</p>
-    <p style="font-size:11px; color:var(--ink-3); margin:0 0 10px;">PR-08. BR-44: this auto-demotes whoever currently holds Tenant Admin for the selected tenant.</p>
+    <p style="font-size:13px; font-weight:700; margin:0 0 8px;">Promote to <?= tsx_term('Tenant Admin') ?></p>
+    <p style="font-size:11px; color:var(--ink-3); margin:0 0 10px;">PR-08. BR-44: this auto-demotes whoever currently holds <?= tsx_term('Tenant Admin') ?> for the selected <?= strtolower(tsx_term('Tenant')) ?>.</p>
     <form method="post" action="/admin/users/<?= esc($party['id']) ?>/promote-tenant-admin" style="display:flex; gap:8px;">
       <select name="tenant_id" required style="flex:1; padding:8px; border:1px solid var(--line); border-radius:8px; font-size:12px;">
-        <option value="">Select a tenant…</option>
+        <option value="">Select a <?= strtolower(tsx_term('Tenant')) ?>…</option>
         <?php foreach ($tenants as $t): ?>
           <option value="<?= esc($t['id']) ?>"><?= esc($t['name']) ?></option>
         <?php endforeach; ?>
@@ -45,7 +45,7 @@
     </form>
   </div>
 
-  <h3 style="font-size:15px; margin-top:20px;">Recent Purchases (as buyer)</h3>
+  <h3 style="font-size:15px; margin-top:20px;">Recent Purchases (as <?= strtolower(tsx_term('Buyer')) ?>)</h3>
   <table style="width:100%; border-collapse:collapse; font-size:12px;">
     <?php foreach ($purchases as $p): ?>
     <tr style="border-top:1px solid var(--line);">
@@ -57,7 +57,7 @@
   </table>
   <?php if (empty($purchases)): ?><p style="font-size:12px; color:var(--ink-3);">None.</p><?php endif; ?>
 
-  <h3 style="font-size:15px; margin-top:20px;">Recent Sales (as seller)</h3>
+  <h3 style="font-size:15px; margin-top:20px;">Recent Sales (as <?= strtolower(tsx_term('Seller')) ?>)</h3>
   <table style="width:100%; border-collapse:collapse; font-size:12px;">
     <?php foreach ($sales as $s): ?>
     <tr style="border-top:1px solid var(--line);">

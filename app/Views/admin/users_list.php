@@ -10,7 +10,7 @@
 
   <table style="width:100%; border-collapse:collapse; font-size:13px;">
     <tr style="text-align:left; color:var(--ink-3); font-size:11px; text-transform:uppercase;">
-      <th style="padding:8px 0;">Mobile</th><th>Name</th><th>Type</th><th>KYC</th><th>Buyer★</th><th>Seller★</th><th>Status</th>
+      <th style="padding:8px 0;">Mobile</th><th>Name</th><th>Type</th><th>KYC</th><th><?= tsx_term('Buyer') ?>★</th><th><?= tsx_term('Seller') ?>★</th><th>Status</th>
     </tr>
     <?php foreach ($users as $u): ?>
     <tr style="border-top:1px solid var(--line);">
