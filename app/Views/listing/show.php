@@ -13,7 +13,7 @@
   <p style="color:var(--ink-3); font-size:13px;">
     Lot ID: <?= esc($listing['id']) ?> · Media: <?= esc(strtoupper($listing['media_tier'])) ?>
     <?php if ($sellerStarRating !== null): ?>
-      · Seller Rating: <span style="color:var(--emerald-deep); font-weight:700;">★ <?= esc(number_format($sellerStarRating, 1)) ?></span>
+      · <?= tsx_term('Seller') ?> Rating: <span style="color:var(--emerald-deep); font-weight:700;">★ <?= esc(number_format($sellerStarRating, 1)) ?></span>
     <?php endif; ?>
   </p>
 
@@ -53,7 +53,7 @@
 
   <?php if (empty($isOwner)): ?>
     <form method="post" action="/listings/<?= esc($listing['id']) ?>/flag-cbs-violation" style="margin-bottom:12px;"
-      onsubmit="return confirm('Flag this listing\'s media as a CBS violation? This is logged permanently and feeds Seller Standing Review (BR-61).');">
+      onsubmit="return confirm('Flag this <?= strtolower(tsx_term('Listing')) ?>\'s media as a CBS violation? This is logged permanently and feeds <?= tsx_term('Seller') ?> Standing Review (BR-61).');">
       <button type="submit" class="btn btn-ghost" style="font-size:11px; color:#B5482F;">Flag CBS Violation (BR-59/61)</button>
     </form>
   <?php endif; ?>
@@ -113,7 +113,7 @@
     <?php if (in_array($listing['media_is_representative_under_waiver'], [true, 't', 1, '1'], true)): ?>
     <tr>
       <td style="padding:8px 0; color:var(--ink-3);">Images</td>
-      <td style="color:#9C5B1F;">⚠️ Representative imagery only (BR-60 Tenant Media Waiver) — not item-specific photographs.</td>
+      <td style="color:#9C5B1F;">⚠️ Representative imagery only (BR-60 <?= tsx_term('Tenant') ?> Media Waiver) — not item-specific photographs.</td>
     </tr>
     <?php endif; ?>
     <tr>
@@ -144,7 +144,7 @@
 
   <?php if ($listing['status'] === 'pending_approval'): ?>
     <div style="background:var(--line-soft); padding:16px; border-radius:12px; margin-top:16px;">
-      <p style="font-size:12px; color:var(--ink-3); margin:0 0 10px;">Tenant Admin actions — requires the tenant_admin role for this listing's tenant (BR-09)</p>
+      <p style="font-size:12px; color:var(--ink-3); margin:0 0 10px;"><?= tsx_term('Tenant Admin') ?> actions — requires the tenant_admin role for this <?= strtolower(tsx_term('Listing')) ?>'s <?= strtolower(tsx_term('Tenant')) ?> (BR-09)</p>
       <form method="post" action="/listings/<?= esc($listing['id']) ?>/approve" style="display:inline;">
         <button type="submit" class="btn btn-emerald">Approve</button>
       </form>
@@ -162,25 +162,8 @@
     </div>
   <?php endif; ?>
 
-  <?php if ($listing['status'] === 'active'): ?>
-    <div style="background:var(--line-soft); padding:16px; border-radius:12px; margin-top:16px;">
-      <p style="font-size:12px; color:var(--ink-3); margin:0 0 10px;">
-        Tenant Admin action — requires the tenant_admin role for this listing's tenant (BR-32).
-        Current buyer fee: <?= $listing['buyer_fee_percent_override'] !== null
-          ? esc(number_format((float) $listing['buyer_fee_percent_override'], 2)) . '% (listing override)'
-          : 'tenant default' ?>
-      </p>
-      <form method="post" action="/listings/<?= esc($listing['id']) ?>/fee-override">
-        <label style="font-size:11px; color:var(--ink-3);">Buyer Fee Override (%) — leave blank to clear and use the tenant default</label>
-        <input type="number" step="0.01" min="0" max="100" name="buyer_fee_percent_override"
-          value="<?= $listing['buyer_fee_percent_override'] !== null ? esc($listing['buyer_fee_percent_override']) : '' ?>"
-          style="display:block; width:100%; padding:8px; margin:4px 0 6px; border:1px solid var(--line); border-radius:8px; font-size:12px;">
-        <button type="submit" class="btn btn-ghost">Set Buyer Fee</button>
-      </form>
-    </div>
-  <?php endif; ?>
-
   <?php if ($listing['status'] === 'upcoming' && !$saleEvent): ?>
+    <?php $sellerPaysAllowed = !empty($tenant) && $tenant['subscription_tier'] !== 'coco_starter'; ?>
     <div style="display:flex; gap:16px; margin-top:16px;">
       <form method="post" action="/listings/<?= esc($listing['id']) ?>/sale-events" style="flex:1;">
         <input type="hidden" name="sale_format" value="easy">
@@ -193,6 +176,7 @@
         <label style="font-size:12px; color:var(--ink-3);">End</label>
         <input type="datetime-local" name="scheduled_end_at" required
           style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
+        <?= view('listing/_fee_payer_field', ['sellerPaysAllowed' => $sellerPaysAllowed]) ?>
         <button type="submit" class="btn btn-emerald">Attach Easy</button>
       </form>
       <form method="post" action="/listings/<?= esc($listing['id']) ?>/sale-events" style="flex:1;">
@@ -200,6 +184,7 @@
         <label style="font-size:12px; color:var(--ink-3);">Expected Value (₹) — Buy-Now</label>
         <input type="number" name="expected_value" required
           style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
+        <?= view('listing/_fee_payer_field', ['sellerPaysAllowed' => $sellerPaysAllowed]) ?>
         <button type="submit" class="btn btn-ghost">Attach Buy-Now</button>
       </form>
       <form method="post" action="/listings/<?= esc($listing['id']) ?>/sale-events" style="flex:1;">
@@ -207,6 +192,7 @@
         <label style="font-size:12px; color:var(--ink-3);">Reserve Value (₹) — Express Auction</label>
         <input type="number" name="reserve_value" required
           style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
+        <?= view('listing/_fee_payer_field', ['sellerPaysAllowed' => $sellerPaysAllowed]) ?>
         <button type="submit" class="btn btn-ghost">Attach Express</button>
       </form>
       <form method="post" action="/listings/<?= esc($listing['id']) ?>/sale-events" style="flex:1;">
@@ -227,7 +213,7 @@
 
   <?php if ($saleEvent): ?>
     <div style="border:1px solid var(--line); border-radius:16px; padding:22px; margin-top:20px;">
-      <p style="font-size:11px; color:var(--ink-3); text-transform:uppercase; letter-spacing:0.5px;"><?= esc($saleEvent['ern']) ?> · <?= esc(strtoupper($saleEvent['sale_format'])) ?> · <?= esc(strtoupper($saleEvent['status'])) ?></p>
+      <p style="font-size:11px; color:var(--ink-3); text-transform:uppercase; letter-spacing:0.5px;"><?= esc($saleEvent['ern']) ?> · <?= esc(strtoupper($saleEvent['sale_format'])) ?> · <?= esc(strtoupper($saleEvent['status'])) ?><?php if ($saleEvent['sale_format'] !== 'tender' && !empty($saleEvent['fee_payer'])): ?> · Fee: <?= $saleEvent['fee_payer'] === 'seller_pays' ? tsx_term('Seller') . '-Pays' : tsx_term('Buyer') . '-Pays' ?><?php endif; ?></p>
 
       <?php if (!empty($settlementRecord)): ?>
         <a href="/settlements/<?= esc($settlementRecord['id']) ?>" class="btn btn-emerald" style="display:inline-block; margin-bottom:12px; font-size:12px; padding:8px 14px;">
@@ -249,7 +235,7 @@
 
         <?php if ($saleEvent['defect_disclosure_completed_at']): ?>
           <div style="background:var(--line-soft); padding:14px; border-radius:10px; margin-top:14px;">
-            <p style="font-size:12px; font-weight:700; margin:0 0 8px;">Seller's Defect Disclosure (BR-57)</p>
+            <p style="font-size:12px; font-weight:700; margin:0 0 8px;"><?= tsx_term('Seller') ?>'s Defect Disclosure (BR-57)</p>
             <p style="font-size:12px; margin:0 0 4px;"><strong>Known damage:</strong> <?= esc($saleEvent['defect_disclosure_known_damage']) ?></p>
             <p style="font-size:12px; margin:0 0 4px;"><strong>Missing components:</strong> <?= esc($saleEvent['defect_disclosure_missing_components']) ?></p>
             <p style="font-size:12px; margin:0;"><strong>Non-functional aspects:</strong> <?= esc($saleEvent['defect_disclosure_nonfunctional_aspects']) ?></p>
@@ -267,8 +253,8 @@
 
       <?php if ($saleEvent['status'] === 'pending_approval'): ?>
         <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/approve" style="margin-top:14px;">
-          <p style="font-size:12px; color:var(--ink-3);">Tenant Admin action (BR-09)</p>
-          <button type="submit" class="btn btn-emerald">Approve Sale Event</button>
+          <p style="font-size:12px; color:var(--ink-3);"><?= tsx_term('Tenant Admin') ?> action (BR-09)</p>
+          <button type="submit" class="btn btn-emerald">Approve <?= tsx_term('Sale Event') ?></button>
         </form>
       <?php endif; ?>
 
@@ -304,7 +290,7 @@
 
         <?php if (!empty($offers)): ?>
         <div style="margin-top:20px; border-top:1px solid var(--line); padding-top:16px;">
-          <p style="font-size:12px; color:var(--ink-3); font-weight:700; text-transform:uppercase; margin-bottom:10px;">Offers Received (BR-16: buyer identity masked pre-acceptance)</p>
+          <p style="font-size:12px; color:var(--ink-3); font-weight:700; text-transform:uppercase; margin-bottom:10px;">Offers Received (BR-16: <?= strtolower(tsx_term('Buyer')) ?> identity masked pre-acceptance)</p>
           <?php foreach ($offers as $offer): ?>
           <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px dashed var(--line);">
             <div>
@@ -330,7 +316,7 @@
         <div style="margin-top:16px; background:var(--line-soft); padding:12px 16px; border-radius:10px;">
           <p style="font-size:13px; font-weight:600;">Pledges: <?= esc($expressState['pledgeCount']) ?> / 3 required to open bidding (PR-11)</p>
           <?php if (!$expressState['biddingOpen'] && $expressState['pledgeCount'] < 3): ?>
-            <p style="font-size:12px; color:var(--ink-3); margin:4px 0 0;">Bidding opens automatically the instant the 3rd distinct buyer pledges — no seller/admin action needed.</p>
+            <p style="font-size:12px; color:var(--ink-3); margin:4px 0 0;">Bidding opens automatically the instant the 3rd distinct <?= strtolower(tsx_term('Buyer')) ?> pledges — no <?= strtolower(tsx_term('Seller')) ?>/admin action needed.</p>
           <?php endif; ?>
         </div>
 
@@ -346,7 +332,7 @@
           <button type="submit" class="btn btn-emerald">Bid</button>
         </form>
         <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/dev-force-close-bidding" style="margin-top:10px;">
-          <p style="font-size:12px; color:var(--ink-3);">⚠️ Dev-only: forces the real 1-hour bidding window to expire immediately (Tenant Admin action)</p>
+          <p style="font-size:12px; color:var(--ink-3);">⚠️ Dev-only: forces the real 1-hour bidding window to expire immediately (<?= tsx_term('Tenant Admin') ?> action)</p>
           <button type="submit" class="btn btn-ghost">Force-close Bidding (dev)</button>
         </form>
         <?php endif; ?>
@@ -378,7 +364,7 @@
 
         <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/tender/emd" style="margin-top:14px;">
           <p style="font-size:12px; color:var(--ink-3);">Log Manual EMD</p>
-          <input type="text" name="party_id" placeholder="Buyer Party ID" required style="display:block; width:100%; padding:8px; margin-bottom:6px; border:1px solid var(--line); border-radius:8px;">
+          <input type="text" name="party_id" placeholder="<?= tsx_term('Buyer') ?> Party ID" required style="display:block; width:100%; padding:8px; margin-bottom:6px; border:1px solid var(--line); border-radius:8px;">
           <input type="number" name="amount" placeholder="Amount (0 if waived)" required style="display:block; width:100%; padding:8px; margin-bottom:6px; border:1px solid var(--line); border-radius:8px;">
           <input type="text" name="payment_location_note" placeholder="Payment location (if amount > 0)" style="display:block; width:100%; padding:8px; margin-bottom:6px; border:1px solid var(--line); border-radius:8px;">
           <input type="text" name="no_emd_reason" placeholder="Reason (if amount = 0)" style="display:block; width:100%; padding:8px; margin-bottom:6px; border:1px solid var(--line); border-radius:8px;">
@@ -402,14 +388,14 @@
 
         <?php if ($isOwner && !$tenderState['currentReview']): ?>
         <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/tender/close-bidding" style="margin-top:14px;">
-          <p style="font-size:12px; color:var(--ink-3);">Manual seller action — no automatic timer</p>
+          <p style="font-size:12px; color:var(--ink-3);">Manual <?= strtolower(tsx_term('Seller')) ?> action — no automatic timer</p>
           <button type="submit" class="btn btn-ghost">Close Bidding & Declare Provisional Winner</button>
         </form>
         <?php endif; ?>
 
         <?php if ($tenderState['currentReview'] && in_array($tenderState['currentReview']['status'], ['provisional', 'extension_granted'], true)): ?>
         <div style="margin-top:14px; background:var(--amber-soft); padding:14px; border-radius:10px;">
-          <p style="font-size:12px; margin:0 0 8px;">Round <?= esc($tenderState['currentReview']['round_number']) ?> — <?= esc(strtoupper($tenderState['currentReview']['status'])) ?> — Tenant Admin action (on behalf of insurer/insured/surveyor)</p>
+          <p style="font-size:12px; margin:0 0 8px;">Round <?= esc($tenderState['currentReview']['round_number']) ?> — <?= esc(strtoupper($tenderState['currentReview']['status'])) ?> — <?= tsx_term('Tenant Admin') ?> action (on behalf of insurer/insured/surveyor)</p>
           <form method="post" action="/tender-reviews/<?= esc($tenderState['currentReview']['id']) ?>/action" style="display:flex; gap:6px; flex-wrap:wrap;">
             <input type="text" name="reason" placeholder="Reason" style="flex:1; min-width:120px; padding:8px; border:1px solid var(--line); border-radius:8px; font-size:12px;">
             <button type="submit" name="action" value="extend" class="btn btn-ghost" style="font-size:11px; padding:6px 10px;">Grant Extension</button>

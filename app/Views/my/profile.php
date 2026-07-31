@@ -6,10 +6,10 @@
     <p style="font-size:13px; color:var(--ink-3);">Mobile Number</p>
     <p style="font-size:15px; font-weight:600; margin:0 0 16px;"><?= esc($party['mobile_number']) ?></p>
 
-    <p style="font-size:13px; color:var(--ink-3);">Buyer Rating</p>
+    <p style="font-size:13px; color:var(--ink-3);"><?= tsx_term('Buyer') ?> Rating</p>
     <p style="font-size:15px; font-weight:600; margin:0 0 16px;">★ <?= esc($party['star_rating']) ?> / 5.0</p>
 
-    <p style="font-size:13px; color:var(--ink-3);">Seller Rating</p>
+    <p style="font-size:13px; color:var(--ink-3);"><?= tsx_term('Seller') ?> Rating</p>
     <p style="font-size:15px; font-weight:600; margin:0 0 16px;">★ <?= esc($party['seller_star_rating']) ?> / 5.0</p>
 
     <p style="font-size:13px; color:var(--ink-3);">KYC Status</p>

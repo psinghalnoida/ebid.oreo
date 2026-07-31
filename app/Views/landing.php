@@ -23,7 +23,7 @@
   .pc-row .k{font-size:11.5px; color:var(--ink-3); font-weight:600;}
   .pc-row .v{font-size:13.5px; font-weight:700;}
   .pc-row .v.big{font-size:22px; color:var(--emerald); font-weight:800;}
-  .pc-cta{width:100%; padding:12px; background:var(--emerald); color:#fff; border:none; font-weight:700; font-family:'Sora',sans-serif; border-radius:var(--radius-pill); cursor:pointer; font-size:13.5px; text-align:center; display:block;}
+  .pc-cta{width:100%; padding:12px; background:var(--emerald); color:#fff; border:none; font-weight:700; font-family:'Inter',sans-serif; border-radius:var(--radius-pill); cursor:pointer; font-size:13.5px; text-align:center; display:block;}
 
   .listings-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:18px; margin-top:30px;}
 
@@ -57,7 +57,7 @@
 
   .cta-band{background:var(--emerald); color:#fff; border-radius:22px; padding:40px; display:flex; justify-content:space-between; align-items:center; margin:50px 0;}
   .cta-band h3{margin:0 0 6px; font-size:22px; font-weight:800; letter-spacing:-0.4px;}
-  .cta-band p{margin:0; color:#CFE8DD; font-size:13.5px;}
+  .cta-band p{margin:0; color:var(--emerald-soft); font-size:13.5px;}
   .cta-band .btn{background:#fff; color:var(--emerald-deep);}
 
   .empty-state{grid-column:1/-1; text-align:center; padding:50px 24px; background:var(--line-soft); border-radius:var(--radius); color:var(--ink-3); font-size:14px;}
@@ -99,7 +99,7 @@
           <h3><?= esc($hero['category']) ?><?= $hero['subcategory'] ? ' — '.esc($hero['subcategory']) : '' ?></h3>
           <div class="pc-row"><span class="k">Current Price</span><span class="v big">₹<?= number_format((float)($hero['current_price'] ?? $hero['reserve_value'] ?? $hero['expected_value']), 0) ?></span></div>
           <div class="pc-row"><span class="k">Condition</span><span class="v"><?= esc($hero['physical_condition']) ?></span></div>
-          <span class="pc-cta">View Listing</span>
+          <span class="pc-cta">View <?= tsx_term('Listing') ?></span>
         </div>
       </div>
     </a>
@@ -107,9 +107,9 @@
     <div class="product-card">
       <div class="pc-photo"></div>
       <div class="pc-body">
-        <div class="lot">NO LIVE LISTINGS YET</div>
+        <div class="lot">NO LIVE <?= strtoupper(tsx_term('Listing', false, true)) ?> YET</div>
         <h3>Be the first on the yard.</h3>
-        <p style="font-size:13px; color:var(--ink-2); margin:0 0 16px;">Nothing's live right now — once a seller lists and it's approved, it'll show up right here.</p>
+        <p style="font-size:13px; color:var(--ink-2); margin:0 0 16px;">Nothing's live right now — once a <?= tsx_term('Seller') ?> lists and it's approved, it'll show up right here.</p>
         <a href="/listings/create" class="pc-cta">List an Asset</a>
       </div>
     </div>
@@ -119,7 +119,7 @@
 <section class="block" id="live-listings">
   <div class="eyebrow">Live Right Now</div>
   <h2 class="block-title">What's actually on the yard.</h2>
-  <p class="block-lead">Every listing here is a real, active sale event — not a demo.</p>
+  <p class="block-lead">Every <?= strtolower(tsx_term('Listing')) ?> here is a real, active <?= strtolower(tsx_term('Sale Event')) ?> — not a demo.</p>
   <div class="listings-grid">
     <?php if (empty($activeListings)): ?>
       <div class="empty-state">No live auctions right now — check back soon, or be the first to list.</div>
@@ -145,24 +145,24 @@
 <section class="block">
   <div class="eyebrow">How Selling Works</div>
   <h2 class="block-title">Three ways to sell today. One winner, always.</h2>
-  <p class="block-lead">Every listing is matched to the disposal mechanism that fits it — Tender is coming soon, Company Shop exclusive.</p>
+  <p class="block-lead">Every <?= strtolower(tsx_term('Listing')) ?> is matched to the disposal mechanism that fits it — Tender is coming soon, Company Shop exclusive.</p>
   <div class="format-grid">
     <div class="fmt-card">
       <div class="fmt-icon">BN</div>
       <h4>Buy-Now</h4>
-      <p>Judgment-based offers. Sellers weigh price against buyer rating, not just the highest number.</p>
+      <p>Judgment-based offers. <?= tsx_term('Seller', false, true) ?> weigh price against <?= strtolower(tsx_term('Buyer')) ?> rating, not just the highest number.</p>
       <span class="fmt-tag">3-day offer validity</span>
     </div>
     <div class="fmt-card">
       <div class="fmt-icon">EA</div>
       <h4>Easy Auction</h4>
       <p>Scheduled open bidding with Dynamic Time extensions — a late bid pushes the deadline back.</p>
-      <span class="fmt-tag">Seller sets the schedule</span>
+      <span class="fmt-tag"><?= tsx_term('Seller') ?> sets the schedule</span>
     </div>
     <div class="fmt-card">
       <div class="fmt-icon">EX</div>
       <h4>Express Auction</h4>
-      <p>No inspection, no waiting — launches the instant 3 buyers pledge EMD. Fully automatic result.</p>
+      <p>No inspection, no waiting — launches the instant 3 <?= strtolower(tsx_term('Buyer', false, true)) ?> pledge EMD. Fully automatic result.</p>
       <span class="fmt-tag">1-hour run time</span>
     </div>
     <div class="fmt-card" style="opacity:0.55;">
@@ -179,7 +179,7 @@
   <h2 class="block-title">Browse by what's on the yard.</h2>
   <div class="cat-grid">
     <?php if (empty($categoryCounts)): ?>
-      <div class="empty-state" style="grid-column:1/-1;">No categories with live listings yet.</div>
+      <div class="empty-state" style="grid-column:1/-1;">No categories with live <?= strtolower(tsx_term('Listing', false, true)) ?> yet.</div>
     <?php else: ?>
       <?php foreach ($categoryCounts as $cat): ?>
         <div class="cat-tile"><span class="n"><?= esc($cat['listing_count']) ?></span><?= esc($cat['category']) ?></div>
@@ -195,13 +195,13 @@
       <h2 class="block-title">Four scores, one honest track record.</h2>
       <ul class="trust-points">
         <li><span class="mark">1</span><div><b>Every profile starts at 3★</b><span>No advantage for age of account — rating reflects behaviour, never frequency.</span></div></li>
-        <li><span class="mark">2</span><div><b>Downgrades are human-reviewed</b><span>No rating drops silently. Tenant Admin — and Super Admin below 2★ — must approve it.</span></div></li>
-        <li><span class="mark">3</span><div><b>Recovery is real</b><span>Crawl-Back lets a buyer rebuild trust through clean transactions.</span></div></li>
+        <li><span class="mark">2</span><div><b>Downgrades are human-reviewed</b><span>No rating drops silently. <?= tsx_term('Tenant Admin') ?> — and <?= tsx_term('Super Admin') ?> below 2★ — must approve it.</span></div></li>
+        <li><span class="mark">3</span><div><b>Recovery is real</b><span>Crawl-Back lets a <?= strtolower(tsx_term('Buyer')) ?> rebuild trust through clean transactions.</span></div></li>
       </ul>
     </div>
     <div class="star-demo">
-      <div class="star-row"><span class="label">Buyer Rating</span><span class="stars">★★★☆☆ 3.0</span></div>
-      <div class="star-row"><span class="label">Seller Rating</span><span class="stars">★★★☆☆ 3.0</span></div>
+      <div class="star-row"><span class="label"><?= tsx_term('Buyer') ?> Rating</span><span class="stars">★★★☆☆ 3.0</span></div>
+      <div class="star-row"><span class="label"><?= tsx_term('Seller') ?> Rating</span><span class="stars">★★★☆☆ 3.0</span></div>
       <div class="star-row"><span class="label">Every account starts here</span><span class="stars">Neutral baseline</span></div>
     </div>
   </div>
@@ -210,7 +210,7 @@
 <div class="cta-band">
   <div>
     <h3>Ready to clear the yard?</h3>
-    <p>List your first asset in minutes — no listing fee, ever.</p>
+    <p>List your first asset in minutes — no <?= strtolower(tsx_term('Listing')) ?> fee, ever.</p>
   </div>
   <a href="/listings/create" class="btn">Get Started</a>
 </div>

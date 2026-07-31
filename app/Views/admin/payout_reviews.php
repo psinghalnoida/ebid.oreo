@@ -7,7 +7,7 @@
   <?php endif; ?>
 
   <h1 style="font-size:22px;">Payout Release Reviews (BR-50)</h1>
-  <p style="font-size:12px; color:var(--ink-3);">High-value (&gt;₹10L) payouts to a recently-changed bank account — Tenant Admin (for that sale event) or SaaS Admin may decide.</p>
+  <p style="font-size:12px; color:var(--ink-3);">High-value (&gt;₹10L) payouts to a recently-changed bank account — <?= tsx_term('Tenant Admin') ?> (for that <?= strtolower(tsx_term('Sale Event')) ?>) or SaaS Admin may decide.</p>
 
   <h3 style="font-size:15px; margin-top:24px;">Pending</h3>
   <?php foreach ($pending as $r): ?>

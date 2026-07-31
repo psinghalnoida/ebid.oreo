@@ -65,7 +65,7 @@ class CascadeService
     }
 
     // BR-28: default → forfeit → pass baton, or full-cascade-failure at H3.
-    public function processDefault(string $saleEventId, string $defaultedBidId, float $tenantFeePercent): array
+    public function processDefault(string $saleEventId, string $defaultedBidId): array
     {
         $saleEvent = $this->saleEventModel->find($saleEventId);
         $ranked = $this->bidModel->findRankedBids($saleEventId, 3);
@@ -86,7 +86,10 @@ class CascadeService
 
         $isFullCascadeFailure = $cascadeStep === 3;
         $defaultingPartyId = $ranked[$defaultedIndex]['bidder_party_id'];
-        $forfeitedHold = $this->forfeitHold($saleEventId, $defaultingPartyId, $tenantFeePercent, $isFullCascadeFailure);
+        // BR-34 (D-87/D-88): the defaulting bidder's own bid amount is
+        // the price they would have paid had they not defaulted — the
+        // value the Success Fee bracket (BR-31) is looked up against.
+        $forfeitedHold = $this->forfeitHold($saleEventId, $defaultingPartyId, (float) $ranked[$defaultedIndex]['amount'], $isFullCascadeFailure);
 
         // BR-35: "1st/2nd/3rd Default" — this was a genuine, previously
         // undiscovered gap: CascadeService never touched the rating
@@ -128,14 +131,14 @@ class CascadeService
         ];
     }
 
-    private function forfeitHold(string $saleEventId, string $partyId, float $tenantFeePercent, bool $isFullCascadeFailure): ?array
+    private function forfeitHold(string $saleEventId, string $partyId, float $saleValue, bool $isFullCascadeFailure): ?array
     {
         $hold = $this->emdHoldModel->findBySaleEventAndParty($saleEventId, $partyId);
         if (!$hold) {
             return null;
         }
-        $allocation = EmdService::calculateForfeitureAllocation((float) $hold['amount'], $tenantFeePercent, 0.5, $isFullCascadeFailure);
-        $result = $this->emdHoldModel->markForfeited($hold['id'], $allocation['tenantAmount'], $allocation['saasAmount'], $allocation['sellerAmount']);
+        $allocation = EmdService::calculateForfeitureAllocation((float) $hold['amount'], $saleValue, $isFullCascadeFailure);
+        $result = $this->emdHoldModel->markForfeited($hold['id'], 0.0, $allocation['platformAmount'], $allocation['sellerAmount']);
 
         // BR-05: EMD forfeiture is real money genuinely lost by the
         // defaulting bidder — the highest-stakes financial event this
@@ -143,7 +146,7 @@ class CascadeService
         // system-triggered by a cascade default, not a human decision.
         (new \App\Libraries\AuditLogService())->log('emd.forfeited', $partyId, [
             'saleEventId' => $saleEventId, 'amount' => (float) $hold['amount'],
-            'tenantAmount' => $allocation['tenantAmount'], 'saasAmount' => $allocation['saasAmount'],
+            'platformAmount' => $allocation['platformAmount'],
             'sellerAmount' => $allocation['sellerAmount'], 'fullCascadeFailure' => $isFullCascadeFailure,
         ]);
 

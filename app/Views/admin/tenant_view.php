@@ -11,16 +11,19 @@
   </p>
 
   <?php if (!empty($tenant['branding_logo_url'])): ?>
-    <img src="<?= esc($tenant['branding_logo_url']) ?>" alt="Tenant logo" style="max-height:48px; margin:12px 0;">
+    <img src="<?= esc($tenant['branding_logo_url']) ?>" alt="<?= tsx_term('Tenant') ?> logo" style="max-height:48px; margin:12px 0;">
   <?php endif; ?>
 
   <form method="post" action="/admin/tenants/<?= esc($tenant['id']) ?>/edit" enctype="multipart/form-data" style="margin-top:20px;">
     <label style="font-size:12px; color:var(--ink-3);">Name</label>
     <input type="text" name="name" value="<?= esc($tenant['name']) ?>"
       style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
-    <label style="font-size:12px; color:var(--ink-3);">Buyer Fee Percent</label>
-    <input type="number" step="0.01" name="buyer_fee_percent" value="<?= esc($tenant['buyer_fee_percent']) ?>"
-      style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
+    <label style="font-size:12px; color:var(--ink-3);">Subscription Tier (Section 5, BR-08/09) — the Success Fee itself is fixed platform-wide and not set here</label>
+    <select name="subscription_tier" style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
+      <?php foreach (\App\Models\TenantModel::SUBSCRIPTION_TIERS as $tier): ?>
+        <option value="<?= esc($tier) ?>" <?= $tenant['subscription_tier'] === $tier ? 'selected' : '' ?>><?= esc(ucwords(str_replace('_', ' ', $tier))) ?></option>
+      <?php endforeach; ?>
+    </select>
     <label style="font-size:12px; color:var(--ink-3);">Brand Primary Color (BR-06)</label>
     <input type="text" name="branding_primary_color" value="<?= esc($tenant['branding_primary_color'] ?? '') ?>" placeholder="#0F6E4E"
       style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
@@ -33,6 +36,6 @@
     <button type="submit" class="btn btn-emerald" style="width:100%;">Save Changes</button>
   </form>
 
-  <p style="font-size:11px; color:var(--ink-3); margin-top:16px;">Tenant class and subdomain are not editable here — changing them affects existing listings and links, and needs a deliberate decision, not a quick form edit.</p>
+  <p style="font-size:11px; color:var(--ink-3); margin-top:16px;"><?= tsx_term('Tenant') ?> class and subdomain are not editable here — changing them affects existing <?= strtolower(tsx_term('Listing', false, true)) ?> and links, and needs a deliberate decision, not a quick form edit.</p>
 </main>
 <?= $this->endSection() ?>

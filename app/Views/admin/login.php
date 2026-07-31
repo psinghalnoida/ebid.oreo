@@ -1,7 +1,7 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 <main style="max-width:420px; padding:60px 24px;">
-  <h1 style="font-size:24px;">Super Admin Login</h1>
+  <h1 style="font-size:24px;"><?= tsx_term('Super Admin') ?> Login</h1>
   <p style="color:var(--ink-3); font-size:13px;">BR-04: separate from regular user login — requires mPIN plus a verified TOTP code.</p>
   <?php if (!empty($error)): ?>
     <p style="color:#B5482F; font-size:13px; background:#FBE8E4; padding:10px; border-radius:8px;"><?= esc($error) ?></p>

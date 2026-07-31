@@ -39,7 +39,7 @@ class TestPhase3aAccounts extends BaseCommand
         $this->assert(Paginator::totalPages(0, 20) === 0, 'Zero results = zero pages');
 
         CLI::write("\n=== Account deletion: request, cancel, and scheduler finalization ===", 'yellow');
-        $tenant = $tenantModel->createTenant(['name' => 'Phase3A Test Tenant', 'tenant_class' => 'general', 'subdomain' => 'phase3atest', 'buyer_fee_percent' => 5.00]);
+        $tenant = $tenantModel->createTenant(['name' => 'Phase3A Test Tenant', 'tenant_class' => 'general', 'subdomain' => 'phase3atest']);
         $deletingParty = $partyModel->createParty('+919555405001');
 
         $partyModel->update($deletingParty['id'], ['deletion_requested_at' => date('Y-m-d H:i:s'), 'deletion_reason' => 'testing']);

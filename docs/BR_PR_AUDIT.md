@@ -275,7 +275,7 @@ insert exists, not just a threshold check), BR-45 (photo count 5–50 —
 real `MIN_PHOTOS`/`MAX_PHOTOS` consts enforced in `MediaService`). All
 confirmed solid.
 
-### Bottom line (current)
+### Bottom line (superseded by D-87/D-88 — kept for history)
 
 **Ten items still tracked, now with one substitution**: BR-31's fee-band
 validation gap replaces BR-15/BR-07/BR-19/BR-32/BR-41/PR-08/Server-Time
@@ -288,4 +288,146 @@ Integrity, all six of which are now closed and merged.
 
 Item 1 is a single, bounded fix (two validation checks, no schema
 change). Item 2 is the only large item with no external blocker.
+
+## Update — D-87/D-88: governing document replaced, commission model rebuilt
+
+`ADWITIX_Master.docx` replaced `eBid_Hub_Unified_BR_PR.docx` as the
+canonical governing document (D-87), rewriting BR-08/09/31–34/56/12
+and PR-06/32 around a new Section 5 Business Model. Item 1 above
+(BR-31's buyer-fee band) is **moot, not fixed** — BR-31 no longer
+describes a tenant-adjustable 0.5%–5% band at all; it's now a single,
+platform-wide, non-tenant-adjustable declining schedule
+(`EmdService::calculateSuccessFee()`), so there is no band left to
+validate. D-88 built the full replacement: the new Success Fee
+schedule, the Fee Payer Election (`sale_event.fee_payer`), and the
+monthly Tenant-billing mechanism (`TenantBillingService` +
+`tenant_fee_ledger`/`tenant_monthly_invoice`) that collects a
+Seller-Pays fee given the platform never touches the seller's 100%
+sale-value proceeds directly. Full detail in `docs/DECISIONS.md` D-88.
+
+### Bottom line (superseded by D-89 — kept for history)
+
+**Three items tracked** — BR-31's gap is superseded (see above), not
+counted separately:
+
+1. BR-62–66 / PR-37 — Tenant API Access (no external blocker, large — a whole new module)
+2. BR-46 — AI Pre-Audit (blocked on a Gemini API key)
+3. BR-52 — Chargeback Mitigation (blocked on real SabPaisa API credentials)
+
+Item 1 is the only large item with no external blocker.
+
+## Update — D-89: BR-62-66/PR-37 built
+
+Item 1 above is built: OAuth2 client-credentials (self-hosted
+substitution for the named Auth0 dependency, same pattern as BR-04's
+TotpService), BR-66 tier-gated push/pull endpoints reusing the exact
+same portal governance checks, BR-63 tenant-scoped visibility, and
+PR-37's webhook events wired into the real lifecycle trigger points.
+Full detail in `docs/DECISIONS.md` D-89.
+
+### Bottom line (current)
+
+**Two items left, both external-credential blocks — nothing left with
+an internal-only blocker**:
+
+1. BR-46 — AI Pre-Audit (blocked on a Gemini API key)
+2. BR-52 — Chargeback Mitigation (blocked on real SabPaisa API credentials)
+
+## Update — D-90: BR-67 rollout gap found, master doc restructured (docs-only)
+
+Raised directly by the project owner: BR-67 (Branded Terminology Layer)
+was checked against the live application for the first time — no prior
+audit pass had ever verified the half of BR-67's own text that isn't
+about the data model ("Front-end copy... render the branded term").
+Confirmed via direct `grep` across `app/Views/`: only four view files
+use any branded term at all, and none do so systematically. This is a
+real, previously-unflagged gap, now tracked below. `ADWITIX_Master.docx`
+itself was restructured the same day (new Section 1: Terminology, full
+section renumbering) — documentation only, no code changed by that
+part. Full detail in `docs/DECISIONS.md` D-90.
+
+### Bottom line (current)
+
+**Three items — one newly surfaced, no internal-only blocker on any of them:**
+
+1. **BR-67 — Branded Terminology Layer, live-UI rollout** (no external blocker, medium — apply the TSX/Market Maker/Trader/etc. mapping consistently across the portal's views, not just the four files that happen to use it today)
+2. BR-46 — AI Pre-Audit (blocked on a Gemini API key)
+3. BR-52 — Chargeback Mitigation (blocked on real SabPaisa API credentials)
+
+Item 1 is the only item left with no external blocker.
+
+## Update — D-92: BR-67 live-UI rollout built
+
+The one item left with no external blocker is now built. A new
+`tsx_term()` helper (`app/Helpers/terminology_helper.php`) is the
+single source of truth for BR-67's 7-row mapping; all 37 view files
+found to use any of the 7 mapped technical terms as visible text —
+not just the 4 that happened to already use branded terms — now
+render through it, including the SaaS admin console
+(`app/Views/admin/*`, 17 files), consistent with `public/pricing.html`
+already branding that role "Custodian". Verified with a new
+`test:terminology` CLI suite (22 assertions) plus real HTTP checks
+against a running server confirming the branded terms actually render.
+Full detail in `docs/DECISIONS.md` D-92.
+
+### Bottom line (superseded below — kept for history)
+
+**Two items left, both external-credential blocks — nothing left with
+an internal-only blocker**:
+
+1. BR-46 — AI Pre-Audit (blocked on a Gemini API key)
+2. BR-52 — Chargeback Mitigation (blocked on real SabPaisa API credentials)
+
+## Update — D-93: independent counter-audit against a fresh PDF export
+
+The project owner supplied a freshly-exported PDF and asked for a
+genuine two-directional check: is everything except BR-46/BR-52
+actually built, and is everything decided actually written into the
+document. Confirmed via `pdftotext` extraction and a fresh `grep -rl
+"BR-XX\b" app/` sweep across all 68 BRs, not by trusting this
+document's own prior claims. Two real, previously-untracked findings
+came out of it, both now fixed:
+
+- **BR-65 (API Versioning Policy)** — the text explicitly bars a
+  visible version number; the API shipped as `/api/v1/...` anyway.
+  D-89 never actually addressed BR-65 despite building the rest of
+  BR-62–66. **Fixed** — routes renamed to `/api/...`, verified over
+  real HTTP.
+- **BR-68 (Visual Identity)** — matched exactly on `pricing.html`
+  (the only surface that existed when it was checked), but the live
+  portal used an unrelated older palette. The project owner confirmed
+  this should be app-wide, the same call made for BR-67. **Fixed** —
+  `layouts/main.php`'s token values repainted to BR-68's palette and
+  typography, verified over real HTTP.
+
+Also found: **BR-53's TDS rate** was confirmed by the project owner at
+10% back in D-71, computed correctly in code ever since, but the
+document text still read "not fixed by this document" — never carried
+forward through the D-77 document replacement. **Fixed** — document
+text updated to state the confirmed 10% rate, via the docx skill.
+
+Full detail in `docs/DECISIONS.md` D-93.
+
+### Bottom line (current)
+
+**Two items left, both external-credential blocks — nothing left with
+an internal-only blocker, same two items as every pass since D-92**:
+
+1. BR-46 — AI Pre-Audit (blocked on a Gemini API key)
+2. BR-52 — Chargeback Mitigation (blocked on real SabPaisa API credentials)
+
+## Update — D-94: Section 7 (AX Knowledge & Chronicle Framework) added, Phase 1 built
+
+New scope, not a gap in an existing BR/PR — doesn't change the bottom
+line above. The project owner supplied a concept paper; it's now
+Section 7 of `ADWITIX_Master.docx`, with only 7.10 (the Trading
+Session Chronicle — a system-authenticated, QR-verifiable report per
+completed Sale Event) as active Phase 1 scope, built and verified
+(`test:chronicle`, 22 assertions, plus real HTTP checks of the public
+QR verification page and the certified PDF). Everything else in
+Section 7 (Case/Asset entities, the other Chronicle types, Contributors,
+the full Information Classification taxonomy, the other Dossier types,
+the full Access & Visibility model, AI-authored narrative) is Section
+7.11 — explicitly Phase 2, the same treatment already given Procurement
+and Market Intelligence. Full detail in `docs/DECISIONS.md` D-94.
 

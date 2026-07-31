@@ -37,7 +37,7 @@ class TestCascade extends BaseCommand
         CLI::write('=== Setup ===', 'yellow');
         $tenant = $tenantModel->createTenant([
             'name' => 'Cascade Test Tenant', 'tenant_class' => 'general',
-            'subdomain' => 'cascadetest-php', 'buyer_fee_percent' => 5.00,
+            'subdomain' => 'cascadetest-php',
         ]);
 
         $seller = $partyModel->createParty('+919000001001');
@@ -94,21 +94,21 @@ class TestCascade extends BaseCommand
         $this->assert($step1['bidId'] === $ranked[0]['id'], 'Top-up window opened for H1 (buyer3)');
 
         CLI::write('H1 (buyer3) defaults...');
-        $afterH1 = $cascadeService->processDefault($saleEvent['id'], $ranked[0]['id'], 5.00);
+        $afterH1 = $cascadeService->processDefault($saleEvent['id'], $ranked[0]['id']);
         $this->assert($afterH1['outcome'] === 'baton_passed', 'Baton passed after H1 default');
         $this->assert($afterH1['newTopHolderPartyId'] === $buyer2['id'], 'Baton passed to H2 (buyer2)');
         $this->assert(
-            (float) $afterH1['forfeitedHold']['forfeited_to_seller_amount'] === 9450.0,
-            "H1 default (non-cascade-failure yet) — seller gets standard share: {$afterH1['forfeitedHold']['forfeited_to_seller_amount']}"
+            (float) $afterH1['forfeitedHold']['forfeited_to_seller_amount'] === 7200.0,
+            "H1 default (non-cascade-failure yet) — seller gets forfeited amount minus the Success Fee (2% of the 140000 bid = 2800): {$afterH1['forfeitedHold']['forfeited_to_seller_amount']}"
         );
 
         CLI::write("\nH2 (buyer2) defaults...");
-        $afterH2 = $cascadeService->processDefault($saleEvent['id'], $ranked[1]['id'], 5.00);
+        $afterH2 = $cascadeService->processDefault($saleEvent['id'], $ranked[1]['id']);
         $this->assert($afterH2['outcome'] === 'baton_passed', 'Baton passed after H2 default');
         $this->assert($afterH2['newTopHolderPartyId'] === $buyer1['id'], 'Baton passed to H3 (buyer1)');
 
         CLI::write("\nH3 (buyer1) ALSO defaults — full cascade failure...");
-        $afterH3 = $cascadeService->processDefault($saleEvent['id'], $ranked[2]['id'], 5.00);
+        $afterH3 = $cascadeService->processDefault($saleEvent['id'], $ranked[2]['id']);
         $this->assert($afterH3['outcome'] === 'full_cascade_failure', 'Full cascade failure detected on 3rd default');
         $this->assert(
             (float) $afterH3['forfeitedHold']['forfeited_to_seller_amount'] === 0.0,
@@ -120,13 +120,17 @@ class TestCascade extends BaseCommand
         $closedEvent = $saleEventModel->find($saleEvent['id']);
         $this->assert($closedEvent['status'] === 'cancelled', 'BR-28: sale_event status = cancelled after full cascade failure');
 
-        CLI::write("\n=== BR-34: Standard forfeiture math check ===", 'yellow');
-        $standard = EmdService::calculateForfeitureAllocation(10000, 5.00, 0.5, false);
-        $this->assert($standard['tenantAmount'] === 500.0, 'Tenant gets 5% of 10000 = 500');
-        $this->assert($standard['saasAmount'] === 50.0, 'SaaS gets 0.5% of 10000 = 50');
-        $this->assert($standard['sellerAmount'] === 9450.0, 'Seller gets remainder = 9450');
-        $sum = $standard['tenantAmount'] + $standard['saasAmount'] + $standard['sellerAmount'];
+        CLI::write("\n=== BR-31/34: Standard forfeiture math check (Success Fee bracket) ===", 'yellow');
+        $standard = EmdService::calculateForfeitureAllocation(10000, 140000, false);
+        $this->assert($standard['platformAmount'] === 2800.0, 'Platform gets the Success Fee: 2% of the 140000 sale value (BR-31 bracket) = 2800');
+        $this->assert($standard['sellerAmount'] === 7200.0, 'Seller gets the remainder = 7200');
+        $sum = $standard['platformAmount'] + $standard['sellerAmount'];
         $this->assert($sum === 10000.0, 'Standard allocation sums to exactly the forfeited amount');
+
+        CLI::write("\n=== BR-34: forfeiture guard — Success Fee capped at the forfeited amount ===", 'yellow');
+        $capped = EmdService::calculateForfeitureAllocation(10000, 80000000, false);
+        $this->assert($capped['platformAmount'] === 10000.0, 'Success Fee (0.75% of 8Cr = 60000) is capped at the 10000 actually forfeited');
+        $this->assert($capped['sellerAmount'] === 0.0, 'Seller gets nothing when the uncapped fee would exceed the forfeited amount');
 
         CLI::write("\n=== BR-28: Recalculation to closing value ===", 'yellow');
         $owed = EmdService::calculateCascadeTopupOwed(10000, 140000);

@@ -3,7 +3,7 @@
 <main style="max-width:900px; padding:40px 24px;">
   <h1 style="font-size:22px;">Rules &amp; Specifications</h1>
   <p style="color:var(--ink-3); font-size:12px;">
-    PR-04 — the Super Admin's live rules registry. Rows with a <strong>Rule Key</strong> are wired
+    PR-04 — the <?= tsx_term('Super Admin') ?>'s live rules registry. Rows with a <strong>Rule Key</strong> are wired
     into real application code (editing the value here changes live enforcement immediately).
     Rows without one are freeform governance rules — versioned and audited the same way, but with no
     direct code effect. <a href="/admin/rules/new" style="color:var(--emerald);">Define a new rule →</a>

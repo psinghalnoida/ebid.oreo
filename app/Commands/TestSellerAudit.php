@@ -38,7 +38,7 @@ class TestSellerAudit extends BaseCommand
         $db = \Config\Database::connect();
 
         CLI::write('=== Setup ===', 'yellow');
-        $tenant = $tenantModel->createTenant(['name' => 'Seller Audit Test Tenant', 'tenant_class' => 'general', 'subdomain' => 'selleraudittest', 'buyer_fee_percent' => 5.00]);
+        $tenant = $tenantModel->createTenant(['name' => 'Seller Audit Test Tenant', 'tenant_class' => 'general', 'subdomain' => 'selleraudittest']);
         $seller = $partyModel->createParty('+919555404001');
         $buyer = $partyModel->createParty('+919555404002');
         $tenantAdmin = $partyModel->createParty('+919555404003');

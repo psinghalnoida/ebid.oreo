@@ -5239,3 +5239,828 @@ card; the homepage's footer genuinely includes the new link.
 `test:auth`/`test:browse` spot-checked clean (a pure additive
 routing/docs change, no business logic touched — full 28-engine
 regression not needed).
+
+### D-87: Governing Document Replaced — `ADWITIX_Master.docx` (Documentation Only)
+
+**Decision:** the project owner provided a new master document,
+explicitly instructed as "the Bible of this project," replacing
+`eBid_Hub_Unified_BR_PR.docx` (BR-01–66/PR-01–37) with
+`ADWITIX_Master.docx` (BR-01–68/PR-01–37), which the document's own
+Status line describes as "Fully reconciled — supersedes all prior
+governance drafts, the separately-issued Consolidated Specification,
+and all standalone Business Model documents." Read in full (all 1083
+extracted paragraphs, via the zip+XML extraction technique established
+in D-77, since it's the only reliable way to read this file) before
+any action was taken. Recorded here per the project owner's explicit
+authorization — this entry covers the doc swap only; no application
+code was touched in this commit.
+
+**What's genuinely new, not just reorganized:**
+- **Section 5, a complete Business Model** — product tiers (CoCo Starter/Concierge, TSX Launch/Growth/Enterprise), a subscription discount ladder, storage/media allowances, professional services, and revenue-line priorities. This is the exact content `public/pricing.html` (D-86) already presents — confirms that page was built correctly against this same source, even though it arrived in a separate upload beforehand.
+- **BR-67 (Branded Terminology Layer)** and **BR-68 (Visual Identity)** — formalize "TradeSphereX"/TSX branding and the color/typography system already used on the pricing page, as presentation-layer mappings over the existing technical role names, not a data-model rename.
+- Tech Stack (Section 3), the Phased Roadmap (Section 4), and every BR/PR not named below are unchanged from the prior document — spot-checked directly (PR-08, PR-13, PR-16 all read identically to the prior version).
+
+**The commission model is fundamentally rewritten — flagged here for
+the project owner's explicit decision before any code changes, not
+silently assumed.** The document's own Status line names six rewritten
+items: BR-08, BR-09, BR-31 through BR-34, BR-56, BR-12, and PR-06/PR-32.
+The old model — a flat 0.5% SaaS fee plus a tenant-adjustable 0.5%–5%
+buyer-fee band (`tenant.buyer_fee_percent`, plus the per-listing
+override this session added for BR-32, D-82, merged as PR #26) — is
+replaced by:
+- A single, platform-wide, **non-tenant-adjustable** declining Success Fee schedule by final sale value: ≤₹10L 2.00%, ₹10L–50L 1.50%, ₹50L–2Cr 1.00%, ₹2Cr–10Cr 0.75%, above ₹10Cr 0.50% (negotiable) — minimum ₹500+GST.
+- A new **Fee Payer Election**, set by the Market Maker (seller) per Trading Session (Sale Event) before it opens and locked once bidding starts: Buyer-Pays (default, matching today's zero-seller-cost behavior) or Seller-Pays (the fee is deducted from the seller's proceeds instead, letting a seller match a 0%-buyer-premium competitor). No equivalent field exists anywhere in the current schema or UI.
+- Section 5.4/5.8 describe the Success Fee as the platform's own revenue line, with no mention of a separate Tenant share — a real, substantive change from the old model's `tenantAmount`/`saasAmount` split (`EmdService::calculateSettlementFee()`/`calculateForfeitureAllocation()`), not just a rate adjustment.
+
+**Directly affects already-shipped, tested code**, specifically:
+`EmdService::calculateSettlementFee()`/`calculateForfeitureAllocation()`
+(the tenant/SaaS split and flat-percent lookup), `SettlementService::
+checkCompletion()` and `DisputeService::executeRuling()`'s
+`order_forfeiture` path (both read `tenant.buyer_fee_percent` /
+`listing.buyer_fee_percent_override`), `TenantController` (the
+`buyer_fee_percent` field itself), `SaleEventController`/`SaleEventModel`
+(no `fee_payer` field exists), and `InvoiceService`/BR-56 invoice
+attribution (must follow the election, not always "buyer"). This also
+means the per-listing buyer-fee override built this session (D-82,
+merged PR #26) and the just-identified BR-31 band-validation gap
+(D-85, PR #29, currently on hold per the project owner's instruction)
+are **both superseded by this rewrite** — BR-31 no longer describes a
+tenant-adjustable band with a floor/ceiling at all, so that specific
+gap no longer applies to the new text; a different, larger rebuild
+(the declining schedule + Fee Payer Election) is needed instead.
+
+**Also noted, not yet resolved**: the document's own PR-13 (Sale Event
+creation) and PR-22 (Settlement) operational-step lists were not
+updated to mention capturing/applying Fee Payer Election explicitly —
+PR-22 step 6 still reads "the system deducts commission/SaaS fee from
+the held EMD," the old model's phrasing — while BR-31/32/33 elsewhere
+in the same document are explicit that settlement now branches on the
+election. Flagged as an internal inconsistency in the source document
+itself, not resolved by assumption.
+
+**Not yet done, deliberately**: no fee/settlement code was rewritten in
+this commit. Given the scope (money-calculation logic across multiple
+already-tested subsystems, a new schema field, and a genuinely new UI
+flow for Fee Payer Election) and BR-01's own instruction to "halt and
+raise clarifying questions rather than making unilateral assumptions,"
+this is surfaced to the project owner as its own scoped follow-up
+rather than built unprompted.
+
+### D-88: Success Fee Rebuild, Fee Payer Election, and Monthly Tenant Billing — the D-87 Follow-Up, Built
+
+D-87 flagged the commission-model rewrite as too large a change to
+build unprompted and surfaced it back to the project owner. Discussed
+first, per BR-01. Two things came out of that discussion, both
+explicitly confirmed by the project owner before any code was written:
+
+**1. A genuine mechanical gap in BR-32/33's own text, resolved by the
+project owner's own proposed design.** BR-32 states that under
+Seller-Pays "the Success Fee is instead deducted from the seller's
+proceeds at the same settlement step," but BR-33 (same document) also
+states "the buyer pays 100% of the sale value directly to the seller,
+offline... the platform never touches this 100% value." Those two
+statements are mechanically incompatible — a platform that never
+touches the seller's proceeds cannot deduct a fee from them in real
+time. Raised to the project owner directly ("Let's discuss that. What
+is your question and your answer?"), who supplied the resolution
+himself: since individual sellers are moving to CoCo TSX and everyone
+else is institutional TSX, bill the Tenant a **monthly consolidated
+invoice** instead of trying to deduct per-transaction from a proceeds
+flow the platform structurally never sees. Confirmed as correct and
+authorized to build ("yes both understanding are correct... build new
+parameters. do the needful").
+
+**2. Seller-Pays restricted to non-CoCo-Starter tenants.** A CoCo
+Starter TSX has no ongoing subscription/billing relationship with
+ADWITIX (Section 5.2 — free to join) to invoice against, so it has no
+counterparty for the monthly bill above. Seller-Pays is therefore
+gated to TSX Launch/Growth/Enterprise only; a CoCo Starter TSX only
+ever runs Buyer-Pays. Confirmed by the same authorization.
+
+**Built, both in code and in `ADWITIX_Master.docx` itself** (the
+project owner's explicit instruction: "necessary action to be taken
+wherever required in master and the code"):
+
+- **`ADWITIX_Master.docx` amended** (via the `docx` skill, direct XML
+  edit + XSD validation, not regenerated) — BR-31's statement, BR-32's
+  statement and rationale, and the Section 5.4 Fee Payer Election
+  paragraph all rewritten to (a) state the monthly Tenant-invoice
+  mechanism explicitly instead of the mechanically-impossible
+  "deducted from seller's proceeds" phrasing, and (b) narrow
+  Seller-Pays to paid tiers only, replacing "available to every Tenant
+  on every tier, including CoCo." Verified by extracting the amended
+  paragraphs back out and reading them, and by the skill's own XSD
+  schema validator (paragraph count unchanged, 1131 → 1131).
+- **Migration `2026-01-01-000061_SuccessFeeAndFeePayerElection`** —
+  adds `tenant.subscription_tier` (coco_starter/tsx_launch/tsx_growth/
+  tsx_enterprise; distinct from the pre-existing, unrelated
+  `tenant_class` enum), drops `tenant.buyer_fee_percent`/
+  `saas_fee_percent` and `listing.buyer_fee_percent_override` (BR-32's
+  old per-listing override is fully obsolete under a fixed
+  platform-wide schedule), adds `sale_event.fee_payer`
+  (buyer_pays/seller_pays, default buyer_pays), and creates
+  `tenant_fee_ledger` (one row per Seller-Pays settlement, unbilled →
+  billed) + `tenant_monthly_invoice` (the consolidated bill), FK'd
+  together. Also extends `invoice_type` with `platform_to_buyer`/
+  `platform_to_seller` (old `tenant_to_buyer`/`saas_to_tenant` kept for
+  historical rows — Postgres can't drop enum values).
+- **`EmdService::calculateSuccessFee()`** (new) — the fixed bracket
+  schedule (2.00%/1.50%/1.00%/0.75%/0.50% by final sale value, ₹500
+  minimum), matching `public/pricing.html`'s own calculator exactly
+  (same boundaries, same flat-not-marginal per-bracket rate, same
+  floor). The >₹10Cr band's "negotiable" note in the master doc is
+  treated as an off-platform/manual arrangement, not an editable rate
+  — consistent with BR-09's "Tenant Admin no longer adjusts the fee
+  rate itself." `calculateSettlementFee()` rewritten for Buyer-Pays
+  only (drops the tenant/SaaS split — the fee is 100% platform revenue
+  now). `calculateForfeitureAllocation()` rewritten to take the
+  defaulting party's own bid/session value (not the smaller 10% EMD
+  amount) for the bracket lookup, and drops the `feePayer` distinction
+  entirely — BR-32's own text confirms "the fee amount and the
+  platform's revenue are identical either way," and a default has no
+  seller proceeds to draw from regardless of election, so the fee
+  always comes out of the forfeited EMD.
+- **`SettlementService::checkCompletion()`** — branches on
+  `sale_event.fee_payer`. Buyer-Pays: unchanged shape, fee deducted
+  from held EMD via `guardedSettle()`. Seller-Pays: EMD released in
+  full via `guardedRelease()` (the same BR-50 high-value review gate
+  applies to both paths), and a `tenant_fee_ledger` entry recorded via
+  the new `TenantBillingService::recordUnbilledFee()` — only when the
+  release actually happened synchronously, mirroring the existing
+  `$feeWasSettled` gating pattern so a fee isn't recorded for a release
+  still pending Tenant/SaaS Admin review.
+- **New `TenantBillingService`** — `recordUnbilledFee()`,
+  `generateMonthlyInvoices()` (consolidates per-Tenant unbilled ledger
+  entries into one GST invoice per calendar month, skips CoCo Starter
+  tenants defensively even though they should never have entries),
+  `markInvoicePaid()` (manual SaaS Admin action — no automated
+  dunning/suspension for a nonpaying Tenant exists, intentionally out
+  of scope for this build and flagged as such, not silently omitted).
+  Wired into `SchedulerService::runAll()`, gated to the 1st of the
+  month so a frequent cron sweep doesn't re-scan needlessly.
+- **`InvoiceService::generateForSettlement()`** rewritten — one
+  `platform_to_buyer`/`platform_to_seller` invoice per settlement
+  (BR-56: issued to whichever party paid the fee), replacing the old
+  two-invoice `tenant_to_buyer`/`saas_to_tenant` split that no longer
+  has a real counterpart now that the Tenant doesn't share in the fee.
+- **`DisputeService::executeRuling()`** (`order_forfeiture` branch) and
+  **`CascadeService::forfeitHold()`/`processDefault()`** — updated for
+  the new `calculateForfeitureAllocation()` signature; both now pass
+  the actual sale/bid value (not just the held EMD) for the bracket
+  lookup.
+- **`TenantController`/`TenantModel`** — `subscription_tier` capture
+  replaces `buyer_fee_percent` in create/edit. **`SaleEventController`/
+  `SaleEventModel`** — `fee_payer` capture on Buy-Now/Express/Easy
+  (never Tender, per BR-31's own exclusion), server-side rejecting
+  `seller_pays` for a `coco_starter` tenant with a BR-32-cited error.
+  **`ListingController::updateFeeOverride()`** and its route removed
+  outright (obsolete). Views updated to match: `listing/show.php` (fee
+  override UI removed, new tier-gated Fee Payer Election field added
+  to the three non-tender attach forms via a shared partial), tenant
+  admin create/view/list/dashboard (subscription tier select/display).
+- **New Tenant Admin billing view** (`/tenants/{id}/billing`) and
+  **SaaS Admin invoice list + mark-paid action**
+  (`/admin/tenant-invoices`), both following this codebase's existing
+  `PayoutReviewController` shape.
+- **Nine test-fixture files** (`TestTenderReview`, `TestPhase3aAccounts`,
+  `TestSellerAudit`, `TestBr35RatingEvents`, `TestSettlement`,
+  `TestScheduler`, `TestDispute`, `TestCascade`, `TestInvoices`) had
+  their stale `buyer_fee_percent` fixture key removed; `TestCascade`'s
+  and `TestSettlement`'s hardcoded 5%-flat-fee math assertions
+  rewritten for the new bracket schedule; new `test:successfee` added
+  (bracket boundaries, a full Seller-Pays settlement end-to-end, the
+  tenant_fee_ledger entry it produces, tier-gated monthly-invoice
+  generation including the CoCo Starter defensive skip, idempotent
+  re-run, and mark-paid).
+
+**Real-HTTP verification, not just the CLI suite**: registered and
+logged in a real seller party over HTTP (cookie-jar session, reading
+the dev-mode OTP off the actual HTML response, same pattern as every
+prior real-HTTP pass this session). Attempted `fee_payer=seller_pays`
+on a CoCo Starter tenant's listing — rejected with the exact BR-32
+error text, zero `sale_event` rows created. Same request against a
+TSX Launch tenant's listing — succeeded, `sale_event.fee_payer` stored
+as `seller_pays`, the listing page's Fee badge reads "Seller-Pays."
+Also confirmed the Fee Payer Election field's disabled state and
+tier-gating hint render correctly on the CoCo Starter listing's attach
+forms, and that `/tenants/{id}/billing` renders real (empty, for a
+brand-new tenant) ledger/invoice data with no errors under a real
+tenant_admin `party_role` grant. `test:successfee` (25/25) plus the
+full existing CLI suite re-run clean, with two pre-existing,
+unrelated-to-this-build environment gaps noted rather than silently
+worked around: `dompdf/dompdf` is declared in `composer.json` but not
+present in `vendor/` in this sandbox (blocks only the PDF-rendering
+assertion in `test:invoices`, not the invoice logic itself, which
+passed in full), and `TestAuditLog`'s tamper-simulation step shells
+out to a hardcoded `ebidhub_ci4` database name that doesn't match this
+environment's `ebidhub` — both pre-date this build and are unrelated
+to the Success Fee change.
+
+**Superseded by this entry**: D-82 (the per-listing buyer-fee
+override, BR-32 as it existed before the master-doc rewrite) and D-85
+(the on-hold BR-31 buyer-fee-band validation gap, PR #29) — both
+described a fee model this build fully replaces. PR #29 should be
+closed or reconciled against this work rather than merged separately.
+
+### D-89: BR-62-66/PR-37 Built — Tenant API Access Module
+
+The last item on the audit's own bottom line with no external blocker
+(docs/BR_PR_AUDIT.md). Built directly, per the user's explicit
+instruction, following the exact re-audit finding: a whitelisted
+Tenant can integrate its own systems with the platform as an
+alternative to the portal UI, governed identically to a portal
+submission — no privilege the portal doesn't already grant, none
+bypassed (BR-62).
+
+**BR-64 substitution, flagged explicitly, same pattern as
+`TotpService`**: BR-64 names OAuth2 client-credentials "through the
+platform's existing Auth0 relationship." Auth0 is a paid external
+vendor requiring its own account — the same category of dependency as
+the payment gateway/SMS provider (D-23), deferred the same way. Built
+a real, self-hosted client-credentials flow instead
+(`ApiCredentialService`): genuine random `client_id`/`client_secret`
+issuance, bcrypt secret hashing, and a genuinely HMAC-signed
+short-lived bearer token — not a fake stand-in. BR-64's "hard-scoped
+to a single tenantId at the token-issuance level" requirement is real:
+the tenantId is inside the signed payload, and every request re-checks
+the underlying credential is still `active` in the DB, so a revoked
+credential's outstanding tokens stop working immediately rather than
+only at next refresh — verified directly (`test:tenantapi` and real
+HTTP: revoked via the portal, the same still-unexpired token
+immediately 401s).
+
+**BR-66 tier gating, built on the D-88 `subscription_tier` field**:
+CoCo Starter has no API access at all (enforced in `ApiAuthFilter`,
+and again defensively in `TenantApiSettingsController::issueCredential`
+so a CoCo Starter TSX can't even mint a credential); TSX Launch is
+read-only; TSX Growth adds Lot push; TSX Enterprise adds Sale System
+push. `TenantModel::hasApiAccess()`/`canPushListings()`/
+`canPushSaleEvents()` are the single source of truth both the filter
+and the controller actions check.
+
+**BR-63 visibility parity**: a listing/sale-event outside the calling
+credential's own tenant 404s, not 403s — a probing client learns
+nothing about another tenant's ID space. Verified directly: an
+Enterprise-tier token reading a Growth-tenant's listing ID gets
+`not_found`; the Growth tenant's own token reading the same ID
+succeeds.
+
+**PR-37's own gap, flagged rather than silently resolved**: its
+Operational Sequence says a pushed listing "enters PENDING_APPROVAL
+(BR-13), identical to a portal submission" — but BR-11's own photo
+requirement (5-50 photos, one marked primary) is what actually moves a
+portal listing out of INVENTORY via `submitForApproval()`, and PR-37's
+own step list has no media-push step at all. Resolved conservatively,
+not by picking the shortcut: `TenantApiController::pushListing()`
+creates the listing at INVENTORY, same as the portal, rather than
+skipping BR-11's gate — BR-62's "bypasses none" principle taken
+literally over PR-37's summary-level wording. Noted here as a real,
+narrow gap in the source document's own text, the same category as
+D-87's PR-13/PR-22 wording lag, not resolved by assumption.
+
+**Built**:
+- Migration `2026-01-01-000062_CreateTenantApiAccess` —
+  `tenant_api_credential` (client_id/secret-hash/status), `tenant.
+  webhook_url`/`webhook_signing_secret`, `tenant_webhook_delivery`
+  (event log with bounded retry, the same "stage now, scheduler
+  finalizes later" shape as `media_upload_job`/PR-09 and the BR-50
+  payout cooling-off).
+- `ApiCredentialService` (issuance/revocation/authenticate/
+  validateToken) and `ApiAuthFilter` (Bearer token validation +
+  baseline tier gate, wired as the `apiAuth` route filter alias).
+- `TenantApiController` — `POST /api/v1/oauth/token`, `POST/GET
+  /api/v1/listings[/{id}]`, `POST/GET /api/v1/listings/{id}/sale-events`
+  and `/api/v1/sale-events/{id}` — reusing the exact same governance
+  calls `ListingController`/`SaleEventController` use (BR-15 Super
+  Admin exclusion, BR-55 KYC, BR-38 delisting/ceiling, BR-09 approved-
+  seller, BR-07 category closed-list, BR-24 shipping validation, BR-60
+  media waiver, BR-31/32 Fee Payer Election tier gating), not a parallel
+  or looser rule set. Tender is excluded entirely, matching PR-37's own
+  explicit exclusion.
+- `TenantWebhookService` — fires `listing.approved`,
+  `sale_event.created`, `listing.archived` (with `supersededBy`),
+  `settlement.completed`, and `dispute.filed`, wired into the exact
+  existing lifecycle methods (`ListingLifecycleService::approve()`/
+  `approveSaleEvent()`/`requestMaterialEdit()`, `SettlementService::
+  checkCompletion()`, `DisputeService::fileDispute()`) rather than a
+  parallel event system. HMAC-signed (`X-TSX-Signature`) — not
+  explicitly required by PR-37's text, added as a reasonable security
+  default and flagged as such, the same category as this codebase's
+  other unrequested-but-sensible defaults. Bounded retry (5 attempts,
+  fixed 5-minute backoff — PR-37 specifies neither figure), wired into
+  `SchedulerService::runAll()`.
+- Tenant Admin API Access settings page (`/tenants/{id}/api-access`):
+  issue/revoke credentials (secret shown once, standard OAuth2
+  practice), set the webhook URL. New `test:tenantapi` (25/25:
+  tier-gating helpers, the full OAuth2 flow including a genuinely
+  rejected wrong secret and a genuinely tampered/rejected token,
+  immediate-effect revocation, webhook delivery against a real
+  unreachable address with real connection-failure logging, and the
+  bounded-retry give-up path).
+
+**Real-HTTP verification, not just the CLI suite**: issued real
+credentials via the actual Tenant Admin settings page for TSX Launch/
+Growth/Enterprise tenants (CoCo Starter correctly refused by the UI
+itself); exchanged real OAuth2 tokens; confirmed Launch (read-only)
+gets 403 `insufficient_tier` pushing a listing while Growth succeeds;
+confirmed BR-07's category closed-list rejects an invalid category;
+confirmed Growth gets 403 pushing a Sale System (Enterprise-only)
+while Enterprise succeeds, including a real Seller-Pays Fee Payer
+Election on the pushed sale event; confirmed cross-tenant `GET` 404s
+while same-tenant `GET` succeeds (BR-63); approved a pushed listing
+and its pushed Sale System through the real portal endpoints and
+confirmed `listing.approved`/`sale_event.created` webhook deliveries
+were genuinely logged (against a real unreachable address, so a real
+connection failure, not a mock); revoked a credential through the
+portal and confirmed its still-unexpired token 401s immediately.
+
+Full CLI regression suite re-run clean (30/32 — the same two
+pre-existing, unrelated `dompdf`/`ebidhub_ci4` environment gaps noted
+in D-88, not new).
+
+### D-90: `ADWITIX_Master.docx` Restructured — New Section 1 (Terminology), Full Renumbering
+
+Raised directly by the project owner: BR-67 (Branded Terminology Layer)
+had never actually been implemented anywhere in the live application —
+checked directly (`grep` across `app/Views/`), only the four view
+files written in D-88/D-89 use any branded term at all, and none of
+them do so systematically. Confirmed this is a genuine miss, not a
+documentation slip: five full audit passes (`docs/BR_PR_AUDIT.md`)
+never once tracked BR-67 as a gap, because its own text ("does not
+rename any entity, field, or role in the data model") reads as
+satisfied by omission if only the data-model half of its requirement
+is checked — the other half ("Front-end copy... render the branded
+term") was never verified. That real application-side build is not
+part of this entry — it's still outstanding, tracked separately.
+
+This entry is the immediate, documentation-only fix the project owner
+asked for first: a real, standalone Terminology section, prominent
+like Technology Stack, positioned so a reader meets the vocabulary
+before the Business Rules — not a code change.
+
+**What changed, in `ADWITIX_Master.docx`:**
+
+- **A new Section 1 (Terminology)**, inserted before the Business
+  Rules. **Part A** is BR-67's technical-to-branded mapping table
+  (Tenant→TSX, Tenant Admin→TSX Master, Seller→Market Maker, Buyer→
+  Trader, Super Admin→Custodian, Listing→Lot, Sale Event→Trading
+  Session), moved here verbatim from inside BR-67 — not duplicated,
+  BR-67 (Section 2) now points to it instead of carrying its own copy,
+  since it's still a real citable rule (it governs *when* each
+  vocabulary applies, not just *what* the words are). **Part B** is a
+  36-term plain-language glossary: the project owner pointed to
+  `eBid_Hub_Terminology.jsx` — a real, pre-existing 30-term glossary
+  (EMD, H1/H2/H3, Cascading Default, Star Rating, Crawl-Back, Standing
+  Review, etc.) provided earlier in this project and already live as
+  the front-end glossary page — transcribed faithfully into the
+  document. Four new entries were added, flagged explicitly as an
+  addition rather than blended silently into the transcription:
+  **Success Fee**, **Fee Payer Election**, **Subscription Tier**, and
+  **Tenant API Access** — real mechanics introduced by D-87/88/89,
+  after that glossary was originally written, with no entry anywhere
+  a reader could check.
+- **Full renumbering, not a "Section 0" workaround.** The project
+  owner explicitly asked for Terminology to be Section 1 itself, not
+  appended as a zero-indexed section to avoid touching the existing
+  numbers. Old Sections 1–5 (Business Rules, Process Workflows,
+  Technology Stack, Phased Roadmap, Business Model) are now 2–6, and
+  every one of their internal subsection numbers shifted with them
+  (old 3.1–3.13 → 4.1–4.13, old 4.1–4.3 → 5.1–5.3, old 5.1–5.11 →
+  6.1–6.11). Every internal cross-reference to a section number — "Section
+  5.4," "Section 5.2," "Sections 1 through 4," etc. — was found and
+  updated to match; the Income Tax Act's own "Section 194-O" (an
+  external legal citation, not a cross-reference to this document) was
+  deliberately left untouched, confirmed by scoping the remap to
+  section numbers 1 through 5 only.
+
+**How it was verified, not just asserted:** every "Section N" and
+"N.M heading" pattern in the document was inventoried by direct
+search before any edit (23 inline cross-references, 10 section
+headers, 27 subsection headings), each edit was applied with an
+assert-exactly-one-occurrence guard, and the full renumbered text was
+re-extracted and read end-to-end afterward to confirm every reference
+now points at the right section with no gaps or duplicates. The docx
+skill's XSD schema validator passed clean (1131 → 1175 paragraphs, the
+expected delta for the new heading/table/glossary content — the
+mapping table's own paragraph count is unchanged, since it was moved,
+not duplicated).
+
+**Not done here, on purpose**: the actual live-application terminology
+rollout (BR-67 rendered in the real portal UI) that this whole
+discussion started from. That's the project owner's own next question
+— tracked as its own build, not silently folded into this
+documentation fix.
+
+### D-91: Root `README.md` Was Stale — Fixed, Plus BR-67 Rollout Gap Now Tracked
+
+The project owner quoted text describing `docs/source-documents/` as
+still centered on the retired `eBid_Hub_Unified_BR_PR.docx`
+(BR-01–61/PR-01–36) and asked whether the live codebase's source of
+truth had silently diverged from `ADWITIX_Master.docx`. Checked
+directly rather than assumed: `docs/source-documents/README.md` and
+`docs/BR_PR_AUDIT.md` were both already correct (D-87/D-89/D-90 kept
+them in sync as the work happened) — but the **root `README.md`**,
+which nobody had touched since well before this session's work, still
+carried the old doc name and BR/PR range verbatim. That's genuinely
+where the quoted text traces back to — not a different project, not a
+hallucination, an actual stale file in this repo.
+
+While fixing it, the rest of the root README's factual claims were
+checked against the real repository state rather than assumed correct
+by association, and several more were found stale:
+
+- **Migration count**: said 26, actually 62.
+- **Test suite count**: said "254+ assertions across fifteen test
+  suites," actually 32 permanent `test:*` commands — the Step 10
+  deployment-verification list only named 15 of them; the other 17
+  (KYC, AML, Standing Review, payout control, audit-log lockdown,
+  Sovereign Rule, server-time integrity, Success Fee, Tenant API
+  Access, etc.) were simply never added as the project grew.
+- **"What this is" feature summary**: hadn't been updated since an
+  early point in the project — missing KYC, AML, Standing Review,
+  payout control, server-time integrity, the Sovereign Rule module,
+  and the entire current commercial model (Success Fee schedule, Fee
+  Payer Election, subscription tiers, Tenant API Access) — genuinely
+  large chunks of what's actually built were invisible to a first-time
+  reader of this file.
+- **`main`/`dev` branch guidance was backwards**: the README claimed
+  `main` was behind `dev`; checked directly (`git log
+  origin/main..origin/dev`) — `dev` hasn't moved since PR #12 and is
+  now an ancestor of `main`, not ahead of it. Also flagged: none of
+  D-87 through D-90 (the ADWITIX doc replacement, the current
+  commercial model, Tenant API Access, the Terminology restructuring)
+  are in `main` or `dev` yet — all four sit on open, stacked PRs
+  (#31→#32→#33→#34).
+
+**Separately, a real gap surfaced by this same conversation and now
+formally tracked**: BR-67 (Branded Terminology Layer)'s live-UI
+rollout — confirmed missing in the exchange leading into D-90, but
+never actually added to `docs/BR_PR_AUDIT.md`'s own gap list at the
+time. Added now as the sole remaining item with no external blocker.
+
+Fixed: root `README.md` (doc reference, feature summary, branch
+guidance, migration count, full 32-command test list) and
+`docs/BR_PR_AUDIT.md` (BR-67 rollout gap added to the bottom line).
+`docs/source-documents/README.md` needed no changes — already correct.
+
+### D-92: BR-67 Branded Terminology Layer — Built Into the Live App
+
+D-91 tracked the gap; this closes it. BR-67's own text ("does not
+rename any entity, field, or role in the data model") is a
+presentation-only rule, so the build is a single new helper plus a
+mechanical rollout across every view that renders one of the mapping
+table's 7 technical terms as visible text — nothing in the database,
+routes, PHP identifiers, or session keys changes.
+
+**The helper**: `app/Helpers/terminology_helper.php` defines
+`tsx_term(string $technical, bool $short = false, bool $plural =
+false): string`, a single static map matching Section 1 Part A's
+7-row table exactly (Tenant→TradeSphereX/TSX, Tenant Admin→TSX
+Master/TSXM, Seller→Market Maker/MM, Buyer→Trader/TRD, Super
+Admin→Custodian/CUS, Listing→Lot/LOT, Sale Event→Trading Session, no
+short form). Autoloaded globally via `app/Config/Autoload.php`
+(`$helpers = ['terminology']`) so every view can call it with no
+per-controller wiring. An unmapped input (e.g. `tsx_term('Party')`,
+or the platform's own name `eBid Hub`) passes through unchanged rather
+than erroring — `eBid Hub` is deliberately out of scope here, since
+it isn't one of BR-67's 7 mapped terms; it's a separate branding
+question the project owner hasn't raised.
+
+**Scope decided**: the same grep that flagged BR-67 originally
+(`grep -rlE "\bTenant Admin\b|\bTenant\b|\bSeller\b|\bBuyer\b|\bSuper
+Admin\b|\bListing\b|\bSale Event\b" app/Views/`) found 37 files.
+`app/Views/layouts/main.php` — the one file on every page, and
+conspicuously absent from that list — was checked separately and
+confirmed to genuinely not use any of the 7 words as visible text (it
+shows "eBid Hub" as the default un-branded platform name, and "Sell"/
+"Marketplace"/"Browse" nav labels); no change was needed there.
+`app/Views/admin/*` (17 files) — the platform operator's own console —
+was included in the rollout, not treated as internal-only: BR-67 maps
+Super Admin to Custodian just like the other 6 roles, and
+`public/pricing.html` (D-86) already describes this role as
+"Custodian" throughout its public marketing copy, so leaving the
+operator's own console using the unbranded term would have been the
+inconsistent choice, not the safe one.
+
+**Rollout mechanics**: each of the 37 files was re-scanned
+case-insensitively (`grep -niE "seller|buyer|listing|\btenant\b|tenant
+admin|super admin|sale event"`) to also catch plurals and lowercase
+mid-sentence uses the original case-sensitive grep missed, then every
+occurrence that is genuinely rendered, user-visible text (headings,
+labels, button text, table headers, status strings, alt text) was
+replaced with a `tsx_term()` call, matching surrounding
+capitalization (`strtolower()`/`strtoupper()` wrapped where the
+original was lowercase or all-caps). Left untouched throughout: route
+paths, PHP variable/array-key names (`$item['listing_id']`,
+`tenant_id`, `seller_star_rating`), CSS/HTML attribute names, form
+field `name=`/`id=` attributes, session keys, JS identifiers, and any
+BR/PR-number comment — exactly the boundary BR-67's own text draws.
+Two deliberate exclusions worth naming: `custodian_mobile` in
+`listing/create.php` is a physical yard custodian's contact field, an
+unrelated pre-existing use of the word, not the Super Admin role, and
+was left alone; `SaaS Admin`, used in a handful of admin views as a
+different literal string for what is likely the same role, was also
+left alone — fixing that inconsistency would be a real but separate
+cleanup, not part of applying BR-67's own 7-row map.
+
+Given the size (37 files), the mechanical replacement pass was
+delegated to three parallel background agents working disjoint file
+sets, after the mapping, the helper signature, and every inclusion/
+exclusion boundary above had already been decided — each diff was
+then read and lint-checked (`php -l`) before being committed, not
+merged unread.
+
+**Verification**: all 33 `test:*` CLI suites re-run against a freshly
+migrated database — 32 passed; `test:invoices` failed on a duplicate
+tenant-subdomain insert that reproduces on the unmodified pre-BR-67
+code too (confirmed via `git log` — neither `TestInvoices.php` nor
+`TenantModel.php` has been touched by any BR-67 commit), so it's a
+pre-existing test-command flake, not a regression, and is left
+unfixed as out of scope for this build. A new `test:terminology` suite
+(22 assertions) unit-tests the map itself, including the "does not
+rename the data model" guarantee (`TenantModel`'s table name and
+`SUBSCRIPTION_TIERS` constant are asserted to still be the real,
+unbranded values). Real HTTP checks against a running `spark serve`
+instance confirmed branded terms actually render: `/` shows "View
+Lot," "Market Maker(s)," "Trader," "TSX Master," "Custodian"; `/browse`
+shows "Browse All Lots" and "Market Maker rating"; `/admin/login`
+shows "Custodian Login"; `eBid Hub` still renders correctly in the nav
+brand slot, confirming it was correctly left alone.
+
+`docs/BR_PR_AUDIT.md`'s bottom line updated to remove BR-67 — only
+BR-46 (AI Pre-Audit, needs a Gemini API key) and BR-52 (Chargeback
+Mitigation, needs real SabPaisa API credentials) remain, both blocked
+on external credentials the project owner hasn't provided, not on any
+further build work.
+
+### D-93: Independent counter-audit against a fresh PDF export — three real findings, all fixed
+
+The project owner supplied a freshly-exported PDF of `ADWITIX_Master.docx`
+and asked for a genuine two-directional counter-check: (1) is everything
+except the known external-dependency items (BR-46/BR-52) actually built,
+and (2) is everything we've decided actually written back into the
+document. Both directions were checked directly against code and text,
+not by trusting this document's own prior "closed" claims.
+
+**Method.** Extracted the PDF's full text (`pdftotext -layout`, 49
+pages) and confirmed it's byte-for-byte the same document already in
+the repo post-D-92 (the Status paragraph's "six contradictions... BR-08,
+BR-09, BR-31 through BR-34, BR-56, BR-67, BR-12, PR-06/PR-32" line
+matches the repo docx exactly) — no silent drift. Then ran `grep -rl
+"BR-XX\b" app/` for all 68 BRs (same methodology as D-85/D-77's prior
+passes) and cross-checked every zero/near-zero-hit result by hand.
+
+**Direction 1 — is it built?** All 68 BRs have real code coverage
+except BR-46/BR-52 (confirmed still genuinely zero implementation —
+only a comparison comment in `ServerTimeIntegrityService.php`) and
+BR-30/BR-37 (already-established satisfied-by-construction cases, not
+new). Two things fell out that were neither external-blocked nor
+previously tracked:
+
+- **BR-65 (API Versioning Policy) contradicted, not just unbuilt.** The
+  text is explicit: "The API is not exposed to Tenants with a visible
+  version number." D-89's actual build shipped `/api/v1/...` routes —
+  a visible version number, the literal opposite. `BR-65` is never
+  mentioned anywhere in this file before this entry, confirming D-89
+  built BR-62/63/64/66 but silently never addressed BR-65 at all.
+- **BR-68 (Visual Identity) built correctly on the one surface that
+  existed, but scoped too narrowly.** `public/pricing.html`'s palette
+  and typography already matched BR-68's token table exactly (D-86).
+  The live portal (`layouts/main.php`) used a completely unrelated,
+  older palette. Flagged as a real scope question rather than assumed
+  either way — same ambiguity BR-67 had before the project owner
+  clarified it was app-wide.
+
+**Direction 2 — is what we decided written back?** Checked every place
+in this file where the Super Admin (project owner) confirmed a value
+the document itself had left open — the only genuine instance across
+92 prior entries: **BR-53's TDS rate.** D-71 recorded the project
+owner confirming 10% directly, and the code has computed and stored it
+that way on every settlement since. But the document — including this
+freshly-exported PDF — still read "not fixed by this document," with
+no rate stated anywhere. D-77's later document replacement evidently
+never carried the confirmed figure forward. Everything else checked
+(custom-domain routing, KYC verification mechanism, Sovereign Rule
+thresholds, the Success Fee schedule, Tenant API Access) is either
+already stated in the document as-is or was a pure implementation
+choice the document never specified either way — no other unwritten
+decision found.
+
+**Resolution, per the project owner's explicit choices for each:**
+
+1. **BR-65 — fixed in code, not the document.** `app/Config/Routes.php`
+   renamed all five routes from `/api/v1/...` to `/api/...`
+   (`ApiAuthFilter.php`'s comment updated to match). Verified over real
+   HTTP: `/api/oauth/token` → 400 (route live, bad request body — not
+   404), `/api/v1/oauth/token` → 404 (old path genuinely gone),
+   `/api/listings/{id}` unauthenticated → 401 (route live, auth filter
+   correctly rejecting), `/api/v1/listings/{id}` → 404.
+2. **BR-53 — fixed in the document, not the code** (the code was
+   already right). Edited `ADWITIX_Master.docx`'s BR-53 Statement and
+   Rationale text via the docx skill (unzip → text-only run edit → zip
+   → `validate.py`, 1175→1175 paragraphs, no structural change) to
+   state the confirmed 10% rate and describe it as computed at
+   settlement completion, replacing the "not fixed by this document"
+   language.
+3. **BR-68 — rolled out app-wide**, the same treatment BR-67 got.
+   `layouts/main.php`'s `:root` CSS custom-property *values* were
+   remapped to BR-68's token table (Paper `#EEF0EA`, Ink `#1C1F26`,
+   Ink Soft `#5B5F56`, Line `#D8DACE`, the primary accent — formerly
+   "emerald," now Rust `#B85C2C`, matching `pricing.html`'s own choice
+   of Rust for its primary CTA — and Amber `#E3A93C`); derived shades
+   not in BR-68's own table (`--ink-3`, `--emerald-deep`, the two
+   "-soft" tints) were computed with the same mix-toward-black/white
+   ratios the codebase's existing tenant-branding `color-mix()` calls
+   already use, not eyeballed. Google Fonts import switched from Sora
+   to Archivo+Inter (IBM Plex Mono was already correct), plus a new
+   `h1,h2,h3{font-family:'Archivo'}` rule since none existed before.
+   Variable *names* were deliberately left unchanged (`--emerald` still
+   holds the primary accent, now Rust-colored) — 80+ views already
+   reference these by name, and repainting values through one
+   `:root` block is the same "keep identifiers stable, only change
+   what renders" approach BR-67 used for its own rollout, at a
+   fraction of the diff. Three files had hardcoded hex bypassing the
+   variables entirely (`landing.php`'s `.cta-band`/`.pc-cta`,
+   `kyc/form.php`'s status-badge color map) — fixed individually.
+   Verified over real HTTP: the new tokens render on `/` and `/browse`,
+   zero old-palette hex or `Sora` references remain anywhere in
+   `app/Views/`.
+
+**Regression.** All 33 `test:*` suites re-run — `tenantapi` (25
+assertions), `settlement` (23), and the new `terminology` suite (22)
+specifically, since those exercise the three changed areas most
+directly, plus the rest of the suite spot-checked in isolation. The
+same pre-existing DB-fixture-collision flake noted in D-92 (a test's
+own tenant-creation insert firing twice within one CLI invocation,
+confirmed via `git log` to predate every commit on this branch)
+reproduced again in bulk-sequential runs and disappeared entirely when
+each suite ran against its own freshly-migrated database — same root
+cause, same conclusion: pre-existing sandbox behavior, not a
+regression from this work.
+
+### D-94: AX Knowledge & Chronicle Framework — Section 7 added, Phase 1 (Trading Session Chronicle) built
+
+The project owner supplied a concept paper (AX Knowledge & Chronicle
+Framework, v1.0) and asked to discuss it, add it to the master
+document, and scope a Phase 1 slice for immediate build — all in one
+sitting, not spread across separate approvals.
+
+**Discussion first, as asked.** Before writing anything, the framework
+was mapped against what already exists: three of its Information
+Hierarchy levels already have a home under different names (Lot =
+Listing, Event = Sale Event/Trading Session, Transaction = Settlement);
+Evidence already exists as PR-09's media pipeline, just unclassified;
+Case and Asset (as a lifecycle entity, distinct from BR-47's lighter
+Related Auctions grouping) are genuinely new; the word "Dossier"
+already meant something specific and narrower in this codebase (the
+KYC verification packet, `KycReviewController`) before this framework
+introduced a broader meaning. Three decisions were needed before
+anything could be written or built, and were resolved via
+`AskUserQuestion`:
+
+1. **Phase placement** — the project owner didn't pick a side of the
+   binary offered; instead: build the essential seller-facing report
+   in Phase 1, defer the rest, and figure out exactly what's
+   "essential" together before writing the section. That's what
+   happened next.
+2. **Dossier naming** — fold the existing KYC verification packet in
+   as one Dossier type ("Compliance Dossier") rather than renaming
+   existing code or treating the words as an accidental collision.
+3. **Contributors** (BR-21 overlap) — explicitly left open, "needs
+   more design thought first." Not scoped into either phase; Section
+   7.5 states this plainly rather than picking a default.
+
+**Scoping Phase 1 together, concretely** — the project owner described
+the actual report wanted, not an abstract slice of the framework: "a
+report duly authenticated by the system after the completion of sale
+... what was listed, what happened chronologically, what's the
+result ... how many people participated and how they bid, how much
+improvement was done, what transaction occurred, how transparency was
+maintained yet secrecy observed." Mapped directly onto the framework's
+own Event Chronicle concept, scoped as a **Trading Session Chronicle**.
+Two follow-up calls, also via `AskUserQuestion`: the narrative is
+**template-based, not AI-authored** (AI needs a real Gemini credential,
+the same blocker BR-46 is already waiting on — no reason to create a
+second thing waiting on it); and the QR-linked digital verification
+page is **included in Phase 1**, not deferred, so the Chronicle is
+genuinely authenticated, not just generated.
+
+**Section 7 written into `ADWITIX_Master.docx`** (unzip → OOXML edit
+via the docx skill → zip → `validate.py`, 1175→1248 paragraphs, all
+validations passed) — Vision, Guiding Principles, Information
+Hierarchy, Chronicle Hierarchy, Contributors (flagged undecided),
+Information Classification, Dossiers, Access & Visibility, and AI's
+role, all as design reference (7.1–7.9); 7.10 states the Trading
+Session Chronicle as active Phase 1 scope; 7.11 is a table of
+everything deferred to Phase 2 and what each item needs first — the
+same treatment Section 5 already gives Procurement and Market
+Intelligence. Table of Contents updated to list Section 7.
+
+**Built**, on top of what already exists rather than a new parallel
+data layer:
+
+- **Migration** (`2026-01-01-000063`): `trading_session_chronicle` —
+  `report_data` is a JSON snapshot captured once at generation, not
+  re-derived on every render, so a certified Chronicle stays exactly
+  what it was when certified even if later activity touches the same
+  Sale Event (Section 7.10's "once certified, immutable" principle,
+  matching BR-13's existing treatment of Listings). `version`/
+  `superseded_by_chronicle_id` columns support future re-certification
+  without a schema change, though nothing in this build triggers one.
+- **`ChronicleService::generate()`** — compiles the report directly
+  from `listing`/`sale_event`/`bid`/`offer`/`settlement` and the BR-05
+  audit trail (reusing `SettlementController::show`'s existing
+  `LIKE`-based scoped-timeline query, not a new indexing scheme). Logs
+  to the audit trail first via `AuditLogService`, then folds that
+  entry's own `record_hash` into `report_data` before computing the
+  stored `content_hash` — so the Chronicle carries a live, independently
+  checkable pointer into the hash chain, and `content_hash` is a
+  direct, trivially re-verifiable hash of exactly what's in the row
+  (confirmed by `test:chronicle`, not just asserted).
+- **BR-16 masking, verified not assumed**: `compileParticipation()`
+  never puts a `bidder_party_id`/`buyer_party_id` into `report_data` —
+  counts and amounts only, the same convention `listing/show.php`'s
+  offer list already uses. `test:chronicle` asserts all three real
+  party IDs from the fixture are absent from the full serialized
+  report, not just that the code "looks like" it omits them.
+  Historical versions of a Chronicle would face the same rule.
+- **Wired into `SettlementService::checkCompletion()`** — generated
+  for every completed settlement regardless of format or fee payer
+  (unlike the BR-56 invoice a few lines above it, nothing in Section
+  7.10 carves Tender out).
+- **`ChronicleController`** — two deliberately different access paths
+  per Section 7.8: `download()` is session-authenticated (Seller via
+  `ChronicleService::findIfAuthorized()`, or that Tenant's Admin via
+  `AuthorizationService::isTenantAdminForSettlement()`, already used
+  elsewhere for the exact same purpose); `verify()`/`verifyPdf()` are
+  token-only with no session filter at all, by design — reachable by
+  anyone holding the QR's exact 48-hex-char `random_bytes(24)` token,
+  since a QR scanned by an outside party (an auditor, a regulator)
+  can't carry a login session with it. `/chronicles/{id}/download`,
+  `/chronicle/verify/{token}`, `/chronicle/verify/{token}/pdf` added to
+  `Routes.php`.
+- **QR generation**: `endroid/qr-code` added via Composer (no prior QR
+  dependency existed). `dompdf` embeds the PNG as a data URI directly
+  in the certified PDF; the public verify page links the same PDF and
+  additionally surfaces the Lot's photographs/documents and the
+  audit-trail excerpt.
+- **`settlement/show.php`** gained a "Trading Session Chronicle"
+  section with both links, next to the existing Invoices/TDS sections
+  it was modeled on.
+
+**Verification**: `test:chronicle` (22 assertions) — automatic
+generation with no explicit call from the test, the CHR-YYYYMMDD-xxxx
+reference format, report content correctness (category, final price,
+Reserve Value, a real 20.00% improvement computed from the fixture's
+actual numbers, the confirmed 10% TDS rate), BR-16 masking as described
+above, the hash/audit-chain tie-in, and both retrieval paths
+(`getByToken()` for the QR route, `findIfAuthorized()` for the
+session-authenticated one, including a real denial for a party who
+wasn't the Seller). Real HTTP: the public verify page renders and
+correctly shows "Digital Verification: ... matches what was
+certified"; `/chronicle/verify/{token}/pdf` returns a genuine 2-page
+PDF (`pdfinfo` confirmed, not just a 200 status) with the timeline,
+participation, and QR block all present; an invalid token 404s. Full
+regression re-run on freshly-migrated databases
+(`settlement`/`dispute`/`successfee`/`tenantapi`/`terminology`/
+`invoices`/`br35`, the suites most likely affected by touching
+`SettlementService`) — all pass, including `test:settlement`'s
+stall-resolution path, which also funnels through `checkCompletion()`.
+
+Not built, per the decisions above: Case/Asset entities, the other
+Chronicle types, Contributors, the full Information Classification
+taxonomy, the other four Dossier types, the full six-tier Access
+model, and AI-authored narrative — all Section 7.11, all explicitly
+Phase 2.
+
+### D-95: Section 7 phases named — AX Chronicle / AX Intelligence
+
+The project owner shared an external proposal (a screenshot of a
+separate ChatGPT conversation) to name D-94's two phases: Phase 1 as
+"AX Chronicle" ("Capture. Certify. Preserve."), Phase 2 as "AX
+Intelligence" ("Understand. Learn. Recommend."), with a comparison
+table (Records/Learns, Reports/Intelligence, Timeline/Knowledge,
+Evidence/Insights, PDF/AI Narrative, Downloads/Dossiers, Statistics/
+Recommendations, Simple permissions/Enterprise governance) that maps
+cleanly onto what Section 7.10/7.11 already are — this isn't new
+scope, just names for the existing split. Confirmed: rename now, and
+flag the proposal's Enterprise-tier commercial gating idea (every
+customer gets AX Chronicle from day one; AX Intelligence sold as the
+paid differentiator for higher-tier plans) as open for later, not a
+commercial term of this document yet.
+
+**Applied to `ADWITIX_Master.docx`** (unzip → text-only run edits →
+zip → `validate.py`, 1248→1250 paragraphs, all validations passed):
+the Status line, 7.3, 7.6, and 7.8's prose references, and the 7.4
+Chronicle Hierarchy bullets now name both phases; 7.10 and 7.11's
+headings gained "AX Chronicle (Phase 1)" / "AX Intelligence (Phase 2)"
+and their taglines as new italic subtitle paragraphs. 7.11's intro
+paragraph now states the Enterprise-tier question explicitly, framed
+as raised-and-open, not decided.
+
+**Also fixed while in the same section**: five internal cross-references
+that pointed at "(7.9)" (AI Within the Framework) when they meant to
+point at the Trading Session Chronicle, which is actually 7.10 — a
+pre-existing numbering slip from D-94's own build, caught only because
+this edit required re-reading every cross-reference in the section
+carefully rather than assuming they were already correct.

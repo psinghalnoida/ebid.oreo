@@ -23,7 +23,6 @@ $routes->get('/listings/(:segment)', 'ListingController::show/$1');
 $routes->post('/listings/(:segment)/submit-for-approval', 'ListingController::submitForApproval/$1');
 $routes->post('/listings/(:segment)/approve', 'ListingController::approve/$1', ['filter' => 'tenantAdmin:listing']);
 $routes->post('/listings/(:segment)/reject', 'ListingController::reject/$1', ['filter' => 'tenantAdmin:listing']);
-$routes->post('/listings/(:segment)/fee-override', 'ListingController::updateFeeOverride/$1', ['filter' => 'tenantAdmin:listing']);
 $routes->post('/listings/(:segment)/sale-events', 'SaleEventController::createSubmit/$1');
 
 $routes->post('/sale-events/(:segment)/approve', 'SaleEventController::approve/$1', ['filter' => 'tenantAdmin:saleEvent']);
@@ -152,6 +151,11 @@ $routes->post('/admin/payout-reviews/(:segment)/decide', 'PayoutReviewController
 $routes->get('/admin/rating-reviews', 'RatingReviewController::index');
 $routes->post('/admin/rating-reviews/(:segment)/approve', 'RatingReviewController::approve/$1');
 
+// Tenant monthly billing for Seller-Pays Success Fees (BR-32/33, D-88)
+$routes->get('/tenants/(:segment)/billing', 'TenantBillingController::forTenant/$1', ['filter' => 'tenantAdmin:tenant']);
+$routes->get('/admin/tenant-invoices', 'TenantBillingController::index', ['filter' => 'superAdmin']);
+$routes->post('/admin/tenant-invoices/(:segment)/mark-paid', 'TenantBillingController::markPaid/$1', ['filter' => 'superAdmin']);
+
 // Seller Management for Tenant Admin (BR-61, built on the real Standing Review system)
 $routes->get('/tenants/(:segment)/sellers', 'SellerManagementController::list/$1', ['filter' => 'tenantAdmin:tenant']);
 $routes->get('/tenants/(:segment)/sellers/(:segment)', 'SellerManagementController::detail/$1/$2', ['filter' => 'tenantAdmin:tenant']);
@@ -177,6 +181,14 @@ $routes->get('/account/earnings', 'AccountController::earnings');
 // Phase 3D remainder: BR-56 invoice history + PDF (D-72)
 $routes->get('/account/invoices', 'InvoiceController::index');
 $routes->get('/account/invoices/(:segment)/pdf', 'InvoiceController::pdf/$1');
+
+// Section 7.10 (ADWITIX_Master.docx): Trading Session Chronicle.
+// verify()/verifyPdf() are deliberately token-only, no session filter --
+// that's the whole point of a QR code reachable by anyone with the exact
+// unguessable token, per Section 7.8's stated exception.
+$routes->get('/chronicles/(:segment)/download', 'ChronicleController::download/$1');
+$routes->get('/chronicle/verify/(:segment)', 'ChronicleController::verify/$1');
+$routes->get('/chronicle/verify/(:segment)/pdf', 'ChronicleController::verifyPdf/$1');
 
 // Phase 3A: real, dedicated, paginated/filterable transaction pages
 $routes->get('/my-bids', 'MyActivityController::myBids');
@@ -237,3 +249,21 @@ $routes->post('/admin/kyc/(:segment)/verify-flag', 'KycReviewController::verifyF
 $routes->post('/admin/kyc/(:segment)/decide', 'KycReviewController::decide/$1', ['filter' => 'superAdmin']);
 $routes->post('/admin/kyc/(:segment)/clear-edd', 'KycReviewController::clearEdd/$1', ['filter' => 'superAdmin']);
 $routes->get('/admin/kyc-documents/(:segment)/download', 'KycReviewController::downloadDocument/$1', ['filter' => 'superAdmin']);
+
+// Tenant API Access (BR-62-66/PR-37) — Tenant Admin portal-side credential
+// and webhook management.
+$routes->get('/tenants/(:segment)/api-access', 'TenantApiSettingsController::index/$1', ['filter' => 'tenantAdmin:tenant']);
+$routes->post('/tenants/(:segment)/api-access/credentials', 'TenantApiSettingsController::issueCredential/$1', ['filter' => 'tenantAdmin:tenant']);
+$routes->post('/tenants/(:segment)/api-access/credentials/(:segment)/revoke', 'TenantApiSettingsController::revokeCredential/$1/$2', ['filter' => 'tenantAdmin:tenant']);
+$routes->post('/tenants/(:segment)/api-access/webhook-url', 'TenantApiSettingsController::updateWebhookUrl/$1', ['filter' => 'tenantAdmin:tenant']);
+
+// Tenant API Access (BR-62-66/PR-37) — the actual API surface, OAuth2
+// client-credentials-authenticated (apiAuth filter), not session-based.
+// BR-65: no visible version number in the URL — additive changes ship
+// without notice, breaking changes run old/new shapes in parallel
+// instead of bumping a path segment.
+$routes->post('/api/oauth/token', 'TenantApiController::issueToken');
+$routes->post('/api/listings', 'TenantApiController::pushListing', ['filter' => 'apiAuth']);
+$routes->get('/api/listings/(:segment)', 'TenantApiController::getListing/$1', ['filter' => 'apiAuth']);
+$routes->post('/api/listings/(:segment)/sale-events', 'TenantApiController::pushSaleEvent/$1', ['filter' => 'apiAuth']);
+$routes->get('/api/sale-events/(:segment)', 'TenantApiController::getSaleEvent/$1', ['filter' => 'apiAuth']);

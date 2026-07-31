@@ -141,28 +141,42 @@ class SettlementService
         if ($allDone && $settlement['status'] !== 'completed') {
             $saleEvent = $this->saleEventModel->find($settlement['sale_event_id']);
             $tenant = $this->tenantModel->find($saleEvent['tenant_id']);
-            $listing = $this->listingModel->find($saleEvent['listing_id']);
             $hold = $this->emdHoldModel->findBySaleEventAndParty($settlement['sale_event_id'], $settlement['buyer_party_id']);
 
-            // BR-32: a per-listing override, set by the Tenant Admin, takes
-            // precedence over the tenant's blanket default fee.
-            $buyerFeePercent = $listing['buyer_fee_percent_override'] !== null
-                ? (float) $listing['buyer_fee_percent_override']
-                : (float) $tenant['buyer_fee_percent'];
-
+            // BR-31/32/33 (D-87/D-88): the Success Fee is a fixed,
+            // platform-wide schedule — the Tenant Admin no longer sets or
+            // overrides any fee rate. What DOES vary per Trading Session
+            // is the Fee Payer Election (BR-32): Buyer-Pays deducts the
+            // fee from the buyer's held EMD as before; Seller-Pays
+            // releases the buyer's EMD in full and instead bills the
+            // Tenant monthly (TenantBillingService), since the platform
+            // never touches the seller's own 100% sale-value proceeds
+            // (BR-33) to deduct from directly.
             $feeWasSettled = false;
+            $feeAmount = 0.0;
             if ($hold && $hold['status'] === 'held') {
-                $fees = EmdService::calculateSettlementFee(
-                    (float) $settlement['final_price'], $buyerFeePercent, (float) $hold['amount']
-                );
-                // BR-50: a high-value refund to a recently-changed bank
-                // account is deferred to Tenant/SaaS Admin review instead
-                // of settling immediately — $feeWasSettled correctly
-                // reflects that, so the invoice below isn't generated
-                // for a fee that hasn't actually been deducted yet.
-                $feeWasSettled = (new PayoutControlService())->guardedSettle(
-                    $hold['id'], $fees['tenantAmount'], $fees['saasAmount'], $fees['buyerRefund']
-                );
+                if ($saleEvent['fee_payer'] === 'seller_pays') {
+                    $feeAmount = EmdService::calculateSuccessFee((float) $settlement['final_price']);
+                    // BR-50: the same high-value review gate that guards
+                    // a plain EMD release also guards this one.
+                    $feeWasSettled = (new PayoutControlService())->guardedRelease($hold['id']);
+                    if ($feeWasSettled) {
+                        (new TenantBillingService())->recordUnbilledFee(
+                            $tenant['id'], $settlementId, $settlement['sale_event_id'], $feeAmount
+                        );
+                    }
+                } else {
+                    $fees = EmdService::calculateSettlementFee((float) $settlement['final_price'], (float) $hold['amount']);
+                    $feeAmount = $fees['saasAmount'];
+                    // BR-50: a high-value refund to a recently-changed bank
+                    // account is deferred to Tenant/SaaS Admin review instead
+                    // of settling immediately — $feeWasSettled correctly
+                    // reflects that, so the invoice below isn't generated
+                    // for a fee that hasn't actually been deducted yet.
+                    $feeWasSettled = (new PayoutControlService())->guardedSettle(
+                        $hold['id'], 0.0, $fees['saasAmount'], $fees['buyerRefund']
+                    );
+                }
             }
 
             // BR-53: TDS under Section 194-O, on the GROSS sale amount —
@@ -181,6 +195,14 @@ class SettlementService
             (new AuditLogService())->log('settlement.tds_deducted', $settlement['seller_party_id'], [
                 'settlementId' => $settlementId, 'grossAmount' => (float) $settlement['final_price'],
                 'tdsRatePercent' => self::TDS_RATE_PERCENT, 'tdsAmount' => $tdsAmount,
+            ]);
+
+            // PR-37: "Sale closure, settlement completion, and
+            // dispute-filed events each fire their own webhook, scoped to
+            // BR-63 visibility."
+            (new TenantWebhookService())->fire($saleEvent['tenant_id'], 'settlement.completed', [
+                'settlementId' => $settlementId, 'saleEventId' => $settlement['sale_event_id'],
+                'finalPrice' => (float) $settlement['final_price'],
             ]);
 
             // BR-38: a completed settlement is a genuine clean
@@ -205,12 +227,20 @@ class SettlementService
 
             // BR-56: automatic on Buy-Now, Express, Easy — explicitly
             // excluded on Tender, which follows the seller's own custom
-            // terms instead (BR-56's own text).
+            // terms instead. Issued to whichever party paid the Success
+            // Fee under this session's election (BR-56's own text).
             if ($feeWasSettled && $saleEvent['sale_format'] !== 'tender') {
                 (new InvoiceService())->generateForSettlement(
-                    $settlementId, $settlement, $tenant, $fees['tenantAmount'], $fees['saasAmount']
+                    $settlementId, $settlement, $feeAmount, $saleEvent['fee_payer']
                 );
             }
+
+            // Section 7.10 (ADWITIX_Master.docx): a Trading Session
+            // Chronicle is generated for every completed settlement,
+            // regardless of format or fee payer -- unlike the invoice
+            // above, nothing in Section 7.10 carves Tender out.
+            $completedSettlement = $this->settlementModel->find($settlementId);
+            (new ChronicleService())->generate($settlementId, $completedSettlement, $feeAmount, $tdsAmount);
         }
 
         return $this->settlementModel->find($settlementId);

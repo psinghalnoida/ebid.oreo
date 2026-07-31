@@ -41,7 +41,7 @@ class TestInvoices extends BaseCommand
         CLI::write('=== Setup: a fully-completed Buy-Now settlement ===', 'yellow');
         $tenant = $tenantModel->createTenant([
             'name' => 'Invoice Test Tenant', 'tenant_class' => 'general',
-            'subdomain' => 'invoicetest', 'buyer_fee_percent' => 5.00,
+            'subdomain' => 'invoicetest',
         ]);
         $seller = $partyModel->createParty('+919889901001');
         $buyer = $partyModel->createParty('+919889901002');
@@ -65,16 +65,19 @@ class TestInvoices extends BaseCommand
         $settlementService->submitRating($s['id'], $buyer['id'], 'buyer', 'good');
         $settlementService->submitRating($s['id'], $seller['id'], 'seller', 'good');
 
+        // BR-56/31/32 (D-87/D-88): one platform invoice per settlement now,
+        // issued to whichever party paid the Success Fee -- the default
+        // Buyer-Pays election here means the buyer.
         $found = $invoices->findForSettlement($s['id']);
-        $this->assert(count($found) === 2, 'Both invoices (tenant_to_buyer, saas_to_tenant) generated on completion');
+        $this->assert(count($found) === 1, 'Exactly one platform_to_buyer invoice generated on completion (Buyer-Pays default)');
 
-        CLI::write("\n=== findForParty: buyer and seller both see the tenant_to_buyer invoice ===", 'yellow');
+        CLI::write("\n=== findForParty: buyer and seller both see the platform_to_buyer invoice ===", 'yellow');
         $buyerInvoices = $invoices->findForParty($buyer['id'], 20, 0);
         $this->assert(count($buyerInvoices) === 1, 'Buyer sees exactly 1 invoice');
-        $this->assert($buyerInvoices[0]['invoice_type'] === 'tenant_to_buyer', 'Buyer only sees the tenant_to_buyer invoice, not saas_to_tenant');
+        $this->assert($buyerInvoices[0]['invoice_type'] === 'platform_to_buyer', 'Buyer sees the platform_to_buyer invoice');
 
         $sellerInvoices = $invoices->findForParty($seller['id'], 20, 0);
-        $this->assert(count($sellerInvoices) === 1, 'Seller also sees the same tenant_to_buyer invoice (their sale\'s commission)');
+        $this->assert(count($sellerInvoices) === 1, 'Seller also sees the same platform_to_buyer invoice (their sale\'s Success Fee)');
 
         $this->assert($invoices->countForParty($buyer['id']) === 1, 'countForParty matches findForParty count');
 

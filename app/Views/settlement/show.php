@@ -25,7 +25,7 @@
   </p>
 
   <div style="border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:12px;">
-    <p style="font-size:13px; font-weight:700; margin:0 0 4px;">1. Seller confirms receipt of payment</p>
+    <p style="font-size:13px; font-weight:700; margin:0 0 4px;">1. <?= tsx_term('Seller') ?> confirms receipt of payment</p>
     <?php if ($settlement['seller_noc_confirmed_at']): ?>
       <p style="font-size:12px; color:var(--emerald);">✓ Confirmed</p>
     <?php elseif ($callerId === $settlement['seller_party_id']): ?>
@@ -33,12 +33,12 @@
         <button type="submit" class="btn btn-emerald" style="font-size:12px; padding:8px 14px;">I received payment</button>
       </form>
     <?php else: ?>
-      <p style="font-size:12px; color:var(--ink-3);">Waiting on seller</p>
+      <p style="font-size:12px; color:var(--ink-3);">Waiting on <?= strtolower(tsx_term('Seller')) ?></p>
     <?php endif; ?>
   </div>
 
   <div style="border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:12px;">
-    <p style="font-size:13px; font-weight:700; margin:0 0 4px;">2. Buyer confirms receipt of goods</p>
+    <p style="font-size:13px; font-weight:700; margin:0 0 4px;">2. <?= tsx_term('Buyer') ?> confirms receipt of goods</p>
     <?php if ($settlement['buyer_noc_confirmed_at']): ?>
       <p style="font-size:12px; color:var(--emerald);">✓ Confirmed</p>
     <?php elseif ($callerId === $settlement['buyer_party_id']): ?>
@@ -46,12 +46,12 @@
         <button type="submit" class="btn btn-emerald" style="font-size:12px; padding:8px 14px;">I received the item</button>
       </form>
     <?php else: ?>
-      <p style="font-size:12px; color:var(--ink-3);">Waiting on buyer</p>
+      <p style="font-size:12px; color:var(--ink-3);">Waiting on <?= strtolower(tsx_term('Buyer')) ?></p>
     <?php endif; ?>
   </div>
 
   <div style="border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:12px;">
-    <p style="font-size:13px; font-weight:700; margin:0 0 4px;">3. Buyer rates the seller</p>
+    <p style="font-size:13px; font-weight:700; margin:0 0 4px;">3. <?= tsx_term('Buyer') ?> rates the <?= strtolower(tsx_term('Seller')) ?></p>
     <?php if ($settlement['buyer_rated_seller_at']): ?>
       <p style="font-size:12px; color:var(--emerald);">✓ Rated</p>
     <?php elseif ($callerId === $settlement['buyer_party_id']): ?>
@@ -64,12 +64,12 @@
         <button type="submit" class="btn btn-emerald" style="font-size:12px; padding:8px 14px;">Submit</button>
       </form>
     <?php else: ?>
-      <p style="font-size:12px; color:var(--ink-3);">Waiting on buyer</p>
+      <p style="font-size:12px; color:var(--ink-3);">Waiting on <?= strtolower(tsx_term('Buyer')) ?></p>
     <?php endif; ?>
   </div>
 
   <div style="border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:20px;">
-    <p style="font-size:13px; font-weight:700; margin:0 0 4px;">4. Seller rates the buyer</p>
+    <p style="font-size:13px; font-weight:700; margin:0 0 4px;">4. <?= tsx_term('Seller') ?> rates the <?= strtolower(tsx_term('Buyer')) ?></p>
     <?php if ($settlement['seller_rated_buyer_at']): ?>
       <p style="font-size:12px; color:var(--emerald);">✓ Rated</p>
     <?php elseif ($callerId === $settlement['seller_party_id']): ?>
@@ -82,7 +82,7 @@
         <button type="submit" class="btn btn-emerald" style="font-size:12px; padding:8px 14px;">Submit</button>
       </form>
     <?php else: ?>
-      <p style="font-size:12px; color:var(--ink-3);">Waiting on seller</p>
+      <p style="font-size:12px; color:var(--ink-3);">Waiting on <?= strtolower(tsx_term('Seller')) ?></p>
     <?php endif; ?>
   </div>
 
@@ -94,7 +94,7 @@
     <div style="background:var(--amber-soft); color:#9C5B1F; padding:12px; border-radius:10px; font-size:13px;">
       <p style="margin:0 0 10px;">⚠️ This settlement stalled (BR-39) — flagged after sitting incomplete too long.</p>
       <form method="post" action="/settlements/<?= esc($settlement['id']) ?>/force-resolve">
-        <p style="font-size:11px; margin:0 0 6px;">Tenant Admin action — applies forced-neutral (3.0★) ratings for whoever never rated, and force-confirms any missing NOC.</p>
+        <p style="font-size:11px; margin:0 0 6px;"><?= tsx_term('Tenant Admin') ?> action — applies forced-neutral (3.0★) ratings for whoever never rated, and force-confirms any missing NOC.</p>
         <button type="submit" class="btn btn-ghost" style="font-size:12px;">Force-resolve</button>
       </form>
     </div>
@@ -121,6 +121,15 @@
         ₹<?= number_format((float) $settlement['final_price'], 2) ?> gross ×
         <?= esc($settlement['tds_rate_percent']) ?>% = <strong>₹<?= number_format((float) $settlement['tds_amount'], 2) ?></strong> withheld
       </p>
+    </div>
+  <?php endif; ?>
+
+  <?php if (!empty($chronicle)): ?>
+    <h3 style="font-size:15px; margin-top:24px;">Trading Session Chronicle (Section 7.10)</h3>
+    <div style="border:1px solid var(--line); border-radius:12px; padding:16px; margin-top:10px;">
+      <p style="font-size:12px; color:var(--ink-3); margin:0 0 8px;"><?= esc($chronicle['reference_number']) ?> — certified <?= esc(substr($chronicle['generated_at'], 0, 16)) ?> UTC</p>
+      <a href="/chronicles/<?= esc($chronicle['id']) ?>/download" class="btn btn-ghost" style="font-size:12px;">Download Certified PDF</a>
+      <a href="/chronicle/verify/<?= esc($chronicle['verification_token']) ?>" class="btn btn-ghost" style="font-size:12px;">Public Verification Page</a>
     </div>
   <?php endif; ?>
 

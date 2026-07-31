@@ -9,7 +9,7 @@
   @media(max-width:900px){ .browse-grid{grid-template-columns:repeat(2,1fr);} }
 </style>
 <main style="max-width:1240px; margin:0 auto; padding:40px 24px;">
-  <h1 style="font-size:26px;">Browse All Listings</h1>
+  <h1 style="font-size:26px;">Browse All <?= tsx_term('Listing', false, true) ?></h1>
 
   <form method="get" action="/listings" style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
     <input type="text" name="q" value="<?= esc($q ?? '') ?>" placeholder="Search category..."
@@ -21,7 +21,7 @@
     <input type="number" name="price_max" value="<?= esc($priceMax ?? '') ?>" placeholder="Max ₹"
       style="padding:9px 12px; border:1px solid var(--line); border-radius:8px; font-size:12px; width:100px;">
     <select name="min_rating" style="padding:9px; border:1px solid var(--line); border-radius:8px; font-size:12px;">
-      <option value="">Any seller rating</option>
+      <option value="">Any <?= strtolower(tsx_term('Seller')) ?> rating</option>
       <?php foreach ([3, 4, 5] as $r): ?>
         <option value="<?= $r ?>" <?= (string) ($minRating ?? '') === (string) $r ? 'selected' : '' ?>><?= $r ?>★+</option>
       <?php endforeach; ?>
@@ -43,7 +43,7 @@
       <option value="ending_soon" <?= $sort === 'ending_soon' ? 'selected' : '' ?>>Ending soon</option>
       <option value="price_low" <?= $sort === 'price_low' ? 'selected' : '' ?>>Price: low to high</option>
       <option value="price_high" <?= $sort === 'price_high' ? 'selected' : '' ?>>Price: high to low</option>
-      <option value="rating" <?= $sort === 'rating' ? 'selected' : '' ?>>Seller rating</option>
+      <option value="rating" <?= $sort === 'rating' ? 'selected' : '' ?>><?= tsx_term('Seller') ?> rating</option>
     </select>
     <input type="hidden" name="category" value="<?= esc($selectedCategory ?? '') ?>">
     <input type="hidden" name="format" value="<?= esc($selectedFormat ?? '') ?>">
@@ -72,11 +72,11 @@
     <?php endforeach; ?>
   </div>
 
-  <p style="font-size:12px; color:var(--ink-3); margin-top:12px;">Showing <?= count($listings) ?> of <?= (int) $total ?> active listings</p>
+  <p style="font-size:12px; color:var(--ink-3); margin-top:12px;">Showing <?= count($listings) ?> of <?= (int) $total ?> active <?= strtolower(tsx_term('Listing', false, true)) ?></p>
 
   <div class="browse-grid">
     <?php if (empty($listings)): ?>
-      <p style="grid-column:1/-1; color:var(--ink-3); font-size:14px; padding:40px; text-align:center;">No listings match this filter.</p>
+      <p style="grid-column:1/-1; color:var(--ink-3); font-size:14px; padding:40px; text-align:center;">No <?= strtolower(tsx_term('Listing', false, true)) ?> match this filter.</p>
     <?php endif; ?>
     <?php foreach ($listings as $item): ?>
       <a href="/listings/<?= esc($item['listing_id']) ?>" style="text-decoration:none; color:inherit;">
@@ -87,7 +87,7 @@
             <p style="font-size:10px; color:var(--ink-3); text-transform:uppercase; margin:0 0 4px;"><?= esc(strtoupper($item['sale_format'])) ?> · <?= esc($item['physical_condition']) ?></p>
             <p style="font-size:14px; font-weight:700; margin:0 0 6px;"><?= esc($item['category']) ?></p>
             <p style="font-size:15px; font-weight:800; color:var(--emerald); margin:0 0 4px;">₹<?= number_format((float) $item['display_price'], 0) ?></p>
-            <p style="font-size:11px; color:var(--ink-3); margin:0;">Seller <?= number_format((float) $item['seller_star_rating'], 1) ?>★</p>
+            <p style="font-size:11px; color:var(--ink-3); margin:0;"><?= tsx_term('Seller') ?> <?= number_format((float) $item['seller_star_rating'], 1) ?>★</p>
           </div>
         </div>
       </a>

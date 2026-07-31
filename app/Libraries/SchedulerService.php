@@ -226,6 +226,20 @@ class SchedulerService
         return ($check['ntp_reachable'] && !$check['within_tolerance']) ? [$check['id']] : [];
     }
 
+    // BR-32/33 (D-88): consolidates every Tenant's unbilled Seller-Pays
+    // Success Fee entries into one monthly invoice. generateMonthlyInvoices()
+    // is itself idempotent (a tenant already invoiced for the period has no
+    // unbilled entries left), but gated to the 1st of the month here so a
+    // frequent cron sweep doesn't needlessly re-scan on every tick.
+    public function processTenantMonthlyBilling(): array
+    {
+        if ((int) date('j') !== 1) {
+            return [];
+        }
+        $invoices = (new TenantBillingService())->generateMonthlyInvoices();
+        return array_column($invoices, 'id');
+    }
+
     public function runAll(): array
     {
         $result = [
@@ -241,6 +255,10 @@ class SchedulerService
             'accountsArchived' => $this->processAccountDeletions(),
             'mediaJobsProcessed' => $this->processMediaQueue(),
             'serverTimeDriftAlerts' => $this->processServerTimeCheck(),
+            'tenantMonthlyInvoicesGenerated' => $this->processTenantMonthlyBilling(),
+            // PR-37: retries any webhook delivery still pending, whose
+            // next_attempt_at has come due.
+            'tenantWebhooksRetried' => (new TenantWebhookService())->retryDue(),
         ];
 
         // BR-05: every scheduler run is a genuine "configuration/state

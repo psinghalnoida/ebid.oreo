@@ -6,7 +6,7 @@
     <p style="color:#B5482F; font-size:13px; background:#FBE8E4; padding:10px; border-radius:8px;"><?= esc($flashError) ?></p>
   <?php endif; ?>
 
-  <h1 style="font-size:22px;">Tenant Media Waivers (BR-60)</h1>
+  <h1 style="font-size:22px;"><?= tsx_term('Tenant') ?> Media Waivers (BR-60)</h1>
 
   <h3 style="font-size:15px; margin-top:24px;">Pending Requests</h3>
   <?php foreach ($pending as $w): ?>

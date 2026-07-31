@@ -75,12 +75,19 @@ class DisputeService
 
         $evidenceDeadline = (new \DateTimeImmutable())->modify('+' . self::FILING_WINDOW_DAYS . ' days');
 
-        return $this->disputeModel->createDispute([
+        $dispute = $this->disputeModel->createDispute([
             'sale_event_id' => $saleEventId, 'filed_by_party_id' => $filedByPartyId,
             'respondent_party_id' => $respondentId, 'category' => $category, 'description' => $description,
             'status' => 'evidence_window', 'evidence_deadline_at' => $evidenceDeadline->format('Y-m-d H:i:s'),
             'ruling_authority_type' => $this->ruleForCategory($category),
         ]);
+
+        // PR-37: dispute-filed events fire their own webhook.
+        (new \App\Libraries\TenantWebhookService())->fire($saleEvent['tenant_id'], 'dispute.filed', [
+            'disputeId' => $dispute['id'], 'saleEventId' => $saleEventId, 'category' => $category,
+        ]);
+
+        return $dispute;
     }
 
     public function submitEvidence(string $disputeId, string $partyId, string $content): array
@@ -168,18 +175,15 @@ class DisputeService
             $hold = $this->emdHoldModel->findBySaleEventAndParty($dispute['sale_event_id'], $target);
             if ($hold && $hold['status'] === 'held') {
                 $saleEvent = $this->saleEventModel->find($dispute['sale_event_id']);
-                $tenant = (new \App\Models\TenantModel())->find($saleEvent['tenant_id']);
-                $listing = $this->listingModel->find($saleEvent['listing_id']);
-                // BR-32: the same per-listing fee override applied at
-                // settlement also applies here, so a forfeiture doesn't
-                // silently fall back to the tenant default.
-                $buyerFeePercent = $listing['buyer_fee_percent_override'] !== null
-                    ? (float) $listing['buyer_fee_percent_override']
-                    : (float) $tenant['buyer_fee_percent'];
-                $allocation = EmdService::calculateForfeitureAllocation(
-                    (float) $hold['amount'], $buyerFeePercent, 0.5, false
-                );
-                $this->emdHoldModel->markForfeited($hold['id'], $allocation['tenantAmount'], $allocation['saasAmount'], $allocation['sellerAmount']);
+                // BR-34 (D-87/D-88): the Success Fee "that would have
+                // applied" is looked up against the price this defaulting
+                // party would have paid — the sale event's winning
+                // current_price — not the smaller 10% EMD amount itself.
+                // The fee amount doesn't vary by Fee Payer Election
+                // (BR-32), so no lookup of that election is needed here.
+                $saleValue = $saleEvent['current_price'] !== null ? (float) $saleEvent['current_price'] : (float) $hold['amount'];
+                $allocation = EmdService::calculateForfeitureAllocation((float) $hold['amount'], $saleValue, false);
+                $this->emdHoldModel->markForfeited($hold['id'], 0.0, $allocation['platformAmount'], $allocation['sellerAmount']);
                 (new AuditLogService())->log('emd.forfeited_by_dispute_ruling', $rulerPartyId, [
                     'disputeId' => $dispute['id'], 'targetPartyId' => $target, 'amount' => (float) $hold['amount'],
                 ]);

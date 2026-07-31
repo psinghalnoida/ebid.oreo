@@ -1,12 +1,12 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 <main style="max-width:480px; padding:60px 24px;">
-  <h1 style="font-size:24px;">Set Up Super Admin 2FA</h1>
+  <h1 style="font-size:24px;">Set Up <?= tsx_term('Super Admin') ?> 2FA</h1>
   <?php $flashError = session()->getFlashdata('error'); ?>
   <?php if ($flashError): ?>
     <p style="color:#B5482F; font-size:13px; background:#FBE8E4; padding:10px; border-radius:8px;"><?= esc($flashError) ?></p>
   <?php endif; ?>
-  <p style="color:var(--ink-2); font-size:14px;">BR-04: Super Admin access requires a real second authentication factor (TOTP), separate from regular mPIN login.</p>
+  <p style="color:var(--ink-2); font-size:14px;">BR-04: <?= tsx_term('Super Admin') ?> access requires a real second authentication factor (TOTP), separate from regular mPIN login.</p>
 
   <div style="background:var(--line-soft); padding:16px; border-radius:10px; margin:16px 0;">
     <p style="font-size:12px; color:var(--ink-3); margin:0 0 8px;">Add this manually in Google Authenticator, Authy, or any TOTP app (no QR code — enter the key directly):</p>

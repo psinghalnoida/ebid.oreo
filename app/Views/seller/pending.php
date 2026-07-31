@@ -5,7 +5,7 @@
   <?php if ($flashError): ?>
     <p style="color:#B5482F; font-size:13px; background:#FBE8E4; padding:10px; border-radius:8px;"><?= esc($flashError) ?></p>
   <?php endif; ?>
-  <h1 style="font-size:22px;">Pending Seller Applications — <?= esc($tenant['name'] ?? '') ?></h1>
+  <h1 style="font-size:22px;">Pending <?= tsx_term('Seller') ?> Applications — <?= esc($tenant['name'] ?? '') ?></h1>
   <?php if (empty($applications)): ?>
     <p style="color:var(--ink-3); font-size:14px;">No pending applications.</p>
   <?php endif; ?>

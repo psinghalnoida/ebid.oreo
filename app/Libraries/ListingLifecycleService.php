@@ -93,6 +93,13 @@ class ListingLifecycleService
         }
         $result = $this->listingModel->transitionStatus($listingId, 'upcoming');
         (new \App\Libraries\AuditLogService())->log('listing.approved', $actorPartyId, ['listingId' => $listingId]);
+
+        // PR-37: "On approval, a listing.approved webhook fires; listing
+        // status is UPCOMING."
+        (new \App\Libraries\TenantWebhookService())->fire($listing['tenant_id'], 'listing.approved', [
+            'listingId' => $listingId, 'status' => 'upcoming',
+        ]);
+
         return $result;
     }
 
@@ -152,6 +159,12 @@ class ListingLifecycleService
         $this->listingModel->transitionStatus($result['newListing']['id'], 'upcoming');
         $result['newListing'] = $this->listingModel->findActiveById($result['newListing']['id']);
 
+        // PR-37: "a listing.archived webhook fires on the old ID, carrying
+        // a supersededBy reference to the new ID."
+        (new \App\Libraries\TenantWebhookService())->fire($listing['tenant_id'], 'listing.archived', [
+            'listingId' => $listingId, 'supersededBy' => $result['newListing']['id'],
+        ]);
+
         return $result;
     }
 
@@ -210,6 +223,11 @@ class ListingLifecycleService
             // window (seller's own discretion) — both go straight to active.
             $this->saleEventModel->transitionStatus($saleEventId, 'active');
         }
+
+        // PR-37: "on approval, a sale_event.created webhook fires."
+        (new \App\Libraries\TenantWebhookService())->fire($saleEvent['tenant_id'], 'sale_event.created', [
+            'saleEventId' => $saleEventId, 'listingId' => $saleEvent['listing_id'], 'saleFormat' => $saleEvent['sale_format'],
+        ]);
 
         return $this->saleEventModel->find($saleEventId);
     }

@@ -2,7 +2,7 @@
 <?= $this->section('content') ?>
 <main style="max-width:820px; padding:40px 24px;">
   <h1 style="font-size:22px;">Alerts</h1>
-  <p style="color:var(--ink-3); font-size:12px;">Everything platform-wide currently queued for a Super Admin decision, in one place.</p>
+  <p style="color:var(--ink-3); font-size:12px;">Everything platform-wide currently queued for a <?= tsx_term('Super Admin') ?> decision, in one place.</p>
 
   <h3 style="font-size:15px; margin-top:24px;">Open AML Flags (<?= count($amlFlags) ?>)</h3>
   <?php foreach ($amlFlags as $f): ?>
