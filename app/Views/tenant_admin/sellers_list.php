@@ -1,7 +1,7 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 <main style="max-width:820px; padding:40px 24px;">
-  <h1 style="font-size:22px;">Seller Management — <?= esc($tenant['name']) ?></h1>
+  <h1 style="font-size:22px;"><?= tsx_term('Seller') ?> Management — <?= esc($tenant['name']) ?></h1>
   <p style="font-size:12px; color:var(--ink-3);">Backed by the real Standing Review system (BR-61) — sorted by complaint count.</p>
 
   <table style="width:100%; border-collapse:collapse; margin-top:16px; font-size:13px;">
@@ -27,6 +27,6 @@
     </tr>
     <?php endforeach; ?>
   </table>
-  <?php if (empty($sellers)): ?><p style="font-size:12px; color:var(--ink-3); margin-top:12px;">No approved sellers on this tenant yet.</p><?php endif; ?>
+  <?php if (empty($sellers)): ?><p style="font-size:12px; color:var(--ink-3); margin-top:12px;">No approved <?= strtolower(tsx_term('Seller', false, true)) ?> on this <?= strtolower(tsx_term('Tenant')) ?> yet.</p><?php endif; ?>
 </main>
 <?= $this->endSection() ?>
