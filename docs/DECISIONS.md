@@ -6093,3 +6093,77 @@ Chronicle generated and both surfaces fetched over real HTTP —
 confirmed all four statements render in the actual PDF (`pdftotext`
 extraction) and on the live verify page, not just added to source and
 assumed to work.
+
+### D-97: Chronicle report restructured — brand identity, terminology, data-point format, real media links
+
+The project owner supplied the AdwitiX brand mark (shield icon and full
+logo lockup with tagline) and asked for five changes to the certified
+Chronicle: no internal BR/PR jargon, branded terminology throughout, no
+narrative "AI paragraphs," data points only, the QR made to genuinely
+reach the underlying media files, and the AdwitiX brand plus
+`www.AdwitiX.com` placed in the document.
+
+**Internal jargon removed from customer-facing surfaces** —
+`app/Views/chronicle/pdf.php`, `chronicle/verify.php`, and
+`ChronicleService::generate()`'s stored `report_data` (comments in
+those files still cite BR/Section numbers for developers; that's fine,
+it's not rendered). The one substantive change: `transparencyNote`, a
+full sentence citing "BR-16's double-blind privacy rule," is replaced
+with a plain `privacy.identityDisclosure` data field ("Masked
+(Double-Blind)") — no schema/migration involved, `report_data` is
+generated fresh per event, not altered in place. "Section 194-O" was
+dropped from the TDS row for the same "data points only" reason (the
+rate and amount are the data; the statutory citation was an
+explanatory aside). Confirmed clean via a fresh PDF's `pdftotext`
+extraction — zero `BR-`/`PR-`/`Section N` matches.
+
+**Terminology**: the awkward "Market Maker (Seller-Pays)" / "Trader
+(Buyer-Pays)" phrasing (half-branded, half-raw-technical) is now a
+plain `tsx_term('Seller')`/`tsx_term('Buyer')` call — just "Market
+Maker" / "Trader" against a "Fee Payer" label, no hybrid term
+invented. New `sale_format_label()` helper (`terminology_helper.php`,
+already globally autoloaded per BR-67) turns the raw `sale_format`
+enum into "Buy-Now"/"Easy Auction"/"Express Auction"/"Tender
+Auction" — not part of BR-67's own 7-row map, but the same
+presentation-only spirit.
+
+**Narrative converted to data points, per instruction**: the
+Executive Summary's computed sentence and the Participation section's
+lead-in sentence are now plain label:value tables (Trading Session
+Reference, Trading Format, Final Price, Improvement vs. Reserve
+Value, Participants, Bids, Offers, Identity Disclosure). The four
+legal statements from D-96 are untouched — they're the project
+owner's own verbatim text, not generated narrative.
+
+**QR now genuinely reaches media, not just names it**: the verify
+page's "Supporting Evidence" list was plain text with no link at all
+— `listing_media.file_path` already resolves to a real public static
+asset (`public/uploads/listings/{id}/{file}`, no auth filter on that
+path), it just was never wired into an `<a href>`. Fixed. Verified
+for real, not just read: inserted a real `listing_media` row for the
+test fixture's own Lot, re-fetched the verify page, confirmed the
+rendered `href` matches the expected path, and fetched that exact URL
+— HTTP 200, the real file.
+
+**Brand identity**: both supplied images copied into
+`public/images/brand/`. The full logo lockup renders in the PDF
+letterhead as a `data:image/jpeg` URI (dompdf renders from a detached
+HTML string — a plain `<img src="/...">` won't resolve there, same
+reasoning as the QR code) and on the verify page as a normal
+`<img src="/images/...">` since that's a live request. `www.AdwitiX.com`
+added to both surfaces' footers, alongside the verify URL on the PDF.
+
+Verified: `test:chronicle` re-run clean (22/22 — the `privacy` field
+rename didn't break any assertion), `terminology`/`settlement`/
+`invoices`/`tenantapi` re-run clean as a broader regression check
+against the newly-added global helper function. Real HTTP: fresh PDF
+and verify page fetched, rasterized to a real page image to visually
+confirm the logo actually renders (not just present in markup), and
+`pdftotext`-extracted to confirm the jargon sweep.
+
+Not done, left as a smaller possible follow-up rather than assumed
+in scope: the Chronological Timeline still shows raw internal event
+codes (`offer.accepted`, `settlement.tds_deducted`) — not BR/PR
+jargon, but not branded-terminology prose either. The project owner's
+instruction was specifically about BR/PR references; this wasn't
+asked for and wasn't done unprompted.
