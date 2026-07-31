@@ -2,12 +2,12 @@
 <?= $this->section('content') ?>
 <main style="max-width:520px; padding:60px 24px;">
   <h1 style="font-size:24px;">List an Asset</h1>
-  <p style="color:var(--ink-2); font-size:14px;">BR-11: universal required listing metadata.</p>
+  <p style="color:var(--ink-2); font-size:14px;">BR-11: universal required <?= strtolower(tsx_term('Listing')) ?> metadata.</p>
   <?php if (!empty($error)): ?>
     <p style="color:#B5482F; font-size:13px;"><?= esc($error) ?></p>
   <?php endif; ?>
   <form method="post" action="/listings" id="listingCreateForm">
-    <label style="font-size:12px; color:var(--ink-3);">Tenant</label>
+    <label style="font-size:12px; color:var(--ink-3);"><?= tsx_term('Tenant') ?></label>
     <select name="tenant_id" required style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
       <?php foreach ($tenants as $t): ?>
         <option value="<?= esc($t['id']) ?>"><?= esc($t['name']) ?></option>
@@ -48,11 +48,11 @@
 
     <label style="font-size:12px; color:var(--ink-3);">Media Tier (BR-59)</label>
     <select name="media_tier" style="display:block; width:100%; padding:12px; margin:6px 0 20px; border:1px solid var(--line); border-radius:10px;">
-      <option value="certified_by_seller">Certified by Seller — I'll upload my own photos</option>
+      <option value="certified_by_seller">Certified by <?= tsx_term('Seller') ?> — I'll upload my own photos</option>
       <option value="verified">Verified — eBid Hub's inspection team photographs it (inspection fee applies)</option>
     </select>
 
-    <p style="font-size:12px; color:var(--ink-3); margin:16px 0 4px;">Inspection Authority (BR-11/BR-21) — optional, by mobile number. Anyone bound here is blocked from bidding/offering on this listing.</p>
+    <p style="font-size:12px; color:var(--ink-3); margin:16px 0 4px;">Inspection Authority (BR-11/BR-21) — optional, by mobile number. Anyone bound here is blocked from bidding/offering on this <?= strtolower(tsx_term('Listing')) ?>.</p>
     <input type="text" name="inspector_mobile" placeholder="Yard Inspector mobile (optional)"
       style="display:block; width:100%; padding:10px; margin:4px 0; border:1px solid var(--line); border-radius:8px; font-size:13px;">
     <input type="text" name="surveyor_mobile" placeholder="Surveyor mobile (optional)"
@@ -60,11 +60,11 @@
     <input type="text" name="custodian_mobile" placeholder="Physical Custodian mobile (optional)"
       style="display:block; width:100%; padding:10px; margin:4px 0 20px; border:1px solid var(--line); border-radius:8px; font-size:13px;">
 
-    <p style="font-size:12px; color:var(--ink-3); margin:16px 0 4px;">Related Auctions (BR-47) — optional. Use the same label across multiple listings to group them (e.g., a shared-origin lot). Not available on Express.</p>
+    <p style="font-size:12px; color:var(--ink-3); margin:16px 0 4px;">Related Auctions (BR-47) — optional. Use the same label across multiple <?= strtolower(tsx_term('Listing', false, true)) ?> to group them (e.g., a shared-origin lot). Not available on Express.</p>
     <input type="text" name="related_group_label" placeholder="e.g. Flood-Affected Fleet — July 2026"
       style="display:block; width:100%; padding:10px; margin:4px 0 20px; border:1px solid var(--line); border-radius:8px; font-size:13px;">
 
-    <p style="font-size:12px; color:var(--ink-3); margin:16px 0 4px;">Shipping (BR-24) — always optional for the buyer, who can self-collect for free regardless.</p>
+    <p style="font-size:12px; color:var(--ink-3); margin:16px 0 4px;">Shipping (BR-24) — always optional for the <?= strtolower(tsx_term('Buyer')) ?>, who can self-collect for free regardless.</p>
     <label style="display:block; font-size:13px; padding:4px 0 10px;">
       <input type="checkbox" name="shipping_enabled" value="1" id="shipping-toggle" onchange="document.getElementById('shipping-options').style.display = this.checked ? 'block' : 'none';">
       I can also offer to ship this item
@@ -84,10 +84,10 @@
 
     <label style="display:block; font-size:13px; padding:4px 0 16px;">
       <input type="checkbox" name="media_is_representative_under_waiver" value="1">
-      Use representative imagery under an active BR-60 Tenant Media Waiver (only works if your tenant has one approved for this category)
+      Use representative imagery under an active BR-60 <?= tsx_term('Tenant') ?> Media Waiver (only works if your <?= strtolower(tsx_term('Tenant')) ?> has one approved for this category)
     </label>
 
-    <button type="submit" class="btn btn-emerald" style="width:100%;">Create Listing</button>
+    <button type="submit" class="btn btn-emerald" style="width:100%;">Create <?= tsx_term('Listing') ?></button>
   </form>
   <p style="font-size:11px; color:var(--ink-3); margin-top:10px;">
     PR-09: your progress on this form is auto-saved to your browser (localStorage) and restored if you reload or switch tabs.

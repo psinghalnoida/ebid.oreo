@@ -7,7 +7,7 @@
   <?php endif; ?>
 
   <h1 style="font-size:22px;">AML Monitoring (BR-54)</h1>
-  <p style="font-size:12px; color:var(--ink-3);">Visible to SaaS Admin only, per PR-31 — not shown to any Tenant Admin or the flagged User.</p>
+  <p style="font-size:12px; color:var(--ink-3);">Visible to SaaS Admin only, per PR-31 — not shown to any <?= tsx_term('Tenant Admin') ?> or the flagged User.</p>
 
   <h3 style="font-size:15px; margin-top:24px;">Open Flags</h3>
   <?php foreach ($open as $f): ?>
