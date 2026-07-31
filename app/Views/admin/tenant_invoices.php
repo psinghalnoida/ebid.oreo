@@ -6,8 +6,8 @@
     <p style="color:var(--emerald-deep); font-size:13px; background:var(--emerald-soft); padding:10px; border-radius:8px;"><?= esc($flashError) ?></p>
   <?php endif; ?>
 
-  <h1 style="font-size:22px;">Tenant Monthly Invoices (BR-32/33)</h1>
-  <p style="font-size:12px; color:var(--ink-3);">Consolidated monthly bill per non-CoCo-Starter Tenant, covering that period's Seller-Pays Success Fees. Marking paid is a manual SaaS Admin action — no automated dunning exists yet.</p>
+  <h1 style="font-size:22px;"><?= tsx_term('Tenant') ?> Monthly Invoices (BR-32/33)</h1>
+  <p style="font-size:12px; color:var(--ink-3);">Consolidated monthly bill per non-CoCo-Starter <?= tsx_term('Tenant') ?>, covering that period's <?= tsx_term('Seller') ?>-Pays Success Fees. Marking paid is a manual SaaS Admin action — no automated dunning exists yet.</p>
 
   <h3 style="font-size:15px; margin-top:24px;">Pending</h3>
   <?php foreach ($pending as $inv): ?>

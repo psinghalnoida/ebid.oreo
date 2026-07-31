@@ -8,13 +8,13 @@
 
   <h1 style="font-size:22px;">Standing Review Case (BR-61)</h1>
   <p style="color:var(--ink-3); font-size:13px; margin-top:8px;">
-    Seller: <?= esc($seller['mobile_number'] ?? 'Unknown') ?> — <?= esc($dispute['description']) ?>
+    <?= tsx_term('Seller') ?>: <?= esc($seller['mobile_number'] ?? 'Unknown') ?> — <?= esc($dispute['description']) ?>
   </p>
   <p style="font-size:12px; color:var(--ink-3);">Status: <?= esc($dispute['status']) ?></p>
 
   <?php if ($dispute['status'] === 'filed' || $dispute['status'] === 'evidence_window'): ?>
   <form method="post" action="/admin/standing-review/<?= esc($dispute['id']) ?>/rule" style="margin-top:20px;">
-    <label style="font-size:12px; color:var(--ink-3);">Ruling as Tenant Admin for</label>
+    <label style="font-size:12px; color:var(--ink-3);">Ruling as <?= tsx_term('Tenant Admin') ?> for</label>
     <select name="tenant_id" required style="display:block; width:100%; padding:12px; margin:6px 0 16px; border:1px solid var(--line); border-radius:10px;">
       <?php foreach ($tenants as $t): ?>
         <option value="<?= esc($t['id']) ?>"><?= esc($t['name']) ?></option>
@@ -25,7 +25,7 @@
     <select name="outcome" required style="display:block; width:100%; padding:12px; margin:6px 0 16px; border:1px solid var(--line); border-radius:10px;">
       <option value="no_action">No Action</option>
       <option value="escalation_consequence">Escalation-Ladder Consequence</option>
-      <option value="suspension">Suspension of Selling Privileges</option>
+      <option value="suspension">Suspension of <?= tsx_term('Seller') ?> Privileges</option>
     </select>
 
     <label style="font-size:12px; color:var(--ink-3);">Rating Consequence (★, only if escalation)</label>

@@ -11,7 +11,7 @@
   </p>
 
   <?php if (!empty($tenant['branding_logo_url'])): ?>
-    <img src="<?= esc($tenant['branding_logo_url']) ?>" alt="Tenant logo" style="max-height:48px; margin:12px 0;">
+    <img src="<?= esc($tenant['branding_logo_url']) ?>" alt="<?= tsx_term('Tenant') ?> logo" style="max-height:48px; margin:12px 0;">
   <?php endif; ?>
 
   <form method="post" action="/admin/tenants/<?= esc($tenant['id']) ?>/edit" enctype="multipart/form-data" style="margin-top:20px;">
@@ -36,6 +36,6 @@
     <button type="submit" class="btn btn-emerald" style="width:100%;">Save Changes</button>
   </form>
 
-  <p style="font-size:11px; color:var(--ink-3); margin-top:16px;">Tenant class and subdomain are not editable here — changing them affects existing listings and links, and needs a deliberate decision, not a quick form edit.</p>
+  <p style="font-size:11px; color:var(--ink-3); margin-top:16px;"><?= tsx_term('Tenant') ?> class and subdomain are not editable here — changing them affects existing <?= strtolower(tsx_term('Listing', false, true)) ?> and links, and needs a deliberate decision, not a quick form edit.</p>
 </main>
 <?= $this->endSection() ?>
