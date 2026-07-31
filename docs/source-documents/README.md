@@ -35,6 +35,8 @@ standalone Business Model documents." A real binary `.docx`. What's new:
 
 **Extended 2026-07-31 (same day)** — a new **Section 7 (AX Knowledge & Chronicle Framework)** was added, adapted from a concept paper the project owner supplied. Vision, Guiding Principles, the Information Hierarchy (Case → Asset → Lot → Event → Transaction → Evidence → Observation → Finding → Decision → Chronicle → Dossier → Knowledge Vault), the Chronicle Hierarchy, Contributors, Information Classification, Dossiers, Access & Visibility, and AI's role are all documented as design reference. Only 7.10 (the Trading Session Chronicle) is active Phase 1 scope; everything else is explicitly deferred to Phase 2 (7.11), the same treatment Section 5 already gives Procurement and Market Intelligence. The existing KYC verification packet is reclassified as one Dossier type ("Compliance Dossier") rather than a separate concept. Full detail in `docs/DECISIONS.md` D-94.
 
+**Amended 2026-07-31 (same day)** — Section 7's two phases are now named: Phase 1 is **AX Chronicle** ("Capture. Certify. Preserve."), Phase 2 is **AX Intelligence** ("Understand. Learn. Recommend."), per the project owner's own naming decision. The Enterprise-tier commercial-gating idea that came with the proposal (every customer gets AX Chronicle from day one; AX Intelligence sold as the paid differentiator for higher-tier plans) is explicitly flagged as open in 7.11, not yet a commercial term of this document. Full detail in `docs/DECISIONS.md` D-95.
+
 ## The rest of the documents
 
 - **`eBid_Hub_Vision_Document.docx`** — the platform's founding vision and positioning

@@ -6032,3 +6032,35 @@ Chronicle types, Contributors, the full Information Classification
 taxonomy, the other four Dossier types, the full six-tier Access
 model, and AI-authored narrative — all Section 7.11, all explicitly
 Phase 2.
+
+### D-95: Section 7 phases named — AX Chronicle / AX Intelligence
+
+The project owner shared an external proposal (a screenshot of a
+separate ChatGPT conversation) to name D-94's two phases: Phase 1 as
+"AX Chronicle" ("Capture. Certify. Preserve."), Phase 2 as "AX
+Intelligence" ("Understand. Learn. Recommend."), with a comparison
+table (Records/Learns, Reports/Intelligence, Timeline/Knowledge,
+Evidence/Insights, PDF/AI Narrative, Downloads/Dossiers, Statistics/
+Recommendations, Simple permissions/Enterprise governance) that maps
+cleanly onto what Section 7.10/7.11 already are — this isn't new
+scope, just names for the existing split. Confirmed: rename now, and
+flag the proposal's Enterprise-tier commercial gating idea (every
+customer gets AX Chronicle from day one; AX Intelligence sold as the
+paid differentiator for higher-tier plans) as open for later, not a
+commercial term of this document yet.
+
+**Applied to `ADWITIX_Master.docx`** (unzip → text-only run edits →
+zip → `validate.py`, 1248→1250 paragraphs, all validations passed):
+the Status line, 7.3, 7.6, and 7.8's prose references, and the 7.4
+Chronicle Hierarchy bullets now name both phases; 7.10 and 7.11's
+headings gained "AX Chronicle (Phase 1)" / "AX Intelligence (Phase 2)"
+and their taglines as new italic subtitle paragraphs. 7.11's intro
+paragraph now states the Enterprise-tier question explicitly, framed
+as raised-and-open, not decided.
+
+**Also fixed while in the same section**: five internal cross-references
+that pointed at "(7.9)" (AI Within the Framework) when they meant to
+point at the Trading Session Chronicle, which is actually 7.10 — a
+pre-existing numbering slip from D-94's own build, caught only because
+this edit required re-reading every cross-reference in the section
+carefully rather than assuming they were already correct.
