@@ -209,6 +209,7 @@ $routes->get('/faq', 'InfoController::faq');
 $routes->get('/dos-and-donts', 'InfoController::dosAndDonts');
 $routes->get('/security-trust', 'InfoController::securityTrust');
 $routes->get('/fees', 'InfoController::feeSchedule');
+$routes->get('/pricing', 'PricingController::index');
 $routes->get('/terminology', 'InfoController::terminology');
 
 // Sovereign Rule Revision (PR-04/BR-01/BR-04) — Rules & Specifications

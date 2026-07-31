@@ -5154,3 +5154,88 @@ zero new failures** — only the pre-existing `test:auditlog`/D-62 gap
 and `test:invoices`'s missing `Dompdf`. `test:sovereignrule` updated
 for the 7th wired rule (was 6) and still passes in full;
 `test:scheduler` (exercises `runAll()` directly) unaffected.
+
+### D-85: Fifth Full Re-Audit — One New Gap (BR-31), Six Confirmed Closed
+
+**Decision:** at the project owner's request, re-audited from scratch
+against the governing document — re-extracted directly from the current
+`.docx`, confirmed byte-for-byte identical to the copy D-77 recorded
+(`diff`, not assumed) — rather than trusting this session's own prior
+findings. Every one of 66 BRs and 37 PRs checked for real code coverage
+against the current, freshly-merged `main`.
+
+**Confirmed genuinely closed, not just trusted from PR descriptions**:
+BR-15, BR-07, BR-19/PR-16, BR-32, BR-41, PR-08, and Server Time
+Integrity (§3.10) — spot-checked each one's real implementation
+artifact directly in the merged codebase (e.g. `grep -rl "BR-15: the
+Super Admin holds" app/`, `ls app/Libraries/ComplianceLockoutService.php`).
+All present and correct. BR-62–66/PR-37 confirmed still genuinely zero
+code anywhere — still open, unchanged.
+
+**One new gap found, missed by four prior passes (D-43, D-64, D-73,
+D-77) and by this session's own BR-32 work**: BR-31 states the buyer's
+transaction fee is adjustable "within a fixed band: a floor of 0.5%...
+and a ceiling of 5%... which may never be exceeded." Neither
+`TenantController::createSubmit()`/`editSubmit()` (the tenant-wide
+default) nor `TenantModel` validates the posted `buyer_fee_percent`
+against this band — currently settable to any value at all, including
+0%, negative, or far above 5%. The BR-32 per-listing override built
+this session (`ListingController::updateFeeOverride()`) has the same
+gap: it validates 0–100 (a basic sanity bound against
+`EmdService::calculateSettlementFee()` throwing on a negative refund)
+but not BR-31's tighter 0.5–5 band. Sellers already pay a genuine,
+verified 0% — no fee-deduction code references a seller fee anywhere
+— so that half of BR-31 is satisfied by omission; only the band
+enforcement is missing.
+
+**Also spot-checked** (every item with a suspiciously low/zero `grep`
+hit count that wasn't an already-explained case): BR-20 (Super Admin
+credential isolation — real, substantive re-enrollment gate), BR-49/
+PR-27 (High-Value Disposal — a genuine `high_value_disposal_record`
+table insert, not just a threshold check), BR-45 (photo count 5–50 —
+real `MIN_PHOTOS`/`MAX_PHOTOS` consts enforced). All confirmed solid.
+
+See `docs/BR_PR_AUDIT.md`'s "Update — fifth full pass" section for the
+complete write-up and the current four-item bottom line: BR-31 (small,
+no blocker), BR-62–66/PR-37 (large, no blocker), BR-46/BR-52 (both
+still externally blocked).
+
+### D-86: Pricing Page (TradeSphereX) Recorded and Wired In
+
+**Decision:** the project owner provided a complete, ready-made
+standalone pricing page — tenant subscription tiers (CoCo Starter/TSX
+Launch/TSX Growth/TSX Enterprise), a live Success Fee calculator, and a
+full feature-comparison table — under the "TradeSphereX" brand (by
+ADWITIX). Its role terminology maps 1:1 onto this platform's own roles:
+Custodian = Super Admin (the same BR-15 non-participatory role),
+TSX Master = Tenant Admin, Market Maker = Seller, Trader = Buyer. Not a
+different product; a marketing/pricing skin for the same platform.
+
+**What's built:** served verbatim, not re-themed into `layouts/main` —
+the page is a complete, self-contained document (own fonts, styles,
+and calculator script) handed over as a finished artifact, and altering
+it wasn't asked for. Canonical copy at `public/pricing.html` (also
+directly reachable there, CI4's static webroot, same as
+`robots.txt`/`favicon.ico`); a clean `/pricing` route added via a
+minimal `PricingController` that reads and outputs that same file
+verbatim, matching the site's existing clean-URL convention (`/terms`,
+`/privacy`, `/fees`). A durable provenance copy also kept at
+`docs/source-documents/eBid_Hub_Pricing_TradeSphereX.html`, matching
+this repo's established pattern for source documents.
+
+**Site map updated**: a "Pricing" card added to the Trust & Support hub
+(`/trust-support` — this codebase's actual page index, there being no
+literal `sitemap.xml`), described distinctly from the existing "Fee &
+Charges Schedule" card (`/fees`, buyer/seller transaction-fee mechanics)
+to avoid confusion — this new page is about tenant *subscription*
+pricing. A "Pricing" link also added to the site-wide footer nav
+alongside Trust & Support/Terms/Privacy.
+
+**Verified over real HTTP**: `GET /pricing` and `GET /pricing.html`
+both return 200 with the page content byte-for-byte identical to the
+source file (only difference: CI4's dev-mode debug-toolbar injection,
+harmless and dev-only). `/trust-support` genuinely renders the new
+card; the homepage's footer genuinely includes the new link.
+`test:auth`/`test:browse` spot-checked clean (a pure additive
+routing/docs change, no business logic touched — full 28-engine
+regression not needed).

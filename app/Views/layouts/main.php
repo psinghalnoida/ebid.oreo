@@ -182,6 +182,7 @@
     <span>&copy; eBid Hub</span>
     <div class="foot-links">
       <a href="/trust-support">Trust &amp; Support</a>
+      <a href="/pricing">Pricing</a>
       <a href="<?= ($__tenant && !empty($__tenant['terms_url'])) ? esc($__tenant['terms_url']) : '/terms' ?>">Terms</a>
       <a href="/privacy">Privacy</a>
     </div>

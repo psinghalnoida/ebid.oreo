@@ -14,6 +14,7 @@ class TrustSupport extends BaseController
                     ['icon' => '?', 'title' => 'FAQ', 'description' => 'Common questions on bidding, EMD, formats, and settlement.', 'url' => '/faq'],
                     ['icon' => '✓', 'title' => "Dos & Don'ts", 'description' => 'What\'s expected of you as a buyer or seller on the platform.', 'url' => '/dos-and-donts'],
                     ['icon' => '₹', 'title' => 'Fee & Charges Schedule', 'description' => 'SaaS commission, tenant buyer fees, and how EMD is deducted.', 'url' => '/fees'],
+                    ['icon' => '💳', 'title' => 'Pricing', 'description' => 'Tenant subscription tiers, onboarding costs, and the Success Fee calculator for running your own branded marketplace.', 'url' => '/pricing'],
                     ['icon' => '📖', 'title' => 'Terminology', 'description' => 'Plain-language definitions for every platform-specific term.', 'url' => '/terminology'],
                 ],
             ],
