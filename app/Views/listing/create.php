@@ -2,7 +2,7 @@
 <?= $this->section('content') ?>
 <main style="max-width:520px; padding:60px 24px;">
   <h1 style="font-size:24px;">List an Asset</h1>
-  <p style="color:var(--ink-2); font-size:14px;">BR-11: universal required <?= strtolower(tsx_term('Listing')) ?> metadata.</p>
+  <p style="color:var(--ink-2); font-size:14px;">Tell us about the asset — this is the information every <?= strtolower(tsx_term('Listing')) ?> needs before it can go live.</p>
   <?php if (!empty($error)): ?>
     <p style="color:#B5482F; font-size:13px;"><?= esc($error) ?></p>
   <?php endif; ?>
@@ -22,7 +22,7 @@
     <input type="text" name="physical_condition" required placeholder="e.g. Fire-damaged, functional unverified"
       style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
 
-    <label style="font-size:12px; color:var(--ink-3);">Category (BR-07)</label>
+    <label style="font-size:12px; color:var(--ink-3);">Category</label>
     <select name="category" required style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
       <option value="">Select a category…</option>
       <?php foreach (\App\Libraries\ListingLifecycleService::PERMITTED_CATEGORIES as $c): ?>
@@ -50,13 +50,13 @@
     <input type="text" name="yard_location_pin" required maxlength="6" pattern="\d{6}"
       style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
 
-    <label style="font-size:12px; color:var(--ink-3);">Media Tier (BR-59)</label>
+    <label style="font-size:12px; color:var(--ink-3);">Photo Certification</label>
     <select name="media_tier" style="display:block; width:100%; padding:12px; margin:6px 0 20px; border:1px solid var(--line); border-radius:10px;">
       <option value="certified_by_seller">Certified by <?= tsx_term('Seller') ?> — I'll upload my own photos</option>
       <option value="verified">Verified — eBid Hub's inspection team photographs it (inspection fee applies)</option>
     </select>
 
-    <p style="font-size:12px; color:var(--ink-3); margin:16px 0 4px;">Inspection Authority (BR-11/BR-21) — optional, by mobile number. Anyone bound here is blocked from bidding/offering on this <?= strtolower(tsx_term('Listing')) ?>.</p>
+    <p style="font-size:12px; color:var(--ink-3); margin:16px 0 4px;">Inspection Authority — optional, by mobile number. Anyone bound here is blocked from bidding/offering on this <?= strtolower(tsx_term('Listing')) ?>.</p>
     <input type="text" name="inspector_mobile" placeholder="Yard Inspector mobile (optional)"
       style="display:block; width:100%; padding:10px; margin:4px 0; border:1px solid var(--line); border-radius:8px; font-size:13px;">
     <input type="text" name="surveyor_mobile" placeholder="Surveyor mobile (optional)"
@@ -64,11 +64,11 @@
     <input type="text" name="custodian_mobile" placeholder="Physical Custodian mobile (optional)"
       style="display:block; width:100%; padding:10px; margin:4px 0 20px; border:1px solid var(--line); border-radius:8px; font-size:13px;">
 
-    <p style="font-size:12px; color:var(--ink-3); margin:16px 0 4px;">Related Auctions (BR-47) — optional. Use the same label across multiple <?= strtolower(tsx_term('Listing', false, true)) ?> to group them (e.g., a shared-origin lot). Not available on Express.</p>
+    <p style="font-size:12px; color:var(--ink-3); margin:16px 0 4px;">Related Auctions — optional. Use the same label across multiple <?= strtolower(tsx_term('Listing', false, true)) ?> to group them (e.g., a shared-origin lot). Not available on Express.</p>
     <input type="text" name="related_group_label" placeholder="e.g. Flood-Affected Fleet — July 2026"
       style="display:block; width:100%; padding:10px; margin:4px 0 20px; border:1px solid var(--line); border-radius:8px; font-size:13px;">
 
-    <p style="font-size:12px; color:var(--ink-3); margin:16px 0 4px;">Shipping (BR-24) — always optional for the <?= strtolower(tsx_term('Buyer')) ?>, who can self-collect for free regardless.</p>
+    <p style="font-size:12px; color:var(--ink-3); margin:16px 0 4px;">Shipping — always optional for the <?= strtolower(tsx_term('Buyer')) ?>, who can self-collect for free regardless.</p>
     <label style="display:block; font-size:13px; padding:4px 0 10px;">
       <input type="checkbox" name="shipping_enabled" value="1" id="shipping-toggle" onchange="document.getElementById('shipping-options').style.display = this.checked ? 'block' : 'none';">
       I can also offer to ship this item
@@ -88,7 +88,7 @@
 
     <label style="display:block; font-size:13px; padding:4px 0 16px;">
       <input type="checkbox" name="media_is_representative_under_waiver" value="1">
-      Use representative imagery under an active BR-60 <?= tsx_term('Tenant') ?> Media Waiver (only works if your <?= strtolower(tsx_term('Tenant')) ?> has one approved for this category)
+      Use representative imagery under an active <?= tsx_term('Tenant') ?> Media Waiver (only works if your <?= strtolower(tsx_term('Tenant')) ?> has one approved for this category)
     </label>
 
     <div style="margin: 20px 0; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper-2, #F8F9F5);">
@@ -100,7 +100,7 @@
     <button type="submit" class="btn btn-emerald" style="width:100%;">Create <?= tsx_term('Listing') ?></button>
   </form>
   <p style="font-size:11px; color:var(--ink-3); margin-top:10px;">
-    PR-09: your progress on this form is auto-saved to your browser (localStorage) and restored if you reload or switch tabs.
+    Your progress on this form is auto-saved to your browser and restored if you reload or switch tabs.
     <a href="#" id="clearDraftLink" style="color:var(--emerald);">Clear saved draft</a>
     <span id="draftRestoredNote" style="display:none;"> — a saved draft was restored below.</span>
   </p>

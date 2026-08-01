@@ -2,7 +2,7 @@
 <?= $this->section('content') ?>
 <main style="max-width:420px; padding:60px 24px;">
   <h1 style="font-size:24px;">Set your mPIN</h1>
-  <p style="color:var(--ink-2); font-size:14px;">BR-02: a 4-digit mPIN for fast, passwordless sign-in going forward.</p>
+  <p style="color:var(--ink-2); font-size:14px;">A 4-digit mPIN for fast, passwordless sign-in going forward.</p>
   <?php if (!empty($error)): ?>
     <p style="color:#B5482F; font-size:13px;"><?= esc($error) ?></p>
   <?php endif; ?>

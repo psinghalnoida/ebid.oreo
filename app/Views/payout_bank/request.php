@@ -1,7 +1,7 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 <main style="max-width:420px; padding:60px 24px;">
-  <h1 style="font-size:22px;">Payout Bank Details (BR-50)</h1>
+  <h1 style="font-size:22px;">Payout Bank Details</h1>
   <?php $flashError = session()->getFlashdata('error'); ?>
   <?php if ($flashError): ?>
     <p style="color:#B5482F; font-size:13px; background:#FBE8E4; padding:10px; border-radius:8px;"><?= esc($flashError) ?></p>
@@ -15,7 +15,7 @@
   </p>
   <?php if (!empty($party['payout_bank_pending_activates_at'])): ?>
     <p style="font-size:12px; color:var(--amber, #9C5B1F);">
-      A change is pending — activates <?= esc($party['payout_bank_pending_activates_at']) ?> (24-hour cooling-off, BR-50).
+      A change is pending — activates <?= esc($party['payout_bank_pending_activates_at']) ?> (24-hour cooling-off period).
     </p>
   <?php endif; ?>
 

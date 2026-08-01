@@ -3,7 +3,7 @@
 <main style="max-width:480px; padding:40px 24px;">
   <h1 style="font-size:22px;">Defect Disclosure — Express Auction</h1>
   <p style="color:var(--ink-3); font-size:13px; margin-top:8px;">
-    BR-57 — Express Auctions have no inspection window, so this checklist is your only way to give buyers
+    Express Auctions have no inspection window, so this checklist is your only way to give buyers
     accurate information before they bid sight-unseen. Answer honestly — a false disclosure here can be
     filed as a Condition/Delivery Dispute even though Express is otherwise buyer-beware.
   </p>

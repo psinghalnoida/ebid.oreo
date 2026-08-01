@@ -3,7 +3,7 @@
 <main style="max-width:420px; padding:60px 24px;">
   <h1 style="font-size:24px;">Verify OTP to reset mPIN</h1>
   <p style="color:var(--ink-2); font-size:14px;">
-    BR-02: 3 consecutive incorrect mPIN attempts require OTP verification before you can log in or reset your mPIN.
+    3 consecutive incorrect mPIN attempts require OTP verification before you can log in or reset your mPIN.
   </p>
   <p style="color:var(--ink-2); font-size:14px;">Sent to <?= esc($mobile) ?><?= !empty($email) ? ' and ' . esc($email) : '' ?>.</p>
   <?php if (!empty($devOtp)): ?>

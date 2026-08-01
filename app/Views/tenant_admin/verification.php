@@ -2,7 +2,7 @@
 <?= $this->section('content') ?>
 <main style="max-width:820px; padding:40px 24px;">
   <h1 style="font-size:22px;">Verification Console — <?= esc($tenant['name']) ?></h1>
-  <p style="font-size:12px; color:var(--ink-3);">PR-09: authentic media catalog + thumbnail for every listing awaiting approval.</p>
+  <p style="font-size:12px; color:var(--ink-3);">Authentic media catalog + thumbnail for every listing awaiting approval.</p>
 
   <div style="display:flex; flex-direction:column; gap:12px; margin-top:16px;">
     <?php foreach ($pending as $l): ?>

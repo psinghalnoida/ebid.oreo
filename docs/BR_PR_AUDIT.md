@@ -451,6 +451,18 @@ return something for this to work end to end — that part cannot be
 exercised without a real key, same honest limitation BR-52's
 chargeback-detection code already carries.
 
+## Update — D-99: BR-/PR- jargon swept from the live portal
+
+Not a build-gap item — a UI/UX pass, first of a joint review the
+project owner asked to start ("let's look together" on the live
+product rather than a fixed brief). D-96/D-97 removed internal
+BR-/PR- citations from the Chronicle report specifically; this found
+and fixed the same pattern across the rest of the customer- and
+Tenant-Admin-facing portal (27 view files), and along the way found
+two real access-control gaps (permission-gated buttons rendered to
+everyone, not just authorized roles) in `listing/show.php`, now fixed.
+Full detail in `docs/DECISIONS.md` D-99.
+
 ### Bottom line (current)
 
 **Still two items with no path forward without the project owner

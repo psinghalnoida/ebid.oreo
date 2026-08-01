@@ -39,6 +39,6 @@
     <tr class="total-row"><td>Total</td><td>&#8377;<?= number_format((float) $invoice['total_amount'], 2) ?></td></tr>
   </table>
 
-  <p class="muted" style="margin-top:32px;">This is a system-generated invoice under BR-56 and does not require a physical signature.</p>
+  <p class="muted" style="margin-top:32px;">This is a system-generated invoice and does not require a physical signature.</p>
 </body>
 </html>

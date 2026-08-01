@@ -28,7 +28,7 @@
     <p style="font-size:11px; color:var(--ink-3); margin-top:6px;">Note: cases also open automatically once complaints exceed 10, or on the <?= strtolower(tsx_term('Seller')) ?>'s annual anniversary — this is for a <?= tsx_term('Tenant Admin') ?> to act ahead of that threshold on their own judgment.</p>
   <?php endif; ?>
 
-  <h3 style="font-size:15px; margin-top:24px;">Violation History (real named rating consequences, BR-35)</h3>
+  <h3 style="font-size:15px; margin-top:24px;">Violation History (real named rating consequences)</h3>
   <?php foreach ($violations as $v): ?>
     <p style="font-size:13px; padding:8px 0; border-bottom:1px solid var(--line);">
       <?= esc(substr($v['created_at'] ?? '', 0, 10)) ?> — <?= esc($v['reason']) ?>

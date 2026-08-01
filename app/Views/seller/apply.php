@@ -2,7 +2,7 @@
 <?= $this->section('content') ?>
 <main style="max-width:480px; padding:60px 24px;">
   <h1 style="font-size:24px;">Apply to Sell on <?= esc($tenant['name'] ?? 'this tenant') ?></h1>
-  <p style="color:var(--ink-3); font-size:13px;">BR-09: selling rights are tenant-specific — approval here doesn't carry over to any other tenant.</p>
+  <p style="color:var(--ink-3); font-size:13px;">Selling rights are tenant-specific — approval here doesn't carry over to any other tenant.</p>
   <?php $flashError = session()->getFlashdata('error'); ?>
   <?php if ($flashError): ?>
     <p style="color:var(--emerald-deep); font-size:13px; background:var(--emerald-soft); padding:10px; border-radius:8px;"><?= esc($flashError) ?></p>

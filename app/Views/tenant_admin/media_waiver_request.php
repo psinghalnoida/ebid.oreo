@@ -8,7 +8,7 @@
 
   <h1 style="font-size:22px;">Request Media Waiver — <?= esc($tenant['name']) ?></h1>
   <p style="color:var(--ink-3); font-size:13px; margin-top:8px;">
-    BR-60 — for one specific category where item-specific photography isn't meaningful (e.g., bulk
+    For one specific category where item-specific photography isn't meaningful (e.g., bulk
     commodities, rental space, surplus goods sold by specification). Valid 12 months if approved, subject
     to active review, always disclosed to buyers.
   </p>

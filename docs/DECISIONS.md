@@ -6247,3 +6247,78 @@ called, no token gets 401. Regression: `tenantapi`, `buynow`,
 `browse`, `lifecycle` all re-run clean against the shared files this
 touched (`ListingController`, `TenantApiController`, `ListingModel`,
 `Routes.php`).
+
+### D-99: BR-/PR- jargon swept from the live portal (not just the Chronicle), two access-control gaps fixed along the way
+
+The project owner asked to work on the platform's UI/UX directly
+("not sure yet — let's look together" rather than a fixed brief), so
+this started as a joint walkthrough of the live product: registration
+→ mPIN → marketplace home → list-an-asset → KYC → listing detail →
+profile, captured as real screenshots via a Playwright-driven browser
+session against the running `spark serve` app. D-96/D-97's "no
+BR/PR jargon" instruction had been scoped to the Chronicle report
+only — the walkthrough showed the same pattern is actually
+platform-wide: raw citations like "BR-11: universal required lot
+metadata," "Category (BR-07)," "Media Tier (BR-59)," and "PR-09: your
+progress is auto-saved" sitting directly in seller- and Tenant-Admin-
+facing copy. The project owner picked killing this as the first
+priority.
+
+**Scope**: every `app/Views/*` file outside `admin/` (SaaS Admin's own
+internal operator screens, left untouched — that audience is
+platform staff, the same category BR/PR shorthand was always fine
+for). 27 files, 71 occurrences found via
+`grep -rEo "BR-[0-9]+|PR-[0-9]+"`, all removed from rendered output —
+parenthetical citations dropped, surrounding sentences kept as plain
+English. PHP/JS comments inside those same files (developer-facing,
+never sent to the browser as visible text, confirmed by checking
+which are inside `<?php ... ?>` blocks vs. `<script>` tags) were
+deliberately left alone, same distinction D-97 already established.
+`TenantAdminFilter`'s 403 body ("BR-09: you are not the Tenant Admin
+for this listing's tenant.") also had the citation stripped — that
+text is returned straight to a browser on a denied request.
+
+**Two real access-control gaps found and fixed while sweeping
+`listing/show.php`, not just cosmetic**: the "Flag CBS Violation
+(BR-59/61)" button, the pending-listing Approve/Reject block, and the
+Sale-Event Approve/"Force-freeze (dev)" controls were all rendered
+unconditionally to *any* visitor (including anonymous ones, since
+`isOwner` is simply `false` when logged out) — the actual
+authorization lived only in the controller/route filter
+(`flagCbsViolation()`'s explicit role check, the `tenantAdmin:listing`
+/`tenantAdmin:saleEvent` route filters), so every non-admin who
+happened to view a pending listing saw working-looking buttons that
+would just redirect back with a permission error on click.
+`ListingController::show()` now computes
+`isTenantAdminForListing` once (`AuthorizationService::
+isTenantAdminForListing()` — the exact same check the route filter
+uses, not a parallel rule that could drift) and the view gates all
+four blocks on it. The "Force-freeze to Active (dev)" button — a
+demo-only shortcut around the real 60-minute grace window — additionally
+now requires `ENVIRONMENT !== 'production'`, so it can't render at
+all outside a dev/staging build regardless of role.
+
+**Verified**: `php -l` across all 28 touched files. Full regression —
+all 34 `test:*` suites re-run clean against a rebuilt-from-scratch
+database (`auth`, `kyc`, `lifecycle`, `media`, `dispute`, `settlement`,
+`cascade`, `buynow`, `express`, `successfee`, `tenantapi`,
+`terminology`, `tier3`, `standingreview`, `br35`, `rating`, `aiaudit`,
+`aml`, `browse`, `crawlback`, `discovery`, `easyexpresscorrections`,
+`easyschedule`, `invoices`, `payoutcontrol`, `phase3a`, `scheduler`,
+`selleraudit`, `servertimecheck`, `sovereignrule`, `tenderbidding`,
+`tenderfoundation`, `tenderreview`); `test:auditlog`'s 3 failures are
+the pre-existing, documented, sandbox-DB-name mismatch (unrelated to
+this change, confirmed still present against a bare fresh migration).
+Real HTTP, not just read: a fresh party registered through the actual
+mobile → OTP → mPIN flow, then Playwright screenshots of the live
+`list-an-asset`, KYC, and listing-detail pages confirmed both the
+jargon is gone from the rendered page and — logged in as an ordinary
+non-admin party — the Flag/Approve/Reject/Force-freeze controls no
+longer appear at all.
+
+Not done, flagged as a follow-up rather than folded in unprompted:
+the KYC form (`kyc/form.php`) shows both Individual and Organization
+field groups at once regardless of the selected Entity Type — a
+real UX rough edge spotted during the same walkthrough, but a
+distinct problem (conditional field display) from the jargon sweep
+that was actually asked for.

@@ -327,11 +327,17 @@ class ListingController extends BaseController
         // BR-32 (D-87/D-88): gates whether the Fee Payer Election's
         // Seller-Pays option is offered on the sale-event attach forms.
         $tenant = $this->tenantModel->find($listing['tenant_id']);
+        $authz = new \App\Libraries\AuthorizationService();
+        $isTenantAdminForListing = $viewerId
+            ? ($authz->isTenantAdminForListing($viewerId, $listingId) || $authz->isSuperAdmin($viewerId))
+            : false;
         return view('listing/show', [
             'title' => 'Listing — eBid Hub', 'listing' => $listing, 'saleEvent' => $saleEvent, 'tenant' => $tenant,
             'offers' => $offers, 'expressState' => $expressState, 'tenderState' => $tenderState, 'media' => $media,
             'queuedMediaJobs' => $queuedMediaJobs,
             'isOwner' => $viewerId === $listing['seller_party_id'],
+            'canFlagCbsViolation' => $isTenantAdminForListing,
+            'isTenantAdminForListing' => $isTenantAdminForListing,
             'minPhotos' => \App\Libraries\MediaService::minPhotos(),
             'rejectionReasons' => \App\Libraries\ListingLifecycleService::REJECTION_REASONS,
             'settlementRecord' => $settlementRecord,

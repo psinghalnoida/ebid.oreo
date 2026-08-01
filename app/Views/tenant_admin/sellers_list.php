@@ -2,7 +2,7 @@
 <?= $this->section('content') ?>
 <main style="max-width:820px; padding:40px 24px;">
   <h1 style="font-size:22px;"><?= tsx_term('Seller') ?> Management — <?= esc($tenant['name']) ?></h1>
-  <p style="font-size:12px; color:var(--ink-3);">Backed by the real Standing Review system (BR-61) — sorted by complaint count.</p>
+  <p style="font-size:12px; color:var(--ink-3);">Backed by the real Standing Review system — sorted by complaint count.</p>
 
   <table style="width:100%; border-collapse:collapse; margin-top:16px; font-size:13px;">
     <tr style="text-align:left; color:var(--ink-3); font-size:11px; text-transform:uppercase;">

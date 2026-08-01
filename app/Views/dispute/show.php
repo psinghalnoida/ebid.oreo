@@ -28,7 +28,7 @@
     </form>
 
     <div style="background:var(--line-soft); padding:14px; border-radius:10px; margin-top:16px;">
-      <p style="font-size:12px; color:var(--ink-3); margin:0 0 8px;">Ruling action — requires the correct authority (<?= tsx_term('Tenant Admin') ?> or <?= tsx_term('Super Admin') ?> per category, BR-40)</p>
+      <p style="font-size:12px; color:var(--ink-3); margin:0 0 8px;">Ruling action — requires the correct authority (<?= tsx_term('Tenant Admin') ?> or <?= tsx_term('Super Admin') ?> per category)</p>
       <form method="post" action="/disputes/<?= esc($dispute['id']) ?>/rule">
         <select name="outcome" style="padding:8px; border:1px solid var(--line); border-radius:8px; font-size:12px; margin-bottom:6px; width:100%;">
           <option value="dismissed">Dismiss the claim</option>

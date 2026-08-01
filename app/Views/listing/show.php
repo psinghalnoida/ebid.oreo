@@ -48,19 +48,19 @@
   <?php endif; ?>
 
   <p style="font-size:12px; color:<?= (int) $listing['media_count'] < $minPhotos ? '#B5482F' : 'var(--ink-3)' ?>;">
-    <?= (int) $listing['media_count'] ?> / <?= $minPhotos ?> minimum photos (BR-11) — max 50
+    <?= (int) $listing['media_count'] ?> / <?= $minPhotos ?> minimum photos — max 50
   </p>
 
-  <?php if (empty($isOwner)): ?>
+  <?php if (!empty($canFlagCbsViolation)): ?>
     <form method="post" action="/listings/<?= esc($listing['id']) ?>/flag-cbs-violation" style="margin-bottom:12px;"
-      onsubmit="return confirm('Flag this <?= strtolower(tsx_term('Listing')) ?>\'s media as a CBS violation? This is logged permanently and feeds <?= tsx_term('Seller') ?> Standing Review (BR-61).');">
-      <button type="submit" class="btn btn-ghost" style="font-size:11px; color:#B5482F;">Flag CBS Violation (BR-59/61)</button>
+      onsubmit="return confirm('Flag this <?= strtolower(tsx_term('Listing')) ?>\'s media as a Certified-by-Seller violation? This is logged permanently and feeds <?= tsx_term('Seller') ?> Standing Review.');">
+      <button type="submit" class="btn btn-ghost" style="font-size:11px; color:#B5482F;">Flag Certified-by-Seller Violation</button>
     </form>
   <?php endif; ?>
 
   <?php if (!empty($queuedMediaJobs)): ?>
     <div style="background:var(--line-soft); border-radius:10px; padding:12px; margin:10px 0; font-size:12px;">
-      <p style="margin:0 0 6px; color:var(--ink-3);">PR-09: background queue — files below are still being compressed off the request thread.</p>
+      <p style="margin:0 0 6px; color:var(--ink-3);">Files below are still being compressed in the background.</p>
       <?php foreach ($queuedMediaJobs as $job): ?>
         <p style="margin:2px 0;">
           <?= esc($job['original_filename']) ?> —
@@ -89,8 +89,8 @@
       <input type="hidden" name="gps_lng" id="gpsLng_<?= esc($listing['id']) ?>">
       <button type="submit" class="btn btn-ghost">Upload</button>
       <p style="font-size:10.5px; color:var(--ink-3); margin-top:6px;">
-        BR-45: location is captured automatically if your browser allows it — this is a best-effort web substitute for a native app's automatic capture, not a guarantee.
-        PR-09: uploads are processed in the background — this page won't freeze while they compress, and finished files appear above once done.
+        Location is captured automatically if your browser allows it — this is a best-effort web substitute for a native app's automatic capture, not a guarantee.
+        Uploads are processed in the background — this page won't freeze while they compress, and finished files appear above once done.
       </p>
     </form>
     <script>
@@ -113,7 +113,7 @@
     <?php if (in_array($listing['media_is_representative_under_waiver'], [true, 't', 1, '1'], true)): ?>
     <tr>
       <td style="padding:8px 0; color:var(--ink-3);">Images</td>
-      <td style="color:#9C5B1F;">⚠️ Representative imagery only (BR-60 <?= tsx_term('Tenant') ?> Media Waiver) — not item-specific photographs.</td>
+      <td style="color:#9C5B1F;">⚠️ Representative imagery only (active <?= tsx_term('Tenant') ?> Media Waiver) — not item-specific photographs.</td>
     </tr>
     <?php endif; ?>
     <tr>
@@ -142,14 +142,14 @@
     </form>
   <?php endif; ?>
 
-  <?php if ($listing['status'] === 'pending_approval'): ?>
+  <?php if ($listing['status'] === 'pending_approval' && !empty($isTenantAdminForListing)): ?>
     <div style="background:var(--line-soft); padding:16px; border-radius:12px; margin-top:16px;">
-      <p style="font-size:12px; color:var(--ink-3); margin:0 0 10px;"><?= tsx_term('Tenant Admin') ?> actions — requires the tenant_admin role for this <?= strtolower(tsx_term('Listing')) ?>'s <?= strtolower(tsx_term('Tenant')) ?> (BR-09)</p>
+      <p style="font-size:12px; color:var(--ink-3); margin:0 0 10px;"><?= tsx_term('Tenant Admin') ?> actions</p>
       <form method="post" action="/listings/<?= esc($listing['id']) ?>/approve" style="display:inline;">
         <button type="submit" class="btn btn-emerald">Approve</button>
       </form>
       <form method="post" action="/listings/<?= esc($listing['id']) ?>/reject" style="margin-top:10px;">
-        <label style="font-size:11px; color:var(--ink-3);">Rejection Reason (PR-09 closed list)</label>
+        <label style="font-size:11px; color:var(--ink-3);">Rejection Reason</label>
         <select name="reason_key" required style="display:block; width:100%; padding:8px; margin:4px 0 6px; border:1px solid var(--line); border-radius:8px; font-size:12px;">
           <?php foreach ($rejectionReasons as $key => $label): ?>
             <option value="<?= esc($key) ?>"><?= esc($label) ?></option>
@@ -170,7 +170,7 @@
         <label style="font-size:12px; color:var(--ink-3);">Reserve Value (₹) — Easy Auction</label>
         <input type="number" name="reserve_value" required
           style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
-        <label style="font-size:12px; color:var(--ink-3);">Start (BR-12: you set the schedule)</label>
+        <label style="font-size:12px; color:var(--ink-3);">Start (you set the schedule)</label>
         <input type="datetime-local" name="scheduled_start_at" required
           style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
         <label style="font-size:12px; color:var(--ink-3);">End</label>
@@ -227,7 +227,7 @@
           <p style="font-size:12px; color:var(--ink-3);">Expected Value was ₹<?= number_format((float) $saleEvent['expected_value'], 2) ?></p>
         <?php else: ?>
           <p style="font-size:32px; font-weight:800; margin:4px 0;">₹<?= number_format((float) $saleEvent['expected_value'], 2) ?> <span style="font-size:14px; color:var(--ink-3); font-weight:400;">expected</span></p>
-          <p style="font-size:12px; color:var(--ink-3);">EMD required: ₹<?= number_format((float) $saleEvent['expected_value'] * 0.10, 2) ?> (10% of EV, BR-27)</p>
+          <p style="font-size:12px; color:var(--ink-3);">EMD required: ₹<?= number_format((float) $saleEvent['expected_value'] * 0.10, 2) ?> (10% of Expected Value)</p>
         <?php endif; ?>
       <?php elseif ($saleEvent['sale_format'] === 'express'): ?>
         <p id="live-price" style="font-size:32px; font-weight:800; margin:4px 0;">₹<?= number_format((float)($saleEvent['current_price'] ?? $saleEvent['reserve_value']), 2) ?></p>
@@ -235,14 +235,14 @@
 
         <?php if ($saleEvent['defect_disclosure_completed_at']): ?>
           <div style="background:var(--line-soft); padding:14px; border-radius:10px; margin-top:14px;">
-            <p style="font-size:12px; font-weight:700; margin:0 0 8px;"><?= tsx_term('Seller') ?>'s Defect Disclosure (BR-57)</p>
+            <p style="font-size:12px; font-weight:700; margin:0 0 8px;"><?= tsx_term('Seller') ?>'s Defect Disclosure</p>
             <p style="font-size:12px; margin:0 0 4px;"><strong>Known damage:</strong> <?= esc($saleEvent['defect_disclosure_known_damage']) ?></p>
             <p style="font-size:12px; margin:0 0 4px;"><strong>Missing components:</strong> <?= esc($saleEvent['defect_disclosure_missing_components']) ?></p>
             <p style="font-size:12px; margin:0;"><strong>Non-functional aspects:</strong> <?= esc($saleEvent['defect_disclosure_nonfunctional_aspects']) ?></p>
           </div>
         <?php elseif ($isOwner): ?>
           <a href="/sale-events/<?= esc($saleEvent['id']) ?>/defect-disclosure" class="btn btn-ghost" style="margin-top:14px; display:inline-block;">
-            Complete Required Defect Disclosure (BR-57)
+            Complete Required Defect Disclosure
           </a>
         <?php endif; ?>
       <?php else: ?>
@@ -251,16 +251,16 @@
       <?php endif; ?>
       <p id="live-status" style="font-size:11px; color:var(--ink-3); margin-top:4px;"></p>
 
-      <?php if ($saleEvent['status'] === 'pending_approval'): ?>
+      <?php if ($saleEvent['status'] === 'pending_approval' && !empty($isTenantAdminForListing)): ?>
         <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/approve" style="margin-top:14px;">
-          <p style="font-size:12px; color:var(--ink-3);"><?= tsx_term('Tenant Admin') ?> action (BR-09)</p>
+          <p style="font-size:12px; color:var(--ink-3);"><?= tsx_term('Tenant Admin') ?> action</p>
           <button type="submit" class="btn btn-emerald">Approve <?= tsx_term('Sale Event') ?></button>
         </form>
       <?php endif; ?>
 
-      <?php if ($saleEvent['status'] === 'grace_period'): ?>
+      <?php if ($saleEvent['status'] === 'grace_period' && !empty($isTenantAdminForListing) && ENVIRONMENT !== 'production'): ?>
         <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/dev-force-freeze" style="margin-top:14px;">
-          <p style="font-size:12px; color:var(--ink-3);">⚠️ Dev-only: skips the real 60-minute BR-14 grace window for demo purposes</p>
+          <p style="font-size:12px; color:var(--ink-3);">⚠️ Dev-only: skips the real 60-minute grace window for demo purposes</p>
           <button type="submit" class="btn btn-ghost">Force-freeze to Active (dev)</button>
         </form>
       <?php endif; ?>
@@ -290,7 +290,7 @@
 
         <?php if (!empty($offers)): ?>
         <div style="margin-top:20px; border-top:1px solid var(--line); padding-top:16px;">
-          <p style="font-size:12px; color:var(--ink-3); font-weight:700; text-transform:uppercase; margin-bottom:10px;">Offers Received (BR-16: <?= strtolower(tsx_term('Buyer')) ?> identity masked pre-acceptance)</p>
+          <p style="font-size:12px; color:var(--ink-3); font-weight:700; text-transform:uppercase; margin-bottom:10px;">Offers Received (<?= tsx_term('Buyer') ?> identity masked pre-acceptance)</p>
           <?php foreach ($offers as $offer): ?>
           <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px dashed var(--line);">
             <div>
@@ -314,7 +314,7 @@
 
       <?php if ($saleEvent['status'] === 'active' && $saleEvent['sale_format'] === 'express'): ?>
         <div style="margin-top:16px; background:var(--line-soft); padding:12px 16px; border-radius:10px;">
-          <p style="font-size:13px; font-weight:600;">Pledges: <?= esc($expressState['pledgeCount']) ?> / 3 required to open bidding (PR-11)</p>
+          <p style="font-size:13px; font-weight:600;">Pledges: <?= esc($expressState['pledgeCount']) ?> / 3 required to open bidding</p>
           <?php if (!$expressState['biddingOpen'] && $expressState['pledgeCount'] < 3): ?>
             <p style="font-size:12px; color:var(--ink-3); margin:4px 0 0;">Bidding opens automatically the instant the 3rd distinct <?= strtolower(tsx_term('Buyer')) ?> pledges — no <?= strtolower(tsx_term('Seller')) ?>/admin action needed.</p>
           <?php endif; ?>

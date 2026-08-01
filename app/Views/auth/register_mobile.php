@@ -2,7 +2,7 @@
 <?= $this->section('content') ?>
 <main style="max-width:420px; padding:60px 24px;">
   <h1 style="font-size:24px;">Create your account</h1>
-  <p style="color:var(--ink-2); font-size:14px;">BR-02: enter your mobile number to receive a verification OTP.</p>
+  <p style="color:var(--ink-2); font-size:14px;">Enter your mobile number to receive a verification OTP.</p>
   <?php if (!empty($error)): ?>
     <p style="color:#B5482F; font-size:13px;"><?= esc($error) ?></p>
   <?php endif; ?>
