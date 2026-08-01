@@ -34,6 +34,7 @@ class TrustSupport extends BaseController
                     ['icon' => '§', 'title' => 'Terms of Service', 'description' => 'The full terms governing every transaction on the platform.', 'url' => '/terms'],
                     ['icon' => '🔒', 'title' => 'Privacy Policy', 'description' => 'What we collect, how it\'s used, and how KYC data is protected.', 'url' => '/privacy'],
                     ['icon' => '!', 'title' => 'Grievance Redressal', 'description' => 'How to formally escalate a complaint, and expected timelines.', 'url' => '/grievance-redressal'],
+                    ['icon' => '🍪', 'title' => 'Cookie Policy', 'description' => 'What cookies the platform uses and which ones you can opt out of.', 'url' => '/cookie-policy'],
                 ],
             ],
         ];

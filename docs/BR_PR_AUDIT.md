@@ -490,6 +490,20 @@ The other ~75 view files still use the old inline-style pattern;
 rolling the system out further is flagged as follow-up work, not yet
 requested. Full detail in `docs/DECISIONS.md` D-101.
 
+## Update — D-102: navigation-gap audit — 5 flagged items already wired, 3 genuine gaps closed
+
+Not a BR/PR build-gap item. The project owner reported five specific
+navigation gaps (logout, My Listings, My Bids, account/profile page,
+searchable Browse); investigation confirmed all five were already
+fully wired (verified via a real registered-account browser session,
+not just a code read). The systematic audit that followed — every
+static route cross-referenced against every actual link in the
+codebase — found three routes genuinely unreachable from anywhere in
+the app: `/cookie-policy`, `/account/invoices`, and the "File a
+Dispute" form. All three now have a real entry point, confirmed
+working over real HTTP. Full detail, screenflow diagram, and the
+evidence table in `docs/DECISIONS.md` D-102.
+
 ### Bottom line (current)
 
 **Still two items with no path forward without the project owner

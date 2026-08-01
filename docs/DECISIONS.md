@@ -6466,3 +6466,74 @@ still use the old hand-rolled inline-style pattern rather than the
 new `.field`/`.card` classes — the foundation and the pattern are
 proven, but rolling it out further is real per-page work the project
 owner hasn't asked for yet.
+
+### D-102: navigation-gap audit — 5 flagged items already wired, 3 genuine gaps found and closed
+
+The project owner reported five specific navigation gaps, framed as
+"app logic fully built and tested, but no page/button reaches it":
+no logout except Super Admin, no My Listings for sellers, no My Bids
+for buyers, no account/profile page, no searchable/filterable browse
+page. Asked for a full screenflow, gap-find, and wire-up.
+
+**Checked rather than assumed, and the five named items turned out to
+already be fully wired** — confirmed both by reading the code and by
+a real browser session (fresh account registered through the actual
+mobile → OTP → mPIN flow, then live click-throughs): `/logout`,
+`/my-listings`, and `/profile` are all in the shared header nav on
+every page for any logged-in session; `/my-bids` is reachable from
+Profile's Activity group (added in D-101's reorganization); `/browse`
+already has a fully built search/filter UI (text query, location,
+price range, minimum rating, condition, posted-date, sort, category/
+format chips, pagination, save-search) wired to a real filtered query
+in `Home::browse()`. `git show origin/main:app/Views/layouts/main.php`
+confirms these links predate this session entirely — a prior pass's
+routes comment literally reads "Navigation gaps closed — logout, My
+Listings/Activity/Profile, browse". None of this was taken on faith:
+each claim is backed by an HTTP status code or a screenshot in the
+audit artifact below.
+
+**The actual audit, run properly rather than stopping at the named
+five**: extracted all 65 static GET routes from `Routes.php`, grepped
+every `href` in `app/Views/` for each, and hand-resolved every route
+that came back with zero literal matches — several (all of Trust &
+Support's sub-pages) are linked through a PHP array of card
+definitions (`TrustSupport::index()`'s `$groups`), not a literal
+`href="/x"` string, so a naive grep flags false positives there.
+Three routes survived as genuinely unreachable:
+
+- **`/cookie-policy`** — full policy content and route existed
+  (`LegalController::cookiePolicy()`), never added to the Trust &
+  Support hub's Legal card group alongside Terms/Privacy/Grievance.
+  Fixed: added the card.
+- **`/account/invoices`** — GST invoice list + PDF download fully
+  built (`InvoiceController`), zero entry point from Profile or
+  anywhere else. Fixed: added to Profile's Account settings group.
+- **`/sale-events/{id}/dispute`** — the real gap of the three. The
+  entire "File a Dispute" flow (form, category/description submit,
+  `DisputeService::fileDispute()`) was built and route-registered,
+  but not one button anywhere in the app pointed to it — only links
+  to *view* an already-filed dispute existed (from Settlement, My
+  Purchases, Tenant Admin dashboard). A buyer or seller with a
+  genuine problem had no way to start the process at all. Fixed: a
+  "File a Dispute" link now appears on the Settlement page whenever
+  no dispute exists yet for that transaction and the format isn't
+  Tender (which runs its own separate process, per the form's own
+  copy) — gated on `$callerId` so it only shows to a logged-in
+  viewer, matching `DisputeController::fileForm()`'s own login gate.
+
+**Verified**: full regression re-run clean against a rebuilt database
+(all 33 suites; `chronicle` confirmed clean standalone — its one loop
+failure was the same known same-DB double-run fixture collision
+already documented in D-98/99/101, not a regression, and this time
+traced to my own earlier manual query for a real settlement ID
+inside this same session). Real HTTP for all three fixes: Cookie
+Policy card renders on `/trust-support` and resolves 200; Invoices
+link renders on `/profile` and resolves 200; File a Dispute link
+renders on a real settlement page, resolves 200, and lands on the
+actual `dispute/file` form (`<h1>File a Dispute</h1>` confirmed in
+the response).
+
+Delivered as a screenflow diagram plus a findings table (route,
+claim, actual finding, evidence) in a published artifact, not just
+prose — the diagram groups the core Buyer/Seller path by where each
+screen sits and highlights the three genuinely-fixed nodes.

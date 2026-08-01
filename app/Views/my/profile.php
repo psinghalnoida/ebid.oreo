@@ -42,6 +42,7 @@
       <a href="/account/edit">Edit Account <span class="chev">→</span></a>
       <a href="/account/change-mpin">Change mPIN <span class="chev">→</span></a>
       <a href="/payout-bank">Payout Bank Details <span class="chev">→</span></a>
+      <a href="/account/invoices">Invoices <span class="chev">→</span></a>
     </div>
   </div>
 

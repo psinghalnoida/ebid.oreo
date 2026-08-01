@@ -18,6 +18,8 @@
   </p>
   <?php if ($dispute): ?>
     <p style="font-size:13px;"><a href="/disputes/<?= esc($dispute['id']) ?>" style="color:#B5482F;">A dispute exists on this transaction (<?= esc($dispute['status']) ?>) — view it &rarr;</a></p>
+  <?php elseif ($callerId && $saleEvent['sale_format'] !== 'tender'): ?>
+    <p style="font-size:13px;"><a href="/sale-events/<?= esc($saleEvent['id']) ?>/dispute" style="color:var(--ink-3);">Something wrong with this transaction? File a Dispute &rarr;</a></p>
   <?php endif; ?>
 
   <p style="font-size:13px; color:var(--ink-2); margin:16px 0;">
