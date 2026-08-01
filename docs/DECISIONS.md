@@ -6167,3 +6167,83 @@ codes (`offer.accepted`, `settlement.tds_deducted`) — not BR/PR
 jargon, but not branded-terminology prose either. The project owner's
 instruction was specifically about BR/PR references; this wasn't
 asked for and wasn't done unprompted.
+
+### D-98: BR-46 (AI Listing Quality Pre-Audit) built end to end, inert until a Gemini key lands
+
+Discussed before building, per BR-01. The project owner framed BR-46
+as a "showcase" feature — the first-impression moment a seller
+experiences AI on the platform — and asked what happens to that
+moment for a Tenant integrating via the API instead of the portal,
+since BR-46's own text describes an interactive button click ("a
+seller may **trigger**... one-click 'Apply Title' action"), and
+nothing happens to a JSON payload arriving from a Tenant's own
+backend the way it happens to someone at a screen.
+
+Two options were laid out: scope BR-46 to the portal only (API-pushed
+Lots skip it, on the assumption a Tenant's own systems already vet
+their data), or expose the pre-audit as its own standalone capability
+a Tenant's own frontend can call before finalizing a push — so a
+Trader/seller on the Tenant's *own* branded storefront gets the same
+AI-assisted moment, under the Tenant's own skin. The project owner
+picked the second, explicitly for maximizing the showcase effect
+across the platform's most sophisticated customers, not just direct
+portal users. Two follow-on decisions, resolved without re-opening
+the conversation once agreement was reached: the API endpoint gets
+the exact same tier floor as Lot push itself (TSX Growth+, BR-66) —
+no new tier rule, since a Tenant that can't push Lots has nothing to
+pre-audit — and it's a dedicated, stateless `POST /api/listings/
+pre-audit` rather than a flag on the push endpoint, since the whole
+value of BR-46 is the iterate loop (check → suggestions → apply →
+check again → submit when happy), which only works as a separate,
+repeatable, side-effect-free call.
+
+**A real, previously-undiscussed gap surfaced while building**: BR-46
+needs a title to write "Apply Title" into, and the `listing` table has
+never had a title column — display has always been a composed
+`category`/`subcategory` string. Fixed with a small, additive,
+nullable `listing.title` migration (`2026-01-01-000064`) rather than
+silently faking the interaction or silently inventing a new required
+field — `listing/show.php`'s heading prefers `title` when set, falls
+back to the existing composed string otherwise, so nothing changes
+for any listing that never sets one.
+
+**Built, inert until `GEMINI_API_KEY` is real, same honesty pattern
+BR-52/AmlMonitoringService already established for a blocked-on-
+credentials feature**: `GeminiPreAuditService::evaluate()` checks for
+a configured key *before* attempting any network call and throws a
+plain, honest "AI pre-audit is not currently available" message if
+one isn't set — never a fabricated score. Both call sites
+(`ListingController::preAudit()` for the portal, session-gated;
+`TenantApiController::preAuditListing()` for the API, bearer-token +
+tier-gated) catch that and degrade to a clean `503 {"available":
+false}` response. The portal button (`listing/create.php`) shows the
+same "not currently available" state rather than erroring or silently
+doing nothing. A real Gemini REST contract is wired throughout
+(`generateContent` with a JSON `responseSchema` for
+qualityScore/suggestedTitle/missingFields/statusFlag) — genuinely
+correct against the documented API, but genuinely untestable in this
+environment without a real key, exactly the same honest limitation
+BR-52's chargeback code already carries.
+
+`GEMINI_API_KEY`/`GEMINI_MODEL` documented in the tracked `env`
+template (not `.env`, which is gitignored) with a direct link to where
+to get a key.
+
+**Verified**: new `test:aiaudit` (9/9) — the "not configured" state is
+proven false rather than assumed (no stray key in this environment),
+`evaluate()` genuinely throws before any network attempt, the tier
+gate is asserted against the exact same `TenantModel::canPushListings`
+call Lot push uses (not a duplicated rule that could drift), and
+`listing.title` round-trips correctly both set and unset. Real HTTP,
+via a genuine registration+OTP+mPIN flow (not simulated): the portal
+endpoint 401s with no session and returns a real 503 unavailable
+response once authenticated; `listing/create.php` renders the button
+and title field for a real logged-in seller. Real HTTP against the
+Tenant API, via genuinely issued OAuth2 tokens for a real Growth-tier
+and a real Launch-tier tenant: Growth reaches the service and gets the
+honest 503, Launch is blocked at 403 *before* the service is ever
+called, no token gets 401. Regression: `tenantapi`, `buynow`,
+`easyschedule`, `express`, `tenderfoundation`, `media`, `discovery`,
+`browse`, `lifecycle` all re-run clean against the shared files this
+touched (`ListingController`, `TenantApiController`, `ListingModel`,
+`Routes.php`).

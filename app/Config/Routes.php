@@ -18,6 +18,7 @@ $routes->post('/login/reset-verify-otp', 'AuthController::resetVerifyOtpSubmit')
 
 // BR-11/BR-13 listing lifecycle + BR-12 Easy Auction (dev-testable, real routes)
 $routes->get('/listings/create', 'ListingController::createForm');
+$routes->post('/listings/pre-audit', 'ListingController::preAudit');
 $routes->post('/listings', 'ListingController::createSubmit');
 $routes->get('/listings/(:segment)', 'ListingController::show/$1');
 $routes->post('/listings/(:segment)/submit-for-approval', 'ListingController::submitForApproval/$1');
@@ -263,6 +264,7 @@ $routes->post('/tenants/(:segment)/api-access/webhook-url', 'TenantApiSettingsCo
 // without notice, breaking changes run old/new shapes in parallel
 // instead of bumping a path segment.
 $routes->post('/api/oauth/token', 'TenantApiController::issueToken');
+$routes->post('/api/listings/pre-audit', 'TenantApiController::preAuditListing', ['filter' => 'apiAuth']);
 $routes->post('/api/listings', 'TenantApiController::pushListing', ['filter' => 'apiAuth']);
 $routes->get('/api/listings/(:segment)', 'TenantApiController::getListing/$1', ['filter' => 'apiAuth']);
 $routes->post('/api/listings/(:segment)/sale-events', 'TenantApiController::pushSaleEvent/$1', ['filter' => 'apiAuth']);

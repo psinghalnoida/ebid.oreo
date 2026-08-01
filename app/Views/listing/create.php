@@ -14,6 +14,10 @@
       <?php endforeach; ?>
     </select>
 
+    <label style="font-size:12px; color:var(--ink-3);">Title (optional)</label>
+    <input type="text" name="title" id="listingTitleInput" placeholder="A clear, specific title for this listing"
+      style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
+
     <label style="font-size:12px; color:var(--ink-3);">Physical Condition</label>
     <input type="text" name="physical_condition" required placeholder="e.g. Fire-damaged, functional unverified"
       style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
@@ -86,6 +90,12 @@
       <input type="checkbox" name="media_is_representative_under_waiver" value="1">
       Use representative imagery under an active BR-60 <?= tsx_term('Tenant') ?> Media Waiver (only works if your <?= strtolower(tsx_term('Tenant')) ?> has one approved for this category)
     </label>
+
+    <div style="margin: 20px 0; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper-2, #F8F9F5);">
+      <button type="button" id="aiPreAuditBtn" class="btn btn-ghost" style="width:100%;">✦ Check with AI</button>
+      <p style="font-size:11px; color:var(--ink-3); margin:8px 0 0;">Advisory only — reviews your draft and suggests improvements. Never approves or blocks submission; your <?= strtolower(tsx_term('Tenant Admin')) ?> still reviews every <?= strtolower(tsx_term('Listing')) ?>.</p>
+      <div id="aiPreAuditResult" style="display:none; margin-top:14px; font-size:13px;"></div>
+    </div>
 
     <button type="submit" class="btn btn-emerald" style="width:100%;">Create <?= tsx_term('Listing') ?></button>
   </form>
@@ -169,6 +179,62 @@
       form.reset();
       var note = document.getElementById('draftRestoredNote');
       if (note) note.style.display = 'none';
+    });
+  }
+
+  // BR-46: purely advisory -- this never touches form validation or
+  // blocks submit. "Apply" just fills the Title field; the seller
+  // still reviews and submits themselves.
+  var aiBtn = document.getElementById('aiPreAuditBtn');
+  var aiResult = document.getElementById('aiPreAuditResult');
+  if (aiBtn) {
+    aiBtn.addEventListener('click', function () {
+      aiBtn.disabled = true;
+      var originalLabel = aiBtn.textContent;
+      aiBtn.textContent = 'Checking…';
+
+      var body = new URLSearchParams();
+      body.append('category', form.category.value);
+      body.append('subcategory', form.subcategory.value);
+      body.append('physical_condition', form.physical_condition.value);
+      body.append('quantity', form.quantity.value);
+      body.append('make_model', form.make_model.value);
+
+      fetch('/listings/pre-audit', { method: 'POST', body: body })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          aiResult.style.display = 'block';
+          if (!data.available) {
+            aiResult.innerHTML = '<p style="color:var(--ink-3);">AI pre-check is not currently available.</p>';
+            return;
+          }
+          var html = '<p><strong>Quality Score:</strong> ' + data.qualityScore + '/100</p>';
+          if (data.suggestedTitle) {
+            html += '<p><strong>Suggested Title:</strong> ' + data.suggestedTitle
+              + ' <a href="#" id="applyTitleLink">Apply</a></p>';
+          }
+          if (data.missingFields && data.missingFields.length) {
+            html += '<p><strong>Consider adding:</strong> ' + data.missingFields.join(', ') + '</p>';
+          }
+          aiResult.innerHTML = html;
+
+          var applyLink = document.getElementById('applyTitleLink');
+          if (applyLink) {
+            applyLink.addEventListener('click', function (e) {
+              e.preventDefault();
+              var titleInput = document.getElementById('listingTitleInput');
+              if (titleInput) titleInput.value = data.suggestedTitle;
+            });
+          }
+        })
+        .catch(function () {
+          aiResult.style.display = 'block';
+          aiResult.innerHTML = '<p style="color:var(--ink-3);">AI pre-check is not currently available.</p>';
+        })
+        .finally(function () {
+          aiBtn.disabled = false;
+          aiBtn.textContent = originalLabel;
+        });
     });
   }
 })();

@@ -431,3 +431,31 @@ the full Access & Visibility model, AI-authored narrative) is Section
 7.11 — explicitly Phase 2, the same treatment already given Procurement
 and Market Intelligence. Full detail in `docs/DECISIONS.md` D-94.
 
+## Update — D-98: BR-46 built end to end, inert until a Gemini key lands
+
+BR-46 (AI Listing Quality Pre-Audit) is no longer "zero code anywhere"
+— every piece of it is built and verified except the one thing that
+genuinely needs an external credential: a live call to Gemini itself.
+Portal button, dedicated Tenant API endpoint (extending BR-46's own
+"seller may trigger" text to cover Tenants integrating via the API,
+per the project owner's explicit direction), tier gating identical to
+Lot push, and the real Gemini REST contract are all real and exercised
+by `test:aiaudit` (9/9) plus real HTTP against both the portal and API
+surfaces. `GeminiPreAuditService::evaluate()` fails honestly — a plain
+"not currently available" message, before any network attempt — when
+`GEMINI_API_KEY` is unset, exactly as it is in this environment today;
+it never fabricates a result. Full detail in `docs/DECISIONS.md` D-98.
+
+**Still genuinely blocked, unchanged**: the model actually has to
+return something for this to work end to end — that part cannot be
+exercised without a real key, same honest limitation BR-52's
+chargeback-detection code already carries.
+
+### Bottom line (current)
+
+**Still two items with no path forward without the project owner
+supplying something external — but BR-46's build itself is done**:
+
+1. BR-46 — fully built, genuinely inert pending a Gemini API key (no remaining build-effort gap)
+2. BR-52 — Chargeback Mitigation (blocked on real SabPaisa API credentials, no build-effort gap either)
+
