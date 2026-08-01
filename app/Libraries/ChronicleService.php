@@ -48,11 +48,13 @@ class ChronicleService
                 'tdsRatePercent' => 10.00,
                 'tdsAmount' => $tdsAmount,
             ],
-            // BR-16: identity stays masked throughout -- the report
-            // states that the process was auditable without exposing
-            // who anyone was, matching how the rest of this platform
-            // already renders bids/offers (amount + status only).
-            'transparencyNote' => 'Bidder and offeror identity was masked throughout this Trading Session, per BR-16\'s double-blind privacy rule. Every step above is independently verifiable against the platform\'s immutable audit trail without that identity ever being exposed.',
+            // BR-16: identity stays masked throughout -- recorded as a
+            // plain data point rather than an explanatory sentence, per
+            // the project owner's "data points only" instruction.
+            'privacy' => [
+                'identityDisclosure' => 'Masked (Double-Blind)',
+                'processAuditable' => 'Yes',
+            ],
         ];
 
         $id = Uuid::v4();

@@ -99,6 +99,9 @@ class ChronicleController extends BaseController
         $reportData = json_decode($chronicle['report_data'], true);
         $verifyUrl = base_url('chronicle/verify/' . $chronicle['verification_token']);
 
+        // The QR is the sole entry point a scan gets -- it resolves to
+        // the verify page, which is where every piece of Lot evidence
+        // (photographs, documents) is actually linked, not just named.
         $qrResult = (new \Endroid\QrCode\Builder\Builder(
             writer: new \Endroid\QrCode\Writer\PngWriter(),
             data: $verifyUrl, size: 220, margin: 8,
@@ -107,6 +110,7 @@ class ChronicleController extends BaseController
         $html = view('chronicle/pdf', [
             'chronicle' => $chronicle, 'reportData' => $reportData,
             'verifyUrl' => $verifyUrl, 'qrDataUri' => $qrResult->getDataUri(),
+            'logoDataUri' => $this->brandLogoDataUri(),
         ]);
 
         $dompdf = new \Dompdf\Dompdf();
@@ -118,5 +122,14 @@ class ChronicleController extends BaseController
             ->setHeader('Content-Type', 'application/pdf')
             ->setHeader('Content-Disposition', 'attachment; filename="' . $chronicle['reference_number'] . '.pdf"')
             ->setBody($dompdf->output());
+    }
+
+    // dompdf renders from a detached HTML string, not a live request --
+    // a plain <img src="/images/..."> won't resolve, so the logo has to
+    // travel with the document as a data URI, same as the QR code.
+    private function brandLogoDataUri(): string
+    {
+        $path = FCPATH . 'images/brand/adwitix-logo-full.jpg';
+        return 'data:image/jpeg;base64,' . base64_encode(file_get_contents($path));
     }
 }
