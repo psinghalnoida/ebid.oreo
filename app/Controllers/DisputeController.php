@@ -27,7 +27,7 @@ class DisputeController extends BaseController
     public function fileForm(string $saleEventId)
     {
         if (!$this->requireLogin()) return redirect()->to('/login');
-        return view('dispute/file', ['title' => 'File a Dispute — eBid Hub', 'saleEventId' => $saleEventId]);
+        return view('dispute/file', ['title' => 'File a Dispute — AdwitiX', 'saleEventId' => $saleEventId]);
     }
 
     public function fileSubmit(string $saleEventId)
@@ -54,7 +54,7 @@ class DisputeController extends BaseController
         if (!$d) throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
 
         return view('dispute/show', [
-            'title' => 'Dispute — eBid Hub', 'dispute' => $d,
+            'title' => 'Dispute — AdwitiX', 'dispute' => $d,
             'evidence' => $this->dispute->getEvidence($disputeId),
             'callerId' => $partyId,
         ]);

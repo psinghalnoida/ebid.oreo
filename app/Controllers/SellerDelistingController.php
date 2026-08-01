@@ -9,7 +9,7 @@ class SellerDelistingController extends BaseController
 {
     public function form()
     {
-        return view('admin/delist_seller', ['title' => 'Delist Seller — eBid Hub']);
+        return view('admin/delist_seller', ['title' => 'Delist Seller — AdwitiX']);
     }
 
     public function submit()

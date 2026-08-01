@@ -48,7 +48,7 @@ class AdminController extends BaseController
             ->get()->getResultArray();
 
         return view('admin/dashboard', [
-            'title' => 'Super Admin — eBid Hub',
+            'title' => 'Super Admin — AdwitiX',
             'tenants' => $tenantModel->findAll(),
             'openDisputes' => $disputeModel->whereIn('status', ['filed', 'evidence_window', 'appealed'])->countAllResults(),
             'stalledSettlements' => $settlementModel->where('status', 'stalled')->countAllResults(),
@@ -91,7 +91,7 @@ class AdminController extends BaseController
         $driftAlerts = (new \App\Models\ServerTimeCheckModel())->findUnacknowledgedDriftAlerts();
 
         return view('admin/alerts', [
-            'title' => 'Alerts — eBid Hub',
+            'title' => 'Alerts — AdwitiX',
             'amlFlags' => $amlFlags,
             'stalledSettlements' => $stalledSettlements,
             'openDisputes' => $openDisputes,

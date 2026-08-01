@@ -20,16 +20,16 @@ class LegalController extends BaseController
 <p><strong>Operator:</strong> {$p} &nbsp; <strong>Effective Date:</strong> {$p} &nbsp; <strong>Contact:</strong> {$p}</p>
 
 <h2>1. Introduction &amp; Acceptance</h2>
-<p><strong>1.1.</strong> eBid Hub ("the Platform", "we", "us") is a multi-tenant online marketplace that enables the sale of salvaged, surplus, repossessed, used, and specialised assets between registered Sellers and registered Buyers, operating through individually branded storefronts ("Tenants" or "Shops").</p>
+<p><strong>1.1.</strong> AdwitiX ("the Platform", "we", "us") is a multi-tenant online marketplace that enables the sale of salvaged, surplus, repossessed, used, and specialised assets between registered Sellers and registered Buyers, operating through individually branded storefronts ("Tenants" or "Shops").</p>
 <p><strong>1.2.</strong> By registering an account, browsing listings, placing a bid or offer, or otherwise using the Platform, you agree to be bound by these Terms of Usage ("Terms"), our Privacy Policy, and any additional terms published by the specific Tenant/Shop through which you transact.</p>
 <p><strong>1.3.</strong> If you do not agree to these Terms, you must not register for or use the Platform.</p>
 <p><strong>1.4.</strong> These Terms apply to all users of the Platform, including Buyers, Sellers, and Tenant Administrators, collectively referred to as "Users" or "you."</p>
 
 <h2>2. Definitions</h2>
-<p><strong>"Platform":</strong> The eBid Hub website, mobile-responsive application, and all associated services.</p>
+<p><strong>"Platform":</strong> The AdwitiX website, mobile-responsive application, and all associated services.</p>
 <p><strong>"Super Admin":</strong> The sovereign administrator of the Platform, who does not participate as a Buyer, Seller, or Tenant Administrator in any transaction.</p>
 <p><strong>"Tenant / Shop":</strong> A whitelisted storefront operating on the Platform under its own branding, administered by a Tenant Administrator.</p>
-<p><strong>"Tenant Administrator":</strong> A person authorised by a Tenant's company, under formal agreement with eBid Hub, to administer that Tenant's storefront.</p>
+<p><strong>"Tenant Administrator":</strong> A person authorised by a Tenant's company, under formal agreement with AdwitiX, to administer that Tenant's storefront.</p>
 <p><strong>"Buyer":</strong> A registered User who bids on, offers for, or purchases a listed item.</p>
 <p><strong>"Seller":</strong> A registered User approved by a specific Tenant to list items for sale on that Tenant's storefront.</p>
 <p><strong>"Listing":</strong> A cataloged item and its associated description, media, and condition information.</p>
@@ -42,13 +42,13 @@ class LegalController extends BaseController
 <p><strong>4.3.</strong> Three consecutive failed mPIN attempts will trigger a mandatory OTP verification step before further access is permitted.</p>
 
 <h2>5. Nature of the Platform</h2>
-<p><strong>5.1.</strong> eBid Hub is a marketplace facilitator only. We are not a party to, and assume no responsibility for, the underlying sale contract formed between a Buyer and a Seller. Title to any item transfers directly between Buyer and Seller, not through the Platform.</p>
+<p><strong>5.1.</strong> AdwitiX is a marketplace facilitator only. We are not a party to, and assume no responsibility for, the underlying sale contract formed between a Buyer and a Seller. Title to any item transfers directly between Buyer and Seller, not through the Platform.</p>
 <p><strong>5.2.</strong> The Platform does not take custody of, inspect, or guarantee the condition, legality, or authenticity of any listed item, except to the extent expressly stated in these Terms.</p>
 <p><strong>5.3.</strong> 100% of the sale value for any completed transaction is settled directly and offline between Buyer and Seller. The Platform at no point holds, transmits, or has custody of the full sale value — only the EMD (where applicable) is held via the Platform's payment mechanisms.</p>
 <p><strong>5.4.</strong> The Super Admin does not participate as a Buyer, Seller, or Tenant Administrator in any transaction on the Platform, and has no visibility into live bidding activity while it is in progress.</p>
 
 <h2>6. Tenants &amp; Shops</h2>
-<p><strong>6.1.</strong> Each Tenant operates its own branded storefront under an agreement with eBid Hub, and is administered by a Tenant Administrator authorised by the Tenant's company.</p>
+<p><strong>6.1.</strong> Each Tenant operates its own branded storefront under an agreement with AdwitiX, and is administered by a Tenant Administrator authorised by the Tenant's company.</p>
 <p><strong>6.2.</strong> A Tenant Administrator has authority to approve or reject Listings and Sale Events on their storefront, set local commission and fee terms within Platform-wide limits, and approve or suspend Sellers on their storefront.</p>
 <p><strong>6.3.</strong> Approval to sell on one Tenant's storefront does not extend to any other Tenant's storefront. A Seller must separately apply to and be approved by each Tenant on whose storefront they wish to list items.</p>
 <p><strong>6.4.</strong> A Tenant may restrict or suspend a Seller's or Buyer's access to its own storefront at its discretion. Such restriction is limited to that Tenant's storefront and does not, by itself, affect the User's Star Rating or ability to transact on other Tenants' storefronts.</p>
@@ -81,7 +81,7 @@ class LegalController extends BaseController
 <h2>11. Fees &amp; Commission</h2>
 <p><strong>11.1.</strong> Sellers are not charged any fee to list or sell items on the Platform.</p>
 <p><strong>11.2.</strong> A transaction fee is charged to the Buyer, at a rate determined by the relevant Tenant (subject to Platform-wide limits), and deducted from the Buyer's held EMD at settlement.</p>
-<p><strong>11.3.</strong> eBid Hub charges each Tenant a platform usage fee of 0.5% of final sale turnover on transactions completed through that Tenant's storefront.</p>
+<p><strong>11.3.</strong> AdwitiX charges each Tenant a platform usage fee of 0.5% of final sale turnover on transactions completed through that Tenant's storefront.</p>
 <p><strong>11.4.</strong> All applicable fees will be disclosed to the Buyer prior to the placement of a bid or offer.</p>
 
 <h2>12. Cancellations, Defaults &amp; Forfeiture</h2>
@@ -108,19 +108,19 @@ class LegalController extends BaseController
 <h2>17. Content &amp; Intellectual Property</h2>
 <p><strong>17.1.</strong> You retain ownership of any photographs, descriptions, and other content you upload to a Listing, but grant the Platform a non-exclusive, worldwide licence to host, display, reproduce, and distribute such content for the purpose of operating the Platform.</p>
 <p><strong>17.2.</strong> You warrant that you own or have the necessary rights to any content you upload, and that such content does not infringe the intellectual property or other rights of any third party.</p>
-<p><strong>17.3.</strong> The eBid Hub name, logo, and Platform design are the property of eBid Hub and may not be used without prior written consent.</p>
+<p><strong>17.3.</strong> The AdwitiX name, logo, and Platform design are the property of AdwitiX and may not be used without prior written consent.</p>
 
 <h2>18. Data &amp; Privacy</h2>
 <p><strong>18.1.</strong> Your personal data is collected, used, and stored in accordance with the Platform's Privacy Policy, which forms part of these Terms by reference.</p>
 <p><strong>18.2.</strong> Sensitive identity data (including Aadhaar) is stored in tokenised/masked form. Transaction and audit records are retained in accordance with the Platform's data retention policy for a minimum period as required under applicable Indian law.</p>
 
 <h2>19. Limitation of Liability</h2>
-<p><strong>19.1.</strong> The Platform is provided on an "as is" and "as available" basis. To the maximum extent permitted by applicable law, eBid Hub disclaims all warranties, whether express or implied, regarding the Platform's operation or the quality, safety, or legality of any listed item.</p>
-<p><strong>19.2.</strong> eBid Hub's aggregate liability to any User arising from or relating to use of the Platform shall not exceed the total fees paid by that User to the Platform in the twelve (12) months preceding the event giving rise to the claim, save where such limitation is not permitted under applicable law.</p>
-<p><strong>19.3.</strong> eBid Hub shall not be liable for any indirect, incidental, or consequential loss, including loss of profit or business opportunity, arising from use of the Platform.</p>
+<p><strong>19.1.</strong> The Platform is provided on an "as is" and "as available" basis. To the maximum extent permitted by applicable law, AdwitiX disclaims all warranties, whether express or implied, regarding the Platform's operation or the quality, safety, or legality of any listed item.</p>
+<p><strong>19.2.</strong> AdwitiX's aggregate liability to any User arising from or relating to use of the Platform shall not exceed the total fees paid by that User to the Platform in the twelve (12) months preceding the event giving rise to the claim, save where such limitation is not permitted under applicable law.</p>
+<p><strong>19.3.</strong> AdwitiX shall not be liable for any indirect, incidental, or consequential loss, including loss of profit or business opportunity, arising from use of the Platform.</p>
 
 <h2>20. Indemnification</h2>
-<p><strong>20.1.</strong> You agree to indemnify and hold harmless eBid Hub, its officers, and the relevant Tenant, from any claim, loss, or liability arising from your breach of these Terms, your Listing content, or your conduct in any transaction.</p>
+<p><strong>20.1.</strong> You agree to indemnify and hold harmless AdwitiX, its officers, and the relevant Tenant, from any claim, loss, or liability arising from your breach of these Terms, your Listing content, or your conduct in any transaction.</p>
 
 <h2>21. Suspension &amp; Termination</h2>
 <p><strong>21.1.</strong> The Platform may suspend or terminate your account for breach of these Terms, following the Platform's internal governance and, where applicable, dispute resolution process.</p>
@@ -132,14 +132,14 @@ class LegalController extends BaseController
 <p><strong>22.2.</strong> Subject to the Platform's internal dispute resolution process, any dispute arising from these Terms shall be subject to the exclusive jurisdiction of the courts at {$p}.</p>
 
 <h2>23. Amendments</h2>
-<p><strong>23.1.</strong> eBid Hub may amend these Terms from time to time. Material changes will be notified to Users through the Platform. Continued use of the Platform following such notice constitutes acceptance of the amended Terms.</p>
+<p><strong>23.1.</strong> AdwitiX may amend these Terms from time to time. Material changes will be notified to Users through the Platform. Continued use of the Platform following such notice constitutes acceptance of the amended Terms.</p>
 
 <h2>24. Grievance Officer &amp; Contact</h2>
 <p>In accordance with the Information Technology Act 2000 and rules made thereunder, the details of the Grievance Officer are: {$p}</p>
 <p>For all other queries, contact: {$p}</p>
 HTML;
 
-        return view('legal/document', ['title' => 'Terms of Usage — eBid Hub', 'docTitle' => 'Terms of Usage', 'bodyHtml' => $bodyHtml]);
+        return view('legal/document', ['title' => 'Terms of Usage — AdwitiX', 'docTitle' => 'Terms of Usage', 'bodyHtml' => $bodyHtml]);
     }
 
     public function privacyPolicy()
@@ -149,7 +149,7 @@ HTML;
 <p><strong>Data Fiduciary:</strong> {$p} &nbsp; <strong>Effective Date:</strong> {$p} &nbsp; <strong>Contact:</strong> {$p}</p>
 
 <h2>1. Introduction &amp; Scope</h2>
-<p><strong>1.1.</strong> This Privacy Policy describes how eBid Hub ("the Platform", "we", "us") collects, uses, discloses, and protects the personal data of registered Buyers, Sellers, and Tenant Administrators ("you") in connection with your use of the Platform.</p>
+<p><strong>1.1.</strong> This Privacy Policy describes how AdwitiX ("the Platform", "we", "us") collects, uses, discloses, and protects the personal data of registered Buyers, Sellers, and Tenant Administrators ("you") in connection with your use of the Platform.</p>
 <p><strong>1.2.</strong> This Policy applies across all Tenant storefronts operating on the Platform. Individual Tenants may not collect or process your personal data outside the mechanisms described in this Policy without your separate consent.</p>
 <p><strong>1.3.</strong> By registering for or using the Platform, you consent to the collection and processing of your personal data as described in this Policy.</p>
 
@@ -172,7 +172,7 @@ HTML;
 <p><strong>12.1.</strong> We may update this Privacy Policy from time to time. Material changes will be notified to Users through the Platform, and the "Effective Date" at the top of this Policy will be updated accordingly.</p>
 HTML;
 
-        return view('legal/document', ['title' => 'Privacy Policy — eBid Hub', 'docTitle' => 'Privacy Policy', 'bodyHtml' => $bodyHtml]);
+        return view('legal/document', ['title' => 'Privacy Policy — AdwitiX', 'docTitle' => 'Privacy Policy', 'bodyHtml' => $bodyHtml]);
     }
 
     public function grievanceRedressal()
@@ -182,7 +182,7 @@ HTML;
 <p><strong>Effective Date:</strong> {$p} &nbsp; <strong>Contact:</strong> {$p}</p>
 
 <h2>1. Purpose &amp; Scope</h2>
-<p><strong>1.1.</strong> This Policy sets out how to raise a grievance about eBid Hub as a platform — distinct from a dispute about a specific transaction, which is handled under our separate Dispute Resolution Process.</p>
+<p><strong>1.1.</strong> This Policy sets out how to raise a grievance about AdwitiX as a platform — distinct from a dispute about a specific transaction, which is handled under our separate Dispute Resolution Process.</p>
 <p><strong>1.2.</strong> A grievance may relate to matters such as: how your data has been handled, conduct by a Tenant Admin or platform staff, a concern about how a rule was applied to you, or dissatisfaction with the outcome of a prior support interaction.</p>
 
 <h2>2. Grievance Officer</h2>
@@ -204,7 +204,7 @@ HTML;
 <p><strong>6.1.</strong> Nothing in this Policy limits your right to approach a Consumer Disputes Redressal Commission, another applicable regulatory authority, or a court of competent jurisdiction, at any time.</p>
 HTML;
 
-        return view('legal/document', ['title' => 'Grievance Redressal — eBid Hub', 'docTitle' => 'Grievance Redressal Policy', 'bodyHtml' => $bodyHtml]);
+        return view('legal/document', ['title' => 'Grievance Redressal — AdwitiX', 'docTitle' => 'Grievance Redressal Policy', 'bodyHtml' => $bodyHtml]);
     }
 
     public function refundCancellation()
@@ -231,7 +231,7 @@ HTML;
 <p>Questions about a specific refund or forfeiture should be raised through Dispute Resolution or directly with your Tenant's support channel.</p>
 HTML;
 
-        return view('legal/document', ['title' => 'Refund & Cancellation — eBid Hub', 'docTitle' => 'Refund & Cancellation Policy', 'bodyHtml' => $bodyHtml]);
+        return view('legal/document', ['title' => 'Refund & Cancellation — AdwitiX', 'docTitle' => 'Refund & Cancellation Policy', 'bodyHtml' => $bodyHtml]);
     }
 
     public function disputeResolution()
@@ -241,7 +241,7 @@ HTML;
 <p><strong>Effective Date:</strong> {$p} &nbsp; <strong>Contact:</strong> {$p}</p>
 
 <h2>1. What This Covers</h2>
-<p>This document explains, in plain language, how a disagreement about a specific transaction gets reviewed and resolved on eBid Hub. It applies to Buy-Now, Express, and Easy Auctions. Tender Auctions are excluded, since they run entirely on terms set directly by the seller.</p>
+<p>This document explains, in plain language, how a disagreement about a specific transaction gets reviewed and resolved on AdwitiX. It applies to Buy-Now, Express, and Easy Auctions. Tender Auctions are excluded, since they run entirely on terms set directly by the seller.</p>
 
 <h2>2. What Can Be Disputed</h2>
 <p><strong>Payment Dispute:</strong> one side says money was paid or received when the other side disagrees.</p>
@@ -265,7 +265,7 @@ HTML;
 <p><strong>5.3.</strong> Every ruling comes with a stated reason — you'll always know why a decision was made, not just what the decision was.</p>
 HTML;
 
-        return view('legal/document', ['title' => 'Dispute Resolution — eBid Hub', 'docTitle' => 'Dispute Resolution Process', 'bodyHtml' => $bodyHtml]);
+        return view('legal/document', ['title' => 'Dispute Resolution — AdwitiX', 'docTitle' => 'Dispute Resolution Process', 'bodyHtml' => $bodyHtml]);
     }
 
     public function cookiePolicy()
@@ -298,6 +298,6 @@ HTML;
 <p><strong>6.1.</strong> We may update this Policy as our use of cookies changes. Material changes will be reflected in the "Effective Date" above.</p>
 HTML;
 
-        return view('legal/document', ['title' => 'Cookie Policy — eBid Hub', 'docTitle' => 'Cookie Policy', 'bodyHtml' => $bodyHtml]);
+        return view('legal/document', ['title' => 'Cookie Policy — AdwitiX', 'docTitle' => 'Cookie Policy', 'bodyHtml' => $bodyHtml]);
     }
 }

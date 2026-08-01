@@ -142,7 +142,7 @@ class TenantApiController extends BaseController
             return $this->response->setStatusCode(403)->setJSON(['error' => 'forbidden', 'error_description' => $e->getMessage()]);
         }
         if ((new RatingService())->isDelisted($sellerId)) {
-            return $this->response->setStatusCode(403)->setJSON(['error' => 'forbidden', 'error_description' => 'BR-38: this seller has been delisted from selling on eBid Hub due to a confirmed fraud finding.']);
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'forbidden', 'error_description' => 'BR-38: this seller has been delisted from selling on AdwitiX due to a confirmed fraud finding.']);
         }
         if (!(new SellerApplicationService())->isApprovedSeller($sellerId, $tenantId)) {
             return $this->response->setStatusCode(403)->setJSON(['error' => 'forbidden', 'error_description' => 'BR-09: sellerId is not an approved Seller on this TSX.']);

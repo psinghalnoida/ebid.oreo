@@ -15,7 +15,7 @@ class PayoutBankController extends BaseController
         if (!$partyId) return redirect()->to('/login');
 
         $party = (new PartyModel())->find($partyId);
-        return view('payout_bank/request', ['title' => 'Payout Bank Details — eBid Hub', 'party' => $party]);
+        return view('payout_bank/request', ['title' => 'Payout Bank Details — AdwitiX', 'party' => $party]);
     }
 
     public function requestSubmit()
@@ -30,7 +30,7 @@ class PayoutBankController extends BaseController
         try {
             $otp = (new PayoutControlService())->requestBankChange($partyId, $party['mobile_number'], $accountNumber, $ifsc);
         } catch (\RuntimeException $e) {
-            return view('payout_bank/request', ['title' => 'Payout Bank Details — eBid Hub', 'party' => $party, 'error' => $e->getMessage()]);
+            return view('payout_bank/request', ['title' => 'Payout Bank Details — AdwitiX', 'party' => $party, 'error' => $e->getMessage()]);
         }
 
         session()->set('pending_payout_bank_change', ['account_number' => $accountNumber, 'ifsc' => $ifsc]);
@@ -38,7 +38,7 @@ class PayoutBankController extends BaseController
         // Dev-only convenience: OTP shown on-screen since the SMS
         // provider is stubbed, same pattern as every other OTP flow on
         // this platform.
-        return view('payout_bank/confirm', ['title' => 'Confirm Bank Change — eBid Hub', 'devOtp' => $otp]);
+        return view('payout_bank/confirm', ['title' => 'Confirm Bank Change — AdwitiX', 'devOtp' => $otp]);
     }
 
     public function confirmSubmit()
@@ -59,7 +59,7 @@ class PayoutBankController extends BaseController
                 $partyId, $party['mobile_number'], $pending['account_number'], $pending['ifsc'], $otp
             );
         } catch (\RuntimeException $e) {
-            return view('payout_bank/confirm', ['title' => 'Confirm Bank Change — eBid Hub', 'error' => $e->getMessage()]);
+            return view('payout_bank/confirm', ['title' => 'Confirm Bank Change — AdwitiX', 'error' => $e->getMessage()]);
         }
 
         session()->remove('pending_payout_bank_change');

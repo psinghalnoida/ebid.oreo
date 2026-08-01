@@ -14,7 +14,7 @@ class AmlController extends BaseController
     {
         $flagModel = new AmlFlagModel();
         return view('admin/aml', [
-            'title' => 'AML Monitoring — eBid Hub',
+            'title' => 'AML Monitoring — AdwitiX',
             'open' => $flagModel->findOpen(),
             'reviewed' => $flagModel->findReviewed(),
         ]);

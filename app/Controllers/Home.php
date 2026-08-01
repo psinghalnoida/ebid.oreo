@@ -42,7 +42,7 @@ class Home extends BaseController
         $totalActiveCount = $totalActiveCountQuery->countAllResults();
 
         return view('landing', [
-            'title' => $tenant ? esc($tenant['name']) . ' — eBid Hub' : 'eBid Hub — Salvage & Surplus Marketplace',
+            'title' => $tenant ? esc($tenant['name']) . ' — AdwitiX' : 'AdwitiX — Salvage & Surplus Marketplace',
             'activeListings' => $activeListings,
             'categoryCounts' => $categoryCounts,
             'totalActiveCount' => $totalActiveCount,
@@ -172,7 +172,7 @@ class Home extends BaseController
         $allCategories = $allCategoriesQuery->orderBy('l.category', 'ASC')->get()->getResultArray();
 
         return view('browse', [
-            'title' => $tenant ? esc($tenant['name']) . ' — Browse' : 'Browse — eBid Hub', 'listings' => $listings,
+            'title' => $tenant ? esc($tenant['name']) . ' — Browse' : 'Browse — AdwitiX', 'listings' => $listings,
             'allCategories' => array_column($allCategories, 'category'),
             'selectedCategory' => $category, 'selectedFormat' => $format,
             'priceMin' => $priceMin, 'priceMax' => $priceMax, 'location' => $location,

@@ -53,7 +53,7 @@
     <label style="font-size:12px; color:var(--ink-3);">Photo Certification</label>
     <select name="media_tier" style="display:block; width:100%; padding:12px; margin:6px 0 20px; border:1px solid var(--line); border-radius:10px;">
       <option value="certified_by_seller">Certified by <?= tsx_term('Seller') ?> — I'll upload my own photos</option>
-      <option value="verified">Verified — eBid Hub's inspection team photographs it (inspection fee applies)</option>
+      <option value="verified">Verified — AdwitiX's inspection team photographs it (inspection fee applies)</option>
     </select>
 
     <p style="font-size:12px; color:var(--ink-3); margin:16px 0 4px;">Inspection Authority — optional, by mobile number. Anyone bound here is blocked from bidding/offering on this <?= strtolower(tsx_term('Listing')) ?>.</p>

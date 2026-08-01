@@ -20,7 +20,7 @@ class SovereignRuleController extends BaseController
     public function index()
     {
         return view('admin/rules_list', [
-            'title' => 'Rules & Specifications — eBid Hub',
+            'title' => 'Rules & Specifications — AdwitiX',
             'rules' => $this->rules->listAll(),
         ]);
     }
@@ -32,7 +32,7 @@ class SovereignRuleController extends BaseController
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
         return view('admin/rules_edit', [
-            'title' => 'Edit Rule — eBid Hub',
+            'title' => 'Edit Rule — AdwitiX',
             'rule' => $rule,
             'revisions' => $this->rules->revisions($ruleId),
         ]);
@@ -60,7 +60,7 @@ class SovereignRuleController extends BaseController
 
     public function createForm()
     {
-        return view('admin/rules_create', ['title' => 'Define a New Rule — eBid Hub']);
+        return view('admin/rules_create', ['title' => 'Define a New Rule — AdwitiX']);
     }
 
     public function createSubmit()

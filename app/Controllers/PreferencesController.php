@@ -17,7 +17,7 @@ class PreferencesController extends BaseController
         $allCategories = $db->table('listing')->distinct()->select('category')->orderBy('category', 'ASC')->get()->getResultArray();
 
         return view('preferences/form', [
-            'title' => 'My Preferences — eBid Hub',
+            'title' => 'My Preferences — AdwitiX',
             'existing' => $existing,
             'allCategories' => array_column($allCategories, 'category'),
             'selectedCategories' => $existing && $existing['preferred_categories'] ? json_decode($existing['preferred_categories'], true) : [],

@@ -46,7 +46,7 @@ class MyActivityController extends BaseController
         $bids = $query->limit($pg['perPage'], $pg['offset'])->get()->getResultArray();
 
         return view('my/bids', [
-            'title' => 'My Bids — eBid Hub', 'bids' => $bids, 'format' => $format, 'status' => $status, 'sort' => $sort,
+            'title' => 'My Bids — AdwitiX', 'bids' => $bids, 'format' => $format, 'status' => $status, 'sort' => $sort,
             'page' => $pg['page'], 'perPage' => $pg['perPage'], 'totalPages' => Paginator::totalPages($total, $pg['perPage']), 'total' => $total,
         ]);
     }
@@ -74,7 +74,7 @@ class MyActivityController extends BaseController
             ->orderBy('o.created_at', 'DESC')->limit($pg['perPage'], $pg['offset'])->get()->getResultArray();
 
         return view('my/offers', [
-            'title' => 'My Offers — eBid Hub', 'offers' => $offers, 'status' => $status,
+            'title' => 'My Offers — AdwitiX', 'offers' => $offers, 'status' => $status,
             'page' => $pg['page'], 'perPage' => $pg['perPage'], 'totalPages' => Paginator::totalPages($total, $pg['perPage']), 'total' => $total,
         ]);
     }
@@ -127,7 +127,7 @@ class MyActivityController extends BaseController
         unset($p);
 
         return view('my/purchases', [
-            'title' => 'My Purchases — eBid Hub', 'purchases' => $purchases,
+            'title' => 'My Purchases — AdwitiX', 'purchases' => $purchases,
             'format' => $format, 'status' => $status, 'from' => $from, 'to' => $to,
             'page' => $pg['page'], 'perPage' => $pg['perPage'], 'totalPages' => Paginator::totalPages($total, $pg['perPage']), 'total' => $total,
         ]);
@@ -185,7 +185,7 @@ class MyActivityController extends BaseController
             ->orderBy('s.created_at', 'DESC')->limit($pg['perPage'], $pg['offset'])->get()->getResultArray();
 
         return view('my/sales', [
-            'title' => 'My Sales — eBid Hub', 'sales' => $sales,
+            'title' => 'My Sales — AdwitiX', 'sales' => $sales,
             'format' => $format, 'status' => $status, 'from' => $from, 'to' => $to,
             'page' => $pg['page'], 'perPage' => $pg['perPage'], 'totalPages' => Paginator::totalPages($total, $pg['perPage']), 'total' => $total,
         ]);
@@ -241,7 +241,7 @@ class MyActivityController extends BaseController
             ->orderBy('l.created_at', 'DESC')
             ->get()->getResultArray();
 
-        return view('my/listings', ['title' => 'My Listings — eBid Hub', 'listings' => $listings]);
+        return view('my/listings', ['title' => 'My Listings — AdwitiX', 'listings' => $listings]);
     }
 
     public function myActivity()
@@ -276,7 +276,7 @@ class MyActivityController extends BaseController
             ->get()->getResultArray();
 
         return view('my/activity', [
-            'title' => 'My Activity — eBid Hub', 'bids' => $bids, 'offers' => $offers, 'settlements' => $settlements,
+            'title' => 'My Activity — AdwitiX', 'bids' => $bids, 'offers' => $offers, 'settlements' => $settlements,
         ]);
     }
 
@@ -286,6 +286,6 @@ class MyActivityController extends BaseController
         if (!$partyId) return redirect()->to('/login');
 
         $party = (new \App\Models\PartyModel())->find($partyId);
-        return view('my/profile', ['title' => 'My Profile — eBid Hub', 'party' => $party]);
+        return view('my/profile', ['title' => 'My Profile — AdwitiX', 'party' => $party]);
     }
 }

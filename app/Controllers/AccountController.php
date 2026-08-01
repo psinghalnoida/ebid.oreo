@@ -26,7 +26,7 @@ class AccountController extends BaseController
         if (!$partyId) return redirect()->to('/login');
 
         $party = (new PartyModel())->find($partyId);
-        return view('account/edit', ['title' => 'Edit Account — eBid Hub', 'party' => $party]);
+        return view('account/edit', ['title' => 'Edit Account — AdwitiX', 'party' => $party]);
     }
 
     public function editSubmit()
@@ -62,7 +62,7 @@ class AccountController extends BaseController
     {
         $partyId = $this->requireLogin();
         if (!$partyId) return redirect()->to('/login');
-        return view('account/change_mpin_request', ['title' => 'Change mPIN — eBid Hub']);
+        return view('account/change_mpin_request', ['title' => 'Change mPIN — AdwitiX']);
     }
 
     public function changeMpinRequestOtp()
@@ -74,7 +74,7 @@ class AccountController extends BaseController
         $otp = (new AuthService())->requestOtp($party['mobile_number'], 'mpin_reset');
         session()->set('pending_mpin_change_party_id', $partyId);
 
-        return view('account/change_mpin_confirm', ['title' => 'Confirm mPIN Change — eBid Hub', 'devOtp' => $otp]);
+        return view('account/change_mpin_confirm', ['title' => 'Confirm mPIN Change — AdwitiX', 'devOtp' => $otp]);
     }
 
     public function changeMpinConfirm()
@@ -89,13 +89,13 @@ class AccountController extends BaseController
         $newMpin = trim($this->request->getPost('new_mpin'));
 
         if (!(new AuthService())->verifyOtp($party['mobile_number'], 'mpin_reset', $otp)) {
-            return view('account/change_mpin_confirm', ['title' => 'Confirm mPIN Change — eBid Hub', 'error' => 'Incorrect or expired OTP.']);
+            return view('account/change_mpin_confirm', ['title' => 'Confirm mPIN Change — AdwitiX', 'error' => 'Incorrect or expired OTP.']);
         }
 
         try {
             (new AuthService())->setMpin($partyId, $newMpin);
         } catch (\RuntimeException $e) {
-            return view('account/change_mpin_confirm', ['title' => 'Confirm mPIN Change — eBid Hub', 'error' => $e->getMessage()]);
+            return view('account/change_mpin_confirm', ['title' => 'Confirm mPIN Change — AdwitiX', 'error' => $e->getMessage()]);
         }
 
         session()->remove('pending_mpin_change_party_id');
@@ -114,7 +114,7 @@ class AccountController extends BaseController
         if (!$partyId) return redirect()->to('/login');
 
         $party = (new PartyModel())->find($partyId);
-        return view('account/delete', ['title' => 'Delete Account — eBid Hub', 'party' => $party]);
+        return view('account/delete', ['title' => 'Delete Account — AdwitiX', 'party' => $party]);
     }
 
     public function deleteRequestSubmit()
@@ -188,7 +188,7 @@ class AccountController extends BaseController
         $party = (new PartyModel())->find($partyId);
 
         return view('account/earnings', [
-            'title' => 'Earnings — eBid Hub', 'thisMonth' => $thisMonth, 'ytd' => $ytd,
+            'title' => 'Earnings — AdwitiX', 'thisMonth' => $thisMonth, 'ytd' => $ytd,
             'pendingCount' => $pendingCount, 'party' => $party,
         ]);
     }

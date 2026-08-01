@@ -30,7 +30,7 @@ class ConsentAuditController extends BaseController
         }
 
         return view('admin/consent_audit', [
-            'title' => 'Consent Audit — eBid Hub',
+            'title' => 'Consent Audit — AdwitiX',
             'entries' => $query->get()->getResultArray(),
             'consentType' => $consentType, 'mobile' => $mobile,
         ]);
@@ -38,7 +38,7 @@ class ConsentAuditController extends BaseController
 
     public function exportForm()
     {
-        return view('admin/consent_audit_export', ['title' => 'Consent Audit Export — eBid Hub']);
+        return view('admin/consent_audit_export', ['title' => 'Consent Audit Export — AdwitiX']);
     }
 
     public function export()

@@ -49,7 +49,7 @@ class SettlementController extends BaseController
             ->get()->getResultArray();
 
         return view('settlement/show', [
-            'title' => 'Settlement — eBid Hub', 'settlement' => $s, 'saleEvent' => $saleEvent,
+            'title' => 'Settlement — AdwitiX', 'settlement' => $s, 'saleEvent' => $saleEvent,
             'callerId' => $this->requireLogin(), 'invoices' => $invoices,
             'dispute' => $dispute, 'auditEvents' => $auditEvents, 'chronicle' => $chronicle,
         ]);

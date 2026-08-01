@@ -27,7 +27,7 @@ class StandingReviewController extends BaseController
             ->get()->getResultArray();
 
         return view('admin/standing_review_case', [
-            'title' => 'Standing Review Case — eBid Hub', 'dispute' => $dispute,
+            'title' => 'Standing Review Case — AdwitiX', 'dispute' => $dispute,
             'seller' => $seller, 'tenants' => $tenants,
         ]);
     }

@@ -25,7 +25,7 @@ class TotpService
         return self::base32Encode(random_bytes(self::SECRET_LENGTH));
     }
 
-    public static function getProvisioningUri(string $secret, string $accountLabel, string $issuer = 'eBid Hub'): string
+    public static function getProvisioningUri(string $secret, string $accountLabel, string $issuer = 'AdwitiX'): string
     {
         return sprintf(
             'otpauth://totp/%s:%s?secret=%s&issuer=%s&digits=%d&period=%d',

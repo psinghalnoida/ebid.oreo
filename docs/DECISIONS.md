@@ -6322,3 +6322,63 @@ field groups at once regardless of the selected Entity Type — a
 real UX rough edge spotted during the same walkthrough, but a
 distinct problem (conditional field display) from the jargon sweep
 that was actually asked for.
+
+### D-100: platform name corrected from "eBid Hub" to AdwitiX, real logo/icon wired into the header, footer, favicon, and page titles
+
+Continuing the same joint UI/UX walkthrough, the project owner
+pointed out that the live portal still names itself "eBid Hub"
+throughout — header wordmark, browser tab titles, footer, TOTP
+authenticator-app issuer, the marketing copy on the homepage and
+Trust & Support hub, even the Terms/Privacy/Grievance legal
+documents — when the platform's real identity is AdwitiX, per the
+shield icon and full logo lockup already supplied and already in use
+on the Chronicle report since D-97. "eBid Hub" turns out to have been
+the working/demo name baked into the build before the AdwitiX
+branding was finalized, not a name the project owner asked to keep
+alongside it.
+
+**Scope**: every literal `eBid Hub`/`eBidHub` occurrence across the
+app — 38 files, all of `app/Controllers/*` (mostly `'title' => '... —
+eBid Hub'` page titles), the four view files that reference it in
+body copy (`landing.php`, `trust_support.php`, `legal/document.php`,
+`listing/create.php`), `TotpService::getProvisioningUri()`'s default
+issuer (shown inside Google Authenticator/Authy when Super Admin sets
+up 2FA — a real functional string, not just decorative), and
+`TestTerminology.php`'s own assertion that probes `tsx_term()` with
+the platform's own name to confirm BR-67's mapping leaves it
+untouched (`eBid Hub` → `AdwitiX` there too, same invariant, correct
+name). Every occurrence reads as a proper noun in a sentence
+("AdwitiX operates a zero-seller-fee model...", "AdwitiX's aggregate
+liability...", "the AdwitiX name, logo, and Platform design are the
+property of AdwitiX") — a plain find-and-replace, verified afterward
+with a repo-wide grep down to zero remaining hits.
+
+**The header/footer/favicon needed real image integration, not just
+text** — `layouts/main.php`'s brand mark was `eBid<span>Hub</span>`
+(two-tone: Ink + the app's `--emerald` token, which BR-68 already
+repointed to Rust `#B85C2C`). Replaced with the actual shield icon
+(`public/images/brand/adwitix-shield.jpg`, already on disk from D-97)
+at 26px next to `Adwiti<span>X</span>` — same two-tone split
+convention, just the real name and a real icon instead of invented
+placeholder text. This only fires in the platform-default branch of
+the existing tenant-branding conditional (`$__tenant['branding_logo_
+url']` still takes priority when a Tenant has its own white-label
+logo, untouched) — it's the platform's own identity being fixed, not
+a change to how Tenant white-labeling works. Footer `&copy; eBid Hub`
+→ `&copy; AdwitiX`. `<title>` fallback `eBid Hub` → `AdwitiX`
+(confirmed via a real page load: `document.title` now reads "AdwitiX
+— Salvage & Surplus Marketplace" on the homepage). Added a real
+`<link rel="icon">` pointing at the shield image — there was no
+AdwitiX favicon at all before this, just the CodeIgniter-generated
+default `favicon.ico` — confirmed via a real HTTP fetch of the
+resolved favicon URL returning 200.
+
+**Verified**: `php -l` across all touched files. Full regression run
+against a rebuilt-from-scratch database — all 34 suites, same list as
+D-99 plus `chronicle` (confirmed clean in isolation; it collided with
+its own earlier fixture only when re-run a second time against a
+DB that already had that run's data, a pre-existing test-idempotency
+quirk unrelated to this change, not a real failure). Real HTTP/browser
+check: fresh page load's `document.title`, the rendered header and
+footer screenshotted and read back, and the favicon URL fetched
+directly.

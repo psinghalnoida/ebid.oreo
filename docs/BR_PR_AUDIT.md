@@ -463,6 +463,16 @@ two real access-control gaps (permission-gated buttons rendered to
 everyone, not just authorized roles) in `listing/show.php`, now fixed.
 Full detail in `docs/DECISIONS.md` D-99.
 
+## Update — D-100: platform renamed from "eBid Hub" to AdwitiX throughout
+
+Same UI/UX review, second finding: the live portal's own name was
+still "eBid Hub" — header, page titles, footer, TOTP issuer, legal
+documents — the working/demo name from before the AdwitiX branding
+(shield icon, full logo) was finalized. Corrected across 38 files;
+the header/footer/favicon now use the real AdwitiX shield icon and
+wordmark rather than invented placeholder text. Full detail in
+`docs/DECISIONS.md` D-100.
+
 ### Bottom line (current)
 
 **Still two items with no path forward without the project owner

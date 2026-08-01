@@ -11,7 +11,7 @@
   .legal-pending{background:var(--amber-soft); color:#9C5B1F; padding:2px 8px; border-radius:6px; font-size:12.5px; font-weight:600; white-space:nowrap;}
 </style>
 <main style="max-width:760px; padding:44px 24px 80px;">
-  <p style="font-size:12px; color:var(--ink-3); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">eBid Hub — Legal</p>
+  <p style="font-size:12px; color:var(--ink-3); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">AdwitiX — Legal</p>
   <h1 style="font-size:30px; font-weight:800; margin:6px 0 20px;"><?= esc($docTitle) ?></h1>
   <div class="legal-doc"><?= $bodyHtml ?></div>
 </main>

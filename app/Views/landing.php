@@ -74,7 +74,7 @@
       <span class="tag-chip">Confiscated</span>
     </div>
     <h1>Salvage, sold <em>simply</em>.</h1>
-    <p class="lead">eBid Hub is India's multi-tenant marketplace for salvage, surplus, and repossessed assets — three sale formats live today, one global identity, and a rating system that keeps every deal honest.</p>
+    <p class="lead">AdwitiX is India's multi-tenant marketplace for salvage, surplus, and repossessed assets — three sale formats live today, one global identity, and a rating system that keeps every deal honest.</p>
     <div class="hero-ctas">
       <a href="#live-listings" class="btn btn-emerald">Browse Live Auctions</a>
       <a href="/listings/create" class="btn btn-ghost">List an Asset →</a>

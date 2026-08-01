@@ -10,7 +10,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><?= esc($title ?? 'eBid Hub') ?></title>
+<title><?= esc($title ?? 'AdwitiX') ?></title>
+<link rel="icon" type="image/jpeg" href="/images/brand/adwitix-shield.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
@@ -33,7 +34,8 @@
 
   header.app-head{position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.9); backdrop-filter:blur(10px); border-bottom:1px solid var(--line);}
   .head-inner{max-width:1240px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:16px 24px;}
-  .brand{font-family:'Archivo',sans-serif; font-weight:800; font-size:19px; letter-spacing:-0.4px;}
+  .brand{font-family:'Archivo',sans-serif; font-weight:800; font-size:19px; letter-spacing:-0.4px; display:flex; align-items:center; gap:8px;}
+  .brand img.brand-icon{width:26px; height:26px; border-radius:6px; vertical-align:middle;}
   .brand span{color:var(--emerald);}
   nav.tabs{display:flex; gap:4px; background:var(--line-soft); padding:4px; border-radius:var(--radius-pill);}
   nav.tabs a{font-size:13px; font-weight:600; padding:8px 18px; border-radius:var(--radius-pill); color:var(--ink-2);}
@@ -78,7 +80,8 @@
           <?= esc($__tenant['name']) ?>
         <?php endif; ?>
       <?php else: ?>
-        eBid<span>Hub</span>
+        <img class="brand-icon" src="/images/brand/adwitix-shield.jpg" alt="">
+        Adwiti<span>X</span>
       <?php endif; ?>
     </div>
     <nav class="tabs">
@@ -185,7 +188,7 @@
 
 <footer>
   <div class="foot-inner">
-    <span>&copy; eBid Hub</span>
+    <span>&copy; AdwitiX</span>
     <div class="foot-links">
       <a href="/trust-support">Trust &amp; Support</a>
       <a href="/pricing">Pricing</a>

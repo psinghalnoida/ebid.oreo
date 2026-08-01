@@ -42,7 +42,7 @@ class TestTerminology extends BaseCommand
         $this->assert(tsx_term('Buyer', true, true) === 'TRDs', 'Buyer short+plural -> TRDs');
 
         CLI::write("\n=== Presentation-only: unmapped/unknown input passes through unchanged ===", 'yellow');
-        $this->assert(tsx_term('eBid Hub') === 'eBid Hub', "The platform's own name is not part of this mapping and is untouched");
+        $this->assert(tsx_term('AdwitiX') === 'AdwitiX', "The platform's own name is not part of this mapping and is untouched");
         $this->assert(tsx_term('Party') === 'Party', 'A term outside the 7-row table is returned unchanged, not blanked or errored');
 
         CLI::write("\n=== BR-67 does not rename the data model: the technical role/entity names still work as real identifiers ===", 'yellow');

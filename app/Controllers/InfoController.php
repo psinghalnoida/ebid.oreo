@@ -39,7 +39,7 @@ class InfoController extends BaseController
 <p><strong>How does the platform prevent fake or misleading photos?</strong><br>Photos are captured through the app at the moment of listing, with location/timestamp data attached automatically — not uploaded from an old gallery.</p>
 HTML;
 
-        return view('legal/document', ['title' => 'FAQ — eBid Hub', 'docTitle' => 'Frequently Asked Questions', 'bodyHtml' => $bodyHtml]);
+        return view('legal/document', ['title' => 'FAQ — AdwitiX', 'docTitle' => 'Frequently Asked Questions', 'bodyHtml' => $bodyHtml]);
     }
 
     public function dosAndDonts()
@@ -104,7 +104,7 @@ HTML;
 <p><strong>5. If something goes wrong, use the dispute process promptly and honestly.</strong></p>
 HTML;
 
-        return view('legal/document', ['title' => "Dos & Don'ts — eBid Hub", 'docTitle' => "Dos & Don'ts", 'bodyHtml' => $bodyHtml]);
+        return view('legal/document', ['title' => "Dos & Don'ts — AdwitiX", 'docTitle' => "Dos & Don'ts", 'bodyHtml' => $bodyHtml]);
     }
 
     public function securityTrust()
@@ -126,14 +126,14 @@ HTML;
 <p>The bidding process is designed so no one — including us — gets an unfair edge. A 150% bid ceiling catches mistakes and blocks manipulation. Dynamic Time extensions stop last-second sniping. Every rating change and dispute ruling comes with a stated, logged reason.</p>
 HTML;
 
-        return view('legal/document', ['title' => 'Security & Trust — eBid Hub', 'docTitle' => 'Security & Trust', 'bodyHtml' => $bodyHtml]);
+        return view('legal/document', ['title' => 'Security & Trust — AdwitiX', 'docTitle' => 'Security & Trust', 'bodyHtml' => $bodyHtml]);
     }
 
     public function feeSchedule()
     {
         $bodyHtml = <<<HTML
 <h2>1. Overview — Who Pays What</h2>
-<p>eBid Hub operates a zero-seller-fee model on Buy-Now, Express, and Easy: all platform commission on these formats is funded by the buyer, deducted from their refundable security deposit at settlement. Tender Auction is the one exception.</p>
+<p>AdwitiX operates a zero-seller-fee model on Buy-Now, Express, and Easy: all platform commission on these formats is funded by the buyer, deducted from their refundable security deposit at settlement. Tender Auction is the one exception.</p>
 <table>
 <tr><th>Party</th><th>Pays / Earns</th></tr>
 <tr><td>Buyer</td><td>Security Deposit (EMD, 10% of item value, refundable) + Transaction Fee defaulting to 5% (tenant-adjustable). Tender: as set by the seller.</td></tr>
@@ -152,7 +152,7 @@ HTML;
 <p>If the final price exceeds the value the deposit was calculated on, the buyer must top up to 10% of the actual final price before the win is confirmed. If outbid or not selected, the deposit releases automatically with no fixed delay.</p>
 
 <h2>3. Seller Fees</h2>
-<p>Sellers pay nothing to list, run a sale, or complete a transaction on Buy-Now, Express, and Easy. Tender is the exception — the seller sets the fee arrangement for that specific auction. The one exception outside Tender: a <strong>Verified listing inspection fee</strong>, charged when eBid Hub's own inspection team visits and photographs the item. Certified by Seller (CBS) listings remain free.</p>
+<p>Sellers pay nothing to list, run a sale, or complete a transaction on Buy-Now, Express, and Easy. Tender is the exception — the seller sets the fee arrangement for that specific auction. The one exception outside Tender: a <strong>Verified listing inspection fee</strong>, charged when AdwitiX's own inspection team visits and photographs the item. Certified by Seller (CBS) listings remain free.</p>
 
 <h2>4. Buyer Transaction Fee &amp; Platform Split</h2>
 <p>On Buy-Now and Easy, the buyer's fee defaults to 5%, adjustable by each Tenant between a floor of 0.5% (matching SaaS's own share) and a ceiling of 5%. Express is not tenant-adjustable. Tender is fully custom per auction.</p>
@@ -173,7 +173,7 @@ HTML;
 <p>Each Tenant sets its own buyer fee rate within platform-set limits. SaaS's 0.5% share is always carved out of that same fee, never charged separately. Sellers pay 0% on every Tenant's storefront — platform-wide, not something an individual Tenant can change.</p>
 HTML;
 
-        return view('legal/document', ['title' => 'Fee & Charges Schedule — eBid Hub', 'docTitle' => 'Fee & Charges Schedule', 'bodyHtml' => $bodyHtml]);
+        return view('legal/document', ['title' => 'Fee & Charges Schedule — AdwitiX', 'docTitle' => 'Fee & Charges Schedule', 'bodyHtml' => $bodyHtml]);
     }
 
     public function terminology()
@@ -190,6 +190,6 @@ HTML;
 <p><strong>Grievance Redressal:</strong> The formal process for raising a concern about the platform itself, distinct from a dispute about a specific transaction.</p>
 HTML;
 
-        return view('legal/document', ['title' => 'Terminology — eBid Hub', 'docTitle' => 'Terminology Glossary', 'bodyHtml' => $bodyHtml]);
+        return view('legal/document', ['title' => 'Terminology — AdwitiX', 'docTitle' => 'Terminology Glossary', 'bodyHtml' => $bodyHtml]);
     }
 }

@@ -30,7 +30,7 @@ class UserController extends BaseController
         $users = $builder->findAll(100);
 
         return view('admin/users_list', [
-            'title' => 'Users — eBid Hub',
+            'title' => 'Users — AdwitiX',
             'users' => $users,
             'q' => $q,
         ]);
@@ -81,7 +81,7 @@ class UserController extends BaseController
             ->limit(20)->get()->getResultArray();
 
         return view('admin/user_detail', [
-            'title' => 'User — eBid Hub',
+            'title' => 'User — AdwitiX',
             'party' => $party,
             'roles' => $roles,
             'tenantNames' => $tenantNames,

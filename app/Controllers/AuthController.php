@@ -17,7 +17,7 @@ class AuthController extends BaseController
 
     public function registerForm(): string
     {
-        return view('auth/register_mobile', ['title' => 'Register — eBid Hub']);
+        return view('auth/register_mobile', ['title' => 'Register — AdwitiX']);
     }
 
     public function registerSubmit()
@@ -27,7 +27,7 @@ class AuthController extends BaseController
         try {
             $otp = $this->auth->requestOtp($mobile, 'registration');
         } catch (\RuntimeException $e) {
-            return view('auth/register_mobile', ['title' => 'Register — eBid Hub', 'error' => $e->getMessage()]);
+            return view('auth/register_mobile', ['title' => 'Register — AdwitiX', 'error' => $e->getMessage()]);
         }
 
         session()->set('pending_registration_mobile', $mobile);
@@ -35,7 +35,7 @@ class AuthController extends BaseController
         // provider is stubbed (see .env SMS_PROVIDER=stub). In production
         // this would never be exposed to the browser.
         return view('auth/register_verify_otp', [
-            'title' => 'Verify OTP — eBid Hub', 'mobile' => $mobile, 'devOtp' => $otp,
+            'title' => 'Verify OTP — AdwitiX', 'mobile' => $mobile, 'devOtp' => $otp,
         ]);
     }
 
@@ -50,7 +50,7 @@ class AuthController extends BaseController
 
         if (!$this->auth->verifyOtp($mobile, 'registration', $otp)) {
             return view('auth/register_verify_otp', [
-                'title' => 'Verify OTP — eBid Hub', 'mobile' => $mobile,
+                'title' => 'Verify OTP — AdwitiX', 'mobile' => $mobile,
                 'error' => 'Incorrect or expired OTP. Please try again.',
             ]);
         }
@@ -59,7 +59,7 @@ class AuthController extends BaseController
         session()->set('pending_mpin_setup_party_id', $party['id']);
         session()->remove('pending_registration_mobile');
 
-        return view('auth/set_mpin', ['title' => 'Set your mPIN — eBid Hub']);
+        return view('auth/set_mpin', ['title' => 'Set your mPIN — AdwitiX']);
     }
 
     public function setMpinSubmit()
@@ -74,20 +74,20 @@ class AuthController extends BaseController
         try {
             $this->auth->setMpin($partyId, $mpin);
         } catch (\RuntimeException $e) {
-            return view('auth/set_mpin', ['title' => 'Set your mPIN — eBid Hub', 'error' => $e->getMessage()]);
+            return view('auth/set_mpin', ['title' => 'Set your mPIN — AdwitiX', 'error' => $e->getMessage()]);
         }
 
         session()->remove('pending_mpin_setup_party_id');
         session()->set('logged_in_party_id', $partyId);
 
-        return view('auth/success', ['title' => 'Welcome — eBid Hub']);
+        return view('auth/success', ['title' => 'Welcome — AdwitiX']);
     }
 
     // ── Login ────────────────────────────────────────────────────
 
     public function loginForm(): string
     {
-        return view('auth/login', ['title' => 'Log In — eBid Hub']);
+        return view('auth/login', ['title' => 'Log In — AdwitiX']);
     }
 
     public function loginSubmit()
@@ -106,14 +106,14 @@ class AuthController extends BaseController
             // could be nonexistent), so the mobile number itself goes in
             // the payload instead.
             $audit->log('auth.login.failed', null, ['mobile' => $mobile, 'reason' => $e->getMessage()], $ip, $userAgent);
-            return view('auth/login', ['title' => 'Log In — eBid Hub', 'error' => $e->getMessage()]);
+            return view('auth/login', ['title' => 'Log In — AdwitiX', 'error' => $e->getMessage()]);
         }
 
         if ($result['status'] === 'ok') {
             session()->set('logged_in_party_id', $result['party']['id']);
             (new \App\Models\PartyModel())->update($result['party']['id'], ['last_login_at' => date('Y-m-d H:i:s')]);
             $audit->log('auth.login.success', $result['party']['id'], ['mobile' => $mobile], $ip, $userAgent);
-            return view('auth/success', ['title' => 'Welcome back — eBid Hub']);
+            return view('auth/success', ['title' => 'Welcome back — AdwitiX']);
         }
 
         if ($result['status'] === 'otp_required') {
@@ -129,13 +129,13 @@ class AuthController extends BaseController
                 session()->set('pending_mpin_reset_email', $party['recovery_email']);
                 $emailOtp = $this->auth->requestEmailOtp($party['recovery_email']);
                 return view('auth/reset_verify_otp', [
-                    'title' => 'Verify OTP to Reset mPIN — eBid Hub', 'mobile' => $mobile, 'devOtp' => $otp,
+                    'title' => 'Verify OTP to Reset mPIN — AdwitiX', 'mobile' => $mobile, 'devOtp' => $otp,
                     'devEmailOtp' => $emailOtp, 'email' => $party['recovery_email'],
                 ]);
             }
 
             return view('auth/reset_verify_otp', [
-                'title' => 'Verify OTP to Reset mPIN — eBid Hub', 'mobile' => $mobile, 'devOtp' => $otp,
+                'title' => 'Verify OTP to Reset mPIN — AdwitiX', 'mobile' => $mobile, 'devOtp' => $otp,
             ]);
         }
 
@@ -149,7 +149,7 @@ class AuthController extends BaseController
         ], $ip, $userAgent);
 
         return view('auth/login', [
-            'title' => 'Log In — eBid Hub',
+            'title' => 'Log In — AdwitiX',
             'error' => "Incorrect mPIN. {$result['attemptsRemaining']} attempt(s) remaining before OTP verification is required.",
         ]);
     }
@@ -167,7 +167,7 @@ class AuthController extends BaseController
 
         if (!$this->auth->verifyOtp($mobile, 'mpin_reset', $otp)) {
             return view('auth/reset_verify_otp', [
-                'title' => 'Verify OTP to Reset mPIN — eBid Hub', 'mobile' => $mobile, 'email' => $email,
+                'title' => 'Verify OTP to Reset mPIN — AdwitiX', 'mobile' => $mobile, 'email' => $email,
                 'error' => 'Incorrect or expired mobile OTP. Please try again.',
             ]);
         }
@@ -178,7 +178,7 @@ class AuthController extends BaseController
             $emailOtp = trim($this->request->getPost('email_otp'));
             if (!$this->auth->verifyEmailOtp($email, $emailOtp)) {
                 return view('auth/reset_verify_otp', [
-                    'title' => 'Verify OTP to Reset mPIN — eBid Hub', 'mobile' => $mobile, 'email' => $email,
+                    'title' => 'Verify OTP to Reset mPIN — AdwitiX', 'mobile' => $mobile, 'email' => $email,
                     'error' => 'Mobile OTP correct, but the email OTP was incorrect or expired. Both are required together.',
                 ]);
             }
@@ -189,7 +189,7 @@ class AuthController extends BaseController
         session()->remove('pending_mpin_reset_party_id');
         session()->remove('pending_mpin_reset_email');
 
-        return view('auth/set_mpin', ['title' => 'Set a new mPIN — eBid Hub']);
+        return view('auth/set_mpin', ['title' => 'Set a new mPIN — AdwitiX']);
     }
 
     // Was missing entirely — only Super Admin had a logout route.

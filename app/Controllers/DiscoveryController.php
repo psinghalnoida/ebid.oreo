@@ -18,7 +18,7 @@ class DiscoveryController extends BaseController
         $partyId = $this->requireLogin();
         if (!$partyId) return redirect()->to('/login');
 
-        return view('my/favorites', ['title' => 'My Favorites — eBid Hub', 'favorites' => (new ListingFavoriteModel())->findForParty($partyId)]);
+        return view('my/favorites', ['title' => 'My Favorites — AdwitiX', 'favorites' => (new ListingFavoriteModel())->findForParty($partyId)]);
     }
 
     public function mySearches()
@@ -26,7 +26,7 @@ class DiscoveryController extends BaseController
         $partyId = $this->requireLogin();
         if (!$partyId) return redirect()->to('/login');
 
-        return view('my/searches', ['title' => 'Saved Searches — eBid Hub', 'searches' => (new SavedSearchModel())->findForParty($partyId)]);
+        return view('my/searches', ['title' => 'Saved Searches — AdwitiX', 'searches' => (new SavedSearchModel())->findForParty($partyId)]);
     }
 
     // Saves whatever filter combination is in the querystring right now
@@ -70,7 +70,7 @@ class DiscoveryController extends BaseController
         }
         unset($h);
 
-        return view('my/search_history', ['title' => 'Search History — eBid Hub', 'history' => $history]);
+        return view('my/search_history', ['title' => 'Search History — AdwitiX', 'history' => $history]);
     }
 
     // "Trending now" (real bid-count activity in the last 24h) and
@@ -128,6 +128,6 @@ class DiscoveryController extends BaseController
             $basedOnBids = $query->orderBy('l.created_at', 'DESC')->limit(12)->get()->getResultArray();
         }
 
-        return view('my/recommendations', ['title' => 'Recommendations — eBid Hub', 'trending' => $trending, 'basedOnBids' => $basedOnBids]);
+        return view('my/recommendations', ['title' => 'Recommendations — AdwitiX', 'trending' => $trending, 'basedOnBids' => $basedOnBids]);
     }
 }

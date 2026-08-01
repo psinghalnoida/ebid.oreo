@@ -35,7 +35,7 @@ class PayoutReviewController extends BaseController
         }
 
         return view('admin/payout_reviews', [
-            'title' => 'Payout Release Reviews — eBid Hub',
+            'title' => 'Payout Release Reviews — AdwitiX',
             'pending' => $pending,
             'reviewed' => $reviewed,
         ]);

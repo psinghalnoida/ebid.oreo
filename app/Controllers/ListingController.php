@@ -63,7 +63,7 @@ class ListingController extends BaseController
         // Dev convenience: for now, list any tenant to attach to.
         // Tenant selection/scoping by seller role (BR-09) is not yet built.
         $tenants = $this->tenantModel->findAll();
-        return view('listing/create', ['title' => 'List an Asset — eBid Hub', 'tenants' => $tenants]);
+        return view('listing/create', ['title' => 'List an Asset — AdwitiX', 'tenants' => $tenants]);
     }
 
     // BR-46: a seller may trigger this before submitting -- purely
@@ -122,7 +122,7 @@ class ListingController extends BaseController
         // tenant — checked before the tenant-specific BR-09 gate below,
         // since this is a platform-wide restriction, not per-tenant.
         if ((new \App\Libraries\RatingService())->isDelisted($sellerId)) {
-            return redirect()->to('/')->with('error', 'BR-38: this account has been delisted from selling on eBid Hub due to a confirmed fraud finding.');
+            return redirect()->to('/')->with('error', 'BR-38: this account has been delisted from selling on AdwitiX due to a confirmed fraud finding.');
         }
 
         // BR-09: only a party the Tenant Admin has explicitly upgraded to
@@ -176,7 +176,7 @@ class ListingController extends BaseController
         $shippingCostType = $shippingEnabled ? $this->request->getPost('shipping_cost_type') : null;
         if ($shippingEnabled && !in_array($shippingCostType, ['fixed', 'variable'], true)) {
             return view('listing/create', [
-                'title' => 'List an Asset — eBid Hub',
+                'title' => 'List an Asset — AdwitiX',
                 'tenants' => $this->tenantModel->findAll(),
                 'error' => 'BR-24: choose either a Fixed or Variable shipping cost if shipping is enabled.',
             ]);
@@ -190,7 +190,7 @@ class ListingController extends BaseController
         $category = $this->request->getPost('category');
         if (!in_array($category, ListingLifecycleService::PERMITTED_CATEGORIES, true)) {
             return view('listing/create', [
-                'title' => 'List an Asset — eBid Hub',
+                'title' => 'List an Asset — AdwitiX',
                 'tenants' => $this->tenantModel->findAll(),
                 'error' => 'BR-07: category must be one of the platform\'s permitted categories.',
             ]);
@@ -205,7 +205,7 @@ class ListingController extends BaseController
             $hasWaiver = (new \App\Libraries\TenantMediaWaiverService())->isCbsProhibitionWaived($tenantId, $category);
             if (!$hasWaiver) {
                 return view('listing/create', [
-                    'title' => 'List an Asset — eBid Hub',
+                    'title' => 'List an Asset — AdwitiX',
                     'tenants' => $this->tenantModel->findAll(),
                     'error' => 'BR-60: this tenant has no active media waiver for this category — representative imagery cannot be used.',
                 ]);
@@ -240,7 +240,7 @@ class ListingController extends BaseController
             ]);
         } catch (\Throwable $e) {
             return view('listing/create', [
-                'title' => 'List an Asset — eBid Hub',
+                'title' => 'List an Asset — AdwitiX',
                 'tenants' => $this->tenantModel->findAll(),
                 'error' => $e->getMessage(),
             ]);
@@ -332,7 +332,7 @@ class ListingController extends BaseController
             ? ($authz->isTenantAdminForListing($viewerId, $listingId) || $authz->isSuperAdmin($viewerId))
             : false;
         return view('listing/show', [
-            'title' => 'Listing — eBid Hub', 'listing' => $listing, 'saleEvent' => $saleEvent, 'tenant' => $tenant,
+            'title' => 'Listing — AdwitiX', 'listing' => $listing, 'saleEvent' => $saleEvent, 'tenant' => $tenant,
             'offers' => $offers, 'expressState' => $expressState, 'tenderState' => $tenderState, 'media' => $media,
             'queuedMediaJobs' => $queuedMediaJobs,
             'isOwner' => $viewerId === $listing['seller_party_id'],

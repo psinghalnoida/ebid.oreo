@@ -23,7 +23,7 @@
   <div class="hub-hero">
     <div class="eyebrow">Trust & Support</div>
     <h1>How can we help?</h1>
-    <p>Answers, policies, and safeguards — everything about how eBid Hub protects buyers, sellers, and every transaction in between.</p>
+    <p>Answers, policies, and safeguards — everything about how AdwitiX protects buyers, sellers, and every transaction in between.</p>
   </div>
 
   <?php foreach ($groups as $group): ?>

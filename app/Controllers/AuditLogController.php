@@ -28,7 +28,7 @@ class AuditLogController extends BaseController
         $entries = $query->get()->getResultArray();
 
         return view('admin/audit_log', [
-            'title' => 'Audit Log — eBid Hub', 'entries' => $entries,
+            'title' => 'Audit Log — AdwitiX', 'entries' => $entries,
             'eventType' => $eventType, 'actorMobile' => $actorMobile,
         ]);
     }
@@ -39,7 +39,7 @@ class AuditLogController extends BaseController
         $brokenAt = $audit->verifyChainIntegrity();
 
         return view('admin/audit_verify', [
-            'title' => 'Audit Log Integrity — eBid Hub', 'brokenAt' => $brokenAt,
+            'title' => 'Audit Log Integrity — AdwitiX', 'brokenAt' => $brokenAt,
         ]);
     }
 
@@ -51,7 +51,7 @@ class AuditLogController extends BaseController
     // credentials (flagged since D-45, unchanged here).
     public function exportForm()
     {
-        return view('admin/audit_export', ['title' => 'Statutory Export — eBid Hub']);
+        return view('admin/audit_export', ['title' => 'Statutory Export — AdwitiX']);
     }
 
     public function export()
