@@ -29,3 +29,22 @@ if (! function_exists('tsx_term')) {
         return $plural ? $term . 's' : $term;
     }
 }
+
+if (! function_exists('sale_format_label')) {
+    /**
+     * Display formatting for the sale_format enum -- not part of BR-67's
+     * mapping table (that's role/entity names only), just turning the
+     * stored value into a readable label wherever it's shown to a user.
+     */
+    function sale_format_label(string $format): string
+    {
+        static $labels = [
+            'buy_now' => 'Buy-Now',
+            'express' => 'Express Auction',
+            'easy'    => 'Easy Auction',
+            'tender'  => 'Tender Auction',
+        ];
+
+        return $labels[$format] ?? $format;
+    }
+}
