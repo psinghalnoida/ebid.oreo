@@ -265,6 +265,19 @@
         </form>
       <?php endif; ?>
 
+      <?php if (in_array($saleEvent['status'], ['pending_approval', 'grace_period', 'active'], true) && !empty($isTenantAdminForListing)): ?>
+        <details style="margin-top:14px;">
+          <summary style="font-size:12px; color:#B5482F; cursor:pointer;">⚠ Emergency Stop</summary>
+          <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/emergency-stop" style="margin-top:8px;"
+            onsubmit="return confirm('This immediately cancels the Trading Session, withdraws all bids/offers, and releases all EMD holds. This cannot be undone. Continue?');">
+            <p style="font-size:11px; color:var(--ink-3); margin:0 0 6px;"><?= tsx_term('Tenant Admin') ?> action — cancels this Trading Session regardless of format. A reason is required and permanently logged.</p>
+            <textarea name="reason" required rows="2" placeholder="Reason for the emergency stop"
+              style="display:block; width:100%; padding:8px; border:1px solid var(--line); border-radius:8px; font-size:12px; margin-bottom:6px;"></textarea>
+            <button type="submit" class="btn btn-ghost" style="color:#B5482F; border-color:#B5482F;">Emergency Stop</button>
+          </form>
+        </details>
+      <?php endif; ?>
+
       <?php if ($saleEvent['status'] === 'active' && $saleEvent['sale_format'] === 'easy'): ?>
         <a href="/sale-events/<?= esc($saleEvent['id']) ?>/emd-consent/easy_or_tender" class="btn btn-ghost" style="margin-top:16px; display:inline-block;">
           Fund EMD — Confirm & Pledge

@@ -504,6 +504,21 @@ Dispute" form. All three now have a real entry point, confirmed
 working over real HTTP. Full detail, screenflow diagram, and the
 evidence table in `docs/DECISIONS.md` D-102.
 
+## Update — D-103: Emergency Stop wired, Tenant Admin dashboard entry point wired
+
+A deeper zone-by-zone sweep (auction, negotiate, reports, disputes,
+settlement, TSX, tender, listing/event pages) found two more genuine
+gaps, reported before fixing per instruction. BR-14 Emergency Stop
+had zero UI trigger despite being fully built and tested — added to
+the listing page, real end-to-end verified (real Tenant Admin login,
+real click, sale event genuinely flipped to `cancelled` in the
+database). The bigger one: the entire Tenant Admin dashboard zone had
+no entry point anywhere after login — every sub-page linked back to
+the dashboard, nothing linked to it. Added a header-nav link, shown
+only to parties who actually administer a tenant, verified via a real
+login and click resolving to the correct dashboard. Full detail in
+`docs/DECISIONS.md` D-103.
+
 ### Bottom line (current)
 
 **Still two items with no path forward without the project owner

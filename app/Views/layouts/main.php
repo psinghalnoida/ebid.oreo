@@ -4,6 +4,18 @@
   // layout, rather than threading it through every controller's own
   // view data.
   $__tenant = \App\Libraries\TenantContext::current();
+
+  // D-102 follow-up: a real Tenant Admin, once promoted, had no
+  // discoverable way back to their own dashboard from anywhere in the
+  // app -- every sub-page (Verification Console, Media Waiver, Sellers,
+  // Billing, API Access) links back to it, but nothing linked to it in
+  // the first place. Computed once per page load, gated on an actual
+  // logged-in session, same tradeoff already made for $__tenant above.
+  $__adminTenantId = null;
+  if ($loggedInPartyId = session()->get('logged_in_party_id')) {
+    $__administeredTenantIds = (new \App\Models\PartyRoleModel())->findAdministeredTenantIds($loggedInPartyId);
+    $__adminTenantId = $__administeredTenantIds[0] ?? null;
+  }
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -162,6 +174,9 @@
         <a href="/my-listings" class="btn btn-ghost">My Listings</a>
         <a href="/my-activity" class="btn btn-ghost">My Activity</a>
         <a href="/kyc" class="btn btn-ghost">KYC</a>
+        <?php if ($__adminTenantId): ?>
+          <a href="/tenants/<?= esc($__adminTenantId) ?>/dashboard" class="btn btn-ghost"><?= tsx_term('Tenant Admin') ?> Console</a>
+        <?php endif; ?>
         <a href="/profile" class="btn btn-ghost">Profile</a>
         <a href="/logout" class="btn btn-ghost">Log Out</a>
       <?php else: ?>

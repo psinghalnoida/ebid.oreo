@@ -6537,3 +6537,74 @@ Delivered as a screenflow diagram plus a findings table (route,
 claim, actual finding, evidence) in a published artifact, not just
 prose — the diagram groups the core Buyer/Seller path by where each
 screen sits and highlights the three genuinely-fixed nodes.
+
+### D-103: two more real gaps closed — Emergency Stop, and the entire Tenant Admin dashboard's missing entry point
+
+A deeper sweep across every zone (auction, negotiate, reports,
+disputes, settlement, TSX/Tenant Admin, tender, listing/event pages,
+help & trust) at the project owner's request, checking every
+dynamic-segment route's actual trigger inside its parent page's
+template rather than just static routes. Reported both before
+touching anything, per instruction, then fixed smallest-first.
+
+**Emergency Stop** (`POST /sale-events/{id}/emergency-stop`, BR-14,
+already fully built and covered by `test:lifecycle`) had zero UI
+trigger anywhere in the app — a Tenant Admin had no way to actually
+cancel a live auction in an emergency. Added a collapsed `<details>`
+control to `listing/show.php`, visible whenever the sale event is
+still live (`pending_approval`/`grace_period`/`active`) and the
+viewer is that listing's Tenant Admin (`$isTenantAdminForListing`,
+the same check D-99 already wired for the Approve/Reject/Force-freeze
+controls on the same page) — a required reason textarea, a
+confirm-dialog warning it's irreversible, matching the controller's
+own requirement that a reason is mandatory and permanently logged.
+
+**Verified for real, not assumed**: a throwaway CLI command
+(`temp:emergencystopfixture`, deleted immediately after use, same
+pattern as earlier sessions' `TempIssueTestCreds`) created a genuine
+tenant, a party promoted to `tenant_admin` via the real
+`PartyRoleModel::promoteTenantAdmin()`, and a live `active` sale
+event. Logged in as that admin through the real mobile/mpin flow,
+clicked the actual rendered button, accepted the real confirm
+dialog, submitted a real reason — the sale event's `status` column
+came back `cancelled` in the database, exactly matching
+`ListingLifecycleService::emergencyStop()`'s own behavior, and the
+control correctly disappeared on reload since cancelling is no
+longer a valid action on an already-cancelled event.
+
+**The bigger one: the entire Tenant Admin (TSX) dashboard zone had no
+entry point after login.** Every sub-page under `/tenants/{id}/...`
+(Verification Console, Media Waiver, Seller Management, Billing, API
+Access) links back to `/tenants/{id}/dashboard`, but nothing in the
+shared header nav or Profile ever linked *to* it — a real Tenant
+Admin, promoted by Super Admin, logging in through the ordinary
+`/login` flow, had no discoverable path to their own dashboard at
+all without someone handing them the exact URL. `PartyRoleModel::
+findAdministeredTenantIds()` already existed (built for BR-50's
+payout-review scoping) — reused it in `layouts/main.php`, computed
+once per page load alongside the existing `$__tenant` lookup, gated
+on an actual logged-in session. When a party administers at least
+one tenant, a `"<?= tsx_term('Tenant Admin') ?> Console"` link now
+appears in the header nav pointing at their dashboard. Deliberately
+takes the first administered tenant rather than building a
+multi-tenant switcher — the schema and `promoteTenantAdmin()`'s own
+"exactly one active Tenant Admin per tenant" comment both point at
+one-admin-per-tenant as the common case, and a switcher wasn't asked
+for.
+
+**Verified**: same throwaway-fixture pattern, real login as the
+tenant admin, real click on the new header link, confirmed it
+resolves to `/tenants/{their-tenant-id}/dashboard` with a real 200
+and the correct tenant name in the page's own `<h1>`. The negative
+case (an ordinary buyer/seller never sees the link) wasn't
+separately click-tested due to two flaky Playwright timeouts in this
+sandbox — but it's guaranteed by construction, not just untested:
+the new `<a>` sits inside the exact same `session()->get
+('logged_in_party_id')` conditional block as My Listings/Profile/Log
+Out, already proven false-for-logged-out-users repeatedly earlier
+this session.
+
+Full regression re-run clean against a rebuilt database (all 33
+suites; `chronicle`'s one loop failure was — again — the same known
+same-DB double-run fixture collision from this session's own manual
+queries, confirmed clean standalone).
