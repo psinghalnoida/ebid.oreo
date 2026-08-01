@@ -19,36 +19,103 @@
      tokens, Archivo/Inter/IBM Plex Mono typography. Variable names kept
      stable (--emerald etc.) since 80+ views already reference them —
      only the values change, matching the same approach BR-67 took for
-     variable/field names vs. rendered text. */
+     variable/field names vs. rendered text.
+
+     D-101: extended with a spacing scale, elevation (shadow) scale, and
+     two brand accent colors lifted from the AdwitiX shield/logo (navy,
+     gold) for hero/illustrative treatments — Rust/Amber stay the
+     functional/interactive color, navy/gold are decorative accents
+     only, not reused for buttons or status states. Also introduces a
+     small set of shared component classes (.field, .card, .section,
+     .grid-2/3/4, .badge, .table-wrap) so pages can stop hand-rolling
+     the same inline styles, plus real breakpoints (900px, 640px) —
+     previously there was exactly one @media rule in this entire file. */
   :root{
     --bg:#EEF0EA; --card:#FFFFFF; --ink:#1C1F26; --ink-2:#5B5F56; --ink-3:#9DA099;
     --emerald:#B85C2C; --emerald-soft:#F3E3D6; --emerald-deep:#934A23;
     --amber:#E3A93C; --amber-soft:#FBF2E2;
+    --navy:#1B2A5B; --navy-soft:#E7E9F2;
+    --gold:#C9A356; --gold-soft:#F6EFDE;
     --line:#D8DACE; --line-soft:#E5E7DF;
-    --radius:16px; --radius-pill:100px;
+    --radius:16px; --radius-lg:22px; --radius-pill:100px;
+    --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px; --sp-7:48px; --sp-8:64px;
+    --shadow-sm:0 2px 6px -2px rgba(28,31,38,0.10);
+    --shadow-md:0 12px 28px -12px rgba(28,31,38,0.18);
+    --shadow-lg:0 24px 48px -20px rgba(28,31,38,0.20);
   }
   *{box-sizing:border-box;}
   body{margin:0; background:var(--bg); color:var(--ink); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased;}
   h1,h2,h3{font-family:'Archivo',sans-serif;}
   a{color:inherit; text-decoration:none;}
 
-  header.app-head{position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.9); backdrop-filter:blur(10px); border-bottom:1px solid var(--line);}
-  .head-inner{max-width:1240px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:16px 24px;}
+  header.app-head{position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.92); backdrop-filter:blur(10px); border-bottom:1px solid var(--line);}
+  .head-inner{max-width:1240px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 24px; gap:16px;}
   .brand{font-family:'Archivo',sans-serif; font-weight:800; font-size:19px; letter-spacing:-0.4px; display:flex; align-items:center; gap:8px;}
   .brand img.brand-icon{width:26px; height:26px; border-radius:6px; vertical-align:middle;}
   .brand span{color:var(--emerald);}
   nav.tabs{display:flex; gap:4px; background:var(--line-soft); padding:4px; border-radius:var(--radius-pill);}
   nav.tabs a{font-size:13px; font-weight:600; padding:8px 18px; border-radius:var(--radius-pill); color:var(--ink-2);}
   nav.tabs a.active{color:#fff; background:var(--ink);}
-  .btn{font-weight:700; font-size:13.5px; padding:10px 20px; border-radius:var(--radius-pill); cursor:pointer; border:1px solid transparent;}
+  .head-actions{display:flex; align-items:center; gap:8px;}
+  .btn{font-weight:700; font-size:13.5px; padding:10px 20px; border-radius:var(--radius-pill); cursor:pointer; border:1px solid transparent; display:inline-block;}
   .btn-emerald{background:var(--emerald); color:#fff;}
   .btn-ghost{background:transparent; color:var(--ink); border-color:var(--line);}
 
+  /* Mobile nav: hidden by default, JS-toggled via .nav-open on <body>. */
+  .nav-toggle{display:none; width:40px; height:40px; border-radius:10px; border:1px solid var(--line); background:var(--card); cursor:pointer; flex:none; align-items:center; justify-content:center;}
+  .nav-toggle span, .nav-toggle span::before, .nav-toggle span::after{content:''; display:block; width:18px; height:2px; background:var(--ink); border-radius:2px; position:relative; transition:transform 0.15s ease, opacity 0.15s ease;}
+  .nav-toggle span::before{position:absolute; top:-6px;}
+  .nav-toggle span::after{position:absolute; top:6px;}
+  body.nav-open .nav-toggle span{background:transparent;}
+  body.nav-open .nav-toggle span::before{transform:translateY(6px) rotate(45deg);}
+  body.nav-open .nav-toggle span::after{transform:translateY(-6px) rotate(-45deg);}
+
   main{max-width:1240px; margin:0 auto; padding:0 24px;}
 
+  /* Shared components */
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:var(--sp-5); box-shadow:var(--shadow-sm);}
+  .section{padding:var(--sp-7) 0; border-top:1px solid var(--line);}
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-5);}
+  .grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:var(--sp-4);}
+  .grid-4{display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-4);}
+  .field{margin:0 0 var(--sp-4);}
+  .field label{display:block; font-size:12px; color:var(--ink-3); font-weight:600; margin-bottom:var(--sp-2);}
+  .field input, .field select, .field textarea{display:block; width:100%; padding:12px; border:1px solid var(--line); border-radius:10px; font-family:inherit; font-size:14px; background:var(--card); color:var(--ink);}
+  .field .hint{font-size:11.5px; color:var(--ink-3); margin-top:6px; line-height:1.5;}
+  .badge{display:inline-block; font-size:11px; font-weight:700; padding:5px 12px; border-radius:var(--radius-pill); background:var(--line-soft); color:var(--ink-2);}
+  .badge-emerald{background:var(--emerald-soft); color:var(--emerald-deep);}
+  .badge-amber{background:var(--amber-soft); color:#9C5B1F;}
+  .badge-navy{background:var(--navy-soft); color:var(--navy);}
+  .table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  .table-wrap table{min-width:520px;}
+
   footer{border-top:1px solid var(--line); padding:32px 0 44px; font-size:12.5px; color:var(--ink-3); margin-top:60px;}
-  .foot-inner{max-width:1240px; margin:0 auto; padding:0 24px; display:flex; justify-content:space-between; align-items:center;}
-  .foot-links{display:flex; gap:24px;}
+  .foot-inner{max-width:1240px; margin:0 auto; padding:0 24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;}
+  .foot-links{display:flex; gap:24px; flex-wrap:wrap;}
+
+  @media (max-width:900px){
+    .nav-toggle{display:inline-flex;}
+    nav.tabs, .head-actions{display:none;}
+    .head-inner{flex-wrap:wrap;}
+    /* Both panels become full-width, normal-flow flex children of
+       .head-inner (which wraps) — this stacks them vertically below
+       the brand/toggle row in DOM order, rather than both trying to
+       absolutely-position at the same spot and overlapping. */
+    body.nav-open nav.tabs, body.nav-open .head-actions{
+      display:flex; flex-direction:column; align-items:stretch; gap:6px;
+      width:100%; order:10; background:transparent; border-radius:0; padding:0;
+      border-top:1px solid var(--line); margin-top:12px; padding-top:12px;
+    }
+    body.nav-open .head-actions{border-top:none; margin-top:0; padding-top:6px;}
+    body.nav-open nav.tabs a, body.nav-open .head-actions a{border-radius:10px; padding:12px 14px; text-align:left; width:100%;}
+    body.nav-open nav.tabs a.active{background:var(--line-soft); color:var(--ink);}
+    main{padding:0 16px;}
+    .grid-2, .grid-3, .grid-4{grid-template-columns:1fr;}
+  }
+  @media (max-width:640px){
+    main{padding:0 14px;}
+    .card{padding:var(--sp-4);}
+  }
 </style>
 <?php if ($__tenant && !empty($__tenant['branding_primary_color']) && preg_match('/^#[0-9a-fA-F]{6}$/', $__tenant['branding_primary_color'])): ?>
 <style>
@@ -90,7 +157,7 @@
       <a href="/tenants" class="<?= (uri_string() === 'tenants') ? 'active' : '' ?>">Sell</a>
       <a href="/trust-support" class="<?= (strpos(uri_string(), 'trust-support') !== false) ? 'active' : '' ?>">Trust & Support</a>
     </nav>
-    <div>
+    <div class="head-actions">
       <?php if (session()->get('logged_in_party_id')): ?>
         <a href="/my-listings" class="btn btn-ghost">My Listings</a>
         <a href="/my-activity" class="btn btn-ghost">My Activity</a>
@@ -102,8 +169,24 @@
       <?php endif; ?>
       <a href="/listings/create" class="btn btn-emerald">List an Asset</a>
     </div>
+    <button type="button" class="nav-toggle" id="navToggle" aria-label="Toggle menu"><span></span></button>
   </div>
 </header>
+<script>
+  (function () {
+    var toggle = document.getElementById('navToggle');
+    if (!toggle) return;
+    toggle.addEventListener('click', function () {
+      document.body.classList.toggle('nav-open');
+    });
+    document.addEventListener('click', function (e) {
+      if (!document.body.classList.contains('nav-open')) return;
+      if (e.target === toggle || toggle.contains(e.target)) return;
+      if (e.target.closest('nav.tabs, .head-actions')) return;
+      document.body.classList.remove('nav-open');
+    });
+  })();
+</script>
 
 <?php if (session()->get('logged_in_party_id')): ?>
 <aside id="live-ticker" style="position:fixed; right:0; top:62px; bottom:0; width:260px; background:#fff; border-left:1px solid var(--line); overflow-y:auto; padding:16px; z-index:50;">

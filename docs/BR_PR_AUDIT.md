@@ -473,6 +473,23 @@ the header/footer/favicon now use the real AdwitiX shield icon and
 wordmark rather than invented placeholder text. Full detail in
 `docs/DECISIONS.md` D-100.
 
+## Update — D-101: shared design-system foundation, proved out on Home/Profile/KYC
+
+Not a BR/PR build-gap item — a UI/UX foundation pass. A repo-wide
+check found exactly one responsive `@media` rule across the entire
+portal; every other screen had zero mobile treatment, including the
+header nav itself (which visually broke on every page at phone
+width). Added a real spacing/elevation/color-accent token system and
+shared component classes (`.card`, `.field`, `.badge`, `.grid-2/3/4`,
+responsive nav) to `layouts/main.php`, then proved the system out on
+three pages: Home (bolder hero/format-card treatment), Profile
+(reorganized from one unsorted row of 11 buttons into labelled
+groups), KYC (fixed a real bug — Individual/Organization fields were
+both always visible regardless of selection — plus card grouping).
+The other ~75 view files still use the old inline-style pattern;
+rolling the system out further is flagged as follow-up work, not yet
+requested. Full detail in `docs/DECISIONS.md` D-101.
+
 ### Bottom line (current)
 
 **Still two items with no path forward without the project owner

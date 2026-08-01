@@ -6382,3 +6382,87 @@ quirk unrelated to this change, not a real failure). Real HTTP/browser
 check: fresh page load's `document.title`, the rendered header and
 footer screenshotted and read back, and the favicon URL fetched
 directly.
+
+### D-101: shared design-system foundation — responsive nav, spacing/elevation tokens, component classes; proved out on Home, Profile, KYC
+
+The project owner's next observation, same UI/UX walkthrough: "all the
+screens are very basic and unorganised and lack any visual excitement
+... we don't know if they render mobile adaptive." Checked rather than
+assumed — a repo-wide grep found exactly one `@media` rule in the
+entire shared layout (`layouts/main.php`), hiding the Live Ticker
+sidebar under 900px. Every other screen, including every form and
+dashboard, had zero responsive treatment. Given two explicit choices
+from the project owner — fix the foundation first rather than keep
+patching page-by-page, and go bolder rather than just tightening the
+existing spare aesthetic — this pass builds the shared system in
+`layouts/main.php` and proves it out on three flagship pages rather
+than a wide shallow sweep.
+
+**Foundation, `layouts/main.php`**: extended `:root` with a spacing
+scale (`--sp-1`…`--sp-8`), an elevation scale (`--shadow-sm/md/lg`,
+previously zero box-shadow usage anywhere), and two new accent colors
+lifted from the AdwitiX shield/logo — `--navy` and `--gold` —
+decorative only, never used for buttons or status states, which stay
+Rust/Amber. New shared component classes: `.card`, `.section`,
+`.grid-2/3/4` (collapse to one column under 900px), `.field` (label +
+input, replacing hand-rolled inline styles), `.badge` (+ `-emerald`/
+`-amber`/`-navy` variants), `.table-wrap` (horizontal-scroll wrapper
+for wide tables). Real breakpoints added at 900px and 640px.
+
+**The actual nav bug, fixed at the root**: the header had no mobile
+treatment at all — at phone width, the full desktop nav (4 tabs + up
+to 6 account links) simply wrapped and visually overlapped the
+logo and page content, on every single page, since they all share
+this layout. Added a hamburger toggle (`.nav-toggle`, vanilla JS,
+CSS-only otherwise) that hides the two nav groups under 900px and
+reveals them as a stacked full-width panel on tap. First
+implementation had both groups independently `position:absolute` at
+the same coordinates, so they overlapped each other — caught via a
+real screenshot of the opened menu, fixed by making both normal-flow
+flex children of the wrapping header row instead (`width:100%;
+order:10`), which stacks them in DOM order with no coordinate math.
+Verified via a real Playwright click on `#navToggle`, both logged-out
+and logged-in states, screenshotted open and closed.
+
+**Proved out on three pages, not applied blindly everywhere**:
+- **Home** (`landing.php`): the empty-state hero card was a flat gray
+  box: replaced with a navy gradient, a gold dot-grid texture, and a
+  faint shield-checkmark watermark (inline SVG data URI, no new
+  asset). Format cards (Buy-Now/Easy/Express/Tender) previously all
+  shared one color; now Easy carries the navy accent and Express the
+  gold, so the four read as genuinely distinct at a glance. Added
+  hover lift + shadow on product cards, format cards, and category
+  tiles for basic interactivity.
+- **Profile** (`my/profile.php`): was one unsorted row of 11
+  identical pill buttons. Rebuilt as an avatar/summary header, a
+  stat-pill row (ratings/KYC/last login), and three labelled
+  `.settings-list` groups (Account / Activity / Discovery) plus a
+  separated Log Out / Delete Account row — same 11 destinations,
+  organized instead of dumped.
+- **KYC** (`kyc/form.php`): fixed a real bug flagged in the prior
+  walkthrough — Individual and Organization questionnaire fields
+  were both always visible regardless of the selected Entity Type.
+  Added a plain `change`-event toggle (`entityTypeSelect` show/hides
+  `#individualFields`/`#organizationFields`, synced on load too) so
+  only the relevant set shows. Also wrapped each of the four
+  numbered sections in `.card` with a numbered step badge, and
+  converted the field markup to the new `.field` component.
+
+**Verified**: `php -l` on every touched file. Full regression against
+a rebuilt-from-scratch database — all 32 non-`kyc` suites clean;
+`kyc` itself confirmed clean standalone (32/32 assertions) against a
+fresh DB, the loop failure being the same known same-DB double-run
+fixture collision already documented in D-98/D-99, not a regression
+— the KYC form's field `name` attributes are byte-for-byte unchanged
+from before this pass, so `KycController` never saw a different
+payload shape. Real browser verification, not just markup review:
+Home and Profile screenshotted at both 1440px and 390px; KYC
+screenshotted at 1440px in both Individual and Organization states
+(toggled live via Playwright's `selectOption`, not two separate page
+loads) plus at 390px.
+
+Not done, flagged rather than folded in: the remaining ~75 view files
+still use the old hand-rolled inline-style pattern rather than the
+new `.field`/`.card` classes — the foundation and the pattern are
+proven, but rolling it out further is real per-page work the project
+owner hasn't asked for yet.
