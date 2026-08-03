@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} html,body{overflow-x:hidden;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#C9974C;}
+@media (max-width:640px){.al-nav{display:none !important;} .al-row{grid-template-columns:1fr !important;}}
+</style>
+</helmet>
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; min-height:100vh;">
+  <header style="position:sticky; top:0; z-index:60; background:#1E2233; border-bottom:1px solid #33374A;">
+    <div style="max-width:1200px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#fff;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <nav class="al-nav" style="display:flex; gap:4px; background:#2A2E40; padding:4px; border-radius:100px;">
+        <a href="Custodian Dashboard.dc.html" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#C7CADA;">Dashboard</a>
+        <a href="#" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#fff; background:#C9974C;">Audit Ledger</a>
+      </nav>
+    </div>
+  </header>
+
+  <main style="max-width:1040px; margin:0 auto; padding:40px 20px 90px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">Custodian</div>
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:30px; font-weight:800; letter-spacing:-0.6px; margin:0 0 10px;">Audit Ledger</h1>
+    <p style="font-size:14px; color:#565B72; margin:0 0 24px; max-width:660px; line-height:1.6;">Every consequential action across the platform — by Trader, Market Maker, TSX Master, or Custodian — is recorded here for your review and the audit team's records. Nothing is excluded.</p>
+
+    <div style="position:relative; margin-bottom:12px;">
+      <input placeholder="Search — actor, mobile, action, target, reason, entry ID…" value="{{ query }}" onChange="{{ onQueryChange }}" style="width:100%; padding:12px 16px 12px 38px; border-radius:9px; border:1px solid #DDE0EA; background:#fff; font-size:13.5px; outline:none; font-family:inherit;">
+      <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#9A9FB5; font-size:14px;">⌕</span>
+    </div>
+
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+      <sc-for list="{{ roleFilters }}" as="rf" hint-placeholder-count="5">
+        <button onClick="{{ rf.onClick }}" style="padding:7px 14px; border-radius:100px; border:1px solid {{ rf.borderColor }}; background:{{ rf.bg }}; color:{{ rf.color }}; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">{{ rf.label }}</button>
+      </sc-for>
+      <input type="date" value="{{ dateFrom }}" onChange="{{ onDateFromChange }}" style="padding:7px 10px; border:1px solid #DDE0EA; border-radius:8px; font-size:12px; outline:none; background:#fff;">
+      <span style="font-size:12px; color:#9A9FB5;">to</span>
+      <input type="date" value="{{ dateTo }}" onChange="{{ onDateToChange }}" style="padding:7px 10px; border:1px solid #DDE0EA; border-radius:8px; font-size:12px; outline:none; background:#fff;">
+      <button onClick="{{ onClearFilters }}" style="font-size:12px; font-weight:600; color:#565B72; background:none; border:none; cursor:pointer; padding:0 4px;">Clear</button>
+      <button onClick="{{ onRefresh }}" style="margin-left:auto; padding:7px 14px; border-radius:100px; border:1px solid #DDE0EA; background:#fff; color:#1E2233; font-size:12px; font-weight:700; cursor:pointer;">↻ Refresh</button>
+    </div>
+
+    <div style="font-size:12px; color:#9A9FB5; margin-bottom:10px;">{{ countLabel }}</div>
+
+    <div style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; overflow:hidden;">
+      <div style="display:grid; grid-template-columns:132px 110px 1.6fr 1fr 130px; gap:10px; padding:9px 16px; background:#F3F4F8; border-bottom:1px solid #DDE0EA;">
+        <span style="font-size:10.5px; font-weight:700; color:#9A9FB5; text-transform:uppercase;">Timestamp</span>
+        <span style="font-size:10.5px; font-weight:700; color:#9A9FB5; text-transform:uppercase;">Role</span>
+        <span style="font-size:10.5px; font-weight:700; color:#9A9FB5; text-transform:uppercase;">Action / Target</span>
+        <span style="font-size:10.5px; font-weight:700; color:#9A9FB5; text-transform:uppercase;">Reason</span>
+        <span style="font-size:10.5px; font-weight:700; color:#9A9FB5; text-transform:uppercase; text-align:right;">Actor</span>
+      </div>
+      <sc-for list="{{ visibleEntries }}" as="e" hint-placeholder-count="10">
+        <button onClick="{{ e.onToggle }}" class="al-row" style="width:100%; text-align:left; display:grid; grid-template-columns:132px 110px 1.6fr 1fr 130px; gap:10px; align-items:start; padding:9px 16px; border:none; border-bottom:1px solid #EEF0EA; background:{{ e.rowBg }}; cursor:pointer; font-family:inherit;">
+          <span style="font-size:11px; color:#565B72; font-family:'IBM Plex Mono',monospace; white-space:nowrap;">{{ e.at }}</span>
+          <span style="font-size:10px; font-weight:700; text-transform:uppercase; color:{{ e.roleColor }}; background:{{ e.roleBg }}; padding:3px 8px; border-radius:100px; width:fit-content;">{{ e.actorRole }}</span>
+          <span style="font-size:12.5px; color:#1E2233; overflow:hidden; text-overflow:ellipsis; white-space:{{ e.wrapMode }};"><strong>{{ e.action }}</strong> — {{ e.target }}</span>
+          <span style="font-size:12px; color:#565B72; overflow:hidden; text-overflow:ellipsis; white-space:{{ e.wrapMode }};">{{ e.detail }}</span>
+          <span style="text-align:right; font-size:11.5px; color:#565B72;">{{ e.actorName }}<br><span style="font-family:'IBM Plex Mono',monospace; color:#9A9FB5;">{{ e.actorMobile }}</span></span>
+        </button>
+      </sc-for>
+    </div>
+    <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="text-align:center; padding:60px 20px; color:#9A9FB5; font-size:14px;">No entries match your search/filters. Take an action elsewhere in the app (approve a Lot, rule on a dispute, file an appeal) and refresh.</div>
+    </sc-if>
+    <sc-if value="{{ hasMore }}" hint-placeholder-val="{{ false }}">
+      <button onClick="{{ onLoadMore }}" style="display:block; margin:16px auto 0; padding:10px 22px; border:1px solid #DDE0EA; border-radius:100px; background:#fff; color:#1E2233; font-size:12.5px; font-weight:700; cursor:pointer;">Load {{ moreLabel }}</button>
+    </sc-if>
+  </main>
+
+  <footer style="border-top:1px solid #DDE0EA; padding:24px 20px; text-align:center;">
+    <p style="font-size:12.5px; color:#9A9FB5; margin:0;">This ledger is append-only and cannot be edited or deleted by any role, including the Custodian.</p>
+  </footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { roleFilter: 'all', query: '', dateFrom: '', dateTo: '', expandedIdx: null, pageSize: 40 };
+
+  seedEntries() {
+    return [
+      { at: '2026-07-29 11:20', actorRole: 'TSX Master', actorName: 'Rajesh Menon', actorMobile: '91xxxxxx10', action: 'Ruled on Dispute — Upheld (Partial)', target: 'DSP-10318', detail: 'Listing omitted a known defect. Partial refund ordered.' },
+      { at: '2026-07-30 09:14', actorRole: 'Trader', actorName: 'Trader', actorMobile: '99xxxxxx44', action: 'Filed Dispute', target: 'EXPRESS Trading Session — ₹1,15,000', detail: 'Non-Lifting/Collection' },
+      { at: '2026-07-30 18:42', actorRole: 'Market Maker', actorName: 'Northline Salvage Co.', actorMobile: '91xxxxxx02', action: 'Submitted Evidence', target: 'DSP-10422', detail: 'Explained delay due to family emergency.' },
+      { at: '2026-07-31 09:12', actorRole: 'Market Maker', actorName: 'Northline Salvage Co.', actorMobile: '91xxxxxx02', action: 'Submitted Lot for Approval', target: 'LOT-48210 — Repossessed Excavator, CAT 320D', detail: 'AI Pre-Check 84/100' },
+      { at: '2026-07-31 15:40', actorRole: 'TSX Master', actorName: 'Priya Nair', actorMobile: '90xxxxxx88', action: 'Referred Dispute to Custodian', target: 'DSP-10460', detail: 'Compliance concern beyond my authority — referring for Custodian-level review.' },
+    ];
+  }
+
+  loadLive() {
+    try { return JSON.parse(localStorage.getItem('adwitix_audit_ledger') || '[]'); } catch (e) { return []; }
+  }
+
+  roleMeta(role) {
+    const map = {
+      'Trader': { color: '#1E2761', bg: '#E7E9F2' },
+      'Market Maker': { color: '#9C5B1F', bg: '#F8F1E7' },
+      'TSX Master': { color: '#3F7A4E', bg: '#E4EFE6' },
+      'Custodian': { color: '#B5482F', bg: '#F7E4E0' },
+    };
+    return map[role] || { color: '#565B72', bg: '#EEF0F4' };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const all = [...this.seedEntries(), ...this.loadLive()].sort((a, b) => (a.at < b.at ? 1 : -1));
+    const roles = ['all', 'Trader', 'Market Maker', 'TSX Master', 'Custodian'];
+
+    let filtered = s.roleFilter === 'all' ? all : all.filter(e => e.actorRole === s.roleFilter);
+    if (s.dateFrom) filtered = filtered.filter(e => e.at.slice(0, 10) >= s.dateFrom);
+    if (s.dateTo) filtered = filtered.filter(e => e.at.slice(0, 10) <= s.dateTo);
+    const q = s.query.trim().toLowerCase();
+    if (q) {
+      filtered = filtered.filter(e => [e.action, e.target, e.detail, e.actorName, e.actorMobile, e.actorRole]
+        .join(' ').toLowerCase().includes(q));
+    }
+
+    const total = filtered.length;
+    const page = filtered.slice(0, s.pageSize);
+
+    return {
+      query: s.query, onQueryChange: (e) => this.setState({ query: e.target.value, pageSize: 40 }),
+      dateFrom: s.dateFrom, onDateFromChange: (e) => this.setState({ dateFrom: e.target.value, pageSize: 40 }),
+      dateTo: s.dateTo, onDateToChange: (e) => this.setState({ dateTo: e.target.value, pageSize: 40 }),
+      onClearFilters: () => this.setState({ query: '', dateFrom: '', dateTo: '', roleFilter: 'all', pageSize: 40 }),
+      roleFilters: roles.map(r => ({
+        label: r === 'all' ? 'All Roles' : r,
+        borderColor: s.roleFilter === r ? '#1E2233' : '#DDE0EA',
+        bg: s.roleFilter === r ? '#1E2233' : '#fff',
+        color: s.roleFilter === r ? '#fff' : '#565B72',
+        onClick: () => this.setState({ roleFilter: r, pageSize: 40 }),
+      })),
+      onRefresh: () => this.forceUpdate(),
+      countLabel: total + (total === 1 ? ' matching entry' : ' matching entries') + (total > page.length ? ' · showing ' + page.length : ''),
+      isEmpty: total === 0,
+      hasMore: total > page.length,
+      moreLabel: Math.min(40, total - page.length) + ' more',
+      onLoadMore: () => this.setState({ pageSize: s.pageSize + 40 }),
+      visibleEntries: page.map((e, i) => {
+        const expanded = s.expandedIdx === i;
+        return {
+          ...e,
+          roleColor: this.roleMeta(e.actorRole).color,
+          roleBg: this.roleMeta(e.actorRole).bg,
+          wrapMode: expanded ? 'normal' : 'nowrap',
+          rowBg: expanded ? '#FAFAF8' : (i % 2 === 1 ? '#FCFCFB' : '#fff'),
+          onToggle: () => this.setState({ expandedIdx: expanded ? null : i }),
+        };
+      }),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} html,body{overflow-x:hidden;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#A87A38;}
+.pf-chip:hover{border-color:#C9974C !important;}
+@media (max-width:640px){.pf-grid2{grid-template-columns:1fr !important;}}
+@media (max-width:560px){.pf-locrow{flex-direction:column; align-items:stretch !important;} .pf-locrow select, .pf-locrow input{width:100% !important;}}
+.pf-range{position:absolute; width:100%; margin:0; background:transparent; pointer-events:none; -webkit-appearance:none; appearance:none;}
+.pf-range::-webkit-slider-thumb{-webkit-appearance:none; pointer-events:auto; width:18px; height:18px; border-radius:100px; background:#C9974C; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,0.3); cursor:pointer; margin-top:0;}
+.pf-range::-moz-range-thumb{pointer-events:auto; width:18px; height:18px; border-radius:100px; background:#C9974C; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,0.3); cursor:pointer;}
+.pf-range::-webkit-slider-runnable-track{background:transparent;}
+.pf-range::-moz-range-track{background:transparent;}
+</style>
+</helmet>
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; min-height:100vh;">
+  <header style="position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1200px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#1E2761;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <a href="Buyer Dashboard.dc.html" style="font-weight:700; font-size:12.5px; padding:9px 18px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233; white-space:nowrap;">← Trader Dashboard</a>
+    </div>
+  </header>
+
+  <main style="max-width:760px; margin:0 auto; padding:40px 20px 90px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">Account</div>
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:30px; font-weight:800; letter-spacing:-0.6px; margin:0 0 10px;">Preferences</h1>
+    <p style="font-size:14px; color:#565B72; margin:0 0 30px; max-width:600px; line-height:1.6;">CAT-LOC-VAL — the three settings that personalise which Lots and alerts you see: Category, Location, and Value.</p>
+
+    <sc-if value="{{ isSaved }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#E4EFE6; border:1px solid #C8DFCC; border-radius:12px; padding:14px 18px; margin-bottom:24px;">
+        <p style="font-size:13px; color:#2F5E3B; margin:0; font-weight:700;">Preferences saved — your Live Ticker and Recommendations now reflect them.</p>
+      </div>
+    </sc-if>
+
+    <section style="margin-bottom:32px;">
+      <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:18px; margin:0 0 4px;">Category</h2>
+      <p style="font-size:12.5px; color:#9A9FB5; margin:0 0 14px;">Select every category — and, once picked, any subcategories — you're interested in bidding on.</p>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <sc-for list="{{ categories }}" as="c" hint-placeholder-count="6">
+          <div>
+            <button onClick="{{ c.onToggle }}" class="pf-chip" style="padding:10px 18px; border-radius:8px; border:2px solid {{ c.borderColor }}; background:{{ c.bg }}; color:{{ c.color }}; font-size:13.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; cursor:pointer;">{{ c.label }}</button>
+            <sc-if value="{{ c.selected }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 0 10px; padding-left:12px; border-left:2px solid #EDE7DA;">
+                <sc-for list="{{ c.subcats }}" as="sc" hint-placeholder-count="4">
+                  <button onClick="{{ sc.onToggle }}" class="pf-chip" style="padding:5px 12px; border-radius:100px; border:1px solid {{ sc.borderColor }}; background:{{ sc.bg }}; color:{{ sc.color }}; font-size:12px; font-weight:500; cursor:pointer;">{{ sc.label }}</button>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="margin-bottom:32px;">
+      <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:18px; margin:0 0 4px;">Location</h2>
+      <p style="font-size:12.5px; color:#9A9FB5; margin:0 0 14px;">Set where you're able to collect from. A Lot's site is matched against this — pick Nationwide if you can travel anywhere in India.</p>
+
+      <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px;">
+        <sc-for list="{{ locations }}" as="loc" hint-placeholder-count="1">
+          <div class="pf-locrow" style="display:flex; gap:10px; align-items:center; background:#fff; border:1px solid #DDE0EA; border-radius:10px; padding:12px 14px; flex-wrap:wrap;">
+            <label style="display:flex; align-items:center; gap:7px; font-size:12.5px; font-weight:600; color:#1E2233; white-space:nowrap; cursor:pointer;">
+              <input type="checkbox" checked="{{ loc.nationwide }}" onChange="{{ loc.onToggleNationwide }}" style="width:16px; height:16px; cursor:pointer;">
+              Nationwide
+            </label>
+            <sc-if value="{{ loc.notNationwide }}" hint-placeholder-val="{{ true }}">
+              <input placeholder="City or pincode" value="{{ loc.place }}" onChange="{{ loc.onPlaceChange }}" style="flex:1; min-width:140px; padding:8px 10px; border:1px solid #DDE0EA; border-radius:8px; font-size:13px; outline:none;">
+              <select value="{{ loc.radius }}" onChange="{{ loc.onRadiusChange }}" style="padding:8px 10px; border:1px solid #DDE0EA; border-radius:8px; font-size:12.5px; outline:none; background:#fff;">
+                <option value="10">Within 10 km</option>
+                <option value="25">Within 25 km</option>
+                <option value="50">Within 50 km</option>
+                <option value="100">Within 100 km</option>
+                <option value="250">Within 250 km</option>
+              </select>
+            </sc-if>
+            <sc-if value="{{ loc.canRemove }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ loc.onRemove }}" style="font-size:12px; color:#B5482F; background:none; border:none; cursor:pointer; padding:4px; margin-left:auto;">Remove</button>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+      <sc-if value="{{ showAddLocation }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ onAddLocation }}" style="font-size:12.5px; font-weight:700; color:#1E2233; background:#fff; border:1px dashed #C7CADA; border-radius:100px; padding:9px 16px; cursor:pointer;">+ Add Another Location</button>
+      </sc-if>
+    </section>
+
+    <section style="margin-bottom:36px;">
+      <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:18px; margin:0 0 4px;">Value</h2>
+      <p style="font-size:12.5px; color:#9A9FB5; margin:0 0 6px;">Drag to set a price range — matched against a Lot's Expected Value (Buy-Now) or Reserve Value. The bars behind the slider show how many Trading Sessions fall in each price band, so you can see what you'd gain by widening your range.</p>
+      <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; margin-bottom:6px;">
+        <span>{{ valueMinLabel }}</span>
+        <span>{{ valueMaxLabel }}</span>
+      </div>
+      <div style="position:relative; height:90px; margin-bottom:8px;">
+        <div style="position:absolute; bottom:22px; left:0; right:0; height:60px;">
+          <sc-for list="{{ histBars }}" as="b" hint-placeholder-count="7">
+            <div style="position:absolute; left:{{ b.leftPct }}%; width:{{ b.widthPct }}%; bottom:0; height:{{ b.heightPct }}%; background:{{ b.color }}; border-radius:3px 3px 0 0; box-sizing:border-box; border-right:2px solid #F3F4F8;" title="{{ b.label }}: {{ b.count }} sessions"></div>
+          </sc-for>
+        </div>
+        <input type="range" class="pf-range" min="0" max="2000000" step="10000" value="{{ valueMin }}" onChange="{{ onValueMinChange }}" style="bottom:14px; z-index:{{ minZ }};">
+        <input type="range" class="pf-range" min="0" max="2000000" step="10000" value="{{ valueMax }}" onChange="{{ onValueMaxChange }}" style="bottom:14px; z-index:{{ maxZ }};">
+        <div style="position:absolute; bottom:0; left:0; right:0; display:flex; justify-content:space-between; font-size:9.5px; color:#9A9FB5;">
+          <span>₹0</span><span>₹20L+</span>
+        </div>
+      </div>
+      <sc-if value="{{ hasMissedVolumeHint }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#F8F1E7; border:1px solid #E9D9BE; border-radius:10px; padding:12px 16px; margin-top:8px;">
+          <p style="font-size:12.5px; color:#1E2233; margin:0; line-height:1.55;">{{ missedVolumeHint }}</p>
+        </div>
+      </sc-if>
+    </section>
+
+    <button onClick="{{ onSave }}" style="padding:13px 26px; border:none; border-radius:100px; background:#C9974C; color:#fff; font-weight:700; font-size:14px; cursor:pointer;" style-hover="background:#A87A38;">Save Preferences</button>
+  </main>
+
+  <footer style="border-top:1px solid #DDE0EA; padding:24px 20px; text-align:center;">
+    <p style="font-size:12.5px; color:#9A9FB5; margin:0;">See <a href="Terminology.dc.html">Terminology</a> for how CAT-LOC-VAL and the Live Ticker work together.</p>
+  </footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    selectedCategories: { industrial: true, construction: true },
+    selectedSubcats: { industrial: { cnc: true } },
+    locations: [{ id: 1, place: 'Pune, Maharashtra', radius: '50', nationwide: false }],
+    nextLocId: 2,
+    valueMin: 0, valueMax: 300000, valueError: '', activeThumb: 'max',
+    saved: false,
+  };
+
+  categoryDefs() {
+    // NOTE: this list + subcategories is a placeholder — swap/expand via Claude Code once the real category/condition taxonomy is wired up.
+    return [
+      { id: 'industrial', label: 'Industrial Machinery', subcats: [{ id: 'cnc', label: 'CNC Machines' }, { id: 'generators', label: 'Generators' }, { id: 'compressors', label: 'Compressors' }, { id: 'pumps', label: 'Pumps & Motors' }] },
+      { id: 'vehicles', label: 'Vehicles & Fleet', subcats: [{ id: 'cars', label: 'Cars' }, { id: 'trucks', label: 'Trucks' }, { id: 'vans', label: 'Vans' }, { id: 'twowheelers', label: 'Two-Wheelers' }] },
+      { id: 'construction', label: 'Construction Equipment', subcats: [{ id: 'excavators', label: 'Excavators' }, { id: 'cranes', label: 'Cranes' }, { id: 'loaders', label: 'Loaders' }, { id: 'bulldozers', label: 'Bulldozers' }] },
+      { id: 'electronics', label: 'Electronics & IT Assets', subcats: [{ id: 'servers', label: 'Servers & IT Racks' }, { id: 'computers', label: 'Laptops & Desktops' }, { id: 'networking', label: 'Networking Equipment' }, { id: 'officeelec', label: 'Office Electronics' }] },
+      { id: 'furniture', label: 'Furniture & Fixtures', subcats: [{ id: 'officefurn', label: 'Office Furniture' }, { id: 'racking', label: 'Racking & Storage' }, { id: 'fixtures', label: 'Fixtures & Fittings' }] },
+      { id: 'scrap', label: 'Scrap & Salvage', subcats: [{ id: 'metal', label: 'Metal Scrap' }, { id: 'ewaste', label: 'Electronic Waste' }, { id: 'industrialwaste', label: 'Industrial Waste' }] },
+    ];
+  }
+
+  histBuckets() {
+    // Placeholder distribution of Trading Session volume by price band — swap for real aggregation later.
+    return [
+      { label: '₹0–1L', min: 0, max: 100000, count: 8 },
+      { label: '₹1–2L', min: 100000, max: 200000, count: 14 },
+      { label: '₹2–3L', min: 200000, max: 300000, count: 10 },
+      { label: '₹3–5L', min: 300000, max: 500000, count: 22 },
+      { label: '₹5–7L', min: 500000, max: 700000, count: 34 },
+      { label: '₹7–10L', min: 700000, max: 1000000, count: 16 },
+      { label: '₹10L+', min: 1000000, max: 2000000, count: 9 },
+    ];
+  }
+
+  fmtRupees(n) {
+    if (n >= 2000000) return '₹20L+';
+    if (n >= 100000) return '₹' + (n / 100000).toFixed(n % 100000 === 0 ? 0 : 1) + 'L';
+    if (n >= 1000) return '₹' + Math.round(n / 1000) + 'K';
+    return '₹' + n;
+  }
+
+  renderVals() {
+    const s = this.state;
+    const buckets = this.histBuckets();
+    const maxCount = Math.max(...buckets.map(b => b.count));
+    const missed = buckets.filter(b => b.min >= s.valueMax && b.count >= maxCount * 0.8);
+    const missedBelow = buckets.filter(b => b.max <= s.valueMin && b.count >= maxCount * 0.8);
+
+    return {
+      isSaved: s.saved,
+      categories: this.categoryDefs().map(c => {
+        const on = !!s.selectedCategories[c.id];
+        const subSel = s.selectedSubcats[c.id] || {};
+        return {
+          label: c.label, selected: on,
+          borderColor: on ? '#C9974C' : '#DDE0EA', bg: on ? '#F8F1E7' : '#fff', color: on ? '#9C5B1F' : '#1E2233',
+          onToggle: () => this.setState({ selectedCategories: { ...this.state.selectedCategories, [c.id]: !on }, saved: false }),
+          subcats: c.subcats.map(sc => {
+            const scOn = !!subSel[sc.id];
+            return {
+              label: sc.label,
+              borderColor: scOn ? '#C9974C' : '#DDE0EA', bg: scOn ? '#F8F1E7' : '#fff', color: scOn ? '#9C5B1F' : '#565B72',
+              onToggle: () => this.setState({
+                selectedSubcats: { ...this.state.selectedSubcats, [c.id]: { ...subSel, [sc.id]: !scOn } }, saved: false,
+              }),
+            };
+          }),
+        };
+      }),
+      locations: s.locations.map(loc => ({
+        place: loc.place, radius: loc.radius, nationwide: loc.nationwide, notNationwide: !loc.nationwide, canRemove: s.locations.length > 1,
+        onPlaceChange: (e) => this.setState({ locations: this.state.locations.map(l => l.id === loc.id ? { ...l, place: e.target.value } : l), saved: false }),
+        onRadiusChange: (e) => this.setState({ locations: this.state.locations.map(l => l.id === loc.id ? { ...l, radius: e.target.value } : l), saved: false }),
+        onToggleNationwide: () => this.setState({ locations: this.state.locations.map(l => l.id === loc.id ? { ...l, nationwide: !l.nationwide } : l), saved: false }),
+        onRemove: () => this.setState({ locations: this.state.locations.filter(l => l.id !== loc.id), saved: false }),
+      })),
+      onAddLocation: () => this.setState({ locations: [...this.state.locations, { id: s.nextLocId, place: '', radius: '50', nationwide: false }], nextLocId: s.nextLocId + 1, saved: false }),
+      showAddLocation: !s.locations.some(l => l.nationwide),
+
+      valueMin: s.valueMin, valueMax: s.valueMax,
+      valueMinLabel: this.fmtRupees(s.valueMin), valueMaxLabel: s.valueMax >= 2000000 ? 'No limit' : this.fmtRupees(s.valueMax),
+      minZ: s.activeThumb === 'min' ? 3 : 1, maxZ: s.activeThumb === 'max' ? 3 : 1,
+      onValueMinChange: (e) => {
+        const v = Math.min(Number(e.target.value), s.valueMax - 10000);
+        this.setState({ valueMin: v, activeThumb: 'min', saved: false });
+      },
+      onValueMaxChange: (e) => {
+        const v = Math.max(Number(e.target.value), s.valueMin + 10000);
+        this.setState({ valueMax: v, activeThumb: 'max', saved: false });
+      },
+      histBars: buckets.map(b => {
+        const overlaps = Math.min(b.max, s.valueMax) > Math.max(b.min, s.valueMin);
+        const domain = 2000000;
+        return {
+          label: b.label, count: b.count,
+          heightPct: Math.round((b.count / maxCount) * 100),
+          leftPct: (b.min / domain) * 100,
+          widthPct: ((b.max - b.min) / domain) * 100,
+          color: overlaps ? '#C9974C' : '#DDE0EA',
+        };
+      }),
+      hasMissedVolumeHint: missed.length > 0 || missedBelow.length > 0,
+      missedVolumeHint: missed.length > 0
+        ? '💡 ' + missed.reduce((a, b) => a + b.count, 0) + ' Trading Sessions sit above your current maximum, including a strong ' + missed[0].label + ' band (' + missed[0].count + ' sessions). Consider raising your budget to reach more of them.'
+        : (missedBelow.length > 0 ? '💡 ' + missedBelow.reduce((a, b) => a + b.count, 0) + ' Trading Sessions sit below your current minimum, including a strong ' + missedBelow[missedBelow.length - 1].label + ' band. Consider lowering your minimum to reach more of them.' : ''),
+      valueError: s.valueError,
+      onSave: () => this.setState({ saved: true }),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} html,body{overflow-x:hidden;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#C9974C;}
+@media (max-width:640px){.al-nav{display:none !important;} .se-row{grid-template-columns:1fr !important;}}
+</style>
+</helmet>
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; min-height:100vh;">
+  <header style="position:sticky; top:0; z-index:60; background:#1E2233; border-bottom:1px solid #33374A;">
+    <div style="max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#fff;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <nav class="al-nav" style="display:flex; gap:4px; background:#2A2E40; padding:4px; border-radius:100px;">
+        <a href="Custodian Dashboard.dc.html" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#C7CADA;">Dashboard</a>
+        <a href="#" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#fff; background:#C9974C;">Statutory Export</a>
+      </nav>
+    </div>
+  </header>
+
+  <main style="max-width:820px; margin:0 auto; padding:40px 20px 90px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">Custodian</div>
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+      <h1 style="font-family:Georgia,'Cambria',serif; font-size:30px; font-weight:800; letter-spacing:-0.6px; margin:0;">Statutory Export</h1>
+      <button onClick="{{ onToggleInfo }}" title="Why this screen exists" style="width:22px; height:22px; border-radius:50%; border:1px solid #9A9FB5; background:#fff; color:#565B72; font-size:12px; font-weight:700; font-family:Georgia,serif; font-style:italic; cursor:pointer; flex-shrink:0;">i</button>
+    </div>
+    <p style="font-size:14px; color:#565B72; margin:0 0 12px; max-width:600px; line-height:1.6;">Generate data extracts for regulatory or statutory filing. Every export is itself recorded to the Audit Ledger with dataset, range, and requester.</p>
+    <sc-if value="{{ showInfo }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#FBF8F0; border:1px solid #E9DCC0; border-radius:10px; padding:14px 16px; margin:0 0 20px; font-size:13px; color:#6B5D3F; line-height:1.6; max-width:600px;">
+        <strong>Why this screen exists:</strong> Custodians may generate dataset extracts for regulatory or statutory filing on demand. Every export is itself logged to the Audit Ledger with dataset, date range, and requester.
+        <button onClick="{{ onToggleInfo }}" style="display:block; margin-top:8px; font-size:12px; font-weight:700; color:#9C874C; background:none; border:none; cursor:pointer; padding:0;">Close</button>
+      </div>
+    </sc-if>
+
+    <div style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:20px; margin-bottom:28px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+        <label style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:12px; font-weight:700; color:#565B72;">Dataset</span>
+          <select value="{{ dataset }}" onChange="{{ onDatasetChange }}" style="padding:10px 12px; border:1px solid #DDE0EA; border-radius:8px; font-size:13.5px; outline:none; background:#fff; font-family:inherit;">
+            <sc-for list="{{ datasetOptions }}" as="o" hint-placeholder-count="6"><option value="{{ o }}">{{ o }}</option></sc-for>
+          </select>
+        </label>
+        <label style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:12px; font-weight:700; color:#565B72;">Format</span>
+          <select value="{{ format }}" onChange="{{ onFormatChange }}" style="padding:10px 12px; border:1px solid #DDE0EA; border-radius:8px; font-size:13.5px; outline:none; background:#fff; font-family:inherit;">
+            <option value="CSV">CSV</option>
+            <option value="XLSX">XLSX</option>
+          </select>
+        </label>
+        <label style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:12px; font-weight:700; color:#565B72;">From</span>
+          <input type="date" value="{{ dateFrom }}" onChange="{{ onDateFromChange }}" style="padding:10px 12px; border:1px solid #DDE0EA; border-radius:8px; font-size:13.5px; outline:none; background:#fff;">
+        </label>
+        <label style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:12px; font-weight:700; color:#565B72;">To</span>
+          <input type="date" value="{{ dateTo }}" onChange="{{ onDateToChange }}" style="padding:10px 12px; border:1px solid #DDE0EA; border-radius:8px; font-size:13.5px; outline:none; background:#fff;">
+        </label>
+      </div>
+      <button onClick="{{ onGenerate }}" disabled="{{ genDisabled }}" style="padding:11px 20px; border-radius:8px; border:none; background:#1E2233; color:#fff; font-size:13px; font-weight:700; cursor:pointer; opacity:{{ genOpacity }};">Generate Export</button>
+      <sc-if value="{{ showConfirm }}" hint-placeholder-val="{{ false }}">
+        <span style="margin-left:12px; font-size:12.5px; color:#3F7A4E; font-weight:600;">✓ Export queued — appears below</span>
+      </sc-if>
+    </div>
+
+    <h2 style="font-size:14px; font-weight:700; color:#9A9FB5; text-transform:uppercase; letter-spacing:0.5px; margin:0 0 12px;">Export History</h2>
+    <div style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; overflow:hidden;">
+      <div class="se-row" style="display:grid; grid-template-columns:120px 1fr 1fr 90px 90px; gap:10px; padding:9px 16px; background:#F3F4F8; border-bottom:1px solid #DDE0EA;">
+        <span style="font-size:10.5px; font-weight:700; color:#9A9FB5; text-transform:uppercase;">Generated</span>
+        <span style="font-size:10.5px; font-weight:700; color:#9A9FB5; text-transform:uppercase;">Dataset</span>
+        <span style="font-size:10.5px; font-weight:700; color:#9A9FB5; text-transform:uppercase;">Range</span>
+        <span style="font-size:10.5px; font-weight:700; color:#9A9FB5; text-transform:uppercase;">Format</span>
+        <span style="font-size:10.5px; font-weight:700; color:#9A9FB5; text-transform:uppercase;"></span>
+      </div>
+      <sc-for list="{{ history }}" as="h" hint-placeholder-count="3">
+        <div class="se-row" style="display:grid; grid-template-columns:120px 1fr 1fr 90px 90px; gap:10px; padding:11px 16px; border-bottom:1px solid #EEF0EA; align-items:center;">
+          <span style="font-size:11px; color:#565B72; font-family:'IBM Plex Mono',monospace;">{{ h.at }}</span>
+          <span style="font-size:13px; font-weight:600;">{{ h.dataset }}</span>
+          <span style="font-size:12px; color:#565B72;">{{ h.range }}</span>
+          <span style="font-size:12px; color:#565B72;">{{ h.format }}</span>
+          <a href="#" onClick="{{ h.onDownload }}" style="font-size:12px; font-weight:700; text-align:right;">Download</a>
+        </div>
+      </sc-for>
+    </div>
+    <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="text-align:center; padding:40px 20px; color:#9A9FB5; font-size:13.5px;">No exports generated yet.</div>
+    </sc-if>
+  </main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { dataset: 'Users', format: 'CSV', dateFrom: '', dateTo: '', history: this.loadHistory(), justGenerated: false, showInfo: false };
+
+  loadHistory() { try { return JSON.parse(localStorage.getItem('adwitix_export_history') || '[]'); } catch (e) { return this.seedHistory(); } }
+  saveHistory(h) { localStorage.setItem('adwitix_export_history', JSON.stringify(h)); }
+
+  seedHistory() {
+    return [
+      { at: '2026-07-15 10:00', dataset: 'Users', range: '2026-06-01 to 2026-06-30', format: 'XLSX' },
+      { at: '2026-07-01 09:30', dataset: 'Trading Sessions', range: '2026-05-01 to 2026-05-31', format: 'CSV' },
+    ];
+  }
+
+  pushLedger(action, target, detail) {
+    try {
+      const key = 'adwitix_audit_ledger';
+      const cur = JSON.parse(localStorage.getItem(key) || '[]');
+      const at = new Date().toISOString().slice(0, 16).replace('T', ' ');
+      cur.push({ at, actorRole: 'Custodian', actorName: 'Custodian', actorMobile: '—', action, target, detail });
+      localStorage.setItem(key, JSON.stringify(cur));
+    } catch (e) {}
+  }
+
+  renderVals() {
+    const s = this.state;
+    const datasets = ['Users', 'Lots', 'Trading Sessions', 'Disputes', 'Payouts', 'Invoices'];
+    const rangeReady = s.dateFrom && s.dateTo;
+
+    return {
+      showInfo: s.showInfo, onToggleInfo: () => this.setState({ showInfo: !s.showInfo }),
+      dataset: s.dataset, onDatasetChange: (e) => this.setState({ dataset: e.target.value }),
+      datasetOptions: datasets,
+      format: s.format, onFormatChange: (e) => this.setState({ format: e.target.value }),
+      dateFrom: s.dateFrom, onDateFromChange: (e) => this.setState({ dateFrom: e.target.value }),
+      dateTo: s.dateTo, onDateToChange: (e) => this.setState({ dateTo: e.target.value }),
+      genDisabled: !rangeReady, genOpacity: rangeReady ? 1 : 0.5,
+      showConfirm: s.justGenerated,
+      onGenerate: () => {
+        if (!rangeReady) return;
+        const at = new Date().toISOString().slice(0, 16).replace('T', ' ');
+        const range = s.dateFrom + ' to ' + s.dateTo;
+        const entry = { at, dataset: s.dataset, range, format: s.format };
+        const next = [entry, ...s.history];
+        this.saveHistory(next);
+        this.pushLedger('Generated Statutory Export', s.dataset, range + ' · ' + s.format);
+        this.setState({ history: next, justGenerated: true });
+      },
+      isEmpty: s.history.length === 0,
+      history: s.history.map(h => ({ ...h, onDownload: (e) => e.preventDefault() })),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

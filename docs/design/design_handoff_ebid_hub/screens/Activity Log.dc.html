@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  html, body{overflow-x:hidden;}
+  a{text-decoration:none;}
+  a:link, a:visited{color:#C9974C;}
+  a:hover{color:#A87A38;}
+  @media (max-width:760px){
+    .al-row{grid-template-columns:100px 1fr 90px !important;}
+    .al-row > div:nth-child(3), .al-row > div:nth-child(5){display:none;}
+  }
+  @media (max-width:480px){
+    .al-header-cta-label{display:none;}
+  }
+</style>
+</helmet>
+
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;">
+
+  <header style="position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1400px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:36px; width:36px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:22px; letter-spacing:-0.5px; color:#1E2761; flex-shrink:0;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <a href="Profile.dc.html" class="al-header-cta-label" style="font-weight:700; font-size:12.5px; padding:9px 18px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233; white-space:nowrap;">Back to Profile</a>
+    </div>
+  </header>
+
+  <main style="max-width:900px; margin:0 auto; padding:44px 24px 90px;">
+
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:26px; font-weight:800; letter-spacing:-0.5px; margin:0 0 8px;">Activity Log</h1>
+    <p style="font-size:14px; color:#565B72; margin:0 0 8px; line-height:1.6;">A record of sessions on your account — page visited, date &amp; time, approximate location, and device.</p>
+    <div style="background:#FBF2E2; border:1px solid #EBD9AE; border-radius:12px; padding:12px 16px; margin-bottom:24px;">
+      <p style="font-size:12px; color:#8A6425; margin:0; line-height:1.5;"><strong>Illustrative mockup.</strong> This table shows sample data to demonstrate the layout — live location/device capture requires backend telemetry not wired up in this design.</p>
+    </div>
+
+    <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+      <div class="al-row" style="display:grid; grid-template-columns:130px 1fr 140px 110px 90px; padding:0 20px; font-size:10px; text-transform:uppercase; color:#9A9FB5; font-weight:700; border-bottom:1px solid #DDE0EA;">
+        <div style="padding:12px 0;">Date &amp; Time</div>
+        <div style="padding:12px 0;">Page</div>
+        <div style="padding:12px 0;">Location</div>
+        <div style="padding:12px 0;">Device</div>
+        <div style="padding:12px 0;">IP</div>
+      </div>
+      <sc-for list="{{ logEntries }}" as="l" hint-placeholder-count="8">
+        <div class="al-row" style="display:grid; grid-template-columns:130px 1fr 140px 110px 90px; padding:0 20px; border-bottom:1px solid #EEF0EA; align-items:center;">
+          <div style="padding:12px 0; font-size:12px; color:#9A9FB5; font-family:'IBM Plex Mono',monospace;">{{ l.datetime }}</div>
+          <div style="padding:12px 0; font-size:13px;">{{ l.page }}</div>
+          <div style="padding:12px 0; font-size:12.5px; color:#565B72;">{{ l.location }}</div>
+          <div style="padding:12px 0; font-size:12.5px; color:#565B72;">{{ l.device }}</div>
+          <div style="padding:12px 0; font-size:11.5px; color:#9A9FB5; font-family:'IBM Plex Mono',monospace;">{{ l.ip }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+  </main>
+</div>
+</helmet>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      logEntries: [
+        { datetime: '2026-08-02 12:41', page: 'KYC — Identity Verification', location: 'Noida, UP, IN', device: 'Chrome · Android', ip: '103.21.x.x' },
+        { datetime: '2026-08-02 09:15', page: 'Buyer Dashboard', location: 'Noida, UP, IN', device: 'Chrome · Android', ip: '103.21.x.x' },
+        { datetime: '2026-08-01 21:03', page: 'Payout Bank', location: 'Noida, UP, IN', device: 'Safari · iPhone', ip: '49.36.x.x' },
+        { datetime: '2026-08-01 18:47', page: 'Lot #4501 — Warehouse Racking', location: 'Noida, UP, IN', device: 'Chrome · Windows', ip: '117.98.x.x' },
+        { datetime: '2026-07-30 08:22', page: 'Profile', location: 'Gurugram, HR, IN', device: 'Chrome · Android', ip: '106.51.x.x' },
+        { datetime: '2026-07-28 14:10', page: 'My Purchases', location: 'Noida, UP, IN', device: 'Chrome · Windows', ip: '117.98.x.x' },
+        { datetime: '2026-07-25 20:36', page: 'Trust & Support — FAQ', location: 'Noida, UP, IN', device: 'Safari · iPhone', ip: '49.36.x.x' },
+        { datetime: '2026-07-20 10:05', page: 'Login', location: 'Noida, UP, IN', device: 'Chrome · Android', ip: '103.21.x.x' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

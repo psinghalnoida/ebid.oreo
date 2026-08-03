@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  a{text-decoration:none;}
+  a:link, a:visited{color:#C9974C;}
+  a:hover{color:#A87A38;}
+  @media (max-width:860px){
+    .sd-stats{grid-template-columns:repeat(2,1fr) !important;}
+    .sd-nav{display:none !important;}
+    .sd-quick{grid-template-columns:repeat(2,1fr) !important;}
+    .sd-earn{grid-template-columns:repeat(2,1fr) !important;}
+    .sd-sales-row{grid-template-columns:90px 80px 100px 90px 90px 1fr 90px !important;}
+    .sd-sales-row > div:nth-child(5){display:none;}
+  }
+  @media (max-width:600px){
+    .sd-stats{grid-template-columns:1fr 1fr !important;}
+    .sd-earn{grid-template-columns:repeat(2,1fr) !important;}
+    .sd-quick{grid-template-columns:1fr !important;}
+    .sd-sales-row{grid-template-columns:64px 1fr 70px 76px !important;}
+    .sd-sales-row > div:nth-child(2), .sd-sales-row > div:nth-child(5), .sd-sales-row > div:nth-child(6){display:none;}
+  }
+  @media (max-width:480px){
+    .sd-header-cta-label{display:none;}
+  }
+  html, body{overflow-x:hidden;}
+</style>
+</helmet>
+
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;">
+
+  <header style="position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1400px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:36px; width:36px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:22px; letter-spacing:-0.5px; color:#1E2761;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <nav class="sd-nav" style="display:flex; gap:4px; background:#E9EBF2; padding:4px; border-radius:100px;">
+        <a href="#" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#565B72;">Marketplace</a>
+        <a href="#" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#565B72;">Browse</a>
+        <a href="#" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#fff; background:#1E2233;">Market Maker Dashboard</a>
+        <a href="Trust and Support.dc.html" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#565B72;">Trust &amp; Support</a>
+      </nav>
+      <div style="display:flex; gap:8px; align-items:center; flex:none;">
+        <a href="#" class="sd-header-cta-label" style="font-weight:700; font-size:12.5px; padding:9px 16px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233;">Profile</a>
+        <a href="#" class="sd-header-cta-label" style="font-weight:700; font-size:12.5px; padding:9px 16px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233;">Log Out</a>
+        <a href="Create Lot.dc.html" style="font-weight:700; font-size:12.5px; padding:9px 18px; border-radius:100px; background:#C9974C; color:#fff; white-space:nowrap;">List an Asset</a>
+      </div>
+    </div>
+  </header>
+
+  <main style="max-width:1130px; margin:0 auto; padding:40px 32px 80px;">
+
+    <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:8px;">
+      <h1 style="font-family:Georgia,'Cambria',serif; font-size:30px; font-weight:800; letter-spacing:-0.6px; margin:0;">Market Maker Dashboard — {{ tenantName }}</h1>
+      <span style="font-size:12px; font-weight:600; color:{{ standingColor }}; background:{{ standingBg }}; padding:6px 13px; border-radius:100px; align-self:flex-start;">{{ standingLabel }}</span>
+    </div>
+    <p style="font-size:14px; color:#565B72; margin:0 0 28px;">Your standing here reflects activity on {{ tenantName }} only — it doesn't carry over to any other TradeSphereX.</p>
+
+    <div class="sd-stats" style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:44px;">
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:18px 20px;">
+        <b style="display:block; font-family:Georgia,serif; font-size:26px; font-weight:800;">{{ stats.activeListings }}</b>
+        <span style="font-size:12px; color:#9A9FB5; font-weight:600;">Active Listings</span>
+      </div>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:18px 20px;">
+        <b style="display:block; font-family:Georgia,serif; font-size:26px; font-weight:800;">{{ stats.pendingApproval }}</b>
+        <span style="font-size:12px; color:#9A9FB5; font-weight:600;">Pending Approval</span>
+      </div>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:18px 20px;">
+        <b style="display:block; font-family:Georgia,serif; font-size:26px; font-weight:800; color:#C9974C;">{{ stats.thisMonthSales }}</b>
+        <span style="font-size:12px; color:#9A9FB5; font-weight:600;">Sales This Month</span>
+      </div>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:18px 20px;">
+        <b style="display:block; font-family:Georgia,serif; font-size:26px; font-weight:800;">{{ stats.netEarnings }}</b>
+        <span style="font-size:12px; color:#9A9FB5; font-weight:600;">Net Received YTD</span>
+      </div>
+    </div>
+
+    <section id="listings" style="margin-bottom:44px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <h2 style="font-size:18px; font-weight:800; margin:0; font-family:Archivo,sans-serif;">My Lots</h2>
+        <div style="display:flex; gap:8px;">
+          <a href="Lot Reach & Interest.dc.html" style="font-size:12px; font-weight:700; padding:8px 16px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233;">Lot Reach &amp; Interest</a>
+          <a href="Create Lot.dc.html" style="font-size:12px; font-weight:700; padding:8px 16px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233;">+ Create Lot</a>
+        </div>
+      </div>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+        <sc-for list="{{ listings }}" as="l" hint-placeholder-count="4">
+          <a href="#" style="display:flex; align-items:center; justify-content:space-between; padding:15px 20px; border-bottom:1px solid #EEF0EA;" style-hover="background:#FAFAF8;">
+            <span>
+              <span style="font-size:13.5px; font-weight:600;">{{ l.category }}</span>
+              <span style="font-size:11px; color:#9A9FB5; font-family:'IBM Plex Mono',monospace; margin-left:8px;">{{ l.format }}</span>
+            </span>
+            <span style="display:flex; align-items:center; gap:16px;">
+              <span style="font-size:13.5px; font-weight:700;">{{ l.price }}</span>
+              <span style="font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; color:{{ l.statusColor }}; background:{{ l.statusBg }}; padding:4px 10px; border-radius:100px;">{{ l.status }}</span>
+            </span>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+
+    <section id="sales" style="margin-bottom:44px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <h2 style="font-size:18px; font-weight:800; margin:0; font-family:Archivo,sans-serif;">My Sales</h2>
+        <a href="#" style="font-size:12px; font-weight:700;">Export CSV →</a>
+      </div>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+        <div class="sd-sales-row" style="display:grid; grid-template-columns:100px 90px 110px 90px 90px 1fr 90px; padding:0 20px; font-size:10px; text-transform:uppercase; color:#9A9FB5; font-weight:700; border-bottom:1px solid #DDE0EA;">
+          <div style="padding:12px 0;">Date</div>
+          <div style="padding:12px 0;">Format</div>
+          <div style="padding:12px 0;">Price</div>
+          <div style="padding:12px 0;">Fee</div>
+          <div style="padding:12px 0;">TDS</div>
+          <div style="padding:12px 0;">Trader</div>
+          <div style="padding:12px 0;">Status</div>
+          <div style="padding:12px 0;">Chronicle</div>
+        </div>
+        <sc-for list="{{ sales }}" as="s" hint-placeholder-count="3">
+          <div class="sd-sales-row" style="display:grid; grid-template-columns:100px 90px 110px 90px 90px 1fr 90px 90px; padding:0 20px; border-bottom:1px solid #EEF0EA; align-items:center; font-size:13px;">
+            <div style="padding:12px 0; color:#9A9FB5; font-size:12px;">{{ s.date }}</div>
+            <div style="padding:12px 0; font-size:12px;">{{ s.format }}</div>
+            <div style="padding:12px 0; font-weight:700; color:#C9974C;">{{ s.price }}</div>
+            <div style="padding:12px 0; font-size:12px;">{{ s.fee }}</div>
+            <div style="padding:12px 0; font-size:12px;">{{ s.tds }}</div>
+            <div style="padding:12px 0; font-size:12.5px;">{{ s.buyer }}</div>
+            <div style="padding:12px 0; font-size:11px; font-weight:600; text-transform:uppercase; color:#565B72;">{{ s.status }}</div>
+            <div style="padding:12px 0;"><a href="AX Chronicle.dc.html" style="font-size:11.5px; font-weight:700;">View →</a></div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section id="earnings" style="margin-bottom:44px;">
+      <h2 style="font-size:18px; font-weight:800; margin:0 0 16px; font-family:Archivo,sans-serif;">Earnings Summary</h2>
+      <p style="font-size:11px; color:#9A9FB5; font-weight:600; text-transform:uppercase; letter-spacing:0.4px; margin:0 0 10px;">This Month</p>
+      <div class="sd-earn" style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px;">
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:16px 18px;">
+          <b style="display:block; font-size:20px; font-weight:800;">{{ thisMonth.saleCount }}</b>
+          <span style="font-size:11px; color:#9A9FB5; font-weight:600;">Sales</span>
+        </div>
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:16px 18px;">
+          <b style="display:block; font-size:20px; font-weight:800;">{{ thisMonth.totalSales }}</b>
+          <span style="font-size:11px; color:#9A9FB5; font-weight:600;">Total Sales</span>
+        </div>
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:16px 18px;">
+          <b style="display:block; font-size:20px; font-weight:800;">{{ thisMonth.totalFees }}</b>
+          <span style="font-size:11px; color:#9A9FB5; font-weight:600;">Fees Paid</span>
+        </div>
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:16px 18px;">
+          <b style="display:block; font-size:20px; font-weight:800;">{{ thisMonth.totalTds }}</b>
+          <span style="font-size:11px; color:#9A9FB5; font-weight:600;">TDS Deducted</span>
+        </div>
+      </div>
+      <p style="font-size:11px; color:#9A9FB5; font-weight:600; text-transform:uppercase; letter-spacing:0.4px; margin:0 0 10px;">Year to Date</p>
+      <div class="sd-earn" style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px;">
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:16px 18px;">
+          <b style="display:block; font-size:20px; font-weight:800;">{{ ytd.saleCount }}</b>
+          <span style="font-size:11px; color:#9A9FB5; font-weight:600;">Sales</span>
+        </div>
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:16px 18px;">
+          <b style="display:block; font-size:20px; font-weight:800; color:#C9974C;">{{ ytd.netEarnings }}</b>
+          <span style="font-size:11px; color:#9A9FB5; font-weight:600;">Net Received (after fees + TDS)</span>
+        </div>
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:16px 18px;">
+          <b style="display:block; font-size:20px; font-weight:800;">{{ ytd.pendingCount }}</b>
+          <span style="font-size:11px; color:#9A9FB5; font-weight:600;">Pending Settlements</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="payout" style="margin-bottom:44px;">
+      <h2 style="font-size:18px; font-weight:800; margin:0 0 16px; font-family:Archivo,sans-serif;">Payout Account</h2>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+        <div>
+          <p style="font-size:14px; font-weight:600; margin:0 0 4px;">{{ payoutAccount }}</p>
+          <sc-if value="{{ payoutPending }}" hint-placeholder-val="{{ false }}">
+            <p style="font-size:12px; color:#9C5B1F; margin:0;">A change is pending — activates {{ payoutActivatesAt }} (24-hour cooling-off).</p>
+          </sc-if>
+        </div>
+        <a href="Payout Bank.dc.html" style="font-size:12.5px; font-weight:700; padding:9px 16px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233;">Manage Payout Bank</a>
+      </div>
+    </section>
+
+    <section id="applications" style="margin-bottom:8px;">
+      <h2 style="font-size:18px; font-weight:800; margin:0 0 16px; font-family:Archivo,sans-serif;">My Applications — Other TradeSphereX</h2>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+        <sc-for list="{{ applications }}" as="app" hint-placeholder-count="2">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:15px 20px; border-bottom:1px solid #EEF0EA;">
+            <span style="font-size:13.5px;">{{ app.tenantName }}</span>
+            <span style="font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; color:{{ app.statusColor }}; background:{{ app.statusBg }}; padding:4px 10px; border-radius:100px;">{{ app.status }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="margin-top:36px; padding-top:28px; border-top:1px solid #DDE0EA;">
+      <h3 style="font-size:13px; font-weight:700; color:#9A9FB5; text-transform:uppercase; letter-spacing:0.5px; margin:0 0 14px;">Account</h3>
+      <div class="sd-quick" style="display:grid; grid-template-columns:repeat(5,1fr); gap:12px;">
+        <a href="#" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">Profile</a>
+        <a href="KYC.dc.html" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">KYC</a>
+        <a href="#" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">Invoices</a>
+        <a href="Payout Bank.dc.html" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">Payout Bank</a>
+        <a href="#" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">Apply to Sell Elsewhere</a>
+      </div>
+    </section>
+
+  </main>
+</div>
+</helmet>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const approved = { status: 'Approved', statusColor: '#3F7A4E', statusBg: '#E4EFE6' };
+    const pending = { status: 'Pending', statusColor: '#9C5B1F', statusBg: '#FBF2E2' };
+    const live = { status: 'Live', statusColor: '#3F7A4E', statusBg: '#E4EFE6' };
+    const closed = (label) => ({ status: label, statusColor: '#9A9FB5', statusBg: '#F1F2ED' });
+    return {
+      tenantName: 'Northline Industrial Auctions',
+      standingLabel: 'Standing: Good',
+      standingColor: '#3F7A4E',
+      standingBg: '#E4EFE6',
+      stats: { activeListings: 7, pendingApproval: 2, thisMonthSales: 4, netEarnings: '₹18,42,000' },
+      listings: [
+        { category: 'CNC Lathe (Surplus)', format: 'EASY', price: '₹3,42,000', ...live },
+        { category: 'Repossessed Excavator', format: 'TENDER', price: '₹18,50,000', ...pending, status: 'Pending Review', statusColor: '#9C5B1F', statusBg: '#FBF2E2' },
+        { category: 'Office IT Assets Lot', format: 'BUY_NOW', price: '₹95,000', ...live },
+        { category: 'Steel Coil Surplus', format: 'EXPRESS', price: '₹4,40,000', ...closed('Sold') }
+      ],
+      sales: [
+        { date: '2026-07-18', format: 'EASY', price: '₹3,10,000', fee: '₹9,300', tds: '₹31,000', buyer: '98xxxxxx21', status: 'Completed' },
+        { date: '2026-07-02', format: 'TENDER', price: '₹12,40,000', fee: '₹37,200', tds: '₹1,24,000', buyer: '97xxxxxx08', status: 'Completed' },
+        { date: '2026-06-25', format: 'EXPRESS', price: '₹1,15,000', fee: '₹3,450', tds: '₹11,500', buyer: '99xxxxxx44', status: 'Pending' }
+      ],
+      thisMonth: { saleCount: 4, totalSales: '₹19,65,000', totalFees: '₹58,950', totalTds: '₹1,96,500' },
+      ytd: { saleCount: 21, netEarnings: '₹1,42,80,000', pendingCount: 2 },
+      payoutAccount: '····4821 (HDFC0001234)',
+      payoutPending: true,
+      payoutActivatesAt: 'Aug 4, 2026',
+      applications: [
+        { tenantName: 'Coastal Salvage Co-op', ...approved },
+        { tenantName: 'Metro Surplus Exchange', ...pending }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} html,body{overflow-x:hidden;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#C9974C;}
+@media (max-width:900px){.ld-row{grid-template-columns:1.3fr 100px 90px 100px !important;} .ld-row>div:nth-child(5), .ld-row>div:nth-child(6){display:none;}}
+@media (max-width:640px){.ld-nav{display:none !important;} .ld-filters{flex-wrap:wrap;}}
+</style>
+</helmet>
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; min-height:100vh;">
+  <header style="position:sticky; top:0; z-index:60; background:#1E2233; border-bottom:1px solid #33374A;">
+    <div style="max-width:1200px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#fff;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <nav class="ld-nav" style="display:flex; gap:4px; background:#2A2E40; padding:4px; border-radius:100px;">
+        <a href="Custodian Dashboard.dc.html" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#C7CADA;">Dashboard</a>
+        <a href="User Directory.dc.html" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#C7CADA;">Users</a>
+        <a href="#" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#fff; background:#C9974C;">Lots</a>
+        <a href="Trading Session Directory.dc.html" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#C7CADA;">Sessions</a>
+      </nav>
+    </div>
+  </header>
+
+  <main style="max-width:1140px; margin:0 auto; padding:40px 20px 90px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">Custodian</div>
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:30px; font-weight:800; letter-spacing:-0.6px; margin:0 0 10px;">Lot Directory</h1>
+    <p style="font-size:14px; color:#565B72; margin:0 0 24px; max-width:640px; line-height:1.6;">Every Lot submitted platform-wide, across every TradeSphereX.</p>
+
+    <div style="position:relative; margin-bottom:12px;">
+      <input placeholder="Search — Lot ID, title, category, Market Maker, TradeSphereX…" value="{{ query }}" onChange="{{ onQueryChange }}" style="width:100%; padding:12px 16px 12px 38px; border-radius:9px; border:1px solid #DDE0EA; background:#fff; font-size:13.5px; outline:none; font-family:inherit;">
+      <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#9A9FB5; font-size:14px;">⌕</span>
+    </div>
+    <div class="ld-filters" style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
+      <sc-for list="{{ statusFilters }}" as="sf" hint-placeholder-count="4">
+        <button onClick="{{ sf.onClick }}" style="padding:7px 14px; border-radius:100px; border:1px solid {{ sf.borderColor }}; background:{{ sf.bg }}; color:{{ sf.color }}; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">{{ sf.label }}</button>
+      </sc-for>
+      <select value="{{ formatFilter }}" onChange="{{ onFormatFilterChange }}" style="padding:8px 12px; border:1px solid #DDE0EA; border-radius:8px; font-size:12px; outline:none; background:#fff;">
+        <option value="all">All Formats</option>
+        <option value="BUY-NOW">Buy-Now</option>
+        <option value="EASY">Easy</option>
+        <option value="EXPRESS">Express</option>
+        <option value="TENDER">Tender</option>
+      </select>
+      <select value="{{ tsxFilter }}" onChange="{{ onTsxFilterChange }}" style="padding:8px 12px; border:1px solid #DDE0EA; border-radius:8px; font-size:12px; outline:none; background:#fff;">
+        <option value="all">All TradeSphereX</option>
+        <option value="Northline Industrial Auctions">Northline Industrial Auctions</option>
+        <option value="Coastal Fleet Disposals">Coastal Fleet Disposals</option>
+        <option value="Metro Surplus Exchange">Metro Surplus Exchange</option>
+        <option value="Apex Fleet Disposals">Apex Fleet Disposals</option>
+      </select>
+      <button onClick="{{ onClearFilters }}" style="font-size:12px; font-weight:600; color:#565B72; background:none; border:none; cursor:pointer;">Clear</button>
+      <button onClick="{{ onRefresh }}" style="margin-left:auto; padding:7px 14px; border-radius:100px; border:1px solid #DDE0EA; background:#fff; color:#1E2233; font-size:12px; font-weight:700; cursor:pointer;">↻ Refresh</button>
+    </div>
+
+    <div style="font-size:12px; color:#9A9FB5; margin-bottom:10px;">{{ countLabel }}</div>
+
+    <div style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; overflow:hidden;">
+      <div class="ld-row" style="display:grid; grid-template-columns:1.6fr 100px 1fr 90px 100px 100px; gap:10px; padding:9px 20px; background:#F3F4F8; border-bottom:1px solid #DDE0EA;">
+        <span style="font-size:10px; font-weight:700; color:#9A9FB5; text-transform:uppercase;">Lot</span>
+        <span style="font-size:10px; font-weight:700; color:#9A9FB5; text-transform:uppercase;">Format</span>
+        <span style="font-size:10px; font-weight:700; color:#9A9FB5; text-transform:uppercase;">TradeSphereX</span>
+        <span style="font-size:10px; font-weight:700; color:#9A9FB5; text-transform:uppercase;">RV</span>
+        <span style="font-size:10px; font-weight:700; color:#9A9FB5; text-transform:uppercase;">Submitted</span>
+        <span style="font-size:10px; font-weight:700; color:#9A9FB5; text-transform:uppercase;">Status</span>
+      </div>
+      <sc-for list="{{ visibleLots }}" as="l" hint-placeholder-count="10">
+        <div class="ld-row" style="display:grid; grid-template-columns:1.6fr 100px 1fr 90px 100px 100px; gap:10px; align-items:center; padding:10px 20px; border-bottom:1px solid #EEF0EA; background:{{ l.rowBg }};">
+          <span style="font-size:12.5px;"><strong>{{ l.id }}</strong> — {{ l.title }}</span>
+          <span style="font-size:12px; color:#9A9FB5;">{{ l.format }}</span>
+          <span style="font-size:12px; color:#565B72;">{{ l.tsx }}</span>
+          <span style="font-size:12px;">{{ l.reserveValue }}</span>
+          <span style="font-size:11px; color:#9A9FB5; font-family:'IBM Plex Mono',monospace;">{{ l.submittedAt }}</span>
+          <span><span style="font-size:10px; font-weight:700; text-transform:uppercase; color:{{ l.statusColor }}; background:{{ l.statusBg }}; padding:3px 9px; border-radius:100px;">{{ l.status }}</span></span>
+        </div>
+      </sc-for>
+    </div>
+    <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="text-align:center; padding:60px 20px; color:#9A9FB5; font-size:14px;">No Lots match your search/filters.</div>
+    </sc-if>
+    <sc-if value="{{ hasMore }}" hint-placeholder-val="{{ false }}">
+      <button onClick="{{ onLoadMore }}" style="display:block; margin:16px auto 0; padding:10px 22px; border:1px solid #DDE0EA; border-radius:100px; background:#fff; color:#1E2233; font-size:12.5px; font-weight:700; cursor:pointer;">Load {{ moreLabel }}</button>
+    </sc-if>
+  </main>
+
+  <footer style="border-top:1px solid #DDE0EA; padding:24px 20px; text-align:center;">
+    <p style="font-size:12.5px; color:#9A9FB5; margin:0;">Approvals, rejections, and edits are recorded in the <a href="Audit Ledger.dc.html">Audit Ledger</a>.</p>
+  </footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { query: '', statusFilter: 'all', formatFilter: 'all', tsxFilter: 'all', pageSize: 40 };
+
+  allLots() {
+    const titles = ['Repossessed Excavator, CAT 320D', 'Warehouse Racking Lot', 'Diesel Generator Set, 125kVA', 'CNC Lathe Machine, 2018', 'Forklift Fleet (6 units)', 'Office Furniture Bundle', 'Server Rack Decommission', 'Scrap Copper Wire, 2 Tons', 'Delivery Van, 2015 Model', 'Industrial Compressor'];
+    const tsxs = ['Northline Industrial Auctions', 'Coastal Fleet Disposals', 'Metro Surplus Exchange', 'Apex Fleet Disposals'];
+    const formats = ['BUY-NOW', 'EASY', 'EXPRESS', 'TENDER'];
+    const statuses = [
+      { status: 'Live', statusColor: '#3F7A4E', statusBg: '#E4EFE6' },
+      { status: 'Pending', statusColor: '#9C5B1F', statusBg: '#F8F1E7' },
+      { status: 'Sold', statusColor: '#1E2761', statusBg: '#E7E9F2' },
+      { status: 'Rejected', statusColor: '#B5482F', statusBg: '#FBE8E4' },
+    ];
+    const out = [];
+    for (let i = 0; i < 74; i++) {
+      const st = statuses[i % 4];
+      out.push({
+        id: 'LOT-' + (48200 + i),
+        title: titles[i % titles.length] + (i > 9 ? ' #' + i : ''),
+        format: formats[i % formats.length],
+        tsx: tsxs[i % tsxs.length],
+        reserveValue: '₹' + ((i % 20) + 1) + ',' + String(10 + i % 90) + ',000',
+        submittedAt: '2026-07-' + String(1 + (i % 31)).padStart(2, '0') + ' ' + String(8 + i % 10).padStart(2, '0') + ':' + String((i * 7) % 60).padStart(2, '0'),
+        ...st,
+      });
+    }
+    return out;
+  }
+
+  renderVals() {
+    const s = this.state;
+    let filtered = this.allLots();
+    if (s.statusFilter !== 'all') filtered = filtered.filter(l => l.status === s.statusFilter);
+    if (s.formatFilter !== 'all') filtered = filtered.filter(l => l.format === s.formatFilter);
+    if (s.tsxFilter !== 'all') filtered = filtered.filter(l => l.tsx === s.tsxFilter);
+    const q = s.query.trim().toLowerCase();
+    if (q) filtered = filtered.filter(l => (l.id + ' ' + l.title + ' ' + l.tsx).toLowerCase().includes(q));
+
+    const total = filtered.length;
+    const page = filtered.slice(0, s.pageSize);
+    const statuses = ['all', 'Live', 'Pending', 'Sold', 'Rejected'];
+
+    return {
+      query: s.query, onQueryChange: (e) => this.setState({ query: e.target.value, pageSize: 40 }),
+      statusFilters: statuses.map(st => ({
+        label: st === 'all' ? 'All Statuses' : st,
+        borderColor: s.statusFilter === st ? '#1E2233' : '#DDE0EA', bg: s.statusFilter === st ? '#1E2233' : '#fff', color: s.statusFilter === st ? '#fff' : '#565B72',
+        onClick: () => this.setState({ statusFilter: st, pageSize: 40 }),
+      })),
+      formatFilter: s.formatFilter, onFormatFilterChange: (e) => this.setState({ formatFilter: e.target.value, pageSize: 40 }),
+      tsxFilter: s.tsxFilter, onTsxFilterChange: (e) => this.setState({ tsxFilter: e.target.value, pageSize: 40 }),
+      onClearFilters: () => this.setState({ query: '', statusFilter: 'all', formatFilter: 'all', tsxFilter: 'all', pageSize: 40 }),
+      onRefresh: () => this.forceUpdate(),
+      countLabel: total + (total === 1 ? ' matching Lot' : ' matching Lots') + (total > page.length ? ' · showing ' + page.length : ''),
+      isEmpty: total === 0,
+      hasMore: total > page.length,
+      moreLabel: Math.min(40, total - page.length) + ' more',
+      onLoadMore: () => this.setState({ pageSize: s.pageSize + 40 }),
+      visibleLots: page.map((l, i) => ({ ...l, rowBg: i % 2 === 1 ? '#FCFCFB' : '#fff' })),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  html, body{overflow-x:hidden;}
+  a{text-decoration:none;}
+  a:link, a:visited{color:#C9974C;}
+  a:hover{color:#A87A38;}
+  @media (max-width:700px){
+    .rh-row{grid-template-columns:90px 1fr 70px !important;}
+    .rh-row > div:nth-child(4){display:none;}
+    .rh-tabs{width:100% !important;}
+  }
+  @media (max-width:480px){
+    .rh-header-cta-label{display:none;}
+  }
+</style>
+</helmet>
+
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;">
+
+  <header style="position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1400px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:36px; width:36px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:22px; letter-spacing:-0.5px; color:#1E2761; flex-shrink:0;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <a href="Profile.dc.html" class="rh-header-cta-label" style="font-weight:700; font-size:12.5px; padding:9px 18px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233; white-space:nowrap;">Back to Profile</a>
+    </div>
+  </header>
+
+  <main style="max-width:760px; margin:0 auto; padding:44px 24px 90px;">
+
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:26px; font-weight:800; letter-spacing:-0.5px; margin:0 0 8px;">Rating History</h1>
+    <p style="font-size:14px; color:#565B72; margin:0 0 24px; line-height:1.6;">Every event that has moved your Trader or Market Maker rating, in order.</p>
+
+    <div class="rh-tabs" style="display:flex; gap:4px; background:#E9EBF2; padding:4px; border-radius:100px; margin-bottom:12px; width:fit-content;">
+      <button onClick="{{ onShowTrader }}" style="font-size:12.5px; font-weight:700; padding:9px 18px; border-radius:100px; border:none; cursor:pointer; background:{{ traderTabBg }}; color:{{ traderTabColor }};">Trader ★ {{ traderCurrent }}</button>
+      <button onClick="{{ onShowMm }}" style="font-size:12.5px; font-weight:700; padding:9px 18px; border-radius:100px; border:none; cursor:pointer; background:{{ mmTabBg }}; color:{{ mmTabColor }};">Market Maker ★ {{ mmCurrent }}</button>
+    </div>
+
+    <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:24px; margin-bottom:24px; display:flex; align-items:center; gap:20px;">
+      <div style="font-size:38px; font-weight:800; font-family:Georgia,serif; color:#1E2761;">{{ activeCurrent }}★</div>
+      <p style="font-size:12.5px; color:#9A9FB5; margin:0; line-height:1.5;">Current {{ activeLabel }} rating, starting from a base of 3.0★.</p>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:2px;">
+      <div class="rh-row" style="display:grid; grid-template-columns:100px 1fr 90px 90px; padding:0 4px; font-size:10px; text-transform:uppercase; color:#9A9FB5; font-weight:700; border-bottom:1px solid #DDE0EA;">
+        <div style="padding:10px 0;">Date</div>
+        <div style="padding:10px 0;">Event</div>
+        <div style="padding:10px 0;">Change</div>
+        <div style="padding:10px 0;">Running</div>
+      </div>
+      <sc-for list="{{ activeLedger }}" as="e" hint-placeholder-count="6">
+        <div class="rh-row" style="display:grid; grid-template-columns:100px 1fr 90px 90px; padding:0 4px; border-bottom:1px solid #EEF0EA; align-items:center;">
+          <div style="padding:12px 0; font-size:12px; color:#9A9FB5;">{{ e.date }}</div>
+          <div style="padding:12px 0; font-size:13px;">{{ e.event }}</div>
+          <div style="padding:12px 0; font-size:13px; font-weight:700; color:{{ e.changeColor }};">{{ e.changeLabel }}</div>
+          <div style="padding:12px 0; font-size:13px; font-weight:700; font-family:'IBM Plex Mono',monospace;">{{ e.running }}★</div>
+        </div>
+      </sc-for>
+    </div>
+
+  </main>
+</div>
+</helmet>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { active: 'trader' };
+
+  traderLedgerRaw() {
+    return [
+      { date: '2025-02-14', event: 'Account created', change: 0 },
+      { date: '2025-03-02', event: 'On-time settlement', change: 0.2 },
+      { date: '2025-04-18', event: 'On-time settlement', change: 0.2 },
+      { date: '2025-06-30', event: 'Late payment (>7 days)', change: -0.5 },
+      { date: '2025-09-11', event: 'On-time settlement', change: 0.2 },
+      { date: '2026-01-22', event: 'On-time settlement', change: 0.2 },
+      { date: '2026-07-18', event: 'On-time settlement', change: 0.2 }
+    ];
+  }
+  mmLedgerRaw() {
+    return [
+      { date: '2025-05-01', event: 'Approved as Market Maker', change: 0 },
+      { date: '2025-06-12', event: 'Clean settlement', change: 0.2 },
+      { date: '2025-08-20', event: 'Condition/Delivery dispute upheld', change: -0.6 },
+      { date: '2025-11-05', event: 'Clean settlement', change: 0.2 },
+      { date: '2026-02-14', event: 'Clean settlement', change: 0.2 },
+      { date: '2026-07-02', event: 'Clean settlement', change: 0.2 }
+    ];
+  }
+
+  buildLedger(raw) {
+    let running = 3.0;
+    return raw.map(r => {
+      running = Math.max(1, Math.min(5, running + r.change));
+      return {
+        date: r.date, event: r.event,
+        changeLabel: r.change === 0 ? '—' : (r.change > 0 ? '+' + r.change.toFixed(1) : r.change.toFixed(1)),
+        changeColor: r.change > 0 ? '#3F7A4E' : (r.change < 0 ? '#B5482F' : '#9A9FB5'),
+        running: running.toFixed(1)
+      };
+    });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const traderLedger = this.buildLedger(this.traderLedgerRaw());
+    const mmLedger = this.buildLedger(this.mmLedgerRaw());
+    const isTrader = s.active === 'trader';
+    return {
+      traderTabBg: isTrader ? '#1E2233' : 'transparent', traderTabColor: isTrader ? '#fff' : '#565B72',
+      mmTabBg: !isTrader ? '#1E2233' : 'transparent', mmTabColor: !isTrader ? '#fff' : '#565B72',
+      traderCurrent: traderLedger[traderLedger.length - 1].running,
+      mmCurrent: mmLedger[mmLedger.length - 1].running,
+      activeCurrent: isTrader ? traderLedger[traderLedger.length - 1].running : mmLedger[mmLedger.length - 1].running,
+      activeLabel: isTrader ? 'Trader' : 'Market Maker',
+      activeLedger: (isTrader ? traderLedger : mmLedger).slice().reverse(),
+      onShowTrader: () => this.setState({ active: 'trader' }),
+      onShowMm: () => this.setState({ active: 'mm' })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} html,body{overflow-x:hidden;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#C9974C;}
+@media (max-width:900px){.sd-row{grid-template-columns:120px 1.3fr 90px 100px !important;} .sd-row>div:nth-child(4), .sd-row>div:nth-child(5){display:none;}}
+@media (max-width:640px){.sd-nav{display:none !important;} .sd-filters{flex-wrap:wrap;}}
+</style>
+</helmet>
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; min-height:100vh;">
+  <header style="position:sticky; top:0; z-index:60; background:#1E2233; border-bottom:1px solid #33374A;">
+    <div style="max-width:1200px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#fff;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <nav class="sd-nav" style="display:flex; gap:4px; background:#2A2E40; padding:4px; border-radius:100px;">
+        <a href="Custodian Dashboard.dc.html" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#C7CADA;">Dashboard</a>
+        <a href="User Directory.dc.html" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#C7CADA;">Users</a>
+        <a href="Lot Directory.dc.html" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#C7CADA;">Lots</a>
+        <a href="#" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#fff; background:#C9974C;">Sessions</a>
+      </nav>
+    </div>
+  </header>
+
+  <main style="max-width:1140px; margin:0 auto; padding:40px 20px 90px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">Custodian</div>
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:30px; font-weight:800; letter-spacing:-0.6px; margin:0 0 10px;">Trading Session Directory</h1>
+    <p style="font-size:14px; color:#565B72; margin:0 0 24px; max-width:640px; line-height:1.6;">Every Trading Session, scheduled or completed, platform-wide.</p>
+
+    <div style="position:relative; margin-bottom:12px;">
+      <input placeholder="Search — ERN, Lot title, TradeSphereX…" value="{{ query }}" onChange="{{ onQueryChange }}" style="width:100%; padding:12px 16px 12px 38px; border-radius:9px; border:1px solid #DDE0EA; background:#fff; font-size:13.5px; outline:none; font-family:inherit;">
+      <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#9A9FB5; font-size:14px;">⌕</span>
+    </div>
+    <div class="sd-filters" style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
+      <sc-for list="{{ statusFilters }}" as="sf" hint-placeholder-count="4">
+        <button onClick="{{ sf.onClick }}" style="padding:7px 14px; border-radius:100px; border:1px solid {{ sf.borderColor }}; background:{{ sf.bg }}; color:{{ sf.color }}; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">{{ sf.label }}</button>
+      </sc-for>
+      <select value="{{ formatFilter }}" onChange="{{ onFormatFilterChange }}" style="padding:8px 12px; border:1px solid #DDE0EA; border-radius:8px; font-size:12px; outline:none; background:#fff;">
+        <option value="all">All Formats</option>
+        <option value="EASY">Easy</option>
+        <option value="EXPRESS">Express</option>
+        <option value="TENDER">Tender</option>
+        <option value="BUY-NOW">Buy-Now</option>
+      </select>
+      <input type="date" value="{{ dateFrom }}" onChange="{{ onDateFromChange }}" style="padding:7px 10px; border:1px solid #DDE0EA; border-radius:8px; font-size:12px; outline:none; background:#fff;">
+      <span style="font-size:12px; color:#9A9FB5;">to</span>
+      <input type="date" value="{{ dateTo }}" onChange="{{ onDateToChange }}" style="padding:7px 10px; border:1px solid #DDE0EA; border-radius:8px; font-size:12px; outline:none; background:#fff;">
+      <button onClick="{{ onClearFilters }}" style="font-size:12px; font-weight:600; color:#565B72; background:none; border:none; cursor:pointer;">Clear</button>
+      <button onClick="{{ onRefresh }}" style="margin-left:auto; padding:7px 14px; border-radius:100px; border:1px solid #DDE0EA; background:#fff; color:#1E2233; font-size:12px; font-weight:700; cursor:pointer;">↻ Refresh</button>
+    </div>
+
+    <div style="font-size:12px; color:#9A9FB5; margin-bottom:10px;">{{ countLabel }}</div>
+
+    <div style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; overflow:hidden;">
+      <div class="sd-row" style="display:grid; grid-template-columns:150px 1.5fr 90px 100px 110px 110px; gap:10px; padding:9px 20px; background:#F3F4F8; border-bottom:1px solid #DDE0EA;">
+        <span style="font-size:10px; font-weight:700; color:#9A9FB5; text-transform:uppercase;">ERN</span>
+        <span style="font-size:10px; font-weight:700; color:#9A9FB5; text-transform:uppercase;">Lot</span>
+        <span style="font-size:10px; font-weight:700; color:#9A9FB5; text-transform:uppercase;">Format</span>
+        <span style="font-size:10px; font-weight:700; color:#9A9FB5; text-transform:uppercase;">Final Value</span>
+        <span style="font-size:10px; font-weight:700; color:#9A9FB5; text-transform:uppercase;">Start Date</span>
+        <span style="font-size:10px; font-weight:700; color:#9A9FB5; text-transform:uppercase;">Status</span>
+      </div>
+      <sc-for list="{{ visibleSessions }}" as="se" hint-placeholder-count="10">
+        <div class="sd-row" style="display:grid; grid-template-columns:150px 1.5fr 90px 100px 110px 110px; gap:10px; align-items:center; padding:10px 20px; border-bottom:1px solid #EEF0EA; background:{{ se.rowBg }};">
+          <span style="font-size:11.5px; font-family:'IBM Plex Mono',monospace;">{{ se.ern }}</span>
+          <span style="font-size:12.5px;">{{ se.lotTitle }}</span>
+          <span style="font-size:12px; color:#9A9FB5;">{{ se.format }}</span>
+          <span style="font-size:12px; font-weight:600; color:#C9974C;">{{ se.finalValue }}</span>
+          <span style="font-size:11px; color:#9A9FB5;">{{ se.startDate }}</span>
+          <span><span style="font-size:10px; font-weight:700; text-transform:uppercase; color:{{ se.statusColor }}; background:{{ se.statusBg }}; padding:3px 9px; border-radius:100px;">{{ se.status }}</span></span>
+        </div>
+      </sc-for>
+    </div>
+    <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="text-align:center; padding:60px 20px; color:#9A9FB5; font-size:14px;">No Trading Sessions match your search/filters.</div>
+    </sc-if>
+    <sc-if value="{{ hasMore }}" hint-placeholder-val="{{ false }}">
+      <button onClick="{{ onLoadMore }}" style="display:block; margin:16px auto 0; padding:10px 22px; border:1px solid #DDE0EA; border-radius:100px; background:#fff; color:#1E2233; font-size:12.5px; font-weight:700; cursor:pointer;">Load {{ moreLabel }}</button>
+    </sc-if>
+  </main>
+
+  <footer style="border-top:1px solid #DDE0EA; padding:24px 20px; text-align:center;">
+    <p style="font-size:12.5px; color:#9A9FB5; margin:0;">Session approvals are recorded in the <a href="Audit Ledger.dc.html">Audit Ledger</a>.</p>
+  </footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { query: '', statusFilter: 'all', formatFilter: 'all', dateFrom: '', dateTo: '', pageSize: 40 };
+
+  allSessions() {
+    const titles = ['Repossessed Excavator, CAT 320D', 'Warehouse Racking Lot', 'Diesel Generator Set', 'CNC Lathe Machine, 2018', 'Forklift Fleet (6 units)', 'Delivery Van, 2015 Model', 'Industrial Compressor'];
+    const formats = ['EASY', 'EXPRESS', 'TENDER', 'BUY-NOW'];
+    const statuses = [
+      { status: 'Scheduled', statusColor: '#9C5B1F', statusBg: '#F8F1E7' },
+      { status: 'Live', statusColor: '#3F7A4E', statusBg: '#E4EFE6' },
+      { status: 'Closed', statusColor: '#1E2761', statusBg: '#E7E9F2' },
+      { status: 'Cancelled', statusColor: '#B5482F', statusBg: '#FBE8E4' },
+    ];
+    const out = [];
+    for (let i = 0; i < 61; i++) {
+      const st = statuses[i % 4];
+      const day = 1 + (i % 28);
+      out.push({
+        ern: 'ERN-202607' + String(20 + (i % 10)) + '-' + String(10 + i),
+        lotTitle: titles[i % titles.length] + (i > 6 ? ' #' + i : ''),
+        format: formats[i % formats.length],
+        finalValue: st.status === 'Closed' ? '₹' + ((i % 25) + 1) + ',' + String(10 + i % 90) + ',000' : '—',
+        startDate: '2026-08-' + String(day).padStart(2, '0'),
+        ...st,
+      });
+    }
+    return out;
+  }
+
+  renderVals() {
+    const s = this.state;
+    let filtered = this.allSessions();
+    if (s.statusFilter !== 'all') filtered = filtered.filter(se => se.status === s.statusFilter);
+    if (s.formatFilter !== 'all') filtered = filtered.filter(se => se.format === s.formatFilter);
+    if (s.dateFrom) filtered = filtered.filter(se => se.startDate >= s.dateFrom);
+    if (s.dateTo) filtered = filtered.filter(se => se.startDate <= s.dateTo);
+    const q = s.query.trim().toLowerCase();
+    if (q) filtered = filtered.filter(se => (se.ern + ' ' + se.lotTitle).toLowerCase().includes(q));
+
+    const total = filtered.length;
+    const page = filtered.slice(0, s.pageSize);
+    const statuses = ['all', 'Scheduled', 'Live', 'Closed', 'Cancelled'];
+
+    return {
+      query: s.query, onQueryChange: (e) => this.setState({ query: e.target.value, pageSize: 40 }),
+      statusFilters: statuses.map(st => ({
+        label: st === 'all' ? 'All Statuses' : st,
+        borderColor: s.statusFilter === st ? '#1E2233' : '#DDE0EA', bg: s.statusFilter === st ? '#1E2233' : '#fff', color: s.statusFilter === st ? '#fff' : '#565B72',
+        onClick: () => this.setState({ statusFilter: st, pageSize: 40 }),
+      })),
+      formatFilter: s.formatFilter, onFormatFilterChange: (e) => this.setState({ formatFilter: e.target.value, pageSize: 40 }),
+      dateFrom: s.dateFrom, onDateFromChange: (e) => this.setState({ dateFrom: e.target.value, pageSize: 40 }),
+      dateTo: s.dateTo, onDateToChange: (e) => this.setState({ dateTo: e.target.value, pageSize: 40 }),
+      onClearFilters: () => this.setState({ query: '', statusFilter: 'all', formatFilter: 'all', dateFrom: '', dateTo: '', pageSize: 40 }),
+      onRefresh: () => this.forceUpdate(),
+      countLabel: total + (total === 1 ? ' matching session' : ' matching sessions') + (total > page.length ? ' · showing ' + page.length : ''),
+      isEmpty: total === 0,
+      hasMore: total > page.length,
+      moreLabel: Math.min(40, total - page.length) + ' more',
+      onLoadMore: () => this.setState({ pageSize: s.pageSize + 40 }),
+      visibleSessions: page.map((se, i) => ({ ...se, rowBg: i % 2 === 1 ? '#FCFCFB' : '#fff' })),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

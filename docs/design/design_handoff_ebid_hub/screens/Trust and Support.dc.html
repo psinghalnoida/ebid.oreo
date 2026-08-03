@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#A87A38;}
+.tsc:hover{box-shadow:0 8px 22px rgba(28,31,38,0.10); border-color:#C9974C; transform:translateY(-2px);}
+@media (max-width:860px){.ts-form-grid{grid-template-columns:1fr !important;}}
+</style>
+</helmet>
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; min-height:100vh;">
+  <header style="position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1200px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:36px; width:36px; display:block;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:22px; letter-spacing:-0.5px; color:#1E2761;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <a href="Profile.dc.html" style="font-weight:700; font-size:12.5px; padding:9px 18px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233; white-space:nowrap;">My Profile</a>
+    </div>
+  </header>
+
+  <main style="max-width:1040px; margin:0 auto; padding:48px 24px 90px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">ADWITIX</div>
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:34px; font-weight:800; letter-spacing:-0.7px; margin:0 0 10px; max-width:640px;">Trust &amp; Support</h1>
+    <p style="font-size:14.5px; color:#565B72; margin:0 0 40px; max-width:600px; line-height:1.6;">Everything you need to trade with confidence — how the platform works, what protects you, and where to get help — in one place.</p>
+
+    <section style="margin-bottom:44px;">
+      <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:19px; margin:0 0 4px;">Using the Platform</h2>
+      <p style="font-size:13.5px; color:#9A9FB5; margin:0 0 18px;">Practical answers for day-to-day trading and selling.</p>
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:14px;">
+        <sc-for list="{{ platformCards }}" as="c" hint-placeholder-count="3">
+          <a href="{{ c.href }}" class="tsc" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:20px 20px 18px; display:flex; flex-direction:column; gap:12px; transition:box-shadow 180ms ease, border-color 180ms ease, transform 180ms ease; color:inherit;">
+            <div style="width:38px; height:38px; border-radius:9px; background:#F3E3D6; display:flex; align-items:center; justify-content:center; font-size:17px;">{{ c.emoji }}</div>
+            <div>
+              <h3 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:16px; color:#1E2233; margin:0 0 6px;">{{ c.title }}</h3>
+              <p style="font-size:13px; line-height:1.55; color:#565B72; margin:0;">{{ c.desc }}</p>
+            </div>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="margin-bottom:44px;">
+      <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:19px; margin:0 0 4px;">Trust &amp; Reputation</h2>
+      <p style="font-size:13.5px; color:#9A9FB5; margin:0 0 18px;">How ratings work, and how your money and data are protected.</p>
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:14px;">
+        <sc-for list="{{ trustCards }}" as="c" hint-placeholder-count="2">
+          <a href="{{ c.href }}" class="tsc" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:20px 20px 18px; display:flex; flex-direction:column; gap:12px; transition:box-shadow 180ms ease, border-color 180ms ease, transform 180ms ease; color:inherit;">
+            <div style="width:38px; height:38px; border-radius:9px; background:#F3E3D6; display:flex; align-items:center; justify-content:center; font-size:17px;">{{ c.emoji }}</div>
+            <div>
+              <h3 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:16px; color:#1E2233; margin:0 0 6px;">{{ c.title }}</h3>
+              <p style="font-size:13px; line-height:1.55; color:#565B72; margin:0;">{{ c.desc }}</p>
+            </div>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="margin-bottom:44px;">
+      <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:19px; margin:0 0 4px;">Legal Documents</h2>
+      <p style="font-size:13.5px; color:#9A9FB5; margin:0 0 18px;">The formal terms governing your use of ADWITIX.</p>
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:14px;">
+        <sc-for list="{{ legalCards }}" as="c" hint-placeholder-count="4">
+          <a href="{{ c.href }}" class="tsc" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:20px 20px 18px; display:flex; flex-direction:column; gap:12px; transition:box-shadow 180ms ease, border-color 180ms ease, transform 180ms ease; color:inherit;">
+            <div style="width:38px; height:38px; border-radius:9px; background:#E7E9F2; display:flex; align-items:center; justify-content:center; font-size:17px;">{{ c.emoji }}</div>
+            <div>
+              <h3 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:16px; color:#1E2233; margin:0 0 6px;">{{ c.title }}</h3>
+              <p style="font-size:13px; line-height:1.55; color:#565B72; margin:0;">{{ c.desc }}</p>
+            </div>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="margin-bottom:44px;">
+      <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:19px; margin:0 0 4px;">Support</h2>
+      <p style="font-size:13.5px; color:#9A9FB5; margin:0 0 18px;">How to escalate a problem, and how to reach us.</p>
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:14px;">
+        <sc-for list="{{ supportCards }}" as="c" hint-placeholder-count="3">
+          <a href="{{ c.href }}" class="tsc" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:20px 20px 18px; display:flex; flex-direction:column; gap:12px; transition:box-shadow 180ms ease, border-color 180ms ease, transform 180ms ease; color:inherit;">
+            <div style="width:38px; height:38px; border-radius:9px; background:#F3E3D6; display:flex; align-items:center; justify-content:center; font-size:17px;">{{ c.emoji }}</div>
+            <div>
+              <h3 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:16px; color:#1E2233; margin:0 0 6px;">{{ c.title }}</h3>
+              <p style="font-size:13px; line-height:1.55; color:#565B72; margin:0;">{{ c.desc }}</p>
+            </div>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+
+    <section id="contact" style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:28px 26px;">
+      <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:19px; margin:0 0 6px;">Contact Us</h2>
+      <p style="font-size:13.5px; color:#565B72; margin:0 0 20px;">Send us a message — we typically respond within one business day.</p>
+
+      <sc-if value="{{ isTicketSubmitted }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#F3F4F8; border:1px solid #DDE0EA; border-radius:14px; padding:24px; text-align:center;">
+          <div style="width:44px; height:44px; border-radius:100px; background:#E4EFE6; display:flex; align-items:center; justify-content:center; margin:0 auto 12px; font-size:18px; color:#3F7A4E;">✓</div>
+          <p style="font-size:14px; font-weight:700; margin:0 0 4px;">Ticket #{{ ticketNumber }} submitted</p>
+          <p style="font-size:12.5px; color:#9A9FB5; margin:0;">We'll follow up at the contact details you provided.</p>
+        </div>
+      </sc-if>
+      <div style="display:{{ formDisplay }};">
+        <div class="ts-form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+          <input placeholder="Your name" value="{{ ticketName }}" onChange="{{ onTicketNameChange }}" style="padding:12px 14px; border:1px solid #DDE0EA; border-radius:9px; font-size:13.5px; outline:none;">
+          <input placeholder="Mobile or email" value="{{ ticketContact }}" onChange="{{ onTicketContactChange }}" style="padding:12px 14px; border:1px solid #DDE0EA; border-radius:9px; font-size:13.5px; outline:none;">
+        </div>
+        <select value="{{ ticketTopic }}" onChange="{{ onTicketTopicChange }}" style="width:100%; padding:12px 14px; border:1px solid #DDE0EA; border-radius:9px; font-size:13.5px; outline:none; margin-bottom:14px; background:#fff;">
+          <option value="general">General question</option>
+          <option value="dispute">Dispute help</option>
+          <option value="kyc">KYC / verification</option>
+          <option value="payout">Payout / settlement</option>
+          <option value="technical">Technical issue</option>
+        </select>
+        <textarea placeholder="Describe your issue" value="{{ ticketMessage }}" onChange="{{ onTicketMessageChange }}" rows="4" style="width:100%; padding:12px 14px; border:1px solid #DDE0EA; border-radius:9px; font-size:13.5px; outline:none; resize:vertical; font-family:inherit; margin-bottom:8px;"></textarea>
+        <sc-if value="{{ ticketError }}" hint-placeholder-val="{{ false }}">
+          <p style="font-size:12px; color:#B5482F; margin:0 0 12px;">{{ ticketError }}</p>
+        </sc-if>
+        <button onClick="{{ onSubmitTicket }}" style="padding:13px 24px; border:none; border-radius:100px; background:#C9974C; color:#fff; font-weight:700; font-size:14px; cursor:pointer;" style-hover="background:#A87A38;">Submit Ticket</button>
+      </div>
+    </section>
+  </main>
+
+  <footer style="border-top:1px solid #DDE0EA; padding:24px 20px; text-align:center;">
+    <p style="font-size:12.5px; color:#9A9FB5; margin:0;">Can't find what you need? Reach out above, or check back soon — this page is actively growing.</p>
+  </footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    ticketName: '', ticketContact: '', ticketTopic: 'general', ticketMessage: '',
+    ticketError: '', isTicketSubmitted: false, ticketNumber: ''
+  };
+
+  renderVals() {
+    const s = this.state;
+    return {
+      platformCards: [
+        { emoji: '❓', title: 'FAQ', desc: 'Searchable answers to common questions, shown separately for Traders and Market Makers.', href: 'FAQ.dc.html' },
+        { emoji: '✅', title: "Dos & Don'ts", desc: 'A quick, practical guide to what to do — and avoid — at every stage of a transaction.', href: 'Dos and Donts.dc.html' },
+        { emoji: '📖', title: 'Terminology', desc: 'Plain-language definitions for every ADWITIX-specific term.', href: 'Terminology.dc.html' },
+      ],
+      trustCards: [
+        { emoji: '⭐', title: 'Star Ratings', desc: 'How your reputation is built, what raises and lowers it, and how to recover.', href: 'Star Ratings.dc.html' },
+        { emoji: '🛡️', title: 'Security & Trust', desc: 'How deposits are held, how Lots are verified, and how the platform is audited.', href: 'Security and Trust.dc.html' },
+      ],
+      legalCards: [
+        { emoji: '📄', title: 'Terms of Usage', desc: 'The binding agreement covering listings, bidding, settlement, and account conduct.', href: 'Terms of Usage.dc.html' },
+        { emoji: '🔒', title: 'Privacy Policy', desc: 'What data we collect, how it\'s used, and how it\'s protected.', href: 'Privacy Policy.dc.html' },
+        { emoji: '🍪', title: 'Cookie Policy', desc: 'What cookies we use, and what we never use them for.', href: 'Cookie Policy.dc.html' },
+        { emoji: '↩️', title: 'Refund & Cancellation Policy', desc: 'When a deposit is refunded, when it\'s forfeited, and how long each takes.', href: 'Refund and Cancellation Policy.dc.html' },
+      ],
+      supportCards: [
+        { emoji: '🗂️', title: 'Dispute Center', desc: 'File a dispute against a transaction, upload evidence, and track the ruling.', href: 'Dispute Center.dc.html' },
+        { emoji: '⚖️', title: 'Dispute Resolution Process', desc: 'A plain-language walkthrough of how a disagreement gets reviewed and resolved.', href: 'Dispute Resolution Process.dc.html' },
+        { emoji: '📢', title: 'Grievance Redressal', desc: 'How to escalate a complaint, and what response time to expect.', href: 'Grievance Redressal Policy.dc.html' },
+      ],
+      isTicketSubmitted: s.isTicketSubmitted,
+      formDisplay: s.isTicketSubmitted ? 'none' : 'block',
+      ticketName: s.ticketName, ticketContact: s.ticketContact, ticketTopic: s.ticketTopic, ticketMessage: s.ticketMessage,
+      ticketError: s.ticketError, ticketNumber: s.ticketNumber,
+      onTicketNameChange: (e) => this.setState({ ticketName: e.target.value, ticketError: '' }),
+      onTicketContactChange: (e) => this.setState({ ticketContact: e.target.value, ticketError: '' }),
+      onTicketTopicChange: (e) => this.setState({ ticketTopic: e.target.value }),
+      onTicketMessageChange: (e) => this.setState({ ticketMessage: e.target.value, ticketError: '' }),
+      onSubmitTicket: () => {
+        if (!s.ticketName || !s.ticketContact || !s.ticketMessage) {
+          this.setState({ ticketError: 'Please fill in your name, contact, and message.' });
+          return;
+        }
+        this.setState({ isTicketSubmitted: true, ticketNumber: 'TS-' + Math.floor(100000 + Math.random() * 900000) });
+      }
+    };
+  }
+}
+
+</script>
+</body>
+</html>

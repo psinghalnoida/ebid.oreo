@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#A87A38;}
+@media (max-width:720px){.two-col{grid-template-columns:1fr !important;}}
+</style>
+</helmet>
+<div style="min-height:100vh; background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif;">
+  <header style="position:sticky; top:0; z-index:60; background:rgba(243,244,248,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1200px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#1E2761;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <a href="Trust and Support.dc.html" style="font-weight:700; font-size:12.5px; padding:9px 18px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233; white-space:nowrap;">← Trust &amp; Support</a>
+    </div>
+  </header>
+
+  <main style="max-width:960px; margin:0 auto; padding:40px 20px 90px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">Trust &amp; Support</div>
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:32px; font-weight:800; letter-spacing:-0.7px; margin:0 0 10px;">Star Ratings</h1>
+    <p style="font-size:14.5px; color:#565B72; margin:0 0 32px; max-width:620px; line-height:1.6;">How your reputation is built, what raises and lowers it, and what to do if it falls.</p>
+
+    <section style="margin-bottom:34px;">
+      <div style="font-size:11px; font-weight:700; letter-spacing:0.6px; color:#C9974C; margin-bottom:8px;">WHY THIS EXISTS</div>
+      <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:20px; margin:0 0 10px;">A trust signal between strangers</h2>
+      <p style="font-size:14px; line-height:1.65; max-width:700px;">Traders and Market Makers on ADWITIX often transact with someone they've never met, sometimes without seeing the item in person. Your Star Rating is how the platform — and everyone you deal with — knows you've genuinely honoured your commitments before. It's the mechanism that lets us apply lighter rules to trustworthy accounts and tighter ones to risky accounts.</p>
+    </section>
+
+    <section style="margin-bottom:34px;">
+      <div style="font-size:11px; font-weight:700; letter-spacing:0.6px; color:#C9974C; margin-bottom:8px;">TWO SEPARATE SCORES</div>
+      <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:20px; margin:0 0 10px;">Your Trader★ and Market Maker★ never mix</h2>
+      <p style="font-size:14px; line-height:1.65; max-width:700px; margin-bottom:16px;">If you both trade and sell, you have two entirely independent scores. Both start at <strong>3.0 out of 5.0</strong> once your profile is complete, and neither moves just from inactivity — only real behaviour affects the number.</p>
+      <div class="two-col" style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:10px; padding:16px;">
+          <div style="font-size:11px; color:#1E2761; font-weight:700; margin-bottom:4px;">AS A TRADER</div>
+          <p style="font-size:13px; color:#565B72; margin:0;">Tracks how reliably you pay, collect, and honour a win.</p>
+        </div>
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:10px; padding:16px;">
+          <div style="font-size:11px; color:#9C5B1F; font-weight:700; margin-bottom:4px;">AS A MARKET MAKER</div>
+          <p style="font-size:13px; color:#565B72; margin:0;">Tracks how accurately you describe items and how promptly you hand them over.</p>
+        </div>
+      </div>
+    </section>
+
+    <section style="margin-bottom:30px;">
+      <div style="font-size:11px; font-weight:700; letter-spacing:0.6px; color:#C9974C; margin-bottom:8px;">TRADER★</div>
+      <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:20px; margin:0 0 14px;">What raises and lowers it</h2>
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <sc-for list="{{ buyerTiers }}" as="tier" hint-placeholder-count="3">
+          <div>
+            <div style="font-size:11px; font-weight:700; color:#9A9FB5; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4px;">{{ tier.label }}</div>
+            <div style="border:1px solid #DDE0EA; border-radius:10px; overflow:hidden;">
+              <sc-for list="{{ tier.rows }}" as="row" hint-placeholder-count="3">
+                <div style="display:grid; grid-template-columns:1fr 3fr auto; gap:12px; align-items:center; padding:12px 14px; background:{{ row.bg }}; border-bottom:1px solid #DDE0EA;">
+                  <span style="font-size:13px; font-weight:700; color:#1E2233;">{{ row.event }}</span>
+                  <span style="font-size:12.5px; color:#565B72;">{{ row.detail }}</span>
+                  <span style="font-size:12.5px; font-weight:700; color:{{ row.color }}; background:{{ row.chipBg }}; padding:3px 9px; border-radius:999px; white-space:nowrap;">{{ row.change }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="margin-bottom:34px;">
+      <div style="font-size:11px; font-weight:700; letter-spacing:0.6px; color:#C9974C; margin-bottom:8px;">MARKET MAKER★</div>
+      <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:20px; margin:0 0 14px;">What raises and lowers it</h2>
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <sc-for list="{{ sellerTiers }}" as="tier" hint-placeholder-count="3">
+          <div>
+            <div style="font-size:11px; font-weight:700; color:#9A9FB5; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4px;">{{ tier.label }}</div>
+            <div style="border:1px solid #DDE0EA; border-radius:10px; overflow:hidden;">
+              <sc-for list="{{ tier.rows }}" as="row" hint-placeholder-count="3">
+                <div style="display:grid; grid-template-columns:1fr 3fr auto; gap:12px; align-items:center; padding:12px 14px; background:{{ row.bg }}; border-bottom:1px solid #DDE0EA;">
+                  <span style="font-size:13px; font-weight:700; color:#1E2233;">{{ row.event }}</span>
+                  <span style="font-size:12.5px; color:#565B72;">{{ row.detail }}</span>
+                  <span style="font-size:12.5px; font-weight:700; color:{{ row.color }}; background:{{ row.chipBg }}; padding:3px 9px; border-radius:999px; white-space:nowrap;">{{ row.change }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="margin-bottom:34px;">
+      <div style="font-size:11px; font-weight:700; letter-spacing:0.6px; color:#C9974C; margin-bottom:8px;">IF YOUR RATING FALLS</div>
+      <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:20px; margin:0 0 14px;">A path back, not a dead end</h2>
+      <p style="font-size:14px; line-height:1.65; max-width:700px; margin-bottom:16px;">A drop in rating isn't permanent, and it isn't automatic either — anything beyond a routine change goes through a real review before it takes effect, and you always have the right to appeal.</p>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <sc-for list="{{ recoveryTiers }}" as="rt" hint-placeholder-count="3">
+          <div style="border:1px solid #DDE0EA; border-radius:10px; background:#fff; overflow:hidden;">
+            <button onClick="{{ rt.onToggle }}" style="width:100%; display:flex; align-items:center; gap:12px; padding:14px 16px; background:transparent; border:none; cursor:pointer; text-align:left;">
+              <span style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:15px; color:#1E2233; flex:1;">{{ rt.title }}</span>
+              <span style="color:#9A9FB5;">{{ rt.icon }}</span>
+            </button>
+            <sc-if value="{{ rt.open }}" hint-placeholder-val="{{ false }}">
+              <p style="font-size:13.5px; color:#1E2233; line-height:1.6; margin:0; padding:0 16px 16px; border-top:1px solid #DDE0EA; padding-top:12px;">{{ rt.body }}</p>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section>
+      <div style="font-size:11px; font-weight:700; letter-spacing:0.6px; color:#C9974C; margin-bottom:8px;">IF YOU DISAGREE</div>
+      <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:20px; margin:0 0 14px;">How to appeal a downgrade</h2>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:10px; padding:20px;">
+        <p style="font-size:13.5px; line-height:1.65; margin:0 0 10px;">A meaningful downgrade is never applied automatically — it's reviewed first, and always comes with a stated reason. If you believe a rating change was wrong:</p>
+        <ol style="padding-left:18px; margin:0; display:flex; flex-direction:column; gap:8px;">
+          <li style="font-size:13px;">Check the stated reason on your <a href="Rating History.dc.html">Rating History</a> — every change references the specific event behind it.</li>
+          <li style="font-size:13px;">Raise an appeal directly against that event, with any supporting evidence.</li>
+          <li style="font-size:13px;">Your appeal is reviewed once, by an authority independent of the original decision — the Custodian if a TSX Master decided it — and you'll receive a reasoned outcome either way.</li>
+        </ol>
+      </div>
+    </section>
+  </main>
+
+  <footer style="border-top:1px solid #DDE0EA; padding:24px 20px; text-align:center;">
+    <p style="font-size:12.5px; color:#9A9FB5; margin:0;">For how disputes and appeals actually work, see our <a href="Dispute Resolution Process.dc.html">Dispute Resolution Process</a>.</p>
+  </footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { openTier: { 0: true } };
+
+  buyerData() {
+    return [
+      { label: 'Small — 0.1★ to 0.3★', rows: [
+        ['High Participation', '5 or more bids placed in a 30-day period.', '+0.1★', 'up'],
+        ['Prompt Query Response', 'You respond promptly to a Market Maker\'s questions during a live deal.', '+0.1★', 'up'],
+        ['Prompt NOC Confirmation', 'You confirm goods-received quickly, not just eventually.', '+0.1★', 'up'],
+        ['Prompt Rating Submission', 'You rate the Market Maker promptly once a deal is done.', '+0.1★', 'up'],
+        ['Successful Collection', 'Goods transfer is confirmed cleanly.', '+0.2★', 'up'],
+        ['Clean Inspection', 'No dispute raised after an Easy Auction win.', '+0.3★', 'up'],
+        ['Weak Withdrawal Pattern', 'Repeatedly withdrawing offers with thin, unconvincing reasons.', '−0.2★', 'down'],
+      ]},
+      { label: 'Medium — 0.4★ to 0.7★', rows: [
+        ['Early Settlement', 'You pay the balance within 48 hours of winning.', '+0.5★', 'up'],
+        ['Sustained Clean Streak', '10 consecutive dispute-free transactions in a row.', '+0.6★', 'up'],
+        ['Late Payment', 'Balance paid more than 7 days after winning.', '−0.5★', 'down'],
+        ['Stalling Pattern', 'Reaching the 5th instance of a forced-neutral rating for non-response.', '−0.5★', 'down'],
+        ['Baseless Dispute Pattern', 'A repeated pattern of filing disputes that don\'t hold up.', '−0.6★', 'down'],
+      ]},
+      { label: 'Large — 0.8★ and above', rows: [
+        ['Frivolous Dispute', 'A baseless condition complaint raised after winning.', '−1.5★', 'down'],
+        ['1st / 2nd / 3rd Default', 'Failing to pay, collect, or behaving disruptively after winning — escalates each time.', '−1.0★ / −1.5★ / −2.0★', 'down'],
+        ['Harassment at Handover', 'Disruptive or abusive conduct during collection.', '−1.5★', 'down'],
+        ['Confirmed Fishing Pattern', 'Repeatedly unlocking a Market Maker\'s details, then abandoning the deal.', '−1.5★', 'down'],
+        ['Illegitimate Chargeback', 'Filing a chargeback against an already-approved, legitimate forfeiture.', '−2.0★', 'down'],
+        ['Confirmed KYC Fraud', 'Deliberately false identity information.', 'Reset to 1★', 'down'],
+      ]},
+    ];
+  }
+  sellerData() {
+    return [
+      { label: 'Small — 0.1★ to 0.3★', rows: [
+        ['Prompt NOC Confirmation', 'Fund-clearance confirmed quickly, not just eventually.', '+0.1★', 'up'],
+        ['Prompt Rating Submission', 'You rate the Trader promptly once a deal is done.', '+0.1★', 'up'],
+        ['Shipping As Promised', 'Delivered exactly at the cost/timeline stated.', '+0.1★', 'up'],
+        ['Detailed Documentation', 'Listing includes video, photos, and location/map data.', '+0.2★', 'up'],
+        ['Rapid Handover', 'Delivery/NOC confirmed within 24 hours of payment.', '+0.3★', 'up'],
+      ]},
+      { label: 'Medium — 0.4★ to 0.7★', rows: [
+        ['Accurate Description', 'Traders consistently rate your listing accuracy highly.', '+0.4★', 'up'],
+        ['Sustained Clean Streak', '10 consecutive transactions with zero disputes or rejections.', '+0.6★', 'up'],
+        ['Delayed Collection', 'You\'re unreachable or unavailable at handover.', '−0.5★', 'down'],
+        ['Stalling Pattern', 'Reaching the 5th instance of a forced-neutral rating for non-response.', '−0.5★', 'down'],
+        ['Baseless Rejection Pattern', 'A repeated pattern of rejecting Easy Auction results without valid reason.', '−0.6★', 'down'],
+      ]},
+      { label: 'Large — 0.8★ and above', rows: [
+        ['Unprofessional Conduct', 'A verified complaint about your conduct during a deal.', '−1.0★', 'down'],
+        ['Data Mismatch', 'A significant discrepancy between the listing and the real item.', '−1.5★', 'down'],
+        ['Dishonest Defect Disclosure', 'A false Express Auction defect checklist, confirmed via dispute.', '−1.5★', 'down'],
+        ['Confirmed Off-Platform Solicitation', 'Seeking to complete a deal outside the platform to avoid fees.', '−1.5★', 'down'],
+        ['Confirmed CBS Violation', 'Stock or fake photos used, beyond the warning stage.', '−2.0★', 'down'],
+        ['Confirmed Fraud / KYC Fraud', 'Bid manipulation, deliberate misrepresentation, or false identity information.', 'Reset to 1★', 'down'],
+      ]},
+    ];
+  }
+  recoveryData() {
+    return [
+      { title: 'Below 2★ — Restricted, not blocked', body: 'You\'re temporarily limited to smaller-value transactions on that TradeSphereX, rather than blocked outright. A defined number of clean transactions in a row — more each time this happens — restores you to a normal rating.' },
+      { title: 'Persistently low — Shadow Banning', body: 'You can still use the platform fully, but you stop being actively promoted — fewer alerts, less visibility in search and recommendations — until your standing improves.' },
+      { title: 'At the platform floor — A firm but liftable limit', body: 'At the lowest tier, transactions are capped at a flat platform-wide limit — but this can be raised by maintaining a higher standing deposit, giving you a concrete way to regain access.' },
+    ];
+  }
+  fmtRows(rows) {
+    return rows.map((r, i) => ({
+      event: r[0], detail: r[1], change: r[2],
+      color: r[3] === 'up' ? '#3F7A4E' : '#B5482F',
+      chipBg: r[3] === 'up' ? '#E4EFE6' : '#F7E4E0',
+      bg: i % 2 === 1 ? '#F3F4F8' : '#fff',
+    }));
+  }
+  renderVals() {
+    const s = this.state;
+    return {
+      buyerTiers: this.buyerData().map(t => ({ label: t.label, rows: this.fmtRows(t.rows) })),
+      sellerTiers: this.sellerData().map(t => ({ label: t.label, rows: this.fmtRows(t.rows) })),
+      recoveryTiers: this.recoveryData().map((rt, i) => ({
+        title: rt.title, body: rt.body,
+        open: !!s.openTier[i], icon: s.openTier[i] ? '−' : '+',
+        onToggle: () => this.setState({ openTier: { ...this.state.openTier, [i]: !this.state.openTier[i] } }),
+      })),
+    };
+  }
+}
+
+</script>
+</body>
+</html>
