@@ -51,7 +51,7 @@
   <?php foreach ($driftAlerts as $d): ?>
     <p style="font-size:13px; border-top:1px solid var(--line); padding:8px 0;">
       <?= esc($d['ntp_host']) ?> — drift <?= esc(number_format((float) $d['drift_seconds'], 3)) ?>s (tolerance <?= esc(number_format((float) $d['tolerance_seconds'], 3)) ?>s) — <?= esc(substr($d['checked_at'], 0, 19)) ?>
-      <form method="post" action="/admin/alerts/server-time-drift/<?= esc($d['id']) ?>/acknowledge" style="display:inline;">
+      <form method="post" action="/admin/alerts/server-time-drift/<?= esc($d['id']) ?>/acknowledge" style="display:inline;"><?= csrf_field() ?>
         <button type="submit" class="btn btn-ghost" style="font-size:11px; padding:4px 10px; margin-left:8px;">Acknowledge</button>
       </form>
     </p>

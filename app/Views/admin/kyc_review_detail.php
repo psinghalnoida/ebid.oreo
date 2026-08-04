@@ -31,7 +31,7 @@
     <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--line-soft); font-size:12px;">
       <span><?= esc($label) ?>: <?= $verifiedAt ? 'Verified ✓ (' . esc(substr($verifiedAt, 0, 10)) . ')' : 'Not verified' ?></span>
       <?php if (!$verifiedAt): ?>
-        <form method="post" action="/admin/kyc/<?= esc($party['id']) ?>/verify-flag" style="margin:0;">
+        <form method="post" action="/admin/kyc/<?= esc($party['id']) ?>/verify-flag" style="margin:0;"><?= csrf_field() ?>
           <input type="hidden" name="flag" value="<?= esc($flag) ?>">
           <button type="submit" class="btn btn-ghost" style="font-size:11px; padding:4px 10px;">Verify manually</button>
         </form>
@@ -60,7 +60,7 @@
   <h3 style="font-size:14px; margin-top:20px;">Enhanced Due Diligence (BR-55)</h3>
   <p style="font-size:12px;">Required at: <?= esc(substr($party['edd_required_at'], 0, 16)) ?><?= $party['edd_cleared_at'] ? ' — Cleared at ' . esc(substr($party['edd_cleared_at'], 0, 16)) : ' — NOT yet cleared' ?></p>
   <?php if (!$party['edd_cleared_at']): ?>
-    <form method="post" action="/admin/kyc/<?= esc($party['id']) ?>/clear-edd">
+    <form method="post" action="/admin/kyc/<?= esc($party['id']) ?>/clear-edd"><?= csrf_field() ?>
       <button type="submit" class="btn btn-ghost">Clear Enhanced Due Diligence</button>
     </form>
   <?php endif; ?>
@@ -68,11 +68,11 @@
 
   <?php if ($party['kyc_status'] === 'submitted'): ?>
   <h3 style="font-size:14px; margin-top:24px;">Decision</h3>
-  <form method="post" action="/admin/kyc/<?= esc($party['id']) ?>/decide" style="display:flex; gap:8px; margin-bottom:10px;">
+  <form method="post" action="/admin/kyc/<?= esc($party['id']) ?>/decide" style="display:flex; gap:8px; margin-bottom:10px;"><?= csrf_field() ?>
     <input type="hidden" name="decision" value="verify">
     <button type="submit" class="btn btn-emerald">Verify KYC</button>
   </form>
-  <form method="post" action="/admin/kyc/<?= esc($party['id']) ?>/decide">
+  <form method="post" action="/admin/kyc/<?= esc($party['id']) ?>/decide"><?= csrf_field() ?>
     <input type="hidden" name="decision" value="suspend">
     <select name="reason" style="padding:10px; border:1px solid var(--line); border-radius:10px;">
       <?php foreach ($suspensionReasons as $key => $label): ?>

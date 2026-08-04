@@ -13,7 +13,7 @@
     <code style="display:block; word-break:break-all; font-size:13px; background:#fff; padding:10px; border-radius:6px;"><?= esc($setup['secret']) ?></code>
   </div>
 
-  <form method="post" action="/admin/setup-totp">
+  <form method="post" action="/admin/setup-totp"><?= csrf_field() ?>
     <label style="font-size:12px; color:var(--ink-3);">Enter the 6-digit code from your app to confirm</label>
     <input type="text" name="code" maxlength="6" required
       style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">

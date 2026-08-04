@@ -13,7 +13,7 @@
     to active review, always disclosed to buyers.
   </p>
 
-  <form method="post" action="/tenants/<?= esc($tenant['id']) ?>/media-waiver" style="margin-top:20px;">
+  <form method="post" action="/tenants/<?= esc($tenant['id']) ?>/media-waiver" style="margin-top:20px;"><?= csrf_field() ?>
     <label style="font-size:12px; color:var(--ink-3);">Category</label>
     <input type="text" name="category" required placeholder="e.g. Industrial Plant"
       style="display:block; width:100%; padding:12px; margin:6px 0 16px; border:1px solid var(--line); border-radius:10px;">

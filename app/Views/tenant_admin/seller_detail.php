@@ -20,7 +20,7 @@
   <?php if ($openCase): ?>
     <p style="font-size:13px;">An open case exists — <a href="/admin/standing-review/<?= esc($openCase['id']) ?>" style="color:var(--emerald);">view / rule on it</a></p>
   <?php else: ?>
-    <form method="post" action="/tenants/<?= esc($tenant['id']) ?>/sellers/<?= esc($seller['id']) ?>/initiate-review">
+    <form method="post" action="/tenants/<?= esc($tenant['id']) ?>/sellers/<?= esc($seller['id']) ?>/initiate-review"><?= csrf_field() ?>
       <textarea name="reason" placeholder="Reason for opening a Standing Review case (required)" required rows="2"
         style="display:block; width:100%; padding:8px; margin:8px 0; border:1px solid var(--line); border-radius:8px; font-size:12px;"></textarea>
       <button type="submit" class="btn btn-ghost" style="font-size:12px;">Initiate Standing Review Case</button>

@@ -16,7 +16,7 @@
       <?php endif; ?>
     </p>
   <?php else: ?>
-    <form method="post" action="/tenants/<?= esc($tenant['id']) ?>/apply-to-sell">
+    <form method="post" action="/tenants/<?= esc($tenant['id']) ?>/apply-to-sell"><?= csrf_field() ?>
       <button type="submit" class="btn btn-emerald" style="width:100%;">Apply to Sell Here</button>
     </form>
   <?php endif; ?>

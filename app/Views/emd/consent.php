@@ -23,7 +23,7 @@
     </p>
   </div>
 
-  <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/emd-consent/<?= esc($action) ?>/confirm">
+  <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/emd-consent/<?= esc($action) ?>/confirm"><?= csrf_field() ?>
     <label style="display:flex; align-items:flex-start; gap:8px; font-size:13px; margin-bottom:20px;">
       <input type="checkbox" name="confirmed" value="1" required style="margin-top:2px;">
       I have read and understand the deposit and forfeiture terms above.

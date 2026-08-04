@@ -88,5 +88,7 @@ class Autoload extends AutoloadConfig
      *
      * @var list<string>
      */
-    public $helpers = ['terminology'];
+    // 'form' added for csrf_field() — every POST form in the app now carries
+    // a real CSRF token; see docs/DECISIONS.md for the pass that wired it in.
+    public $helpers = ['terminology', 'form'];
 }

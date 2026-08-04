@@ -77,13 +77,19 @@ class Filters extends BaseFilters
     public array $globals = [
         'before' => [
             // 'honeypot',
-            // 'csrf',
+            // Real CSRF protection, enabled on every browser-session POST.
+            // Excluded: api/* — the Tenant API is server-to-server OAuth2
+            // bearer-token auth (ApiAuthFilter), not a browser session with
+            // cookies, so it has no CSRF token to send and doesn't need one
+            // (BR-62-66's own threat model is a stolen bearer token, not a
+            // forged cross-site request from a logged-in browser).
+            'csrf' => ['except' => ['api/*']],
             // 'invalidchars',
             'tenantResolve', // BR-06: Host-header tenant resolution, every request
         ],
         'after' => [
             // 'honeypot',
-            // 'secureheaders',
+            'secureheaders',
         ],
     ];
 

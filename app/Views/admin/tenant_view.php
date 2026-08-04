@@ -14,7 +14,7 @@
     <img src="<?= esc($tenant['branding_logo_url']) ?>" alt="<?= tsx_term('Tenant') ?> logo" style="max-height:48px; margin:12px 0;">
   <?php endif; ?>
 
-  <form method="post" action="/admin/tenants/<?= esc($tenant['id']) ?>/edit" enctype="multipart/form-data" style="margin-top:20px;">
+  <form method="post" action="/admin/tenants/<?= esc($tenant['id']) ?>/edit" enctype="multipart/form-data" style="margin-top:20px;"><?= csrf_field() ?>
     <label style="font-size:12px; color:var(--ink-3);">Name</label>
     <input type="text" name="name" value="<?= esc($tenant['name']) ?>"
       style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">

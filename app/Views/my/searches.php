@@ -12,7 +12,7 @@
       </div>
       <div style="display:flex; gap:8px;">
         <a href="/listings?<?= http_build_query($f) ?>" class="btn btn-ghost" style="font-size:12px;">Run</a>
-        <form method="post" action="/my-searches/<?= esc($s['id']) ?>/delete">
+        <form method="post" action="/my-searches/<?= esc($s['id']) ?>/delete"><?= csrf_field() ?>
           <button type="submit" class="btn btn-ghost" style="font-size:12px; color:#B5482F;">Delete</button>
         </form>
       </div>

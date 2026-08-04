@@ -26,7 +26,7 @@
 <link rel="icon" type="image/jpeg" href="/images/brand/adwitix-shield.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<style>
+<style {csp-style-nonce}>
   /* BR-68: Visual Identity — Ink/Ink Soft/Paper/Card/Line/Rust/Teal/Amber
      tokens, Archivo/Inter/IBM Plex Mono typography. Variable names kept
      stable (--emerald etc.) since 80+ views already reference them —
@@ -130,7 +130,7 @@
   }
 </style>
 <?php if ($__tenant && !empty($__tenant['branding_primary_color']) && preg_match('/^#[0-9a-fA-F]{6}$/', $__tenant['branding_primary_color'])): ?>
-<style>
+<style {csp-style-nonce}>
   /* BR-06: white-label brand color override for this tenant's domain —
      derived from their one stored color via color-mix() rather than
      hand-rolled hex math, since no color library exists in this codebase.
@@ -187,7 +187,7 @@
     <button type="button" class="nav-toggle" id="navToggle" aria-label="Toggle menu"><span></span></button>
   </div>
 </header>
-<script>
+<script {csp-script-nonce}>
   (function () {
     var toggle = document.getElementById('navToggle');
     if (!toggle) return;
@@ -214,14 +214,14 @@
   <div id="ticker-interest-matches"></div>
   <p style="font-size:11px; margin-top:16px;"><a href="/preferences" style="color:var(--emerald);">Tune your preferences →</a></p>
 </aside>
-<style>
+<style {csp-style-nonce}>
   main { margin-right: 260px; }
   @media (max-width: 900px) { #live-ticker { display: none; } main { margin-right: 0; } }
   .ticker-item { border-bottom: 1px solid var(--line); padding: 8px 0; font-size: 12px; }
   .ticker-item .amount { font-weight: 700; }
   .ticker-item .h1 { color: var(--emerald); }
 </style>
-<script>
+<script {csp-script-nonce}>
   (function () {
     const partyId = <?= json_encode(session()->get('logged_in_party_id')) ?>;
 

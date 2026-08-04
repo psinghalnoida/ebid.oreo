@@ -519,11 +519,37 @@ only to parties who actually administer a tenant, verified via a real
 login and click resolving to the correct dashboard. Full detail in
 `docs/DECISIONS.md` D-103.
 
+## Update — D-104: production-readiness audit — real CSRF, real CSP, CI pipeline, backup script, stale docs fixed
+
+Not a BR/PR build-gap item — a production-readiness pass, requested
+directly: audit the whole platform for what's missing to run
+full-fledged on the project owner's own cloud server, then close
+whatever doesn't need external credentials. Five real gaps closed:
+CSRF protection (was fully disabled repo-wide — added to all 90 POST
+forms across 46 views, two real corruption/exit-code bugs found and
+fixed along the way, verified with a real 403-reject/200-accept HTTP
+round trip), a real Content-Security-Policy scoped to what the app
+actually uses rather than generic defaults (was off entirely — a real
+headless-browser check caught a first-pass regression that raw HTTP
+headers didn't show, fixed and re-verified at zero real violations), a
+GitHub Actions CI pipeline running all 35 suites on every push/PR
+(didn't exist — building it surfaced and fixed a genuine
+fixture-collision bug between two test commands that would have made
+CI permanently red), a real `pg_dump`+media backup script with
+retention pruning (no backup strategy existed anywhere), and two
+stale docs (`SETUP.md`'s "Not yet built" list and `README.md`'s
+unmerged-PR warning, both years out of date) corrected against what's
+actually in the codebase today. Full detail in `docs/DECISIONS.md`
+D-104.
+
 ### Bottom line (current)
 
-**Still two items with no path forward without the project owner
-supplying something external — but BR-46's build itself is done**:
+**Still four items with no path forward without the project owner
+supplying something external — all four are genuinely build-complete,
+this is a credentials gap, not a build-effort gap**:
 
-1. BR-46 — fully built, genuinely inert pending a Gemini API key (no remaining build-effort gap)
-2. BR-52 — Chargeback Mitigation (blocked on real SabPaisa API credentials, no build-effort gap either)
+1. BR-46 — AI Listing Pre-Audit, fully built, genuinely inert pending a Gemini API key
+2. BR-52 — Chargeback Mitigation, fully built, blocked on real SabPaisa API credentials
+3. A real payment gateway — EMD funding is simulated across every sale format; connects post-deployment
+4. A real SMS provider — OTP is generated/rate-limited correctly but only ever shown on-screen, never sent
 

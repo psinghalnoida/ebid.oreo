@@ -37,8 +37,12 @@ class TestChronicle extends BaseCommand
 
         CLI::write('=== Setup: a completed Buy-Now Trading Session ===', 'yellow');
         $tenant = $tenantModel->createTenant(['name' => 'Chronicle Test Tenant', 'tenant_class' => 'general', 'subdomain' => 'chronicletest']);
-        $seller = $partyModel->createParty('+919888901001');
-        $buyer1 = $partyModel->createParty('+919888901002');
+        // D-104: was +919888901001/-902 -- collided with TestEasySchedule.php's
+        // own hardcoded fixture numbers, which broke this suite whenever both
+        // ran in the same DB session (exactly what a real CI run does; caught
+        // building the GitHub Actions workflow, not a hypothetical).
+        $seller = $partyModel->createParty('+919888941001');
+        $buyer1 = $partyModel->createParty('+919888941002');
         $buyer2 = $partyModel->createParty('+919888901003');
         $listing = $listingModel->createListing([
             'tenant_id' => $tenant['id'], 'seller_party_id' => $seller['id'],

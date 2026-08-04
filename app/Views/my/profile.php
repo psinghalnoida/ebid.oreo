@@ -1,6 +1,6 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
-<style>
+<style {csp-style-nonce}>
   .profile-wrap{max-width:560px; padding:40px 24px 60px;}
   .profile-summary{display:flex; align-items:center; gap:16px; margin-bottom:var(--sp-6);}
   .profile-avatar{width:56px; height:56px; border-radius:50%; background:var(--navy); color:#fff; display:flex; align-items:center; justify-content:center; font-family:'Archivo',sans-serif; font-weight:800; font-size:20px; flex:none;}

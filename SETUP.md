@@ -260,18 +260,24 @@ correctly auto-closes an Easy Auction once its schedule genuinely ends.
 
 ## Not yet built
 
-Real navigation/account pages a normal user would expect on day one —
-generic logout for regular users, "My Listings", "My Bids/Purchases", a
-user profile page, and a proper browse-all-listings page with filters
-(the landing page only shows the 12 most recent active listings). Also:
-a page for Super Admin to view/edit an *existing* tenant (only creation
-exists), TOTP recovery if a Super Admin loses their device, HTTP routes
-for the already-built-and-tested listing edit and emergency-stop logic
-(see `docs/SITE_MAP.md` for the full list), KYC data collection (Tier 4),
-video/document upload and transcoding for listings (PR-9's full spec,
-deferred by the project owner's decision), and a real payment gateway/SMS
-provider (still stubbed across every format's `devFundEmd`/
-`dev-fund-emd-*`/`pledge` endpoints — connects post-deployment).
+Updated after a real production-readiness audit (D-104) — most of what
+used to be listed here (logout, My Listings, My Bids/Purchases, the
+profile page, a filterable Browse page, tenant view/edit, TOTP backup
+codes, listing-edit/emergency-stop routes, video/document upload) has
+since been built; see `docs/DECISIONS.md` D-99–D-104 and
+`docs/SITE_MAP.md` for what's actually live today. What's genuinely
+still not built, verified by reading the code rather than re-asserting
+old notes:
+
+- **A real payment gateway** — EMD funding is simulated across every
+  format's `devFundEmd`/`dev-fund-emd-*`/`pledge` endpoints; real seller
+  payouts need this too (`account/earnings.php` says so explicitly).
+  Connects post-deployment once real gateway credentials exist.
+- **A real SMS provider** — `AuthService::requestOtp()` generates and
+  rate-limits a real OTP correctly but never sends it; it's shown
+  on-screen. Must be removed once a provider is wired in.
+- **BR-46's AI Listing Pre-Audit** — fully built, inert until a real
+  `GEMINI_API_KEY` is supplied (see `docs/BR_PR_AUDIT.md`).
 
 ## Production web server (Apache/Nginx)
 

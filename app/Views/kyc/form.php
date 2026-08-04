@@ -1,6 +1,6 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
-<style>
+<style {csp-style-nonce}>
   .kyc-wrap{max-width:640px; padding:40px 24px 60px;}
   .kyc-section{margin-top:var(--sp-6);}
   .kyc-section h3{font-size:15px; margin:0 0 var(--sp-4); display:flex; align-items:center; gap:10px;}
@@ -32,7 +32,7 @@
 
   <div class="kyc-section card">
     <h3><span class="step">1</span> Entity Type &amp; Questionnaire</h3>
-    <form method="post" action="/kyc/questionnaire" id="kycQuestionnaireForm">
+    <form method="post" action="/kyc/questionnaire" id="kycQuestionnaireForm"><?= csrf_field() ?>
       <div class="field">
         <label>Entity Type</label>
         <select name="entity_type" id="entityTypeSelect">
@@ -85,7 +85,7 @@
       <?php endforeach; ?>
     </ul>
     <?php endif; ?>
-    <form method="post" action="/kyc/documents" enctype="multipart/form-data" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+    <form method="post" action="/kyc/documents" enctype="multipart/form-data" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;"><?= csrf_field() ?>
       <select name="document_type" style="padding:10px; border:1px solid var(--line); border-radius:10px;">
         <?php foreach ($allDocumentTypes as $t): ?>
           <option value="<?= esc($t) ?>"><?= esc(ucwords(str_replace('_', ' ', $t))) ?></option>
@@ -102,7 +102,7 @@
       <?php $existing = $addressesByType[$type] ?? null; ?>
       <details class="addr-details">
         <summary><?= esc($label) ?> Address <?= $existing ? '✓' : '' ?></summary>
-        <form method="post" action="/kyc/addresses" style="margin-top:10px;">
+        <form method="post" action="/kyc/addresses" style="margin-top:10px;"><?= csrf_field() ?>
           <input type="hidden" name="address_type" value="<?= esc($type) ?>">
           <div class="field"><input type="text" name="line1" placeholder="Address Line 1" value="<?= esc($existing['line1'] ?? '') ?>"></div>
           <div class="field"><input type="text" name="line2" placeholder="Address Line 2 (optional)" value="<?= esc($existing['line2'] ?? '') ?>"></div>
@@ -118,7 +118,7 @@
 
   <div class="kyc-section card">
     <h3><span class="step">4</span> Banking Details</h3>
-    <form method="post" action="/kyc/banking">
+    <form method="post" action="/kyc/banking"><?= csrf_field() ?>
       <div class="entity-fields">
         <div class="field"><label>Account Holder Name</label><input type="text" name="account_holder_name" value="<?= esc($party['payout_bank_account_holder_name'] ?? '') ?>"></div>
         <div class="field"><label>Bank Name</label><input type="text" name="bank_name" value="<?= esc($party['payout_bank_name'] ?? '') ?>"></div>
@@ -132,14 +132,14 @@
   </div>
 
   <?php if (in_array($party['kyc_status'], ['pending'], true)): ?>
-  <form method="post" action="/kyc/submit" style="margin-top:28px;">
+  <form method="post" action="/kyc/submit" style="margin-top:28px;"><?= csrf_field() ?>
     <button type="submit" class="btn btn-emerald" style="width:100%;">Submit for Review</button>
   </form>
   <?php elseif ($party['kyc_status'] === 'submitted'): ?>
     <p style="font-size:12px; color:var(--ink-3); margin-top:20px;">Your dossier has been submitted and is awaiting review.</p>
   <?php endif; ?>
 </main>
-<script>
+<script {csp-script-nonce}>
   (function () {
     var select = document.getElementById('entityTypeSelect');
     var individual = document.getElementById('individualFields');

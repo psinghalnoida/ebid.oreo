@@ -6,7 +6,7 @@
   <?php if (!empty($error)): ?>
     <p style="color:#B5482F; font-size:13px;"><?= esc($error) ?></p>
   <?php endif; ?>
-  <form method="post" action="/register/set-mpin">
+  <form method="post" action="/register/set-mpin"><?= csrf_field() ?>
     <label style="font-size:12px; color:var(--ink-3);">4-digit mPIN</label>
     <input type="password" name="mpin" maxlength="4" inputmode="numeric" required
       style="display:block; width:100%; padding:12px; margin:6px 0 16px; border:1px solid var(--line); border-radius:10px;">

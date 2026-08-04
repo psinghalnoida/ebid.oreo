@@ -1,7 +1,7 @@
 <?= $this->extend('layouts/main') ?>
 
 <?= $this->section('content') ?>
-<style>
+<style {csp-style-nonce}>
   .tag-strip{display:flex; gap:8px; margin-bottom:22px; flex-wrap:wrap;}
   .tag-chip{font-size:12px; font-weight:600; color:var(--emerald-deep); background:var(--emerald-soft); padding:6px 13px; border-radius:var(--radius-pill);}
   .hero{display:grid; grid-template-columns:1.05fr 0.95fr; gap:56px; padding:56px 0 60px; align-items:center;}

@@ -13,7 +13,7 @@
             <p style="font-size:14px; font-weight:800; color:var(--emerald); margin:0;">₹<?= number_format((float) ($f['display_price'] ?? 0), 0) ?></p>
           </div>
         </a>
-        <form method="post" action="/listings/<?= esc($f['listing_id']) ?>/unfavorite" style="padding:0 12px 12px;">
+        <form method="post" action="/listings/<?= esc($f['listing_id']) ?>/unfavorite" style="padding:0 12px 12px;"><?= csrf_field() ?>
           <button type="submit" class="btn btn-ghost" style="font-size:11px; width:100%;">Remove</button>
         </form>
       </div>

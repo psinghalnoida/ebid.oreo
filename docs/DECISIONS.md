@@ -6608,3 +6608,162 @@ Full regression re-run clean against a rebuilt database (all 33
 suites; `chronicle`'s one loop failure was — again — the same known
 same-DB double-run fixture collision from this session's own manual
 queries, confirmed clean standalone).
+
+### D-104: production-readiness audit — real CSRF, real CSP, CI pipeline, a genuine backup script, stale docs fixed
+
+The project owner asked for a full audit of what's genuinely missing
+for a real deployment to their own cloud server, then which of those
+gaps could be closed without external credentials. Investigated by
+reading the actual code, not re-summarizing old docs: grepped for
+every `DEV-ONLY` marker, checked `Config/Filters.php`,
+`Config/Security.php`, and `Config/ContentSecurityPolicy.php` against
+what was actually wired, and confirmed EMD funding is simulated across
+every format (`devFundEmd`/`pledge`) and OTP is never actually sent
+(shown on-screen only) — both correctly flagged as blocked on external
+vendor credentials (payment gateway, SMS provider), same category as
+BR-46 (Gemini) and BR-52 (SabPaisa). Five items had no such
+dependency and were closed this pass.
+
+**CSRF protection, enabled app-wide.** Was fully commented out in
+`Config/Filters.php`'s `$globals` — every state-changing POST in the
+app (bidding, registration, disputes) had zero CSRF protection, not
+previously documented anywhere as a gap. Added `'form'` to the
+autoloaded helpers, added `csrf_field()` to all 90 POST forms across
+46 view files, and the one JS `fetch()` POST (BR-46's AI pre-audit
+check) that isn't a real `<form>` submit. Excluded `api/*` from the
+filter — the Tenant API is OAuth2 bearer-token server-to-server auth
+(`ApiAuthFilter`), not a browser session with cookies, so it has no
+CSRF token to send and doesn't need one.
+
+Two real bugs found and fixed while doing this, not assumed away:
+1. A naive regex stopped at the first literal `>` it found, which for
+   several forms was the `>` inside an embedded `<?= esc($id) ?>` PHP
+   tag rather than the form tag's actual closing `>` — corrupting the
+   HTML (`csrf_field()` landing mid-URL, e.g. inside the Emergency Stop
+   form's `action` attribute). Caught by grepping the output for
+   `csrf_field() ?>/` after the first pass, reverted, and rewritten to
+   treat `<?=...?>`/`<?php...?>` as atomic units when scanning for the
+   tag's real closing `>`.
+2. Verified end-to-end over real HTTP, not just by reading the
+   rendered HTML: a POST to `/register` with no token returns a real
+   403 with "CSRF" in the body; the same POST with the real
+   token+cookie pair proceeds to "Enter the OTP" — genuine app logic,
+   not a simulated pass.
+
+**A real Content-Security-Policy, not a generic default.** Was off
+entirely (`CSPEnabled = false`). Read every view for what the app
+actually needs before writing the policy, rather than copying
+CodeIgniter's defaults and hoping: no external `<script src>` anywhere
+(`script-src 'self'`), Google Fonts is the only external stylesheet
+(`style-src`/`font-src` scoped to `fonts.googleapis.com`/
+`fonts.gstatic.com`), a `data:` URI is used for one inline SVG
+watermark (`img-src` includes `data:`), and the D-42 real-time
+WebSocket sidecar connects to the same host on a different port —
+different origin by browser rules, so `connect-src 'self'` alone
+wouldn't cover it; added scheme-only `ws:`/`wss:` instead of
+hardcoding a port that depends on the deployment's own Nginx-proxy
+choice (see README Step 13). `frame-ancestors 'none'` and
+`object-src 'none'` since nothing legitimately needs either.
+
+`style-src-attr`/`script-src-attr` are deliberately `'unsafe-inline'`
+— this whole app is built on inline `style="..."` attributes (no
+separate stylesheet to fall back to) and a handful of inline
+`onclick`/`onchange`/`onsubmit` handlers (grep-verified: 4
+occurrences across 2 real views). Locking those down would mean
+migrating ~75+ view files off inline styles first — a real, separate
+frontend project, not something to fold into a CSP pass. `<style>`
+and `<script>` **block** elements (not attributes) are properly
+nonce-protected, not blanket-allowed: added CodeIgniter's
+`{csp-style-nonce}`/`{csp-script-nonce}` placeholder to all 13
+`<style>` blocks and 6 inline `<script>` blocks across the app.
+
+Caught by an actual headless-browser check, not by reading response
+headers: the first pass left the shared layout's `<style>` blocks
+unprotected (no nonce), which silently stripped the entire
+design-system CSS in a real browser — the raw HTTP headers looked
+perfectly fine, `document.body`'s computed `font-family` had quietly
+fallen back to Times New Roman. Fixed by nonce-tagging every block;
+re-verified with the same script — zero real CSP violations across
+the landing page, register, browse, and trust-support, screenshotted
+to confirm the design system still renders correctly.
+
+**A CI pipeline that actually runs the 35 suites.** There was no CI
+configured on this repo at all (confirmed via `pull_request_read`
+`get_check_runs`: 0 checks). Added
+`.github/workflows/tests.yml` — a real Postgres 16 service container,
+the exact PHP 8.2 extensions `composer.json`/README require, ffmpeg
+for D-43's video transcoding, migrations, then all 35 `test:*`
+commands with real exit-code checking (not text-matching).
+
+Two real bugs in the workflow found by actually running the exact
+`.env`-construction steps locally before trusting them, not assumed
+correct because they looked right:
+1. `CI_ENVIRONMENT = testing` crashes spark's CLI bootstrap outright
+   (`Undefined constant SUPPORTPATH`) — that value triggers
+   CodeIgniter's PHPUnit-specific bootstrap path, and these `test:*`
+   commands are plain spark commands, not PHPUnit. Fixed to
+   `development`, matching what this sandbox's own working `.env`
+   already uses.
+2. The `sed` pattern for uncommenting `app.baseURL` used an unescaped
+   `.` , which also matched the neighboring `# app_baseURL = ''`
+   comment line (the underscore-alternate-syntax example) and produced
+   a duplicate key in `.env`. Fixed by escaping the dot and anchoring
+   to line start.
+
+A third, more consequential bug surfaced only by running the full
+35-suite loop against a single freshly-migrated database in one
+session — exactly how any CI run works, and different from this
+session's usual habit of rebuilding between individual manual test
+invocations: `TestChronicle.php` and `TestEasySchedule.php` hardcode
+the exact same fixture mobile numbers (`+919888901001`/`-902`).
+Harmless when run in isolation or rebuilt between runs (which is
+almost certainly why D-102/D-103's own "known same-DB double-run
+collision" explanation for this exact symptom went unquestioned
+earlier this session) but a **guaranteed, permanent CI failure** the
+moment both suites run in the same database session — which a real CI
+pipeline always does. Found by grepping every `Test*.php` command for
+duplicate fixture numbers across different files (not just within
+one), not by re-running until it happened to pass. Gave
+`TestChronicle.php` its own numbers; re-verified with three full
+35-suite runs against three independently rebuilt databases — the
+last one clean start to finish, both locally and via the exact
+`.env`-construction steps the workflow itself runs.
+
+**A real backup script.** No backup strategy existed anywhere in the
+docs. Added `scripts/backup.sh` — reads DB credentials straight out of
+`.env` (nothing to duplicate/desync), compressed `pg_dump`, tars
+`public/uploads/` (the local-disk media storage this same audit
+flagged as a real scaling caveat), prunes anything past 14 days, and
+exits non-zero on a genuinely failed/empty dump rather than leaving a
+silent gap. Verified for real: ran it against this sandbox's actual
+database and `public/uploads/`, produced a valid gzip'd SQL dump
+(confirmed real `pg_dump` header + 90 `CREATE TABLE`/`COPY`
+statements, not an empty/corrupt file) and a real tar archive; then
+separately verified the 14-day retention prune actually deletes a
+file backdated past the window while leaving fresh ones untouched.
+
+**Stale docs fixed**, not just re-asserted: `SETUP.md`'s "Not yet
+built" list still named seven items (logout, My Listings, My
+Bids/Purchases, the profile page, a filterable Browse page, tenant
+view/edit, TOTP backup codes, listing-edit/emergency-stop routes,
+video/document upload) that had all been built since it was last
+written — rewritten to list only the three genuinely open items
+(payment gateway, SMS, BR-46's Gemini key). `README.md`'s "before
+deploying" warning still pointed at PRs #31→#34 as unmerged — verified
+via `pull_request_read` that #34 (and the rest of that stack) merged
+weeks ago, and separately confirmed `dev` really is a strict ancestor
+of `main` (the one part of that old warning still true) rather than
+just re-asserting it. Also fixed: the test-command list was missing
+`test:chronicle` and `test:aiaudit` (35 real suites, not 33 — verified
+by `grep`ing `protected $name` across every `Test*.php` command rather
+than trusting the prose count).
+
+**Still genuinely blocked on external dependencies, unchanged**: a
+real payment gateway, a real SMS provider, BR-46's Gemini key, BR-52's
+SabPaisa credentials. None of this pass's changes touch that list —
+closing it needs credentials only the project owner can supply.
+
+Full regression re-run clean (all 35 suites, three independent clean
+rebuilds during this pass alone) plus a real headless-browser
+CSP/rendering check and a real HTTP CSRF accept/reject check — not
+just `php -l`.

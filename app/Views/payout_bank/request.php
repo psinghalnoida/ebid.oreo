@@ -19,7 +19,7 @@
     </p>
   <?php endif; ?>
 
-  <form method="post" action="/payout-bank/request" style="margin-top:16px;">
+  <form method="post" action="/payout-bank/request" style="margin-top:16px;"><?= csrf_field() ?>
     <label style="font-size:12px; color:var(--ink-3);">New Account Number</label>
     <input type="text" name="account_number" required
       style="display:block; width:100%; padding:12px; margin:6px 0 16px; border:1px solid var(--line); border-radius:10px;">

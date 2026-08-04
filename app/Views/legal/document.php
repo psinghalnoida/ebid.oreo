@@ -1,6 +1,6 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
-<style>
+<style {csp-style-nonce}>
   .legal-doc h2{font-size:19px; font-weight:700; margin:34px 0 14px;}
   .legal-doc h2:first-child{margin-top:0;}
   .legal-doc p{font-size:14.5px; line-height:1.7; color:var(--ink-2); margin:0 0 14px;}

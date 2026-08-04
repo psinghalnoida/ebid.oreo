@@ -9,7 +9,7 @@
   <h1 style="font-size:22px;">My Preferences</h1>
   <p style="color:var(--ink-3); font-size:13px;">Fine-tune your feed and Live Ticker matches. You'll still see every listing by default; this just curates what's highlighted for you.</p>
 
-  <form method="post" action="/preferences" style="margin-top:20px;">
+  <form method="post" action="/preferences" style="margin-top:20px;"><?= csrf_field() ?>
     <label style="font-size:12px; color:var(--ink-3);">Preferred Categories (leave all unchecked for everything)</label>
     <div style="margin:8px 0 16px;">
       <?php foreach ($allCategories as $cat): ?>

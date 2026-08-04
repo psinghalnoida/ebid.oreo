@@ -14,7 +14,7 @@
     <div style="border:1px solid var(--line); border-radius:12px; padding:16px; margin-top:10px;">
       <p style="font-size:13px; font-weight:700; margin:0 0 4px;"><?= esc($inv['invoice_number']) ?> — ₹<?= number_format((float) $inv['total_amount'] + (float) $inv['gst_amount'], 2) ?> (incl. GST)</p>
       <p style="font-size:12px; color:var(--ink-3); margin:0 0 10px;">Period: <?= esc(substr($inv['period_start'], 0, 10)) ?> – <?= esc(substr($inv['period_end'], 0, 10)) ?></p>
-      <form method="post" action="/admin/tenant-invoices/<?= esc($inv['id']) ?>/mark-paid">
+      <form method="post" action="/admin/tenant-invoices/<?= esc($inv['id']) ?>/mark-paid"><?= csrf_field() ?>
         <button type="submit" class="btn btn-emerald" style="font-size:12px;">Mark Paid</button>
       </form>
     </div>

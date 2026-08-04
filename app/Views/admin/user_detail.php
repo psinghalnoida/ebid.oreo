@@ -34,7 +34,7 @@
   <div style="border:1px solid var(--line); border-radius:12px; padding:14px; margin-top:12px;">
     <p style="font-size:13px; font-weight:700; margin:0 0 8px;">Promote to <?= tsx_term('Tenant Admin') ?></p>
     <p style="font-size:11px; color:var(--ink-3); margin:0 0 10px;">PR-08. BR-44: this auto-demotes whoever currently holds <?= tsx_term('Tenant Admin') ?> for the selected <?= strtolower(tsx_term('Tenant')) ?>.</p>
-    <form method="post" action="/admin/users/<?= esc($party['id']) ?>/promote-tenant-admin" style="display:flex; gap:8px;">
+    <form method="post" action="/admin/users/<?= esc($party['id']) ?>/promote-tenant-admin" style="display:flex; gap:8px;"><?= csrf_field() ?>
       <select name="tenant_id" required style="flex:1; padding:8px; border:1px solid var(--line); border-radius:8px; font-size:12px;">
         <option value="">Select a <?= strtolower(tsx_term('Tenant')) ?>…</option>
         <?php foreach ($tenants as $t): ?>

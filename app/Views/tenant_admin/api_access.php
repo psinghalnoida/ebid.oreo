@@ -30,7 +30,7 @@
     <?php endif; ?>
 
     <h3 style="font-size:15px; margin-top:24px;">Credentials</h3>
-    <form method="post" action="/tenants/<?= esc($tenant['id']) ?>/api-access/credentials">
+    <form method="post" action="/tenants/<?= esc($tenant['id']) ?>/api-access/credentials"><?= csrf_field() ?>
       <button type="submit" class="btn btn-emerald" style="font-size:12px;">Issue New Credential</button>
     </form>
     <table style="width:100%; border-collapse:collapse; margin-top:12px; font-size:12px;">
@@ -44,7 +44,7 @@
         <td><?= $c['last_used_at'] ? esc(substr($c['last_used_at'], 0, 16)) : 'Never' ?></td>
         <td>
           <?php if ($c['status'] === 'active'): ?>
-          <form method="post" action="/tenants/<?= esc($tenant['id']) ?>/api-access/credentials/<?= esc($c['id']) ?>/revoke">
+          <form method="post" action="/tenants/<?= esc($tenant['id']) ?>/api-access/credentials/<?= esc($c['id']) ?>/revoke"><?= csrf_field() ?>
             <button type="submit" class="btn btn-ghost" style="font-size:11px; padding:4px 10px;">Revoke</button>
           </form>
           <?php endif; ?>
@@ -56,7 +56,7 @@
 
     <h3 style="font-size:15px; margin-top:28px;">Webhook Delivery</h3>
     <p style="font-size:12px; color:var(--ink-3);">listing.approved, sale_event.created, listing.archived, settlement.completed, and dispute.filed events are POSTed here, signed with X-TSX-Signature (HMAC-SHA256).</p>
-    <form method="post" action="/tenants/<?= esc($tenant['id']) ?>/api-access/webhook-url">
+    <form method="post" action="/tenants/<?= esc($tenant['id']) ?>/api-access/webhook-url"><?= csrf_field() ?>
       <input type="text" name="webhook_url" value="<?= esc($tenant['webhook_url'] ?? '') ?>" placeholder="https://your-system.example.com/webhooks/tsx"
         style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
       <button type="submit" class="btn btn-ghost">Save Webhook URL</button>

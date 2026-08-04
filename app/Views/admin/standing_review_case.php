@@ -13,7 +13,7 @@
   <p style="font-size:12px; color:var(--ink-3);">Status: <?= esc($dispute['status']) ?></p>
 
   <?php if ($dispute['status'] === 'filed' || $dispute['status'] === 'evidence_window'): ?>
-  <form method="post" action="/admin/standing-review/<?= esc($dispute['id']) ?>/rule" style="margin-top:20px;">
+  <form method="post" action="/admin/standing-review/<?= esc($dispute['id']) ?>/rule" style="margin-top:20px;"><?= csrf_field() ?>
     <label style="font-size:12px; color:var(--ink-3);">Ruling as <?= tsx_term('Tenant Admin') ?> for</label>
     <select name="tenant_id" required style="display:block; width:100%; padding:12px; margin:6px 0 16px; border:1px solid var(--line); border-radius:10px;">
       <?php foreach ($tenants as $t): ?>

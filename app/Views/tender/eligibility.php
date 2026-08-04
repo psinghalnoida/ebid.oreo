@@ -14,7 +14,7 @@
     <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--line);">
       <span style="font-size:13px;">Party: <?= esc($i['party_id']) ?></span>
       <?php if (!in_array($i['party_id'], $eligiblePartyIds, true)): ?>
-        <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/tender/eligibility/grant">
+        <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/tender/eligibility/grant"><?= csrf_field() ?>
           <input type="hidden" name="party_id" value="<?= esc($i['party_id']) ?>">
           <button type="submit" class="btn btn-emerald" style="font-size:11px; padding:6px 12px;">Approve</button>
         </form>
@@ -26,7 +26,7 @@
   <?php if (empty($interested)): ?><p style="font-size:12px; color:var(--ink-3);">No interest registered yet.</p><?php endif; ?>
 
   <h3 style="font-size:15px; margin-top:24px;">Add a <?= tsx_term('Buyer') ?> Directly (by mobile number)</h3>
-  <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/tender/eligibility/grant" style="display:flex; gap:8px;">
+  <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/tender/eligibility/grant" style="display:flex; gap:8px;"><?= csrf_field() ?>
     <input type="text" name="mobile_number" placeholder="+919876543210" style="flex:1; padding:10px; border:1px solid var(--line); border-radius:8px;">
     <button type="submit" class="btn btn-ghost">Add</button>
   </form>

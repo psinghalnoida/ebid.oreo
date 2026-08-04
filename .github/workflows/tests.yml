@@ -1,0 +1,103 @@
+name: Regression suite
+
+# Runs the 35 real, permanent test:* commands (see README.md Step 10)
+# against a real PostgreSQL 16 database on every push and pull request.
+# These are assertion-based suites, not throwaway scripts -- a failure
+# here means something genuinely broke, the same signal SETUP.md asks
+# a human deploying to a real server to check by hand.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          # Named ebidhub_ci4, not ebidhub -- app/Database/Migrations
+          # /2026-01-01-000028_CreateAuditLog.php's own REVOKE/GRANT
+          # statements are hardcoded to the `ebidhub_app` role, and
+          # TestAuditLog.php's raw-tamper simulation step is hardcoded
+          # to connect to a database literally named ebidhub_ci4 --
+          # matching that name here, rather than the ebidhub name used
+          # in a real deployment (see README.md Step 5), avoids a false
+          # failure that has nothing to do with the code under test.
+          POSTGRES_USER: ebidhub_app
+          POSTGRES_PASSWORD: ci_test_password_not_for_production
+          POSTGRES_DB: ebidhub_ci4
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP 8.2
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, curl, pgsql, intl, gd
+          coverage: none
+
+      - name: Install ffmpeg
+        # D-43: real server-side video transcoding, exercised by test:media.
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Configure environment
+        run: |
+          cp env .env
+          # 'development', not 'testing' -- these test:* commands are plain
+          # spark CLI commands, not PHPUnit. CI_ENVIRONMENT=testing triggers
+          # CodeIgniter's PHPUnit-specific bootstrap path (expects a
+          # SUPPORTPATH constant that only tests/bootstrap.php defines) and
+          # crashes spark's normal CLI bootstrap outright -- caught by
+          # actually running this, not assumed.
+          sed -i "s/# CI_ENVIRONMENT = production/CI_ENVIRONMENT = development/" .env
+          sed -i "s|^# app\.baseURL = ''|app.baseURL = 'http://localhost:8080/'|" .env
+          {
+            echo "database.default.hostname = 127.0.0.1"
+            echo "database.default.database = ebidhub_ci4"
+            echo "database.default.username = ebidhub_app"
+            echo "database.default.password = ci_test_password_not_for_production"
+            echo "database.default.DBDriver = Postgre"
+            echo "database.default.port = 5432"
+            echo "database.default.charset = utf8"
+          } >> .env
+
+      - name: Run migrations
+        run: php spark migrate --all
+
+      - name: Run the full regression suite
+        run: |
+          set -e
+          FAILED=""
+          for cmd in cascade rating lifecycle auth buynow express settlement dispute \
+                     scheduler tier3 easyschedule tenderfoundation tenderbidding \
+                     tenderreview easyexpresscorrections kyc aml standingreview \
+                     payoutcontrol crawlback auditlog sovereignrule servertimecheck \
+                     invoices successfee tenantapi media selleraudit phase3a discovery \
+                     browse br35 terminology chronicle aiaudit; do
+            echo "::group::test:$cmd"
+            if ! php spark test:$cmd; then
+              FAILED="$FAILED test:$cmd"
+            fi
+            echo "::endgroup::"
+          done
+          if [ -n "$FAILED" ]; then
+            echo "Failed suites:$FAILED"
+            exit 1
+          fi
+          echo "All 35 suites passed."

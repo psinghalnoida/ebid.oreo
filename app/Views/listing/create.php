@@ -6,7 +6,7 @@
   <?php if (!empty($error)): ?>
     <p style="color:#B5482F; font-size:13px;"><?= esc($error) ?></p>
   <?php endif; ?>
-  <form method="post" action="/listings" id="listingCreateForm">
+  <form method="post" action="/listings" id="listingCreateForm"><?= csrf_field() ?>
     <label style="font-size:12px; color:var(--ink-3);"><?= tsx_term('Tenant') ?></label>
     <select name="tenant_id" required style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
       <?php foreach ($tenants as $t): ?>
@@ -105,7 +105,7 @@
     <span id="draftRestoredNote" style="display:none;"> — a saved draft was restored below.</span>
   </p>
 </main>
-<script>
+<script {csp-script-nonce}>
 (function () {
   // PR-09: "A background auto-save persists the seller's in-progress
   // form ... (browser localStorage), enabling recovery after a reload
@@ -199,6 +199,9 @@
       body.append('physical_condition', form.physical_condition.value);
       body.append('quantity', form.quantity.value);
       body.append('make_model', form.make_model.value);
+      // CSRF: this is a fetch(), not a real <form> submit, so csrf_field()
+      // never touches it -- the token has to be appended manually.
+      body.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
 
       fetch('/listings/pre-audit', { method: 'POST', body: body })
         .then(function (r) { return r.json(); })

@@ -31,7 +31,7 @@
     <?php if ($settlement['seller_noc_confirmed_at']): ?>
       <p style="font-size:12px; color:var(--emerald);">✓ Confirmed</p>
     <?php elseif ($callerId === $settlement['seller_party_id']): ?>
-      <form method="post" action="/settlements/<?= esc($settlement['id']) ?>/confirm-seller-noc">
+      <form method="post" action="/settlements/<?= esc($settlement['id']) ?>/confirm-seller-noc"><?= csrf_field() ?>
         <button type="submit" class="btn btn-emerald" style="font-size:12px; padding:8px 14px;">I received payment</button>
       </form>
     <?php else: ?>
@@ -44,7 +44,7 @@
     <?php if ($settlement['buyer_noc_confirmed_at']): ?>
       <p style="font-size:12px; color:var(--emerald);">✓ Confirmed</p>
     <?php elseif ($callerId === $settlement['buyer_party_id']): ?>
-      <form method="post" action="/settlements/<?= esc($settlement['id']) ?>/confirm-buyer-noc">
+      <form method="post" action="/settlements/<?= esc($settlement['id']) ?>/confirm-buyer-noc"><?= csrf_field() ?>
         <button type="submit" class="btn btn-emerald" style="font-size:12px; padding:8px 14px;">I received the item</button>
       </form>
     <?php else: ?>
@@ -57,7 +57,7 @@
     <?php if ($settlement['buyer_rated_seller_at']): ?>
       <p style="font-size:12px; color:var(--emerald);">✓ Rated</p>
     <?php elseif ($callerId === $settlement['buyer_party_id']): ?>
-      <form method="post" action="/settlements/<?= esc($settlement['id']) ?>/rate-as-buyer" style="display:flex; gap:6px; align-items:center;">
+      <form method="post" action="/settlements/<?= esc($settlement['id']) ?>/rate-as-buyer" style="display:flex; gap:6px; align-items:center;"><?= csrf_field() ?>
         <select name="outcome" style="padding:8px; border:1px solid var(--line); border-radius:8px; font-size:12px;">
           <option value="good">Good transaction</option>
           <option value="problem">There was a problem</option>
@@ -75,7 +75,7 @@
     <?php if ($settlement['seller_rated_buyer_at']): ?>
       <p style="font-size:12px; color:var(--emerald);">✓ Rated</p>
     <?php elseif ($callerId === $settlement['seller_party_id']): ?>
-      <form method="post" action="/settlements/<?= esc($settlement['id']) ?>/rate-as-seller" style="display:flex; gap:6px; align-items:center;">
+      <form method="post" action="/settlements/<?= esc($settlement['id']) ?>/rate-as-seller" style="display:flex; gap:6px; align-items:center;"><?= csrf_field() ?>
         <select name="outcome" style="padding:8px; border:1px solid var(--line); border-radius:8px; font-size:12px;">
           <option value="good">Good transaction</option>
           <option value="problem">There was a problem</option>
@@ -95,7 +95,7 @@
   <?php elseif ($settlement['status'] === 'stalled'): ?>
     <div style="background:var(--amber-soft); color:#9C5B1F; padding:12px; border-radius:10px; font-size:13px;">
       <p style="margin:0 0 10px;">⚠️ This settlement stalled — flagged after sitting incomplete too long.</p>
-      <form method="post" action="/settlements/<?= esc($settlement['id']) ?>/force-resolve">
+      <form method="post" action="/settlements/<?= esc($settlement['id']) ?>/force-resolve"><?= csrf_field() ?>
         <p style="font-size:11px; margin:0 0 6px;"><?= tsx_term('Tenant Admin') ?> action — applies forced-neutral (3.0★) ratings for whoever never rated, and force-confirms any missing NOC.</p>
         <button type="submit" class="btn btn-ghost" style="font-size:12px;">Force-resolve</button>
       </form>
