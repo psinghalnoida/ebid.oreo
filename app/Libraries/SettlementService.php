@@ -241,6 +241,19 @@ class SettlementService
             // above, nothing in Section 7.10 carves Tender out.
             $completedSettlement = $this->settlementModel->find($settlementId);
             (new ChronicleService())->generate($settlementId, $completedSettlement, $feeAmount, $tdsAmount);
+
+            // D-115: fired only on the genuine completion transition
+            // (this whole block is gated on it), not on every
+            // checkCompletion() call the way the D-109 WS broadcast
+            // below is — a domain event should mean the milestone
+            // actually happened, not "something about this settlement
+            // changed." Stands in for the Chief Architect directive's
+            // own "PaymentReceived" example (see DomainEvents::SETTLEMENT_COMPLETED).
+            \CodeIgniter\Events\Events::trigger(\App\Libraries\DomainEvents::SETTLEMENT_COMPLETED, [
+                'settlementId' => $settlementId, 'saleEventId' => $settlement['sale_event_id'],
+                'finalPrice' => (float) $settlement['final_price'],
+                'buyerPartyId' => $settlement['buyer_party_id'], 'sellerPartyId' => $settlement['seller_party_id'],
+            ]);
         }
 
         $final = $this->settlementModel->find($settlementId);

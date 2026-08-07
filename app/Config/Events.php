@@ -5,6 +5,8 @@ namespace Config;
 use CodeIgniter\Events\Events;
 use CodeIgniter\Exceptions\FrameworkException;
 use CodeIgniter\HotReloader\HotReloader;
+use App\Libraries\DomainEvents;
+use App\Libraries\DomainEventLogListener;
 
 /*
  * --------------------------------------------------------------------
@@ -55,3 +57,30 @@ Events::on('pre_system', static function (): void {
         }
     }
 });
+
+/*
+ * --------------------------------------------------------------------
+ * Domain Events (D-115)
+ * --------------------------------------------------------------------
+ * The application's own domain-event layer, built on this same native
+ * Events facade — previously used only for framework-internal hooks
+ * above. Publishers (App\Libraries\*Service classes) fire a named
+ * event from App\Libraries\DomainEvents at the exact point a real
+ * business action completes; consumers subscribe here, with zero
+ * knowledge of the publisher. Only one real consumer exists today
+ * (DomainEventLogListener, a persistent event store) — a future
+ * queue-backed consumer (real notifications, analytics, an AI Gateway
+ * hook) registers the same way, against the same event names, without
+ * any publisher or this listener needing to change.
+ */
+foreach ([
+    DomainEvents::AUCTION_CREATED,
+    DomainEvents::BID_PLACED,
+    DomainEvents::SETTLEMENT_COMPLETED,
+    DomainEvents::KYC_APPROVED,
+    DomainEvents::DISPUTE_FILED,
+] as $domainEventName) {
+    Events::on($domainEventName, static function (array $payload) use ($domainEventName): void {
+        DomainEventLogListener::handle($domainEventName, $payload);
+    });
+}

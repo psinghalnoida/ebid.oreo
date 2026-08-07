@@ -309,6 +309,10 @@ class KycService
         if ($approve) {
             $this->partyModel->setKycStatus($partyId, 'verified', null);
             (new AuditLogService())->log('kyc.verified', $reviewerId, ['partyId' => $partyId]);
+            // D-115: the directive's own "KYCApproved" example, verbatim.
+            \CodeIgniter\Events\Events::trigger(\App\Libraries\DomainEvents::KYC_APPROVED, [
+                'partyId' => $partyId, 'reviewerId' => $reviewerId,
+            ]);
         } else {
             if (!$reasonKey || !array_key_exists($reasonKey, self::SUSPENSION_REASONS)) {
                 throw new \RuntimeException('A reason from the closed list is required to suspend KYC.');

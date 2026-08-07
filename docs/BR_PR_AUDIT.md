@@ -1115,6 +1115,43 @@ made worse by any of D-108 through D-114, but the underlying
 page-level access control issue itself is still open and needs its
 own decision.
 
+## Update — D-115: Event-Driven Design — a first slice of a real domain-event layer
+
+First step on the Principal Architect directive's Event-Driven Design
+item — previously nothing built against it at all. Rather than
+inventing a bespoke event bus, found CodeIgniter 4 already ships a
+real, production-grade one (`CodeIgniter\Events\Events`) that this
+codebase had only ever used for framework-internal hooks — evolving
+what's already there, not a parallel system.
+
+Built: `App\Libraries\DomainEvents` (a first-slice catalog of 5 named
+events, chosen from the directive's own examples:
+`AuctionCreated`, `BidPlaced`, `SettlementCompleted` — standing in for
+`PaymentReceived`, since no real payment gateway exists yet —
+`KYCApproved`, `DisputeFiled`); 5 real publish points wired into the
+exact completion moment of 5 existing services, purely additive
+alongside their existing audit-log/webhook calls; a new
+`domain_event_log` table + `DomainEventLogListener` — the first real,
+genuinely decoupled consumer, registered in `app/Config/Events.php`
+with zero knowledge of any publisher.
+
+Explicitly scoped as a first slice, not the full catalog: only 5
+events exist against the directive's much larger "every business
+capability" vision; all consumption is synchronous in-process (a real
+async consumer needs the not-yet-built Background Jobs item); existing
+direct `AuditLogService`/`TenantWebhookService` call sites were NOT
+migrated to be event-driven — a separate, larger, higher-risk refactor
+deliberately left alone.
+
+Verified with a real, permanent test suite (`test:domainevents`, now
+part of the standing regression, not throwaway) — 18/18 assertions,
+including two explicit negative checks (no `SettlementCompleted` after
+partial settlement progress, no `KYCApproved` on a suspension) proving
+events fire on the genuine milestone, not just "a method got called."
+Full regression: 37/38 real suites clean (the new suite counts toward
+that 38); the sole non-pass is the pre-existing `test:auditlog`
+DB-naming gap. Full detail in `docs/DECISIONS.md` D-115.
+
 ## Update — D-116: fixed the ListingController::show() offer-amount privacy leak
 
 Raised as a pre-production readiness item and fixed immediately.
@@ -1158,15 +1195,29 @@ out by D-106 — now has a real, tested backend. What's left everywhere
 else is purely visual design work, not build work.
 
 **Real-time (WebSocket) coverage — the original sweep is complete as
-of D-114** (see above, unchanged by D-116).
+of D-114** (see above, unchanged by D-115/D-116).
 
-**The offer-amount privacy leak is fixed as of D-116.** What remains
-open, narrower and more specific: no live nudge to admins with pending
-work in either the dispute-ruling or the rating-approval queue
-(D-110/D-111's shared missing sidecar room type); whether a
-confirmed-fraud delisting should cascade into emergency-stopping that
-seller's active auctions (D-114's own finding, a business-rule
-question); Event-Driven Design remains a first slice, not the full
-catalog (D-115, on its own unmerged branch, not yet reflected in this
-branch's history).
+**Event-Driven Design — a first slice exists as of D-115, not the full
+catalog**: 5 domain events (`AuctionCreated`, `BidPlaced`,
+`SettlementCompleted`, `KYCApproved`, `DisputeFiled`) publish for real
+from 5 real services, consumed by one real, decoupled, persistent
+listener. Every other business capability the directive envisions
+publishing its own event (Approve Seller, Generate Invoice, every
+Rating/Cascade/Admin action already WebSocket-covered, ...) does not
+yet publish a domain event — this is a foundation, not a completed
+inventory. No async/queue-backed consumer exists yet (needs the
+not-yet-built Background Jobs item); existing direct
+`AuditLogService`/`TenantWebhookService` call sites remain
+un-migrated, by design, for now.
+
+**The offer-amount privacy leak is fixed as of D-116.** The item
+tracked above through D-108–D-114 (`ListingController::show()`
+rendering real Buy-Now offer amounts to any visitor) is closed.
+
+**What remains open**: no live nudge to admins with pending work in
+either the dispute-ruling or the rating-approval queue (D-110/D-111's
+shared missing sidecar room type); whether a confirmed-fraud delisting
+should cascade into emergency-stopping that seller's active auctions
+(D-114's own finding, a business-rule question); Event-Driven Design
+remains a first slice, not the full catalog (D-115).
 
