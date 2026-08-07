@@ -93,6 +93,13 @@ class DisputeService
         // already know; they're mid-redirect to the dispute page).
         $this->broadcastDisputeUpdate($dispute);
 
+        // D-115: the domain-event equivalent of the tenant webhook
+        // just above — same milestone, different audience.
+        \CodeIgniter\Events\Events::trigger(\App\Libraries\DomainEvents::DISPUTE_FILED, [
+            'disputeId' => $dispute['id'], 'saleEventId' => $saleEventId, 'category' => $category,
+            'filedByPartyId' => $filedByPartyId, 'respondentPartyId' => $respondentId,
+        ]);
+
         return $dispute;
     }
 

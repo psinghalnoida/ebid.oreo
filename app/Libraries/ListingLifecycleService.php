@@ -249,6 +249,16 @@ class ListingLifecycleService
             'saleEventId' => $saleEventId, 'listingId' => $saleEvent['listing_id'], 'saleFormat' => $saleEvent['sale_format'],
         ]);
 
+        // D-115: the domain-event equivalent of the tenant webhook just
+        // above — same milestone, different audience. The webhook
+        // notifies an external Tenant integration; this notifies
+        // in-process/future consumers (analytics, AI, a real
+        // notification queue) with zero coupling to this service.
+        \CodeIgniter\Events\Events::trigger(\App\Libraries\DomainEvents::AUCTION_CREATED, [
+            'saleEventId' => $saleEventId, 'listingId' => $saleEvent['listing_id'],
+            'tenantId' => $saleEvent['tenant_id'], 'saleFormat' => $saleEvent['sale_format'],
+        ]);
+
         return $this->saleEventModel->find($saleEventId);
     }
 

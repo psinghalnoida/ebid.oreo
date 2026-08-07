@@ -147,6 +147,15 @@ class BiddingService
             'saleEventId' => $saleEventId, 'amount' => (float) $finalBid['amount'], 'standing' => $finalBid['standing'],
         ]);
 
+        // D-115: the domain-event equivalent of the audit log entry
+        // just above — same milestone, decoupled consumer. Fired after
+        // the WS broadcasts and audit log, same "never delay or risk
+        // the real write" ordering already established for those.
+        \CodeIgniter\Events\Events::trigger(\App\Libraries\DomainEvents::BID_PLACED, [
+            'saleEventId' => $saleEventId, 'bidId' => $finalBid['id'], 'bidderPartyId' => $bidderPartyId,
+            'amount' => (float) $finalBid['amount'], 'standing' => $finalBid['standing'],
+        ]);
+
         return $finalBid;
     }
 }

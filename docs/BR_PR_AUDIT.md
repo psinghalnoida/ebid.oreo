@@ -1079,7 +1079,7 @@ the pre-existing `test:auditlog` DB-naming gap. Full detail in
 Buy-Now offers, Settlement, Dispute, Rating, EMD cascade, and Admin
 actions are all covered.
 
-### Bottom line (current)
+### Bottom line (superseded by D-115 — kept for history)
 
 **Still four items with no path forward without the project owner
 supplying something external — all four are genuinely build-complete,
@@ -1112,6 +1112,89 @@ finding, a business-rule question).
 real amount and status to any visitor of the listing page, not just
 the seller — found while designing D-108's broadcasts, confirmed not
 made worse by any of D-108 through D-114, but the underlying
+page-level access control issue itself is still open and needs its
+own decision.
+
+## Update — D-115: Event-Driven Design — a first slice of a real domain-event layer
+
+First step on the Principal Architect directive's Event-Driven Design
+item — previously nothing built against it at all. Rather than
+inventing a bespoke event bus, found CodeIgniter 4 already ships a
+real, production-grade one (`CodeIgniter\Events\Events`) that this
+codebase had only ever used for framework-internal hooks — evolving
+what's already there, not a parallel system.
+
+Built: `App\Libraries\DomainEvents` (a first-slice catalog of 5 named
+events, chosen from the directive's own examples:
+`AuctionCreated`, `BidPlaced`, `SettlementCompleted` — standing in for
+`PaymentReceived`, since no real payment gateway exists yet —
+`KYCApproved`, `DisputeFiled`); 5 real publish points wired into the
+exact completion moment of 5 existing services, purely additive
+alongside their existing audit-log/webhook calls; a new
+`domain_event_log` table + `DomainEventLogListener` — the first real,
+genuinely decoupled consumer, registered in `app/Config/Events.php`
+with zero knowledge of any publisher.
+
+Explicitly scoped as a first slice, not the full catalog: only 5
+events exist against the directive's much larger "every business
+capability" vision; all consumption is synchronous in-process (a real
+async consumer needs the not-yet-built Background Jobs item); existing
+direct `AuditLogService`/`TenantWebhookService` call sites were NOT
+migrated to be event-driven — a separate, larger, higher-risk refactor
+deliberately left alone.
+
+Verified with a real, permanent test suite (`test:domainevents`, now
+part of the standing regression, not throwaway) — 18/18 assertions,
+including two explicit negative checks (no `SettlementCompleted` after
+partial settlement progress, no `KYCApproved` on a suspension) proving
+events fire on the genuine milestone, not just "a method got called."
+Full regression: 37/38 real suites clean (the new suite counts toward
+that 38); the sole non-pass is the pre-existing `test:auditlog`
+DB-naming gap. Full detail in `docs/DECISIONS.md` D-115.
+
+### Bottom line (current)
+
+**Still four items with no path forward without the project owner
+supplying something external — all four are genuinely build-complete,
+this is a credentials gap, not a build-effort gap**:
+
+1. BR-46 — AI Listing Pre-Audit, fully built, genuinely inert pending a Gemini API key
+2. BR-52 — Chargeback Mitigation, fully built, blocked on real SabPaisa API credentials
+3. A real payment gateway — EMD funding is simulated across every sale format; connects post-deployment
+4. A real SMS provider — OTP is generated/rate-limited correctly but only ever shown on-screen, never sent
+
+**A fifth item, a real in-house build gap found by D-112/D-113
+(unchanged by D-115)**: whether a confirmed-fraud seller delisting
+should cascade into emergency-stopping that seller's active auctions
+(D-114's own finding) is still an open business-rule question.
+
+**No screens remain blocked on missing backend or product scoping.**
+Every screen tracked in `docs/design/CLAUDE_DESIGN_HANDOFF.md` — the
+original 53-screen design package plus the 6 no-mockup screens closed
+out by D-106 — now has a real, tested backend. What's left everywhere
+else is purely visual design work, not build work.
+
+**Real-time (WebSocket) coverage — the original sweep is complete as
+of D-114** (see above, unchanged by D-115).
+
+**Event-Driven Design — a first slice exists as of D-115, not the full
+catalog**: 5 domain events (`AuctionCreated`, `BidPlaced`,
+`SettlementCompleted`, `KYCApproved`, `DisputeFiled`) publish for real
+from 5 real services, consumed by one real, decoupled, persistent
+listener. Every other business capability the directive envisions
+publishing its own event (Approve Seller, Generate Invoice, every
+Rating/Cascade/Admin action already WebSocket-covered, ...) does not
+yet publish a domain event — this is a foundation, not a completed
+inventory. No async/queue-backed consumer exists yet (needs the
+not-yet-built Background Jobs item); existing direct
+`AuditLogService`/`TenantWebhookService` call sites remain
+un-migrated, by design, for now.
+
+**One real, pre-existing gap surfaced but deliberately not fixed**:
+`ListingController::show()` renders every submitted Buy-Now offer's
+real amount and status to any visitor of the listing page, not just
+the seller — found while designing D-108's broadcasts, confirmed not
+made worse by any decision through D-115, but the underlying
 page-level access control issue itself is still open and needs its
 own decision.
 

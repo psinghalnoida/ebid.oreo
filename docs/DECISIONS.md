@@ -7587,3 +7587,106 @@ staffing the dispute-ruling or rating-approval queues, D-110/D-111);
 the pre-existing offer-amount page-leak in `ListingController::show()`
 (D-108); and this decision's own new finding — whether fraud delisting
 should cascade into emergency-stopping active auctions.
+
+### D-115: Event-Driven Design — a first slice of a real domain-event layer
+
+First step on the Principal Architect directive's Event-Driven Design
+item, the directive's biggest gap that had nothing built against it at
+all. Rather than building a bespoke event bus, found that CodeIgniter
+4 already ships a real, production-grade one — `CodeIgniter\Events\Events`
+(`Events::on()` to subscribe, `Events::trigger()` to publish, priority-
+ordered, synchronous in-process) — used only for framework-internal
+hooks (`pre_system`, the debug toolbar) in this codebase's entire
+history. Building on what's already there rather than inventing a
+parallel system is exactly the directive's own "evolve the system,
+don't propose a rewrite unless absolutely necessary."
+
+**What was built, deliberately scoped as a first slice, not the full
+catalog**:
+
+- `App\Libraries\DomainEvents` — a small, centralized catalog of named
+  event identifiers (`AUCTION_CREATED`, `BID_PLACED`,
+  `SETTLEMENT_COMPLETED`, `KYC_APPROVED`, `DISPUTE_FILED`), 5 events
+  chosen directly from the directive's own examples
+  (`AuctionCreated, BidPlaced, PaymentReceived, KYCApproved`). No real
+  payment gateway exists yet (a separate, already-tracked gap), so
+  `SETTLEMENT_COMPLETED` stands in for `PaymentReceived` — the closest
+  genuine "money changed hands" milestone this platform has.
+- Real publish points wired into the exact business-logic completion
+  moment in 5 existing services — purely additive, zero existing
+  behavior changed:
+  - `ListingLifecycleService::approveSaleEvent()` → `AuctionCreated`,
+    right alongside the existing `sale_event.created` tenant webhook
+    (same milestone, different audience: the webhook notifies an
+    external Tenant integration, the domain event notifies
+    in-process/future internal consumers).
+  - `BiddingService::placeBid()` → `BidPlaced`, right alongside the
+    existing `bid.placed` audit log entry.
+  - `SettlementService::checkCompletion()` → `SettlementCompleted`,
+    fired only inside the genuine-completion branch (unlike D-109's
+    WS broadcast in the same method, which fires on every call
+    representing partial progress too) — a domain event should mean
+    the milestone actually happened, verified explicitly: the test
+    suite confirms zero events fire after 1-of-4 settlement steps.
+  - `KycService::reviewDossier()` → `KYCApproved`, only on the
+    `$approve === true` branch — verified explicitly that a
+    suspension never fires it.
+  - `DisputeService::fileDispute()` → `DisputeFiled`, alongside the
+    existing `dispute.filed` tenant webhook.
+- `App\Libraries\DomainEventLogListener` + a new `domain_event_log`
+  table (migration + `DomainEventLogModel`) — the first real,
+  genuinely decoupled consumer: persists every fired event with zero
+  knowledge of which service published it, registered against each
+  event name in `app/Config/Events.php`, not called directly by any
+  publisher. Deliberately distinct from `audit_log` (D-16/D-45's
+  hash-chained, actor-driven compliance ledger) — this is a plain
+  technical event store, existing purely so a future consumer
+  (analytics, an AI Gateway hook, a real notification queue) can
+  subscribe to the same event names without any publisher or this
+  listener needing to change.
+
+**What this deliberately does NOT do, flagged rather than silently
+assumed**:
+- Only 5 events exist. The directive's own vision — every business
+  capability (Create Auction, Approve Seller, Verify KYC, Generate
+  Settlement, Resolve Dispute, ...) publishing its own event — is a
+  much larger inventory this decision starts, not completes.
+- All consumption is synchronous, in-process, same request. A real
+  queue-backed async listener needs the Background Jobs infrastructure
+  item, which doesn't exist yet (also flagged in the directive, also
+  not built) — `Events::trigger()` itself doesn't block on I/O today
+  since its one real listener is a fast local DB insert, but this
+  doesn't scale to a slow consumer (e.g. an outbound AI call) without
+  queueing first.
+- Existing direct `AuditLogService::log()` calls (~15+ call sites) and
+  `TenantWebhookService::fire()` calls were NOT migrated to be
+  event-driven consumers. That's a much larger, higher-risk refactor
+  of already-tested, working code for no functional gain on its own —
+  deliberately out of scope for a first slice. The new domain events
+  were added alongside the existing direct calls, not as a replacement
+  for them.
+
+**Verified with a real, permanent test suite** (`test:domainevents`,
+now part of the standing 37+1-suite regression, not a throwaway):
+drives each of the 5 real service methods through real fixtures and
+asserts the `domain_event_log` table gained exactly one correctly-shaped
+row per genuine milestone — including two explicit negative
+assertions (no `SettlementCompleted` after partial progress, no
+`KYCApproved` on a suspension) proving the events fire on the actual
+milestone, not just "some method got called." A final canary check
+proves the underlying `Events::on()`/`Events::trigger()` wiring itself
+works, independent of this suite's own domain-specific assertions. All
+18 assertions pass; spot-checked the real `domain_event_log` rows
+directly via `psql` — correct event names, correct JSONB payloads.
+
+Full regression: 37/38 real suites clean on an independently rebuilt
+database (`test:domainevents` itself 18/18, newly added to the
+standing suite list); the sole non-pass is the same pre-existing
+`test:auditlog` DB-naming gap, not a regression.
+
+**Still explicitly open**: the full business-capability event catalog;
+queue-backed async consumers (depends on Background Jobs, not built);
+migrating existing direct `AuditLogService`/`TenantWebhookService`
+call sites to be event-driven (a separate, larger, higher-risk
+refactor); an AI Gateway abstraction to actually consume these events
+(also not built, also flagged in the directive).
