@@ -243,7 +243,30 @@ class SettlementService
             (new ChronicleService())->generate($settlementId, $completedSettlement, $feeAmount, $tdsAmount);
         }
 
-        return $this->settlementModel->find($settlementId);
+        $final = $this->settlementModel->find($settlementId);
+
+        // D-109: checkCompletion() is the single funnel every settlement
+        // action passes through (both NOC confirmations, both ratings,
+        // and forceResolveStalled) — one broadcast point here covers all
+        // of them, same reasoning as OfferService's acceptOffer (D-108).
+        // Unlike the Buy-Now listing page, a settlement is a private
+        // two-party document with no general "any visitor" audience, so
+        // this goes only to the buyer's and seller's own party channels
+        // (buyer:<partyId> — reused as-is, not a new room type) and
+        // never to a sale_event room.
+        $broadcaster = new RealtimeBroadcastService();
+        $payload = [
+            'settlementId' => $settlementId,
+            'status' => $final['status'],
+            'sellerNocConfirmed' => (bool) $final['seller_noc_confirmed_at'],
+            'buyerNocConfirmed' => (bool) $final['buyer_noc_confirmed_at'],
+            'buyerRatedSeller' => (bool) $final['buyer_rated_seller_at'],
+            'sellerRatedBuyer' => (bool) $final['seller_rated_buyer_at'],
+        ];
+        $broadcaster->broadcastToBuyer($final['buyer_party_id'], 'settlement_updated', $payload);
+        $broadcaster->broadcastToBuyer($final['seller_party_id'], 'settlement_updated', $payload);
+
+        return $final;
     }
 
     // BR-49/PR-27

@@ -7127,3 +7127,72 @@ Dispute, Rating, EMD cascade defaults, and Admin actions (Emergency
 Stop, delisting) still have zero broadcast coverage; the pre-existing
 offer-amount page-leak in `ListingController::show()` is unfixed and
 was deliberately left alone, flagged for its own decision.
+
+### D-109: WebSocket coverage extended to Settlement (dual-NOC, ratings, completion)
+
+Continuing the WebSocket retrofit item (D-108 did Buy-Now offers) onto
+the next explicitly-flagged gap: Settlement. A settlement's four-step
+gate (`SettlementService::confirmSellerNoc`, `confirmBuyerNoc`,
+`submitRating` ×2, plus the administrative `forceResolveStalled`) all
+funnel through one private method, `checkCompletion()` — every one of
+those five call sites was a silent full-page-reload wait before this,
+even though the counterpart's action can matter within seconds (a
+buyer confirming receipt of goods, unblocking the seller's own NOC
+step and eventual EMD release).
+
+**Design**: unlike Buy-Now's listing page, a settlement is a private,
+two-party document — no "any visitor" audience exists for it the way
+the sale_event room serves a public listing page. So this doesn't
+touch the sale_event room at all. `checkCompletion()` broadcasts one
+`settlement_updated` event, unconditionally, at the end of every call
+(every call already represents a just-applied change made by its
+caller) — sent via `RealtimeBroadcastService::broadcastToBuyer()` to
+both the buyer's own party channel and the seller's own party channel,
+each already open for their Live Ticker (buyer:<partyId> — reused,
+not a new room type, same reuse precedent as D-108). The payload
+carries the settlement's full current gate state (status + all four
+booleans), not just a delta, so either party's client always has a
+complete picture regardless of which action triggered it.
+
+**Client side**: `layouts/main.php`'s existing WS handler gained one
+more relay branch — `settlement_updated` → `CustomEvent
+ebidhub:settlement_updated` — exactly the D-108 offer_received relay
+pattern, no new WebSocket connection. `settlement/show.php` listens
+for that event, and only if it matches the settlement currently being
+viewed, does a full page reload after a short (1.2s) delay with a
+small "Updated by the other party — refreshing…" banner first. A full
+reload rather than a DOM patch was the deliberate choice here: this
+page has several server-rendered blocks that only appear once
+specific conditions are met (invoices, TDS line, Trading Session
+Chronicle, the stalled-state force-resolve panel) — re-deriving that
+in JS would duplicate business/rendering logic the architecture
+directive explicitly warns against (D-109 follows the same "controllers
+orchestrate, don't push business logic into the client" reasoning
+already applied throughout this project). The reload guarantees the
+next render is exactly what `SettlementService` just decided, with zero
+duplicated logic.
+
+**Verified with a real end-to-end test**, same discipline as D-108: a
+throwaway spark command drove a real Buy-Now sale through
+`OfferService` to a real pending settlement, then called
+`confirmSellerNoc`, `confirmBuyerNoc`, `submitRating` (buyer),
+`submitRating` (seller) in sequence against the real
+`SettlementService`. Two genuine WebSocket clients (separate Node.js
+processes) — one on the buyer's party channel, one on the seller's —
+both received all four `settlement_updated` broadcasts, each with the
+correct incrementally-updated payload, the final one showing
+`status: "completed"`. Both throwaway files (a Node WS test client, a
+spark command) deleted after use, confirmed gone via `ls`.
+
+Full regression: 36/37 real suites clean on an independently rebuilt
+database (`test:settlement` itself 23/23); the one non-pass is the
+same pre-existing `test:auditlog` DB-naming gap (`ebidhub` vs.
+`ebidhub_ci4`) flagged as a known non-issue since earlier in this
+session, not a regression from this change.
+
+**Still explicitly open, not silently assumed covered**: Dispute,
+Rating (outside the settlement flow itself), EMD cascade defaults, and
+Admin actions (Emergency Stop, delisting) still have zero broadcast
+coverage; the pre-existing offer-amount page-leak in
+`ListingController::show()` remains unfixed and flagged, unchanged by
+this work.

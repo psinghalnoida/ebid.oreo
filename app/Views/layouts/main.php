@@ -288,6 +288,14 @@
       if (msg.event === 'offer_received') {
         window.dispatchEvent(new CustomEvent('ebidhub:offer_received', { detail: msg.data }));
       }
+
+      // D-109: settlement progress (NOC confirmations, ratings,
+      // completion) — same per-party channel, same relay pattern.
+      // Delivered to both the buyer and seller on that settlement, so
+      // whichever one is on the page catches it via the CustomEvent.
+      if (msg.event === 'settlement_updated') {
+        window.dispatchEvent(new CustomEvent('ebidhub:settlement_updated', { detail: msg.data }));
+      }
     };
     socket.onerror = function () { /* sidecar unreachable — ticker just doesn't update live, page still works */ };
   })();

@@ -636,7 +636,7 @@ against real `OfferService` calls, not mocked; full 36-suite regression
 clean; `test:buynow` still 16/16. Full detail in `docs/DECISIONS.md`
 D-108.
 
-### Bottom line (current)
+### Bottom line (superseded by D-109 — kept for history)
 
 **Still four items with no path forward without the project owner
 supplying something external — all four are genuinely build-complete,
@@ -665,4 +665,68 @@ real amount and status to any visitor of the listing page, not just
 the seller — found while designing D-108's broadcasts, confirmed not
 made worse by them, but the underlying page-level access control issue
 itself is still open and needs its own decision.
+
+## Update — D-109: WebSocket coverage extended to Settlement
+
+Next item in the WebSocket retrofit after D-108's Buy-Now offers, per
+explicit direction. `SettlementService::checkCompletion()` — the one
+private method every settlement action (`confirmSellerNoc`,
+`confirmBuyerNoc`, `submitRating` for both roles, and
+`forceResolveStalled`) funnels through — now broadcasts a
+`settlement_updated` event (full current gate state, not just a delta)
+to both the buyer's and the seller's own party channel every time it
+runs. Unlike Buy-Now's public listing page, a settlement has no "any
+visitor" audience, so this deliberately never touches a sale_event
+room — only the two parties' own private channels, reusing the same
+per-party channel every logged-in user already holds open (no new
+sidecar code, no second connection — same reuse precedent as D-108).
+
+Client side reuses D-108's CustomEvent relay pattern in
+`layouts/main.php`; `settlement/show.php` triggers a brief banner then
+a full page reload rather than a DOM patch — deliberate, since this
+page has several server-rendered blocks (invoices, TDS, Trading
+Session Chronicle, the stalled-state panel) that only appear under
+specific conditions, and re-deriving that logic in JS would duplicate
+business/rendering logic the architecture directive explicitly warns
+against.
+
+Verified with a real two-client WebSocket test against a real
+`SettlementService` driven through all four steps (not mocked): both
+the buyer's and seller's channels received all four
+`settlement_updated` broadcasts with correctly incrementing state,
+ending at `status: completed`. Full regression: 36/37 real suites
+clean (`test:settlement` 23/23); the sole non-pass is the same
+pre-existing `test:auditlog` DB-naming gap, not a regression. Full
+detail in `docs/DECISIONS.md` D-109.
+
+### Bottom line (current)
+
+**Still four items with no path forward without the project owner
+supplying something external — all four are genuinely build-complete,
+this is a credentials gap, not a build-effort gap**:
+
+1. BR-46 — AI Listing Pre-Audit, fully built, genuinely inert pending a Gemini API key
+2. BR-52 — Chargeback Mitigation, fully built, blocked on real SabPaisa API credentials
+3. A real payment gateway — EMD funding is simulated across every sale format; connects post-deployment
+4. A real SMS provider — OTP is generated/rate-limited correctly but only ever shown on-screen, never sent
+
+**No screens remain blocked on missing backend or product scoping.**
+Every screen tracked in `docs/design/CLAUDE_DESIGN_HANDOFF.md` — the
+original 53-screen design package plus the 6 no-mockup screens closed
+out by D-106 — now has a real, tested backend. What's left everywhere
+else is purely visual design work, not build work.
+
+**Real-time (WebSocket) coverage, tracked precisely as of D-109, not
+assumed complete**: bids (Easy/Express/Tender), Buy-Now offers, and now
+Settlement (dual-NOC + ratings + completion) are covered. Dispute,
+Rating (outside the settlement flow), EMD cascade defaults, and Admin
+actions still have zero broadcast coverage — each is real, unbuilt
+scope, not an oversight to silently assume is fine.
+
+**One real, pre-existing gap surfaced but deliberately not fixed**:
+`ListingController::show()` renders every submitted Buy-Now offer's
+real amount and status to any visitor of the listing page, not just
+the seller — found while designing D-108's broadcasts, confirmed not
+made worse by D-108 or D-109, but the underlying page-level access
+control issue itself is still open and needs its own decision.
 
