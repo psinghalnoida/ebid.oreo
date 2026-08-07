@@ -1,33 +1,41 @@
-# Handoff: 6 screens with no design yet
+# Handoff: every screen still pending, design or build
 
-2026-08-04 — Written for pickup by Claude Design, from the
-`psinghalnoida/ebid.oreo` repo (AdwitiX). Companion piece to the
-inbound handoff at `docs/design/design_handoff_ebid_hub/` (branch
-`design/ebid-hub-handoff`) — that package covered 53 screens; this
-document covers the 6 real, live, already-working pages that package
-missed. Read its own `README.md` first (design philosophy, token
-system, terminology map) — this doc doesn't repeat any of that, only
-what's different or additional.
+Updated 2026-08-07 (originally 2026-08-04) — written for pickup by
+Claude Design, from the `psinghalnoida/ebid.oreo` repo (AdwitiX).
+Companion piece to the inbound handoff at
+`docs/design/design_handoff_ebid_hub/` (branch
+`design/ebid-hub-handoff`, 53 screens). Read its own `README.md` first
+(design philosophy, token system, terminology map) — this doc doesn't
+repeat any of that, only what's different, additional, or changed.
 
-## Status as of this handoff
+## Status as of this update
 
 | | Count |
 |---|---|
 | Screens with a design (the 53-screen package) | 53 |
-| Screens with **no** design (this document) | 6 |
-| **Total distinct screens in play** | **59** |
-| Of the 53 — reviewed & decided (palette/type/header locked in) | 1 (Landing) |
-| Of the 53 — decision in progress | 1 (Onboarding) |
-| Of the 53 — not yet reviewed | 51 |
-| Of the 6 in this doc — designed | 0 |
-| **Actually built into the live app's real views so far** | **0** |
+| Of those 53 — reviewed &amp; decided (palette/type/header locked in) | 1 (Landing) |
+| Of those 53 — decision in progress | 1 (Onboarding) |
+| Of those 53 — not yet reviewed, backend ready to design against | 51 |
+| Screens with real backend but **no design at all** (§1 below) | 6 |
+| Screens with **neither a design nor a consolidated backend** (§2 below) | 6 |
+| **Total distinct screens tracked** | **65** |
+| **Actually built into the live app's real views so far** | **0** *(design-wise — see note)* |
 
-Every one of the 6 screens below is **fully functional, tested,
-production logic** — real controllers, real services, real database
-tables, exercised by real `spark test:*` suites with passing
-assertions. What's missing is purely the visual design: today each one
-renders as a plain, undesigned page (inline styles, no card system, no
-type scale) — functionally correct, visually unstyled.
+Note on "0 built": that's 0 screens carrying the *new* design system's
+actual visual treatment. One item changed since the last version of
+this doc — **Lot Reach &amp; Interest** (one of the original 53) had no
+real backend behind it at all as of the last audit; it does now (D-105,
+below). It still needs its real visual design applied — same as the
+other 51 not-yet-reviewed screens in the package — but it's no longer
+blocked on missing functionality. Section 3 gives the real field/route
+spec to design against.
+
+Every screen in §1 below is **fully functional, tested, production
+logic** — real controllers, real services, real database tables,
+exercised by real `spark test:*` suites with passing assertions.
+What's missing is purely the visual design: today each one renders as
+a plain, undesigned page (inline styles, no card system, no type
+scale) — functionally correct, visually unstyled.
 
 ## Decisions already locked in (screen 1 of the 53, Landing)
 
@@ -51,6 +59,8 @@ Apply these to all 6 screens below for consistency — don't re-derive:
   package's own reference doc.
 
 ---
+
+# §1 — 6 screens with real backend, no design at all
 
 ## 1. Settlement
 
@@ -212,6 +222,83 @@ one.
 
 ---
 
+# §2 — 6 screens with neither a design nor a consolidated backend
+
+Found in a follow-up audit (D-104/D-105) that checked every one of the
+53-package's screens against real routes, not just the 6 in §1.
+**Different in kind from §1**: these aren't "just needs a screen" —
+the underlying functionality is either scattered across several real
+pages with no single consolidated view, or (in one case, already
+resolved — see §3) didn't exist as backend logic at all. Flagging
+these here so design work doesn't start on them assuming a backend
+that isn't there; each needs a product scoping decision before design,
+the same way Lot Reach &amp; Interest did before D-105 built it.
+
+| Screen (53-package name) | What exists today instead | Real gap |
+|---|---|---|
+| **Buyer Dashboard** | `/my-bids`, `/my-offers`, `/my-purchases`, `/profile`, `/account/earnings` — 5 separate real pages | No single consolidated dashboard exists to design against |
+| **Seller Dashboard** | `/my-listings`, `/my-sales`, `/account/earnings`, `/payout-bank`, `/account/invoices` — 5 separate real pages | Same problem, seller side |
+| **Rating History** | Ratings shown inline on profile/listing pages only | No dedicated history page/route exists |
+| **Star Ratings** | Same | No dedicated page/route exists |
+| **Lot Directory** (Custodian-facing, platform-wide, filterable, all tenants) | Only per-tenant pending-approval queues on the Tenant Admin Dashboard | Super Admin has no way to browse every listing across every tenant |
+| **Trading Session Directory** (Custodian-facing, same idea for sale events) | Same | No platform-wide sale-event browse exists for Super Admin |
+
+None of these are in progress. Bring them up with the project owner
+before starting design work on any of them — each is a real product
+decision (build a new consolidated page? extend an existing one?) not
+just a visual one.
+
+---
+
+# §3 — Lot Reach & Interest: now has real backend, ready to design
+
+Was one of §2's problems until D-105 (2026-08-07) built it — flagged
+here specifically since it's the one screen that moved from "no
+backend" to "ready for real design" since the last version of this
+doc. The design brief below reflects what's **actually implemented and
+tested** (`spark test:listingreach`, 29/29 assertions, plus a full real
+HTTP click-through — login, view a listing, favorite it, send a bulk
+message, receive it in a real inbox, mark it read), not a re-statement
+of the original mockup's intent.
+
+**Seller-facing dashboard** — `GET /my-listings/reach` ·
+`LotReachController::index` · `app/Views/reach/index.php` (currently
+plain/undesigned — this is the real page to redesign)
+
+- Summary stats across the seller's own active listings: total live
+  listings, total **full matches** (buyers matching all three of
+  category + location + value), total views.
+- Per-listing breakdown: view count, and a table of every buyer
+  matching on **at least one** of the three dimensions (a
+  zero-dimension match is excluded entirely server-side, not filtered
+  client-side) — with per-buyer category/location/value match flags,
+  plus real viewed/favorited status.
+- A "Message matched buyers" composer per listing — real send, goes to
+  every *currently* matched buyer for that listing, re-checked at send
+  time (not a stale snapshot).
+
+**Buyer-facing inbox** — `GET /my-messages` ·
+`MyActivityController::messages` · `app/Views/my/messages.php`
+(also currently plain/undesigned)
+
+- Every message this buyer has received, newest first, each showing
+  which listing/category it's about, delivery timestamp, and
+  read/unread state (unread rows need a visually distinct treatment —
+  the plain page currently just tints the background).
+- A "Mark as read" action per unread message.
+
+**Real, deliberate scope boundaries worth knowing before designing**:
+location matching is a free-text substring check (a buyer's saved
+state name checked against the listing's free-text yard address) —
+there's no normalized state field anywhere in this schema, so don't
+design a strict "verified location match" badge, this is a best-effort
+signal. Delivery is in-app only — there is no real SMS/email provider
+connected (see D-104's own audit), so "delivered to their preference
+alerts inbox" in the original mockup copy means literally this
+`/my-messages` page, not a push notification.
+
+---
+
 ## Getting this into Claude Design
 
 This file lives at `docs/design/CLAUDE_DESIGN_HANDOFF.md` on branch
@@ -222,9 +309,11 @@ This file lives at `docs/design/CLAUDE_DESIGN_HANDOFF.md` on branch
 2. Point it at this file — either paste its contents directly, or if
    the project already has GitHub access, read it straight from this
    path/branch.
-3. Design the 6 screens above as `.dc.html` files in the same format
-   as the existing 53-screen package, using the same design philosophy
-   already established (see `docs/design/design_handoff_ebid_hub/README.md`).
+3. Design §1's 6 screens, plus §3 (Lot Reach & Interest, now unblocked)
+   as `.dc.html` files in the same format as the existing 53-screen
+   package, using the same design philosophy already established (see
+   `docs/design/design_handoff_ebid_hub/README.md`). **Hold off on §2**
+   until the project owner has made a scoping call on each.
 4. Push the result back the same way the original 53 arrived — a
    branch pushed to this repo (e.g. `design/ebid-hub-handoff-part2`),
    picked up here for review the same screen-by-screen way as the

@@ -542,6 +542,26 @@ unmerged-PR warning, both years out of date) corrected against what's
 actually in the codebase today. Full detail in `docs/DECISIONS.md`
 D-104.
 
+## Update — D-105: Lot Reach & Interest built end to end (net-new feature, not a BR/PR item)
+
+Not a BR/PR item — a net-new feature the project owner asked to be
+built after reviewing the design handoff package's "Lot Reach &
+Interest" screen and finding it had no backend anywhere. Real reversed
+CLV matching (listing → matched buyers, extending
+`ClvMatchingService`'s existing buyer-facing direction), real
+per-listing view/favorite tracking, and a real in-app bulk-messaging
+system with a genuine buyer-facing inbox — no external SMS/email
+dependency, delivery is a real database-backed inbox page. `test:
+listingreach`, 29/29 assertions, plus a full real HTTP click-through
+(login → view listing → send message → real inbox delivery → mark
+read), each step checked against real database state. Full detail in
+`docs/DECISIONS.md` D-105. Also produced a further finding: 6 more
+design-package screens (Buyer/Seller Dashboard, Rating History, Star
+Ratings, Lot Directory, Trading Session Directory) have **neither** a
+design nor a consolidated backend — recorded in
+`docs/design/CLAUDE_DESIGN_HANDOFF.md` §2, flagged for a product
+scoping decision, not built here.
+
 ### Bottom line (current)
 
 **Still four items with no path forward without the project owner
@@ -552,4 +572,11 @@ this is a credentials gap, not a build-effort gap**:
 2. BR-52 — Chargeback Mitigation, fully built, blocked on real SabPaisa API credentials
 3. A real payment gateway — EMD funding is simulated across every sale format; connects post-deployment
 4. A real SMS provider — OTP is generated/rate-limited correctly but only ever shown on-screen, never sent
+
+**Separately, 6 screens from the design handoff package need a product
+scoping decision before either design or build work makes sense** (not
+a credentials gap — a scope one): Buyer Dashboard, Seller Dashboard,
+Rating History, Star Ratings, Lot Directory, Trading Session Directory.
+See `docs/design/CLAUDE_DESIGN_HANDOFF.md` §2 for what exists instead
+of each today.
 

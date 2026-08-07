@@ -6767,3 +6767,87 @@ Full regression re-run clean (all 35 suites, three independent clean
 rebuilds during this pass alone) plus a real headless-browser
 CSP/rendering check and a real HTTP CSRF accept/reject check — not
 just `php -l`.
+
+### D-105: Lot Reach & Interest — a real feature built from a design mockup that had no backend at all
+
+Follow-on from D-104's coverage audit: of the 53-screen design
+package, "Lot Reach & Interest" was the one screen where nothing
+underneath it existed — not the reversed CLV matching (only the
+buyer-facing direction was ever built), not per-listing view/interest
+tracking, and no messaging system of any kind anywhere in the
+codebase. The project owner asked for it built, since it's "a good
+thing" to have. `docs/design/CLAUDE_DESIGN_HANDOFF.md` updated to move
+it from "blocked, no backend" to "ready to design" with the real
+field/route spec, and the same doc's coverage audit found and recorded
+6 more screens (Buyer/Seller Dashboard, Rating History, Star Ratings,
+Lot Directory, Trading Session Directory) that have **neither** a
+design nor a consolidated backend — flagged for a product scoping
+decision, not built here.
+
+**What got built**: migration `2026-01-01-000065` (`listing.view_count`,
+`listing_view`, `seller_message`, `seller_message_recipient`), a new
+`ListingReachService` that reverses `ClvMatchingService`'s existing
+buyer→listings direction into listing→buyers (and — a genuine
+improvement, not scope creep — actually implements the location-match
+dimension the original `findMatches()` saves but never applies), real
+per-listing view tracking wired into `ListingController::show()`, and a
+real in-app messaging system: `LotReachController` (seller composer +
+send action) and two new `MyActivityController` methods (buyer inbox +
+mark-read). Two new routes-reachable pages —
+`/my-listings/reach` and `/my-messages` — both wired into Profile's
+Activity group, not left orphaned the way this session's earlier
+navigation audits (D-102/D-103) found other pages to be.
+
+**Deliberate scope decisions, stated plainly**: delivery is real and
+in-app only — there is no SMS/email provider connected (D-104's own
+finding), so "delivered via their preference alerts inbox" (the
+original mockup's own copy) means literally this new `/my-messages`
+page, nothing more. Location matching is a case-insensitive substring
+check against the listing's free-text yard address — there's no
+normalized state field anywhere in this schema to match against more
+precisely, and buyer-saved states are themselves free text.
+
+**Real bugs found while building this, not assumed away**:
+1. First migration attempt used `CHAR(36)` for UUID foreign key
+   columns — this schema uses native Postgres `UUID` throughout
+   (confirmed by inspecting `listing`/`party`'s real column types, not
+   assumed); rewritten to match the exact raw-SQL migration style
+   already established in `CreateTradingSessionChronicle`.
+2. The test suite's own first draft used strict `=== 2` counts for
+   matched-buyer numbers — real once, but wrong under a full
+   regression run: the matching function is intentionally
+   platform-wide with no tenant/test scoping (matching
+   `ClvMatchingService::findMatches()`'s own existing precedent), so an
+   earlier suite's buyer fixtures can legitimately also match this
+   suite's listing when all 36 run in one shared-DB session. Fixed by
+   asserting specific buyer inclusion/exclusion (already checked via
+   real inbox delivery) rather than a brittle exact headcount.
+3. A test forgot to call `transitionStatus($id, 'active')` on its own
+   listing fixture — `getReachSummary()` correctly scopes to active
+   listings only (matching how every other "live listings" view in
+   this codebase already scopes itself), so the listing sat at
+   `inventory` and the summary legitimately returned zero. Test fixture
+   fixed, not the service.
+
+**Verified for real, not assumed**: `test:listingreach`, 29/29
+assertions, covering matching (including negative cases: a buyer
+matching on zero dimensions is excluded entirely, a buyer with no
+saved preferences at all is excluded, a seller never matches their own
+listing), view/favorite tracking, authorization (a seller cannot
+message on behalf of another seller's listing), and the full
+message-send → real-inbox-delivery → mark-read lifecycle. Then a full
+real HTTP click-through on top of that, not just the service-level
+suite: registered/logged-in as a real seller, viewed a real listing,
+opened the real reach dashboard, sent a real bulk message through the
+real form (with a real CSRF token), confirmed via direct database
+query that it delivered to exactly the matched buyers and no one else,
+logged in as one of those buyers, saw the real message in `/my-messages`,
+and marked it read — each step checked against real database state,
+not just an HTTP 200. (One real detour along the way: this sandbox's
+`app.baseURL` is configured as `localhost`, so testing via `127.0.0.1`
+made every `redirect()->to()` land on a different cookie-jar host and
+look like a logout — not a bug, just a reminder to always test against
+the app's own configured host in this environment.)
+
+Full regression re-run clean: all 36 suites (including the new one)
+against an independently rebuilt database.

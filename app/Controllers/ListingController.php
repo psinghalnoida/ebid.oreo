@@ -324,6 +324,12 @@ class ListingController extends BaseController
         $sellerStarRating = $seller ? (float) $seller['seller_star_rating'] : null;
 
         $viewerId = session()->get('logged_in_party_id');
+
+        // D-105: real per-listing view tracking, feeding the Market
+        // Maker's own Lot Reach & Interest dashboard. Fire-and-forget —
+        // never blocks or affects the page render either way.
+        (new \App\Libraries\ListingReachService())->recordView($listingId, $viewerId, $listing['seller_party_id']);
+
         // BR-32 (D-87/D-88): gates whether the Fee Payer Election's
         // Seller-Pays option is offered on the sale-event attach forms.
         $tenant = $this->tenantModel->find($listing['tenant_id']);

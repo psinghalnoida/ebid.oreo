@@ -32,6 +32,15 @@ class ListingFavoriteModel extends Model
         $this->where('party_id', $partyId)->where('listing_id', $listingId)->delete();
     }
 
+    // D-105: the reverse of findForParty() below -- which buyers have
+    // favorited THIS listing, for the seller-facing Lot Reach & Interest
+    // dashboard.
+    public function favoritedPartyIdsForListing(string $listingId): array
+    {
+        $rows = $this->select('party_id')->where('listing_id', $listingId)->findAll();
+        return array_flip(array_column($rows, 'party_id'));
+    }
+
     public function findForParty(string $partyId): array
     {
         return $this->db->table('listing_favorite lf')

@@ -288,4 +288,26 @@ class MyActivityController extends BaseController
         $party = (new \App\Models\PartyModel())->find($partyId);
         return view('my/profile', ['title' => 'My Profile — AdwitiX', 'party' => $party]);
     }
+
+    // D-105: the buyer-side half of Lot Reach & Interest — a real inbox
+    // for messages a Market Maker sent because this buyer matched one of
+    // their listings.
+    public function messages()
+    {
+        $partyId = $this->requireLogin();
+        if (!$partyId) return redirect()->to('/login');
+
+        $recipientModel = new \App\Models\SellerMessageRecipientModel();
+        $messages = $recipientModel->findForBuyer($partyId);
+        return view('my/messages', ['title' => 'Messages — AdwitiX', 'messages' => $messages]);
+    }
+
+    public function markMessageRead(string $recipientId)
+    {
+        $partyId = $this->requireLogin();
+        if (!$partyId) return redirect()->to('/login');
+
+        (new \App\Models\SellerMessageRecipientModel())->markRead($recipientId, $partyId);
+        return redirect()->to('/my-messages');
+    }
 }

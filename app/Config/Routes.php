@@ -209,6 +209,13 @@ $routes->post('/my-searches/(:segment)/delete', 'DiscoveryController::deleteSear
 $routes->get('/search-history', 'DiscoveryController::searchHistory');
 $routes->get('/recommendations', 'DiscoveryController::recommendations');
 
+// D-105: Lot Reach & Interest -- per-listing reach analytics + real
+// in-app bulk messaging to matched buyers.
+$routes->get('/my-listings/reach', 'LotReachController::index');
+$routes->post('/listings/(:segment)/reach/message', 'LotReachController::sendMessage/$1');
+$routes->get('/my-messages', 'MyActivityController::messages');
+$routes->post('/my-messages/(:segment)/read', 'MyActivityController::markMessageRead/$1');
+
 // Legal documents (BR-01/D-15: reviewed structural content, pending fields flagged)
 $routes->get('/terms', 'LegalController::termsOfUsage');
 $routes->get('/privacy', 'LegalController::privacyPolicy');

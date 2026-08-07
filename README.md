@@ -25,7 +25,7 @@ push/pull endpoints, webhook delivery), the Trading Session Chronicle
 Listing Pre-Audit (built end to end, inert until a Gemini key lands),
 real CSRF protection and a real Content-Security-Policy on every page,
 and a full Trust & Support content section — all built and verified
-against real PostgreSQL data before ever being pushed. 35 permanent
+against real PostgreSQL data before ever being pushed. 36 permanent
 test-command suites (see Step 10 below), each with real assertions
 re-run on every change, not throwaway scripts, now also run
 automatically on every push/PR — see `.github/workflows/tests.yml`.
@@ -303,9 +303,10 @@ sudo php spark test:br35                   # Dispute-driven rating event attribu
 sudo php spark test:terminology            # BR-67 tsx_term() branded terminology map
 sudo php spark test:chronicle              # Trading Session Chronicle, QR verification
 sudo php spark test:aiaudit                # BR-46 AI Listing Pre-Audit (Gemini-gated)
+sudo php spark test:listingreach           # Lot Reach & Interest: reversed CLV matching, real in-app messaging (D-105)
 ```
 
-35 suites total, not 33 — this list itself had drifted out of date before this
+36 suites total, not 33 — this list itself had drifted out of date before this
 update (D-104); `grep -h "protected \$name" app/Commands/Test*.php` is the
 source of truth if this list and the codebase ever disagree again.
 
@@ -529,7 +530,7 @@ beyond internal testing.
 needed here: real CSRF protection on every state-changing POST (was
 fully disabled repo-wide before), a real Content-Security-Policy on
 every response (was off entirely before), and a CI pipeline
-(`.github/workflows/tests.yml`) that runs all 35 suites automatically
+(`.github/workflows/tests.yml`) that runs all 36 suites automatically
 on every push/PR against a real Postgres service container.
 
 ### Scheduled jobs — required for timers to work automatically

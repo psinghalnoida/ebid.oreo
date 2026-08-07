@@ -53,6 +53,8 @@
       <a href="/my-offers">My Offers <span class="chev">→</span></a>
       <a href="/my-purchases">My Purchases <span class="chev">→</span></a>
       <a href="/my-sales">My Sales <span class="chev">→</span></a>
+      <a href="/my-listings/reach">Lot Reach &amp; Interest <span class="chev">→</span></a>
+      <a href="/my-messages">Messages <span class="chev">→</span></a>
     </div>
   </div>
 
