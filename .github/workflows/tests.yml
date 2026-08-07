@@ -42,10 +42,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up PHP 8.2
+      - name: Set up PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: '8.4'
           extensions: mbstring, xml, curl, pgsql, intl, gd
           coverage: none
 
