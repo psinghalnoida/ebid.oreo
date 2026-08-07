@@ -1079,7 +1079,7 @@ the pre-existing `test:auditlog` DB-naming gap. Full detail in
 Buy-Now offers, Settlement, Dispute, Rating, EMD cascade, and Admin
 actions are all covered.
 
-### Bottom line (superseded by D-115 — kept for history)
+### Bottom line (superseded by D-116 — kept for history)
 
 **Still four items with no path forward without the project owner
 supplying something external — all four are genuinely build-complete,
@@ -1152,6 +1152,31 @@ Full regression: 37/38 real suites clean (the new suite counts toward
 that 38); the sole non-pass is the pre-existing `test:auditlog`
 DB-naming gap. Full detail in `docs/DECISIONS.md` D-115.
 
+## Update — D-116: fixed the ListingController::show() offer-amount privacy leak
+
+Raised as a pre-production readiness item and fixed immediately.
+`ListingController::show()` now only populates `$offers` (real
+amounts, per-buyer status) when the viewer is genuinely the listing's
+seller — the same boundary the D-108 WebSocket broadcasts already
+enforced, now consistent between the static page and live updates. A
+second, defense-in-depth gate was added in the view itself. As a side
+effect, the "Accept" form (previously rendered to any visitor, though
+`OfferController::accept()` already correctly 403s a non-seller caller
+server-side) no longer renders to anyone but the seller either.
+
+Verified with real HTTP across three distinct identities — a real
+HTTP-registered seller, a second real registered party, and an
+anonymous visitor — confirming by direct search on the raw HTML that
+the offer amount appears in none of the non-seller responses and
+appears correctly only in the seller's own. Full regression: 36/37
+real suites clean (`test:buynow` 16/16); the sole non-pass is the
+pre-existing `test:auditlog` DB-naming gap. Full detail in
+`docs/DECISIONS.md` D-116.
+
+This was the last item from the pre-production readiness review not
+already covered by the WebSocket retrofit or accepted as an
+external-dependency gap.
+
 ### Bottom line (current)
 
 **Still four items with no path forward without the project owner
@@ -1163,11 +1188,6 @@ this is a credentials gap, not a build-effort gap**:
 3. A real payment gateway — EMD funding is simulated across every sale format; connects post-deployment
 4. A real SMS provider — OTP is generated/rate-limited correctly but only ever shown on-screen, never sent
 
-**A fifth item, a real in-house build gap found by D-112/D-113
-(unchanged by D-115)**: whether a confirmed-fraud seller delisting
-should cascade into emergency-stopping that seller's active auctions
-(D-114's own finding) is still an open business-rule question.
-
 **No screens remain blocked on missing backend or product scoping.**
 Every screen tracked in `docs/design/CLAUDE_DESIGN_HANDOFF.md` — the
 original 53-screen design package plus the 6 no-mockup screens closed
@@ -1175,7 +1195,7 @@ out by D-106 — now has a real, tested backend. What's left everywhere
 else is purely visual design work, not build work.
 
 **Real-time (WebSocket) coverage — the original sweep is complete as
-of D-114** (see above, unchanged by D-115).
+of D-114** (see above, unchanged by D-115/D-116).
 
 **Event-Driven Design — a first slice exists as of D-115, not the full
 catalog**: 5 domain events (`AuctionCreated`, `BidPlaced`,
@@ -1190,11 +1210,14 @@ not-yet-built Background Jobs item); existing direct
 `AuditLogService`/`TenantWebhookService` call sites remain
 un-migrated, by design, for now.
 
-**One real, pre-existing gap surfaced but deliberately not fixed**:
-`ListingController::show()` renders every submitted Buy-Now offer's
-real amount and status to any visitor of the listing page, not just
-the seller — found while designing D-108's broadcasts, confirmed not
-made worse by any decision through D-115, but the underlying
-page-level access control issue itself is still open and needs its
-own decision.
+**The offer-amount privacy leak is fixed as of D-116.** The item
+tracked above through D-108–D-114 (`ListingController::show()`
+rendering real Buy-Now offer amounts to any visitor) is closed.
+
+**What remains open**: no live nudge to admins with pending work in
+either the dispute-ruling or the rating-approval queue (D-110/D-111's
+shared missing sidecar room type); whether a confirmed-fraud delisting
+should cascade into emergency-stopping that seller's active auctions
+(D-114's own finding, a business-rule question); Event-Driven Design
+remains a first slice, not the full catalog (D-115).
 
