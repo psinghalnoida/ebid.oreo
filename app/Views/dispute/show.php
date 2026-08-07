@@ -70,5 +70,25 @@
       <p style="margin:0;"><strong>Final (appeal):</strong> <?= esc($dispute['appeal_rationale']) ?></p>
     </div>
   <?php endif; ?>
+
+  <div id="dispute-live-banner" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink-1, #1a1a1a); color:#fff; padding:10px 18px; border-radius:100px; font-size:12px; z-index:100;">
+    Updated — refreshing…
+  </div>
 </main>
+<?php if ($callerId): ?>
+<script>
+  // D-110: same reasoning as settlement/show.php (D-109) — this page's
+  // evidence list, ruling panel, appeal panel, and closed-state panel
+  // are all server-rendered and conditional on the dispute's status;
+  // a full reload guarantees the next render matches whatever
+  // DisputeService just decided, with no duplicated logic client-side.
+  window.addEventListener('ebidhub:dispute_updated', function (e) {
+    if (e.detail && e.detail.disputeId === <?= json_encode($dispute['id']) ?>) {
+      var banner = document.getElementById('dispute-live-banner');
+      if (banner) banner.style.display = 'block';
+      setTimeout(function () { window.location.reload(); }, 1200);
+    }
+  });
+</script>
+<?php endif; ?>
 <?= $this->endSection() ?>

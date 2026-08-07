@@ -214,6 +214,11 @@
   <div id="ticker-interest-matches"></div>
   <p style="font-size:11px; margin-top:16px;"><a href="/preferences" style="color:var(--emerald);">Tune your preferences →</a></p>
 </aside>
+<!-- D-114: account-level notices (Emergency Stop EMD release, seller
+     delisting) have no dedicated page to relay a CustomEvent to — the
+     party could be anywhere on the site when one fires — so this
+     lives here instead, global to every logged-in page. -->
+<div id="global-account-banner" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#B5482F; color:#fff; padding:10px 18px; border-radius:100px; font-size:12px; z-index:200; max-width:80vw; text-align:center;"></div>
 <style {csp-style-nonce}>
   main { margin-right: 260px; }
   @media (max-width: 900px) { #live-ticker { display: none; } main { margin-right: 0; } }
@@ -264,6 +269,17 @@
       socket = new WebSocket(wsProtocol + '//' + window.location.hostname + ':8081/ws?buyerId=' + partyId);
     } catch (e) { return; }
 
+    // D-114: shared by the two account-level notices below — no
+    // per-page consumer exists for either, so the layout renders them
+    // directly rather than relaying a CustomEvent nobody would catch.
+    function showGlobalBanner(text) {
+      const banner = document.getElementById('global-account-banner');
+      if (!banner) return;
+      banner.textContent = text;
+      banner.style.display = 'block';
+      setTimeout(function () { banner.style.display = 'none'; }, 8000);
+    }
+
     socket.onmessage = function (event) {
       const msg = JSON.parse(event.data);
       if (msg.event === 'ticker_bid_update') {
@@ -295,6 +311,39 @@
       // whichever one is on the page catches it via the CustomEvent.
       if (msg.event === 'settlement_updated') {
         window.dispatchEvent(new CustomEvent('ebidhub:settlement_updated', { detail: msg.data }));
+      }
+
+      // D-110: dispute filing/evidence/ruling/appeal — same per-party
+      // channel, same relay pattern, delivered to whichever of the
+      // filer/respondent (including an admin acting on their own
+      // party account) is on the page.
+      if (msg.event === 'dispute_updated') {
+        window.dispatchEvent(new CustomEvent('ebidhub:dispute_updated', { detail: msg.data }));
+      }
+
+      // D-111: a rating value on this party's own account just changed
+      // (upgrade, an applied downgrade, forced-neutral, or Crawl-Back
+      // completion) — same per-party channel, same relay pattern.
+      if (msg.event === 'rating_updated') {
+        window.dispatchEvent(new CustomEvent('ebidhub:rating_updated', { detail: msg.data }));
+      }
+
+      // D-112: this bidder just became the one on the clock for an
+      // EMD cascade top-up (BR-28) — same per-party channel, same
+      // relay pattern. The listing page filters by saleEventId itself.
+      if (msg.event === 'cascade_your_turn') {
+        window.dispatchEvent(new CustomEvent('ebidhub:cascade_your_turn', { detail: msg.data }));
+      }
+
+      // D-114: last item in the original real-time-coverage sweep
+      // (Admin actions). Both are account-level notices with no
+      // specific page to relay to, so they render directly into the
+      // global banner rather than dispatching a CustomEvent.
+      if (msg.event === 'emd_released' && msg.data.reason === 'emergency_stop') {
+        showGlobalBanner('Your EMD deposit was released — a Trading Session you were on was just cancelled by an Emergency Stop.');
+      }
+      if (msg.event === 'seller_delisted') {
+        showGlobalBanner('Your seller account has been delisted for confirmed fraud. ' + msg.data.listingsSuspended + ' listing(s) suspended.');
       }
     };
     socket.onerror = function () { /* sidecar unreachable — ticker just doesn't update live, page still works */ };

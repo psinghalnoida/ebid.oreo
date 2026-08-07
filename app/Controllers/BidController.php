@@ -3,22 +3,28 @@
 namespace App\Controllers;
 
 use App\Libraries\BiddingService;
+use App\Libraries\CascadeService;
 use App\Libraries\EmdService;
 use App\Models\SaleEventModel;
 use App\Models\EmdHoldModel;
+use App\Models\BidModel;
 use App\Libraries\Uuid;
 
 class BidController extends BaseController
 {
     private BiddingService $bidding;
+    private CascadeService $cascade;
     private SaleEventModel $saleEventModel;
     private EmdHoldModel $emdHoldModel;
+    private BidModel $bidModel;
 
     public function __construct()
     {
         $this->bidding = new BiddingService();
+        $this->cascade = new CascadeService();
         $this->saleEventModel = new SaleEventModel();
         $this->emdHoldModel = new EmdHoldModel();
+        $this->bidModel = new BidModel();
     }
 
     private function requireLogin()
@@ -73,6 +79,47 @@ class BidController extends BaseController
             (new \App\Libraries\AuditLogService())->log('emd.held', $bidderId, [
                 'saleEventId' => $saleEventId, 'amount' => $baseline, 'channel' => 'van',
             ], $this->request->getIPAddress(), (string) $this->request->getUserAgent());
+        }
+
+        return redirect()->to("/listings/{$saleEvent['listing_id']}");
+    }
+
+    // ⚠️ DEV-ONLY: simulates a cleared cascade top-up payment (BR-28),
+    // same convention as devFundEmd above — the real flow routes
+    // through the same not-yet-integrated payment gateway. D-113:
+    // closes the other half of a real, previously-undiscovered gap —
+    // CascadeService::processTopupPaid() was fully correct but no
+    // route anywhere let a bidder actually reach it.
+    public function devPayTopup(string $saleEventId)
+    {
+        $bidderId = $this->requireLogin();
+        if (!$bidderId) {
+            return redirect()->to('/login');
+        }
+
+        $saleEvent = $this->saleEventModel->find($saleEventId);
+        if (!$saleEvent) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        // Only the specific bidder actually holding this sale event's
+        // open top-up window may pay it — resolved from the caller's
+        // own identity, never trusted from client input.
+        $bid = $this->bidModel->findOpenTopupForBidder($saleEventId, $bidderId);
+        if (!$bid) {
+            return redirect()->to("/listings/{$saleEvent['listing_id']}")
+                ->with('error', 'BR-28: you have no open top-up window on this sale event.');
+        }
+
+        if (strtotime($bid['topup_required_by']) < time()) {
+            return redirect()->to("/listings/{$saleEvent['listing_id']}")
+                ->with('error', 'BR-28: this top-up window has already expired.');
+        }
+
+        try {
+            $this->cascade->processTopupPaid($bid['id']);
+        } catch (\RuntimeException $e) {
+            return redirect()->to("/listings/{$saleEvent['listing_id']}")->with('error', $e->getMessage());
         }
 
         return redirect()->to("/listings/{$saleEvent['listing_id']}");

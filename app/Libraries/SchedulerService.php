@@ -226,6 +226,34 @@ class SchedulerService
         return ($check['ntp_reachable'] && !$check['within_tolerance']) ? [$check['id']] : [];
     }
 
+    // BR-28/D-113: closes a real, previously-undiscovered gap —
+    // CascadeService::processDefault() existed and was fully correct,
+    // but nothing in the running application ever called it. A cascade
+    // could open (a bidder told they owe a top-up) but never actually
+    // default, because no scheduled sweep checked for an expired,
+    // unpaid window. Symmetric with processExpiredExpressBidding/
+    // processExpiredEasyAuctions just above, which open the cascade in
+    // the first place — this is what actually closes the loop those
+    // two started.
+    public function processExpiredCascadeTopups(): array
+    {
+        $expired = $this->bidModel->findExpiredUnpaidTopups(date('Y-m-d H:i:s'));
+
+        $processed = [];
+        foreach ($expired as $bid) {
+            try {
+                $this->cascade->processDefault($bid['sale_event_id'], $bid['id']);
+                $processed[] = $bid['id'];
+            } catch (\RuntimeException $e) {
+                // Already handled (e.g. a concurrent sweep or a payment
+                // that landed in the same instant) — skip rather than
+                // crash the whole scheduler run over one bad record.
+                continue;
+            }
+        }
+        return $processed;
+    }
+
     // BR-32/33 (D-88): consolidates every Tenant's unbilled Seller-Pays
     // Success Fee entries into one monthly invoice. generateMonthlyInvoices()
     // is itself idempotent (a tenant already invoiced for the period has no
@@ -246,6 +274,7 @@ class SchedulerService
             'gracePeriodsProcessed' => $this->processExpiredGracePeriods(),
             'expressBiddingClosed' => $this->processExpiredExpressBidding(),
             'easyAuctionsClosed' => $this->processExpiredEasyAuctions(),
+            'cascadeTopupsDefaulted' => $this->processExpiredCascadeTopups(),
             'staleOffersLapsed' => $this->processStaleOffers(),
             'settlementsFlaggedStalled' => $this->processStalledSettlements(),
             'mediaWaiversLapsed' => (new TenantMediaWaiverService())->lapseExpired(),

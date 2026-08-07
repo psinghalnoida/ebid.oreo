@@ -30,6 +30,9 @@ $routes->post('/sale-events/(:segment)/approve', 'SaleEventController::approve/$
 $routes->post('/sale-events/(:segment)/dev-force-freeze', 'SaleEventController::devForceFreeze/$1', ['filter' => 'tenantAdmin:saleEvent']);
 $routes->post('/sale-events/(:segment)/dev-fund-emd', 'BidController::devFundEmd/$1');
 $routes->post('/sale-events/(:segment)/bid', 'BidController::placeBid/$1');
+// D-113: BR-28 cascade top-up payment — closes the gap CascadeService::
+// processTopupPaid() had no real route to reach.
+$routes->post('/sale-events/(:segment)/dev-pay-topup', 'BidController::devPayTopup/$1');
 
 // Buy-Now offers (BR-27/BR-42/BR-29)
 $routes->post('/sale-events/(:segment)/dev-fund-emd-offer', 'OfferController::devFundEmd/$1');

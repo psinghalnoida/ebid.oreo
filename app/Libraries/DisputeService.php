@@ -87,6 +87,12 @@ class DisputeService
             'disputeId' => $dispute['id'], 'saleEventId' => $saleEventId, 'category' => $category,
         ]);
 
+        // D-110: the respondent has had no reason to be watching this
+        // sale event's page — a live nudge is the only way they learn
+        // about this without polling. The filer doesn't need one (they
+        // already know; they're mid-redirect to the dispute page).
+        $this->broadcastDisputeUpdate($dispute);
+
         return $dispute;
     }
 
@@ -99,7 +105,12 @@ class DisputeService
         if (!in_array($dispute['status'], ['filed', 'evidence_window'], true)) {
             throw new \RuntimeException('Evidence can only be submitted while the dispute is open for evidence.');
         }
-        return $this->evidenceModel->createEvidence($disputeId, $partyId, $content);
+        $evidence = $this->evidenceModel->createEvidence($disputeId, $partyId, $content);
+        // D-110: same live-nudge reasoning as fileDispute — whichever
+        // party didn't just submit this evidence has no other way to
+        // know it landed without polling the page.
+        $this->broadcastDisputeUpdate($dispute);
+        return $evidence;
     }
 
     public function getEvidence(string $disputeId): array
@@ -150,7 +161,11 @@ class DisputeService
             }
         }
 
-        return $this->disputeModel->find($disputeId);
+        $ruled = $this->disputeModel->find($disputeId);
+        // D-110: both parties learn the ruling the moment it's issued,
+        // not on their next unrelated page visit.
+        $this->broadcastDisputeUpdate($ruled);
+        return $ruled;
     }
 
     // Executes the real consequence of a ruling — not just recording an
@@ -245,7 +260,11 @@ class DisputeService
             throw new \RuntimeException('Only a party to this dispute may appeal it.');
         }
         $this->disputeModel->update($disputeId, ['status' => 'appealed', 'appealed_at' => date('Y-m-d H:i:s')]);
-        return $this->disputeModel->find($disputeId);
+        $appealed = $this->disputeModel->find($disputeId);
+        // D-110: the non-appealing party learns an appeal was filed
+        // without having to keep re-checking the dispute page.
+        $this->broadcastDisputeUpdate($appealed);
+        return $appealed;
     }
 
     // Note: an appeal ruling records the final decision but does NOT
@@ -269,7 +288,41 @@ class DisputeService
         (new AuditLogService())->log('dispute.appeal_ruled', $superAdminPartyId, [
             'disputeId' => $disputeId, 'rationale' => $rationale,
         ]);
-        return $this->disputeModel->find($disputeId);
+        $closed = $this->disputeModel->find($disputeId);
+        // D-110: final closure — both parties get the terminal state
+        // live rather than needing to notice it on their own.
+        $this->broadcastDisputeUpdate($closed);
+        return $closed;
+    }
+
+    // D-110: single broadcast point for all 5 lifecycle methods above —
+    // sends the dispute's full current state (not just a delta) to both
+    // the filer's and respondent's own party channel. A dispute is a
+    // private two-party document like a Settlement (D-109), so this
+    // never touches a sale_event room; it reuses the same
+    // buyer:<partyId> channel every logged-in party (including a
+    // Tenant/Super Admin acting on their own account) already holds
+    // open, not a new room type.
+    //
+    // Deliberately NOT attempted here: a live "new dispute filed" nudge
+    // to whichever Tenant/Super Admin will eventually rule on it. That
+    // would need a genuinely new broadcast target — "every party
+    // currently holding an admin role of type X" — which doesn't exist
+    // in RealtimeBroadcastService/the sidecar today (only a single
+    // sale_event room and single per-party rooms do). Building that is
+    // real new scope, not a rename of something already there; flagged
+    // as an open gap rather than improvised here.
+    private function broadcastDisputeUpdate(array $dispute): void
+    {
+        $broadcaster = new RealtimeBroadcastService();
+        $payload = [
+            'disputeId' => $dispute['id'],
+            'status' => $dispute['status'],
+            'rulingOutcome' => $dispute['ruling_outcome'],
+            'rulingAuthorityType' => $dispute['ruling_authority_type'],
+        ];
+        $broadcaster->broadcastToBuyer($dispute['filed_by_party_id'], 'dispute_updated', $payload);
+        $broadcaster->broadcastToBuyer($dispute['respondent_party_id'], 'dispute_updated', $payload);
     }
 
     private function requireDispute(string $disputeId): array

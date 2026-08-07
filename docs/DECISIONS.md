@@ -7196,3 +7196,394 @@ Admin actions (Emergency Stop, delisting) still have zero broadcast
 coverage; the pre-existing offer-amount page-leak in
 `ListingController::show()` remains unfixed and flagged, unchanged by
 this work.
+
+### D-110: WebSocket coverage extended to Dispute (filing, evidence, ruling, appeal)
+
+Third flow in the WebSocket retrofit sequence (D-108 Buy-Now, D-109
+Settlement, now Dispute). `DisputeService` has no single funnel method
+the way `SettlementService::checkCompletion()` does — five separate
+lifecycle methods each mutate state independently: `fileDispute`,
+`submitEvidence`, `ruleOnDispute`, `fileAppeal`, `ruleOnAppeal`. Added
+one private helper, `broadcastDisputeUpdate()`, called from the end of
+all five, rather than five different ad-hoc broadcast blocks — same
+"single point, multiple call sites" shape D-108 used across
+`submitOffer`/`acceptOffer`.
+
+**Design, consistent with D-109's reasoning**: a dispute is a private
+document between exactly two parties — the filer and the respondent —
+so this never touches a sale_event room, only their own
+`buyer:<partyId>` channels (the same generic per-party room every
+logged-in party, including a Tenant/Super Admin acting on their own
+account, already holds open — confirmed via `AuthorizationService`
+that admins genuinely are parties with a `party_id` and an active role
+flag, not a separate identity type, so no special-casing was needed).
+Payload carries the dispute's full current state (status, ruling
+outcome, ruling authority type) on every broadcast, not a delta.
+
+**A gap surfaced and deliberately not built**: there's no live "a new
+dispute needs your ruling" nudge to whichever Tenant/Super Admin will
+eventually rule on it, because reaching "every party currently holding
+role X for tenant Y" isn't something the existing sidecar can address
+— it only has a single sale_event room and single per-party rooms, no
+role-broadcast room type. Building that would be genuinely new sidecar
+scope, not a reuse of what's there, so it wasn't improvised into this
+change. Flagged in `docs/BR_PR_AUDIT.md`, not fixed here.
+
+**Client side**: `layouts/main.php` gained one more relay branch
+(`dispute_updated` → `CustomEvent ebidhub:dispute_updated`), and
+`dispute/show.php` gained the same banner-then-reload listener pattern
+as `settlement/show.php` (D-109) — this page's evidence list, ruling
+panel, appeal panel, and closed-state panel are all conditionally
+server-rendered on the dispute's status, so a full reload avoids
+re-deriving that logic in JS.
+
+**Verified with a real end-to-end test**: a throwaway spark command
+drove a real Buy-Now sale to a real dispute through the actual
+`DisputeService` — `fileDispute` → `submitEvidence` → `ruleOnDispute`
+→ `fileAppeal` → `ruleOnAppeal` — while two genuine WebSocket clients
+(separate Node.js processes) on the buyer's (filer's) and seller's
+(respondent's) party channels both received all 5 `dispute_updated`
+broadcasts with correctly changing state, ending at `status: closed`.
+Both throwaway files (a Node WS client, a spark command) deleted after
+use, confirmed gone via `ls`.
+
+Full regression: 36/37 real suites clean on an independently rebuilt
+database (`test:dispute` itself 21/21); the one non-pass is the same
+pre-existing `test:auditlog` DB-naming gap, not a regression.
+
+**Still explicitly open, not silently assumed covered**: Rating
+(outside the settlement/dispute flows), EMD cascade defaults, and
+Admin actions (Emergency Stop, delisting) still have zero broadcast
+coverage; the pre-existing offer-amount page-leak in
+`ListingController::show()` remains unfixed and flagged; the
+role-broadcast gap noted above (no live nudge to admins with pending
+rulings) is new to this decision and also open.
+
+### D-111: WebSocket coverage extended to Rating (upgrades, applied downgrades, forced-neutral, Crawl-Back completion)
+
+Fourth flow in the retrofit sequence (D-108 Buy-Now, D-109 Settlement,
+D-110 Dispute, now Rating). Unlike those three, Rating's own state
+changes were already indirectly wrapped by `settlement_updated` and
+`dispute_updated` when a rating action happens *through* those flows —
+but the party's actual star-rating number changing was never itself
+broadcast, and several genuine standalone rating paths exist entirely
+outside Settlement/Dispute: BR-36's approval queue
+(`RatingReviewController`/`admin/rating_reviews.php`, closing a
+pre-existing gap where pending downgrades had no real approval UI),
+BR-39's forced-neutral pattern trigger, and BR-38's Crawl-Back
+completion restore. None of those had any live signal to the affected
+party at all.
+
+**What actually changed vs. what didn't**: `RatingService` has no
+single funnel either (same shape as Dispute, D-110) — a new
+`broadcastRatingUpdate()` helper is called from exactly the 4 places a
+party's rating number itself changes: `applyUpgrade()` (BR-36,
+no-approval-needed), `approveDowngrade()` (but only inside the
+`readyToApply` branch — a downgrade sitting in
+`pending_tenant_approval` or `pending_super_admin_approval` produces
+no broadcast, since nothing about the party's own visible rating has
+changed yet), `applyForcedNeutral()` (BR-39), and the Crawl-Back
+restore branch inside `recordCleanTransactionForCrawlBack()` (BR-38).
+`initiateDowngrade()` itself deliberately never broadcasts — it's
+always immediately followed by either an approval-queue wait
+(genuinely nothing changed for the party yet) or, in the
+self-approving Super Admin paths (`DisputeService::executeRuling`,
+`RatingService::delistSellerForFraud`), by an `approveDowngrade()`
+call that does broadcast once it actually lands.
+
+**Design**: reused the exact same pattern as D-108/109/110 — the
+party's own `buyer:<partyId>` channel, no sale_event room, no new
+sidecar room type. Since this event only ever reaches the one party it
+happened to, the payload doesn't need an id to match against (unlike
+`settlement_updated`/`dispute_updated`, which carry
+`settlementId`/`disputeId` so the client can ignore events for a
+*different* record) — any receipt on `/my-star-ratings` or
+`/my-rating-history` is automatically about the viewer's own account.
+
+**A gap surfaced and deliberately not built, same shape as D-110's**:
+no live "a new pending downgrade is in your queue" nudge to the
+Tenant/Super Admins who staff `admin/rating_reviews.php` — that queue
+is shared across everyone with the relevant role, and reaching "every
+party holding role X for tenant Y" is the same missing sidecar
+room-type gap flagged in D-110, not solved here either.
+
+**Verified with a real end-to-end test**: a throwaway spark command
+drove a real party through `applyUpgrade` → `initiateDowngrade` +
+`approveDowngrade` (single-tier, since the resulting value stayed
+above the 2.0 dual-approval line) → `applyForcedNeutral` via the
+actual `RatingService`, while one genuine WebSocket client on that
+party's own channel received all 3 `rating_updated` broadcasts with
+the correct `eventType` and correctly changing `previousValue`/
+`newValue` pairs (3.0→3.2 upgrade, 3.2→2.7 downgrade, 2.7→3.0
+forced_neutral). Throwaway files (a Node WS client, a spark command)
+deleted after use, confirmed gone via `ls`.
+
+Full regression: 36/37 real suites clean on an independently rebuilt
+database (`test:rating` itself 28/28); the one non-pass is the same
+pre-existing `test:auditlog` DB-naming gap, not a regression.
+
+**Still explicitly open, not silently assumed covered**: EMD cascade
+defaults and Admin actions (Emergency Stop, delisting) still have zero
+broadcast coverage; the pre-existing offer-amount page-leak in
+`ListingController::show()` remains unfixed and flagged; the
+role-broadcast gap (no live nudge to admins with pending dispute
+rulings or rating approvals) noted in D-110 is now confirmed to apply
+identically to the rating review queue and remains open.
+
+### D-112: WebSocket coverage extended to EMD cascade defaults (BR-28) — and a real pre-existing gap surfaced along the way
+
+Fifth flow in the retrofit sequence (D-108 Buy-Now, D-109 Settlement,
+D-110 Dispute, D-111 Rating, now the EMD cascade). `CascadeService`
+gained three broadcast points:
+
+- `openTopupWindow()` — the single funnel both `initiateCascade()`
+  (step 1, a fresh cascade opening) and `processDefault()`'s
+  baton-pass branch (step 2/3) already call — now sends a public,
+  amount-free `cascade_topup_window_opened` (cascade step + deadline)
+  to the sale_event room, and a private `cascade_your_turn` (same
+  payload plus `saleEventId`) to the new top holder's own party
+  channel. This is the single highest-value signal in the whole
+  cascade flow — the window is short, and the bidder who's now on the
+  clock has no other way to learn it without polling.
+- `processDefault()` — a public `cascade_defaulted` (cascade step +
+  `outcome`: `baton_passed` or `full_cascade_failure`), amount-free and
+  identity-free like `offer_submitted` (D-108); the "who's now on the
+  clock" detail is deliberately left to `openTopupWindow()`'s own
+  broadcasts, not duplicated here.
+- `processTopupPaid()` — a public `cascade_topup_paid` with the final
+  amount, same "terminal outcome is public" precedent as
+  `offer_accepted` (D-108) — every bid amount on Easy/Express is
+  already public in real time via `bid_placed`, so this adds no new
+  privacy exposure.
+
+Client side: `listing/show.php`'s existing sale_event-room handler
+gained three more amount-free branches (in-place status/price text
+update, same as `bid_placed`/`dynamic_time_update` — no reload, this
+is the live auction view). `layouts/main.php` relays
+`cascade_your_turn` via the same `CustomEvent` pattern as every prior
+private event; `listing/show.php` listens for it unconditionally
+(unlike `offer_received`, the recipient here is typically a visiting
+bidder, not the listing's owner) and filters by matching
+`e.detail.saleEventId` against the page's own sale event, since a
+party can hold this same per-party channel open while browsing an
+entirely unrelated listing.
+
+**A real, pre-existing gap surfaced while wiring this — flagged
+prominently, not buried**: `CascadeService::processDefault()` and
+`::processTopupPaid()` currently have **zero real call sites anywhere
+in the running application** — confirmed by grepping the entire
+`app/` tree outside of test commands. `SchedulerService` only ever
+calls `initiateCascade()` (from `processExpiredExpressBidding()` and
+`processExpiredEasyAuctions()`, both real and scheduler-driven); there
+is no scheduler method that polls for an expired, unpaid top-up window
+and calls `processDefault()`, and no controller route lets a bidder
+submit "I paid the top-up" to trigger `processTopupPaid()`. In other
+words: **today, a cascade can open (a bidder gets told they owe a
+top-up) but nothing in the running system can ever close it** — not a
+default, not a successful payment. This is a functional gap in BR-28's
+own implementation, independent of and larger than WebSocket coverage,
+and out of scope for this decision to silently fix. The new broadcasts
+above are real, tested against the actual service methods via
+`test:cascade`/`test:express` and a live end-to-end WS run, and will
+fire correctly the moment this wiring gap is closed — but until then
+they are unreachable in production. Flagged here and in
+`docs/BR_PR_AUDIT.md` for the project owner's prioritization, the same
+treatment given to the SMS-provider and payment-gateway gaps.
+
+**Verified with a real end-to-end test**, working within that
+constraint by calling the service methods directly (exactly how
+`test:cascade` itself already does, since that's the only way to
+exercise this code at all today): a throwaway spark command drove a
+real Easy Auction with 3 bidders through `initiateCascade()` →
+`processDefault()` (H1 defaults, baton passes to H2) →
+`processTopupPaid()` (H2 pays), while three genuine WebSocket clients
+— one on the public sale_event room, one on H1's own channel, one on
+H2's own channel — confirmed: the public room received all 4
+broadcasts in the correct order (`cascade_topup_window_opened` step 1
+→ `cascade_defaulted` baton_passed → `cascade_topup_window_opened`
+step 2 → `cascade_topup_paid` amount 130000); H1 received exactly one
+private `cascade_your_turn` (step 1) and nothing else; H2 received
+exactly one private `cascade_your_turn` (step 2) and nothing else —
+confirming the privacy boundary (each bidder's own nudge stays theirs
+alone) held under a real test. Throwaway files (3 Node WS clients, a
+spark command) deleted after use, confirmed gone via `ls`.
+
+Full regression: 36/37 real suites clean on an independently rebuilt
+database (`test:cascade` 22/22, `test:express` 16/16 — the format most
+exercising this code path); the sole non-pass is the same pre-existing
+`test:auditlog` DB-naming gap, not a regression.
+
+**Still explicitly open, not silently assumed covered**: Admin actions
+(Emergency Stop, delisting) still have zero broadcast coverage; the
+pre-existing offer-amount page-leak in `ListingController::show()`
+remains unfixed and flagged; the role-broadcast gap for admin queues
+(dispute rulings, rating approvals) remains open; and now this
+decision's own new finding — the missing scheduler/controller wiring
+for cascade default/top-up-paid — is a real, separate, larger gap in
+BR-28 itself, not a WebSocket-coverage item, surfaced for the project
+owner to prioritize.
+
+### D-113: BR-28 cascade wiring gap closed — real scheduler trigger + real bidder route, plus a second gap found and fixed
+
+Direct follow-up to D-112's own finding: `CascadeService::processDefault()`
+and `::processTopupPaid()` were fully correct but had zero real call
+sites anywhere in the running application. Closed both halves.
+
+**Scheduler side**: `BidModel::findExpiredUnpaidTopups()` — a real
+query (`topup_required_by` past, `topup_paid_at` still null,
+`defaulted_at` still null), naturally idempotent since a processed bid
+stops matching on the next sweep. `SchedulerService::processExpiredCascadeTopups()`
+polls it and calls `CascadeService::processDefault()` for each match,
+skipping (not crashing the whole run) on a per-item `RuntimeException` —
+same defensive shape as every other scheduler method. Wired into
+`runAll()` right alongside `processExpiredExpressBidding()`/
+`processExpiredEasyAuctions()` — the two methods that *open* a
+cascade; this is what actually *closes* the loop they start. `run:scheduler`
+(the real cron entry point, per `RunScheduler.php`) now reports a
+`Cascade top-ups defaulted:` count.
+
+**Controller/route side**: `BidController::devPayTopup()` — a
+DEV-ONLY simulated top-up payment, same convention as the existing
+`devFundEmd` (the real flow routes through the same not-yet-integrated
+payment gateway). Resolves the caller's own open top-up window via
+`BidModel::findOpenTopupForBidder()` — never trusts a bid ID from
+client input — and rejects a window that's already expired (BR-28)
+rather than silently succeeding if the scheduler hasn't swept it yet.
+Routed at `POST /sale-events/(:segment)/dev-pay-topup`.
+`ListingController::show()` now resolves the viewer's own open top-up
+(if any) and the real amount owed (via `EmdService::calculateCascadeTopupOwed`
+against their actual held EMD, not just their bid amount) and passes
+both to the view; `listing/show.php` renders a "You're on the clock"
+panel with a real Pay Top-Up button when applicable.
+
+**A second real, pre-existing gap found and fixed while finally
+exercising `processTopupPaid()` for the first time through a real
+flow**: it never updated `sale_event.current_price`/
+`current_high_bidder_party_id` on a cascade close — both stayed stuck
+at whatever the last live bid happened to be (the since-defaulted
+H1's), not the actual winning bidder's price. Confirmed with a real
+page load: before the fix, the listing page showed ₹140,000 (H1's
+stale bid) even though the real settlement was correctly ₹130,000
+(H2's actual winning price); after adding the same
+`updateCurrentPrice()` call `OfferService::acceptOffer()` already
+makes for Buy-Now, the page correctly showed ₹130,000. This was a
+real, user-visible pricing bug, not a WebSocket-coverage item —
+found only because this was the first time `processTopupPaid()` had
+ever actually run end-to-end in this codebase's history.
+
+**Verified with a genuinely real, not mocked, end-to-end flow** — the
+most rigorous verification in the WebSocket-retrofit sequence so far:
+a real party account created through the actual HTTP registration
+flow (mobile → OTP shown in dev mode → mPIN → session), not a
+model-created fixture; a fixture built around that real party ID for
+the supporting actors (tenant, seller, other bidders — unrelated to
+what's under test); the real `php spark run:scheduler` CLI entry
+point (not `SchedulerService::processExpiredCascadeTopups()` called
+directly) confirmed the default via `Cascade top-ups defaulted: 1`;
+the real HTTP page showed the "Pay Top-Up (₹3,000.00 owed on your
+₹130,000.00 bid)" panel with the correct owed amount; a real POST
+(genuine session cookie, genuine rotated CSRF token) to
+`/sale-events/{id}/dev-pay-topup` returned a 303 redirect with no
+error; the DB and a subsequent real page load both confirmed
+`topup_paid_at` set, `status = closed_sold`, `current_price = 130000`,
+a real settlement row. Re-ran the whole sequence a third time with a
+real WebSocket client on the public sale_event room attached
+throughout: `cascade_defaulted` → `cascade_topup_window_opened` →
+`cascade_topup_paid` (amount 130000) all arrived in order, sourced
+from the real scheduler run and the real HTTP payment, not direct
+service calls. All throwaway files (a spark fixture-setup command, a
+Node WS client) deleted after use, confirmed gone via `ls`.
+
+Full regression: 36/37 real suites clean on an independently rebuilt
+database (`test:cascade` 22/22, `test:express` 16/16, `test:scheduler`
+14/14 — the last one specifically exercising `runAll()`'s full key
+set, confirming the new method didn't disturb it); the sole non-pass
+is the same pre-existing `test:auditlog` DB-naming gap, not a
+regression.
+
+**BR-28's cascade default/top-up-paid coverage is now genuinely live in
+production**, not merely correct-but-unreachable as D-112 left it.
+Still explicitly open, unrelated to this decision: Admin actions
+(Emergency Stop, delisting) still have zero broadcast coverage; the
+pre-existing offer-amount page-leak in `ListingController::show()`
+remains unfixed and flagged; the role-broadcast gap for admin queues
+(dispute rulings, rating approvals) remains open.
+
+### D-114: WebSocket coverage extended to Admin actions (Emergency Stop, seller delisting) — closes the original real-time-coverage sweep
+
+Last item on the real-time coverage list first identified during the
+Chief Architect directive's retrofit sizing (D-108 Buy-Now, D-109
+Settlement, D-110 Dispute, D-111 Rating, D-112/D-113 EMD cascade, now
+Admin actions). Two distinct actions, two different audience shapes.
+
+**`ListingLifecycleService::emergencyStop()` (BR-14)**: the private
+`releaseAllHoldsForSaleEvent()` helper now returns the released holds'
+own party IDs instead of just a count, so `emergencyStop()` can notify
+each one individually. Two broadcasts: a public, amount/reason-free
+`sale_event_emergency_stopped` to the sale_event room (the reason
+isn't shown anywhere in the UI today even to a logged-in visitor, so
+it isn't broadcast either — consistent with never exposing more than
+the synchronous page itself reveals), and a private `emd_released` to
+each affected bidder's own party channel.
+
+**`RatingService::delistSellerForFraud()` (BR-38)**: a private
+`seller_delisted` broadcast to the delisted seller's own channel —
+severe enough that they need to know immediately. No public broadcast:
+there's no existing page that surfaces a seller's delisted status to
+visitors, so this doesn't introduce one.
+
+**Client side, a new pattern this decision needed**: unlike every
+prior private event (offer_received, settlement_updated,
+dispute_updated, rating_updated, cascade_your_turn), `emd_released`
+and `seller_delisted` are genuine account-level notices with no
+specific page to relay a CustomEvent to — the affected party could be
+anywhere on the site when either fires. `layouts/main.php` now renders
+them directly into a new global banner (`#global-account-banner`,
+fixed-position, visible on any logged-in page) via a small
+`showGlobalBanner()` helper, rather than dispatching an event nobody
+would catch. `listing/show.php` gained one more amount/reason-free
+branch for the public `sale_event_emergency_stopped` signal, same
+in-place status-text pattern as every other public sale_event event.
+
+**A gap noted, not fixed, adjacent to delisting**: `delistSellerForFraud()`
+suspends every active `listing` a fraud-confirmed seller has, but
+never touches the `sale_event` table — an active sale_event tied to
+one of those listings is left dangling at `status = 'active'` with a
+now-suspended listing, rather than being emergency-stopped itself.
+Whether a confirmed-fraud delisting should automatically cascade into
+emergency-stopping every one of that seller's live auctions is a real
+business-rule question (BR-38's own text doesn't say), not a
+WebSocket-plumbing one — flagged for its own decision, not decided
+here.
+
+**Verified with a real end-to-end test**: a throwaway spark command
+drove a real Easy Auction with two live bidders through
+`ListingLifecycleService::emergencyStop()` via the actual service;
+three genuine WebSocket clients — one on the public sale_event room,
+one on each bidder's own party channel — confirmed the public room
+got exactly `sale_event_emergency_stopped` and each bidder got exactly
+their own `emd_released`, nothing more, nothing less. A second run
+drove a real Super Admin through `RatingService::delistSellerForFraud()`
+against a real seller party; the seller's own channel received both
+`rating_updated` (the confirmed-fraud reset-to-1★ downgrade, D-111)
+and `seller_delisted` in sequence — a useful incidental confirmation
+that D-111's and D-114's broadcasts compose correctly on the same real
+action, not just individually. Throwaway files (a Node WS client, a
+spark command) deleted after use, confirmed gone via `ls`.
+
+Full regression: 36/37 real suites clean on an independently rebuilt
+database (`test:lifecycle` 22/22 covering Emergency Stop,
+`test:br35` 27/27 covering the delisting/fraud path); the sole
+non-pass is the same pre-existing `test:auditlog` DB-naming gap, not a
+regression.
+
+**The original real-time-coverage sweep identified during retrofit
+sizing is now complete**: bids (Easy/Express/Tender, pre-existing
+D-42/D-52), Buy-Now offers (D-108), Settlement (D-109), Dispute
+(D-110), Rating (D-111), EMD cascade (D-112, wired live D-113), and
+now Admin actions (D-114) are all covered. Still explicitly open, not
+part of this sweep: the role-broadcast gap (no live nudge to admins
+staffing the dispute-ruling or rating-approval queues, D-110/D-111);
+the pre-existing offer-amount page-leak in `ListingController::show()`
+(D-108); and this decision's own new finding — whether fraud delisting
+should cascade into emergency-stopping active auctions.

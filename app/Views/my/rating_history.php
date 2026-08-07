@@ -33,5 +33,19 @@
   <?php if (empty($events)): ?><p style="font-size:12px; color:var(--ink-3); margin-top:12px;">No rating events yet — every transaction starts at a neutral 3.0★.</p><?php endif; ?>
 
   <p style="margin-top:20px;"><a href="/my-star-ratings" style="color:var(--ink-3); font-size:12px;">&larr; Back to Star Ratings</a></p>
+
+  <div id="rating-live-banner" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink-1, #1a1a1a); color:#fff; padding:10px 18px; border-radius:100px; font-size:12px; z-index:100;">
+    Your rating just changed — refreshing…
+  </div>
 </main>
+<script>
+  // D-111: same reasoning as my/star_ratings.php — this event only
+  // ever reaches the affected party's own channel, so any receipt
+  // while viewing this history table means a new row just landed.
+  window.addEventListener('ebidhub:rating_updated', function () {
+    var banner = document.getElementById('rating-live-banner');
+    if (banner) banner.style.display = 'block';
+    setTimeout(function () { window.location.reload(); }, 1200);
+  });
+</script>
 <?= $this->endSection() ?>

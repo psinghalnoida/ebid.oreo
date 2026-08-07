@@ -33,5 +33,23 @@
 
   <p style="margin-top:20px;"><a href="/my-rating-history" style="color:var(--emerald); font-size:13px;">View full rating history &rarr;</a></p>
   <p style="margin-top:8px;"><a href="/profile" style="color:var(--ink-3); font-size:12px;">&larr; Back to Profile</a></p>
+
+  <div id="rating-live-banner" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink-1, #1a1a1a); color:#fff; padding:10px 18px; border-radius:100px; font-size:12px; z-index:100;">
+    Your rating just changed — refreshing…
+  </div>
 </main>
+<script>
+  // D-111: this event is only ever delivered to the affected party's
+  // own channel (RatingService::broadcastRatingUpdate targets nobody
+  // else), so no id-matching is needed here the way settlement/dispute
+  // pages match a specific record — any receipt while on this page is
+  // relevant. Full reload for the same reason as D-109/D-110: this
+  // page's numbers and Crawl-Back panel are server-derived, not worth
+  // re-deriving in JS.
+  window.addEventListener('ebidhub:rating_updated', function () {
+    var banner = document.getElementById('rating-live-banner');
+    if (banner) banner.style.display = 'block';
+    setTimeout(function () { window.location.reload(); }, 1200);
+  });
+</script>
 <?= $this->endSection() ?>

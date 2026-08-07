@@ -178,10 +178,10 @@ class ListingLifecycleService
         }
 
         $this->bidModel->withdrawAllForSaleEvent($saleEventId);
-        $releasedCount = $this->releaseAllHoldsForSaleEvent($saleEventId);
+        $releasedPartyIds = $this->releaseAllHoldsForSaleEvent($saleEventId);
 
         (new \App\Libraries\AuditLogService())->log('sale_event.emergency_stopped', $actorPartyId, [
-            'saleEventId' => $saleEventId, 'reason' => $reason, 'holdsReleased' => $releasedCount,
+            'saleEventId' => $saleEventId, 'reason' => $reason, 'holdsReleased' => count($releasedPartyIds),
         ]);
 
         $this->saleEventModel->update($saleEventId, [
@@ -191,6 +191,26 @@ class ListingLifecycleService
             'actual_closed_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
+
+        // D-114: last item in the WebSocket retrofit's original
+        // real-time-coverage sweep (D-108 through D-113 covered
+        // bids/offers/settlement/dispute/rating/cascade). Two
+        // audiences, same amount/reason-free-public-vs-private-nudge
+        // split every prior decision has used: the sale_event room
+        // (any visitor on this listing page) only learns the auction
+        // was stopped — the reason isn't shown anywhere in the UI
+        // today even to a logged-in visitor, so it isn't broadcast
+        // either, consistent with not exposing something the
+        // synchronous page itself doesn't reveal. Each bidder whose
+        // EMD was actually just released gets a private, actionable
+        // nudge on their own already-open party channel.
+        $broadcaster = new RealtimeBroadcastService();
+        $broadcaster->broadcast($saleEventId, 'sale_event_emergency_stopped', []);
+        foreach ($releasedPartyIds as $partyId) {
+            $broadcaster->broadcastToBuyer($partyId, 'emd_released', [
+                'saleEventId' => $saleEventId, 'reason' => 'emergency_stop',
+            ]);
+        }
 
         return $this->saleEventModel->find($saleEventId);
     }
@@ -290,15 +310,18 @@ class ListingLifecycleService
         }
     }
 
-    private function releaseAllHoldsForSaleEvent(string $saleEventId): int
+    // D-114: returns the released holds' own party IDs, not just a
+    // count — emergencyStop() needs them to privately notify each
+    // affected bidder, not just log a number.
+    private function releaseAllHoldsForSaleEvent(string $saleEventId): array
     {
-        $count = 0;
+        $releasedPartyIds = [];
         $payoutControl = new \App\Libraries\PayoutControlService();
         foreach ($this->emdHoldModel->findAllBySaleEvent($saleEventId) as $hold) {
             if ($payoutControl->guardedRelease($hold['id'])) {
-                $count++;
+                $releasedPartyIds[] = $hold['party_id'];
             }
         }
-        return $count;
+        return $releasedPartyIds;
     }
 }
