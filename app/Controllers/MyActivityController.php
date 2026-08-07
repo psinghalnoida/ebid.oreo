@@ -310,4 +310,52 @@ class MyActivityController extends BaseController
         (new \App\Models\SellerMessageRecipientModel())->markRead($recipientId, $partyId);
         return redirect()->to('/my-messages');
     }
+
+    // D-106: "Star Ratings" -- a party's current standing in both roles,
+    // previously only ever shown as a bare number on other pages (the
+    // listing page's seller_star_rating, the settlement page's rating
+    // form) with no page of its own explaining what it means.
+    public function starRatings()
+    {
+        $partyId = $this->requireLogin();
+        if (!$partyId) return redirect()->to('/login');
+
+        $party = (new \App\Models\PartyModel())->find($partyId);
+        return view('my/star_ratings', ['title' => 'Star Ratings — AdwitiX', 'party' => $party]);
+    }
+
+    // D-106: "Rating History" -- the real rating_event audit trail
+    // (built for BR-35/BR-36's approval workflow) had no page reading it
+    // back for the party it actually happened to.
+    public function ratingHistory()
+    {
+        $partyId = $this->requireLogin();
+        if (!$partyId) return redirect()->to('/login');
+
+        $events = (new \App\Models\RatingEventModel())->findForParty($partyId);
+        return view('my/rating_history', ['title' => 'Rating History — AdwitiX', 'events' => $events]);
+    }
+
+    // D-106: "Buyer Dashboard" -- a real consolidation of My Bids/
+    // Offers/Purchases-to-rate/Favorites into one summary screen, each
+    // section linking out to its own already-working full page.
+    public function buyerDashboard()
+    {
+        $partyId = $this->requireLogin();
+        if (!$partyId) return redirect()->to('/login');
+
+        $summary = (new \App\Libraries\DashboardService())->buyerSummary($partyId);
+        return view('my/buyer_dashboard', ['title' => 'Buyer Dashboard — AdwitiX', 'summary' => $summary]);
+    }
+
+    // D-106: "Seller Dashboard" -- same consolidation, seller side (My
+    // Listings/Sales/Earnings/Payout Bank/Invoices).
+    public function sellerDashboard()
+    {
+        $partyId = $this->requireLogin();
+        if (!$partyId) return redirect()->to('/login');
+
+        $summary = (new \App\Libraries\DashboardService())->sellerSummary($partyId);
+        return view('my/seller_dashboard', ['title' => 'Seller Dashboard — AdwitiX', 'summary' => $summary]);
+    }
 }

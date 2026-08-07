@@ -1,6 +1,6 @@
 name: Regression suite
 
-# Runs the 36 real, permanent test:* commands (see README.md Step 10)
+# Runs the 37 real, permanent test:* commands (see README.md Step 10)
 # against a real PostgreSQL 16 database on every push and pull request.
 # These are assertion-based suites, not throwaway scripts -- a failure
 # here means something genuinely broke, the same signal SETUP.md asks
@@ -89,7 +89,7 @@ jobs:
                      tenderreview easyexpresscorrections kyc aml standingreview \
                      payoutcontrol crawlback auditlog sovereignrule servertimecheck \
                      invoices successfee tenantapi media selleraudit phase3a discovery \
-                     browse br35 terminology chronicle aiaudit listingreach; do
+                     browse br35 terminology chronicle aiaudit listingreach partydashboards; do
             echo "::group::test:$cmd"
             if ! php spark test:$cmd; then
               FAILED="$FAILED test:$cmd"
@@ -100,4 +100,4 @@ jobs:
             echo "Failed suites:$FAILED"
             exit 1
           fi
-          echo "All 35 suites passed."
+          echo "All 37 suites passed."

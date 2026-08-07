@@ -562,6 +562,29 @@ design nor a consolidated backend — recorded in
 `docs/design/CLAUDE_DESIGN_HANDOFF.md` §2, flagged for a product
 scoping decision, not built here.
 
+## Update — D-106: the 6 no-mockup screens built (not a BR/PR item)
+
+Not a BR/PR item — the scoping decision D-105's writeup said the 6
+screens above needed. The project owner's instruction was explicit:
+"tackle the 6 no-mockup screens next." All 6 built: new
+`DashboardService` (Buyer/Seller Dashboard — a real consolidation of
+each buyer/seller's existing separate pages, not a new source of
+truth), `RatingEventModel::findForParty()` (Rating History — reads the
+BR-35/BR-36 audit trail that already existed but was never shown back
+to the party it happened to), a dedicated Star Ratings page (reads the
+existing rating/shadow-ban/Crawl-Back fields), and new
+`AdminDirectoryService` (Lot Directory / Trading Session Directory —
+the real gap: the Custodian had no way to browse listings/sale events
+platform-wide across every Tenant, only per-tenant pending queues
+existed). No new migrations — every screen reads tables that already
+existed. New suite `test:partydashboards`, 31/31 assertions, plus a
+full real HTTP click-through for all 6 (real register→OTP→mPIN flow,
+real TOTP-gated Super Admin login generating a genuine 6-digit code
+from a real enrolled secret, correct content and correct auth-guarding
+confirmed for every screen). Full detail in `docs/DECISIONS.md` D-106.
+`docs/design/CLAUDE_DESIGN_HANDOFF.md` §2 updated: the "no backend at
+all" list is now empty.
+
 ### Bottom line (current)
 
 **Still four items with no path forward without the project owner
@@ -573,10 +596,9 @@ this is a credentials gap, not a build-effort gap**:
 3. A real payment gateway — EMD funding is simulated across every sale format; connects post-deployment
 4. A real SMS provider — OTP is generated/rate-limited correctly but only ever shown on-screen, never sent
 
-**Separately, 6 screens from the design handoff package need a product
-scoping decision before either design or build work makes sense** (not
-a credentials gap — a scope one): Buyer Dashboard, Seller Dashboard,
-Rating History, Star Ratings, Lot Directory, Trading Session Directory.
-See `docs/design/CLAUDE_DESIGN_HANDOFF.md` §2 for what exists instead
-of each today.
+**No screens remain blocked on missing backend or product scoping.**
+Every screen tracked in `docs/design/CLAUDE_DESIGN_HANDOFF.md` — the
+original 53-screen design package plus the 6 no-mockup screens closed
+out by D-106 — now has a real, tested backend. What's left everywhere
+else is purely visual design work, not build work.
 

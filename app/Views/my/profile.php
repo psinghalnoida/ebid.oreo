@@ -43,12 +43,16 @@
       <a href="/account/change-mpin">Change mPIN <span class="chev">→</span></a>
       <a href="/payout-bank">Payout Bank Details <span class="chev">→</span></a>
       <a href="/account/invoices">Invoices <span class="chev">→</span></a>
+      <a href="/my-star-ratings">Star Ratings <span class="chev">→</span></a>
+      <a href="/my-rating-history">Rating History <span class="chev">→</span></a>
     </div>
   </div>
 
   <div class="settings-group">
     <h3>Activity</h3>
     <div class="settings-list">
+      <a href="/my-buyer-dashboard">Buyer Dashboard <span class="chev">→</span></a>
+      <a href="/my-seller-dashboard">Seller Dashboard <span class="chev">→</span></a>
       <a href="/my-bids">My Bids <span class="chev">→</span></a>
       <a href="/my-offers">My Offers <span class="chev">→</span></a>
       <a href="/my-purchases">My Purchases <span class="chev">→</span></a>

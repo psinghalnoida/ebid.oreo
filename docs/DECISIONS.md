@@ -6851,3 +6851,121 @@ the app's own configured host in this environment.)
 
 Full regression re-run clean: all 36 suites (including the new one)
 against an independently rebuilt database.
+
+### D-106: the 6 no-mockup screens — consolidated dashboards, rating history, and platform-wide admin directories
+
+Follow-on from D-105: the same coverage audit that found Lot Reach &amp;
+Interest had no backend at all also flagged 6 more screens with
+**neither a design nor a consolidated backend** — Buyer Dashboard,
+Seller Dashboard, Rating History, Star Ratings, Lot Directory
+(Custodian-facing, platform-wide), Trading Session Directory (same,
+platform-wide). Unlike Lot Reach & Interest, none of these needed new
+domain logic built from scratch — every number they show already
+existed somewhere in a real table, just never read back in one place.
+The project owner's instruction was explicit: "tackle the 6 no-mockup
+screens next," treated as the scoping decision D-105's writeup said
+these needed — build all 6, not extend one existing page per screen.
+
+**What got built, and what it deliberately didn't**:
+
+1. **Buyer Dashboard / Seller Dashboard** — new `DashboardService`
+   (`buyerSummary()`/`sellerSummary()`), each a real, bounded read
+   across the tables the existing My Bids/Offers/Purchases/Favorites
+   (buyer side) and My Listings/Sales/Payout Bank/Invoices (seller
+   side) pages already draw from — not a new source of truth, a
+   consolidation. Each dashboard section links out to its own already-
+   working full page rather than reinventing it. New routes
+   `/my-buyer-dashboard`, `/my-seller-dashboard` on
+   `MyActivityController`.
+2. **Rating History** — `RatingEventModel::findForParty()`, one new
+   method reading the `rating_event` table that BR-35/BR-36's approval
+   workflow already writes a complete, permanent audit trail into. No
+   page anywhere read it back for the party it actually happened to
+   until now — every rating number shown elsewhere in the app was
+   always just the current value, never its history. New route
+   `/my-rating-history`.
+3. **Star Ratings** — a dedicated page reading `party.star_rating`/
+   `seller_star_rating` plus the existing shadow-ban/Crawl-Back fields
+   (`shadow_banned_at_{buyer,seller}`,
+   `crawl_back_{active,clean_completed,clean_required}_{buyer,seller}`)
+   that BR-39's Crawl-Back enforcement already maintains but nothing
+   ever surfaced on a page of its own. New route `/my-star-ratings`.
+4. **Lot Directory / Trading Session Directory** — the real gap: the
+   Custodian (Super Admin) had no way to browse every listing or sale
+   event platform-wide, across every Tenant; only per-tenant pending-
+   approval queues existed anywhere. New `AdminDirectoryService`
+   (`findListings()`/`countListings()`/`findSaleEvents()`/
+   `countSaleEvents()`, each with real server-side filters — free-text/
+   tenant/format/status for listings, tenant/format/status for sale
+   events) pulled out of `AdminController` specifically so the
+   filtering logic is directly unit-testable without needing a real
+   TOTP-based Super Admin HTTP login just to exercise it. New routes
+   `/admin/lots`, `/admin/trading-sessions`, both `superAdmin`-filtered
+   the same way every other admin route already is. Real pagination
+   via the existing `Paginator` library, same pattern as every other
+   filterable admin list in the app.
+
+No new migrations — all 6 screens read tables that already existed.
+All 6 wired into navigation: Star Ratings/Rating History added to
+Profile's Account group, Buyer/Seller Dashboard added to the top of
+Profile's Activity group, Lot Directory/Trading Session Directory
+added to the Super Admin dashboard's action row — not left orphaned.
+
+**Real bugs found while building this, not assumed away**:
+1. First test-fixture mobile-number block (`+919777701xxx`) collided
+   with `TestDispute.php`'s own fixtures — a guaranteed failure the
+   instant both suites ran in the same shared-DB session, unrelated to
+   any actual code defect. Fixed by picking an unused block
+   (`+919777801xxx`), same category of fixture-collision bug this
+   session has hit and fixed before (D-104's `TestChronicle`/
+   `TestEasySchedule` collision).
+2. The Trading Session Directory backfill's own test fixture tried to
+   create a Tender sale event with `result_mode = 'seller_review'` —
+   the real schema constraint only allows `instant_close` or
+   `approval_required` (checked directly against the live
+   `sale_event_result_mode_check` constraint, not assumed from memory).
+   Test fixture fixed, not the schema.
+3. `migrate:refresh` itself failed on this sandbox's database — an
+   old down-migration (`AddStandingReviewToDispute`) can't roll back
+   cleanly against data written after it (a NOT NULL constraint
+   violation on its own rollback SQL), a pre-existing issue unrelated
+   to this work. Verification proceeded by dropping and recreating the
+   database directly (`DROP DATABASE`/`CREATE DATABASE`) plus a plain
+   `migrate --all`, which is the same effective clean-slate state
+   `migrate:refresh` would have produced.
+
+**Verified for real, not assumed**: new suite `test:partydashboards`,
+31/31 assertions — covering both dashboards' real numbers (and, for
+each, that an item genuinely drops off its list once actually
+rated/completed, not a static snapshot), rating history's real
+ordering and cross-party isolation (another party's events never leak
+into this party's history), and both admin directories' platform-wide
+scope plus every real filter (free-text, tenant, format, status,
+including combinations) against real fixture data spanning two
+Tenants. Full regression re-run clean on an independently rebuilt
+database: all 37 suites, only the pre-existing, already-diagnosed
+`test:auditlog` gap (this sandbox's `.env` database is named
+`ebidhub`, but that suite's own deliberate raw-tamper step hardcodes
+`ebidhub_ci4` — a sandbox-naming mismatch, not a regression; passes
+clean whenever the two names align, e.g. inside the CI workflow's own
+`ebidhub_ci4`-named database).
+
+Then a full real HTTP click-through on top of that: registered two
+real parties from scratch (mobile → OTP → mPIN, the real flow, no
+shortcuts), seeded real fixture data via direct model calls for one of
+them (bid, offer, settlement, listing, rating event), and confirmed
+all 4 party-facing pages render the real fixture content over a real
+authenticated session — then confirmed all 4 redirect an unauthenticated
+request to `/login`. For the two admin screens: granted `super_admin`
+via the real CLI grant path, enrolled a real TOTP secret through the
+actual `/admin/setup-totp` HTTP form (not a stub), generated a genuine
+6-digit code from that secret using the same HMAC-SHA1/RFC-6238
+algorithm `TotpService` itself implements, logged in through the real
+isolated `/admin/login` TOTP-gated path, and confirmed both directory
+pages render real platform-wide data plus correct filtering — then
+confirmed both redirect a regular (non-Super-Admin) session back to
+`/admin/login`, same as an unauthenticated one. `docs/design/
+CLAUDE_DESIGN_HANDOFF.md` updated: §2 (the "6 screens, no backend at
+all" list) is now empty — all 7 screens that were ever in that
+category (Lot Reach & Interest plus these 6) are consolidated into one
+"ready to design" section with the real field/route spec for each.

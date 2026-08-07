@@ -29,6 +29,8 @@
 
   <a href="/admin/tenants" class="btn btn-emerald"><?= tsx_term('Tenant', false, true) ?></a>
   <a href="/admin/users" class="btn btn-ghost" style="margin-left:8px;">Users</a>
+  <a href="/admin/lots" class="btn btn-ghost" style="margin-left:8px;">Lot Directory</a>
+  <a href="/admin/trading-sessions" class="btn btn-ghost" style="margin-left:8px;">Trading Session Directory</a>
   <a href="/admin/alerts" class="btn btn-ghost" style="margin-left:8px;">Alerts</a>
   <a href="/admin/delist-seller" class="btn btn-ghost" style="margin-left:8px;">Delist <?= tsx_term('Seller') ?> (Confirmed Fraud)</a>
   <a href="/admin/audit-log" class="btn btn-ghost" style="margin-left:8px;">Audit Log</a>

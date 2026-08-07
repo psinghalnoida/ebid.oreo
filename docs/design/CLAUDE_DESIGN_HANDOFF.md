@@ -17,18 +17,20 @@ repeat any of that, only what's different, additional, or changed.
 | Of those 53 — decision in progress | 1 (Onboarding) |
 | Of those 53 — not yet reviewed, backend ready to design against | 51 |
 | Screens with real backend but **no design at all** (§1 below) | 6 |
-| Screens with **neither a design nor a consolidated backend** (§2 below) | 6 |
+| Screens with **neither a design nor a consolidated backend** | **0** — all 6 built (D-106, §2 below) |
 | **Total distinct screens tracked** | **65** |
 | **Actually built into the live app's real views so far** | **0** *(design-wise — see note)* |
 
 Note on "0 built": that's 0 screens carrying the *new* design system's
-actual visual treatment. One item changed since the last version of
-this doc — **Lot Reach &amp; Interest** (one of the original 53) had no
-real backend behind it at all as of the last audit; it does now (D-105,
-below). It still needs its real visual design applied — same as the
-other 51 not-yet-reviewed screens in the package — but it's no longer
-blocked on missing functionality. Section 3 gives the real field/route
-spec to design against.
+actual visual treatment. Two rounds of backend gap-closing happened
+since the last version of this doc — **Lot Reach &amp; Interest** (D-105)
+and, this round, the **6 screens that had neither a design nor a
+consolidated backend at all** (D-106: Buyer Dashboard, Seller
+Dashboard, Rating History, Star Ratings, Lot Directory, Trading
+Session Directory). All 7 now have real, tested backends and are
+unblocked for design — §2 gives the real field/route spec for each.
+None of the 65 tracked screens are blocked on missing functionality
+anymore; everything left is purely visual design work.
 
 Every screen in §1 below is **fully functional, tested, production
 logic** — real controllers, real services, real database tables,
@@ -222,44 +224,19 @@ one.
 
 ---
 
-# §2 — 6 screens with neither a design nor a consolidated backend
+# §2 — 7 screens: had no consolidated backend, now built, ready to design
 
-Found in a follow-up audit (D-104/D-105) that checked every one of the
-53-package's screens against real routes, not just the 6 in §1.
-**Different in kind from §1**: these aren't "just needs a screen" —
-the underlying functionality is either scattered across several real
-pages with no single consolidated view, or (in one case, already
-resolved — see §3) didn't exist as backend logic at all. Flagging
-these here so design work doesn't start on them assuming a backend
-that isn't there; each needs a product scoping decision before design,
-the same way Lot Reach &amp; Interest did before D-105 built it.
+All 7 of these were flagged in an earlier version of this doc as
+having **neither a design nor a consolidated backend** — Lot Reach &amp;
+Interest first (D-105, 2026-08-07 morning), then the remaining 6
+(D-106, 2026-08-07, same day) after the project owner's explicit
+scoping call was "build all 6." **None of these need a further
+scoping decision** — each below reflects what's **actually
+implemented and tested**, not a re-statement of the original mockup's
+intent. Design directly against the real field/route spec given per
+screen.
 
-| Screen (53-package name) | What exists today instead | Real gap |
-|---|---|---|
-| **Buyer Dashboard** | `/my-bids`, `/my-offers`, `/my-purchases`, `/profile`, `/account/earnings` — 5 separate real pages | No single consolidated dashboard exists to design against |
-| **Seller Dashboard** | `/my-listings`, `/my-sales`, `/account/earnings`, `/payout-bank`, `/account/invoices` — 5 separate real pages | Same problem, seller side |
-| **Rating History** | Ratings shown inline on profile/listing pages only | No dedicated history page/route exists |
-| **Star Ratings** | Same | No dedicated page/route exists |
-| **Lot Directory** (Custodian-facing, platform-wide, filterable, all tenants) | Only per-tenant pending-approval queues on the Tenant Admin Dashboard | Super Admin has no way to browse every listing across every tenant |
-| **Trading Session Directory** (Custodian-facing, same idea for sale events) | Same | No platform-wide sale-event browse exists for Super Admin |
-
-None of these are in progress. Bring them up with the project owner
-before starting design work on any of them — each is a real product
-decision (build a new consolidated page? extend an existing one?) not
-just a visual one.
-
----
-
-# §3 — Lot Reach & Interest: now has real backend, ready to design
-
-Was one of §2's problems until D-105 (2026-08-07) built it — flagged
-here specifically since it's the one screen that moved from "no
-backend" to "ready for real design" since the last version of this
-doc. The design brief below reflects what's **actually implemented and
-tested** (`spark test:listingreach`, 29/29 assertions, plus a full real
-HTTP click-through — login, view a listing, favorite it, send a bulk
-message, receive it in a real inbox, mark it read), not a re-statement
-of the original mockup's intent.
+## 1. Lot Reach & Interest
 
 **Seller-facing dashboard** — `GET /my-listings/reach` ·
 `LotReachController::index` · `app/Views/reach/index.php` (currently
@@ -299,6 +276,179 @@ alerts inbox" in the original mockup copy means literally this
 
 ---
 
+## 2. Buyer Dashboard
+
+**Route**: `GET /my-buyer-dashboard` · **Real file**:
+`app/Views/my/buyer_dashboard.php` · **Controller/Service**:
+`MyActivityController::buyerDashboard` / `DashboardService::buyerSummary`
+(currently plain/undesigned — this is the real page to redesign)
+
+A real consolidation, not a new source of truth — every number and row
+here is pulled live from the same tables `/my-bids`, `/my-offers`,
+`/my-purchases`, and `/my-favorites` already read; each section links
+out to that existing full page rather than reinventing it.
+
+- **4 headline stats**: active bids count (bids currently standing H1/
+  H2/H3 on a still-open sale event), open offers count (status
+  `submitted`), purchases-to-rate count (completed settlements this
+  buyer hasn't yet rated the seller on — BR-33's mandatory
+  bidirectional rating), favorites count.
+- **Active Bids** — up to 5 most recent, each with category, amount,
+  and standing (H1/H2/H3), linking to the sale event.
+- **Open Offers** — up to 5 most recent (Tender format), category +
+  amount.
+- **Purchases to Rate** — up to 5, each linking straight into the
+  settlement page's rating action — this list is the one section
+  worth visually emphasizing (it's an outstanding action, not passive
+  info; the plain page currently renders it in a warning color for
+  exactly this reason).
+
+Real, tested behavior worth designing around: a purchase drops off
+"Purchases to Rate" the instant it's actually rated — it's a live
+query against `settlement.buyer_rated_seller_at`, not a static or
+cached list (verified in `test:partydashboards`).
+
+---
+
+## 3. Seller Dashboard
+
+**Route**: `GET /my-seller-dashboard` · **Real file**:
+`app/Views/my/seller_dashboard.php` · **Controller/Service**:
+`MyActivityController::sellerDashboard` / `DashboardService::sellerSummary`
+(currently plain/undesigned)
+
+Same consolidation pattern, seller side — pulls from `/my-listings`,
+`/my-sales`, `/payout-bank`, and `/account/invoices`.
+
+- **4 headline stats**: active listings count, sales-this-month count,
+  sales-this-month value (₹, sum of `final_price` on settlements
+  completed since the 1st of the current month), pending settlements
+  count (emphasized in a warning color when &gt;0 — same live-list
+  behavior as Buyer Dashboard's purchases-to-rate).
+- **Payout Bank status** — a real on-file/not-set/change-pending
+  tri-state read from `party.payout_bank_account_number` and
+  `payout_bank_pending_account_number`; when not set, links straight
+  to `/payout-bank` — this is a genuine "you can't get paid yet"
+  warning, not decorative.
+- **Active Listings** — up to 5, category + real view count (from
+  Lot Reach & Interest's `listing.view_count`), linking to the listing.
+- **Pending Settlements** — up to 5, category + amount, linking to the
+  settlement page — drops off once `status` flips to `completed`, same
+  live-query behavior as the buyer side.
+- **Recent Invoices** — up to 5, invoice number + total, linking to
+  `/account/invoices`.
+
+---
+
+## 4. Rating History
+
+**Route**: `GET /my-rating-history` · **Real file**:
+`app/Views/my/rating_history.php` · **Controller/Model**:
+`MyActivityController::ratingHistory` / `RatingEventModel::findForParty`
+(currently plain/undesigned)
+
+Reads a real, complete, permanent audit trail that already existed
+(`rating_event`, built for BR-35/BR-36's approval workflow) but had no
+page anywhere showing it back to the party it happened to — every
+number on Star Ratings/listing pages was always just the current
+value, never the history behind it.
+
+Table, newest first, one row per real event: date, role (Trader★ vs.
+Market Maker★ — the two ratings are tracked and shown as fully
+independent histories), type (**Upgrade** / **Downgrade** / **Forced
+Neutral** — style these three as visually distinct, not shades of the
+same badge; Forced Neutral in particular is a BR-39 stalled-settlement
+outcome, not a normal rating event and shouldn't look like one), the
+actual before→after value change, the human-readable reason text
+(real, stored, not a category code), and status (`applied` vs.
+`pending_tenant_approval` vs. `pending_super_admin_approval` vs.
+`rejected` — BR-36's real approval workflow states) plus, when
+appealed, the appeal outcome.
+
+Empty state is real and expected for most parties: every account
+starts neutral at 3.0★ with zero events until something changes it.
+
+---
+
+## 5. Star Ratings
+
+**Route**: `GET /my-star-ratings` · **Real file**:
+`app/Views/my/star_ratings.php` · **Controller**:
+`MyActivityController::starRatings` (currently plain/undesigned)
+
+The "what is my standing right now, and why" screen — Rating History
+above is the ledger, this is the current-balance summary, and the two
+should read as a clear pair (this page links into that one).
+
+Two independent cards, Trader★ and Market Maker★ — same current
+`star_rating`/`seller_star_rating` values already shown elsewhere in
+the app, but this is the first page that actually explains them:
+
+- The numeric rating itself (0.0–5.0, one decimal).
+- **Shadow-ban state**, per role, independently — if
+  `shadow_banned_at_{buyer,seller}` is set, show since when, in a
+  visually serious (not merely informational) treatment; if not set,
+  show "In good standing."
+- **Crawl-Back progress**, when a shadow ban's recovery path is
+  active — a real "`{completed}` / `{required}` clean transactions
+  completed" counter (`crawl_back_clean_completed_*` /
+  `crawl_back_clean_required_*`), which is genuinely incrementing
+  data, not a static message — design it as visible progress (a bar or
+  counter), not plain text.
+
+---
+
+## 6. Lot Directory
+
+**Route**: `GET /admin/lots` (Custodian/Super Admin only) ·
+**Real file**: `app/Views/admin/lot_directory.php` · **Controller/
+Service**: `AdminController::lotDirectory` / `AdminDirectoryService`
+(currently plain/undesigned)
+
+The gap this closes: the Tenant Admin Dashboard already designed in
+the 53-package only ever shows one TSX Master's own pending queue —
+the Custodian previously had **no way to browse every listing across
+every TradeSphereX**, platform-wide, at all.
+
+- **Filters** (real, server-side, all combinable): free-text search
+  (matches category/subcategory/tenant name), tenant, sale format
+  (Easy/Express/Buy-Now/Tender), listing status. Don't design filter
+  chips beyond these four — nothing else is wired.
+- **Table**, one row per listing: tenant name, category/subcategory
+  (linking to the real listing page), status, sale format + that
+  listing's sale-event status side by side (a listing can exist
+  without an active sale event yet — design that as a real, expected
+  `—` state, not an error), and real view count.
+- **Real pagination** — same `Paginator` pattern as every other
+  filterable admin list in the app (page numbers, not infinite
+  scroll).
+
+---
+
+## 7. Trading Session Directory
+
+**Route**: `GET /admin/trading-sessions` (Custodian/Super Admin only)
+· **Real file**: `app/Views/admin/trading_session_directory.php` ·
+**Controller/Service**: `AdminController::tradingSessionDirectory` /
+`AdminDirectoryService` (currently plain/undesigned)
+
+Same gap, for sale events (Trading Sessions) rather than listings —
+pairs naturally with Lot Directory above; consider designing them as
+visibly siblings (shared filter-bar layout, same table density).
+
+- **Filters**: tenant, sale format, sale-event status. No free-text
+  search on this one (sale events don't carry their own searchable
+  text beyond the ERN, already visible in the table).
+- **Table**, one row per sale event: ERN (monospace — it's an
+  identifier, treat it like one), tenant name, category, format,
+  status, and current value (real `COALESCE` of current price →
+  reserve value → expected value, whichever the format actually
+  populates — don't design a single "price" field expecting all sale
+  events to have the same one populated).
+- Same real pagination pattern as Lot Directory.
+
+---
+
 ## Getting this into Claude Design
 
 This file lives at `docs/design/CLAUDE_DESIGN_HANDOFF.md` on branch
@@ -309,11 +459,12 @@ This file lives at `docs/design/CLAUDE_DESIGN_HANDOFF.md` on branch
 2. Point it at this file — either paste its contents directly, or if
    the project already has GitHub access, read it straight from this
    path/branch.
-3. Design §1's 6 screens, plus §3 (Lot Reach & Interest, now unblocked)
-   as `.dc.html` files in the same format as the existing 53-screen
-   package, using the same design philosophy already established (see
-   `docs/design/design_handoff_ebid_hub/README.md`). **Hold off on §2**
-   until the project owner has made a scoping call on each.
+3. Design all 13 screens — §1's 6, plus §2's 7 — as `.dc.html` files in
+   the same format as the existing 53-screen package, using the same
+   design philosophy already established (see
+   `docs/design/design_handoff_ebid_hub/README.md`). Nothing is on
+   hold anymore — every screen tracked in this doc has a real, tested
+   backend to design against.
 4. Push the result back the same way the original 53 arrived — a
    branch pushed to this repo (e.g. `design/ebid-hub-handoff-part2`),
    picked up here for review the same screen-by-screen way as the
