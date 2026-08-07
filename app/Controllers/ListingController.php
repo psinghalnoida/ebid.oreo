@@ -274,7 +274,17 @@ class ListingController extends BaseController
         if ($saleEvent && $saleEvent['status'] === 'closed_sold') {
             $settlementRecord = (new \App\Models\SettlementModel())->findBySaleEvent($saleEvent['id']);
         }
-        if ($saleEvent && $saleEvent['sale_format'] === 'buy_now') {
+        // D-116: BR-42 (seller-discretion acceptance) presumes the seller
+        // is the one reviewing offers — every real amount and per-buyer
+        // status was previously rendered to ANY visitor of this page,
+        // not just the seller. Found while designing D-108's WebSocket
+        // broadcasts (which already got this boundary right — the real
+        // amount only ever reaches the seller's own channel) but left
+        // unfixed at the time as a separate decision. Gated here to
+        // match that same precedent exactly, so the static page and the
+        // live WS updates now agree on who may see an offer's amount.
+        if ($saleEvent && $saleEvent['sale_format'] === 'buy_now'
+            && session()->get('logged_in_party_id') === $listing['seller_party_id']) {
             $offerModel = new \App\Models\OfferModel();
             $offers = $offerModel->findForSaleEvent($saleEvent['id']);
         }
