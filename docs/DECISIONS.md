@@ -7196,3 +7196,65 @@ Admin actions (Emergency Stop, delisting) still have zero broadcast
 coverage; the pre-existing offer-amount page-leak in
 `ListingController::show()` remains unfixed and flagged, unchanged by
 this work.
+
+### D-110: WebSocket coverage extended to Dispute (filing, evidence, ruling, appeal)
+
+Third flow in the WebSocket retrofit sequence (D-108 Buy-Now, D-109
+Settlement, now Dispute). `DisputeService` has no single funnel method
+the way `SettlementService::checkCompletion()` does — five separate
+lifecycle methods each mutate state independently: `fileDispute`,
+`submitEvidence`, `ruleOnDispute`, `fileAppeal`, `ruleOnAppeal`. Added
+one private helper, `broadcastDisputeUpdate()`, called from the end of
+all five, rather than five different ad-hoc broadcast blocks — same
+"single point, multiple call sites" shape D-108 used across
+`submitOffer`/`acceptOffer`.
+
+**Design, consistent with D-109's reasoning**: a dispute is a private
+document between exactly two parties — the filer and the respondent —
+so this never touches a sale_event room, only their own
+`buyer:<partyId>` channels (the same generic per-party room every
+logged-in party, including a Tenant/Super Admin acting on their own
+account, already holds open — confirmed via `AuthorizationService`
+that admins genuinely are parties with a `party_id` and an active role
+flag, not a separate identity type, so no special-casing was needed).
+Payload carries the dispute's full current state (status, ruling
+outcome, ruling authority type) on every broadcast, not a delta.
+
+**A gap surfaced and deliberately not built**: there's no live "a new
+dispute needs your ruling" nudge to whichever Tenant/Super Admin will
+eventually rule on it, because reaching "every party currently holding
+role X for tenant Y" isn't something the existing sidecar can address
+— it only has a single sale_event room and single per-party rooms, no
+role-broadcast room type. Building that would be genuinely new sidecar
+scope, not a reuse of what's there, so it wasn't improvised into this
+change. Flagged in `docs/BR_PR_AUDIT.md`, not fixed here.
+
+**Client side**: `layouts/main.php` gained one more relay branch
+(`dispute_updated` → `CustomEvent ebidhub:dispute_updated`), and
+`dispute/show.php` gained the same banner-then-reload listener pattern
+as `settlement/show.php` (D-109) — this page's evidence list, ruling
+panel, appeal panel, and closed-state panel are all conditionally
+server-rendered on the dispute's status, so a full reload avoids
+re-deriving that logic in JS.
+
+**Verified with a real end-to-end test**: a throwaway spark command
+drove a real Buy-Now sale to a real dispute through the actual
+`DisputeService` — `fileDispute` → `submitEvidence` → `ruleOnDispute`
+→ `fileAppeal` → `ruleOnAppeal` — while two genuine WebSocket clients
+(separate Node.js processes) on the buyer's (filer's) and seller's
+(respondent's) party channels both received all 5 `dispute_updated`
+broadcasts with correctly changing state, ending at `status: closed`.
+Both throwaway files (a Node WS client, a spark command) deleted after
+use, confirmed gone via `ls`.
+
+Full regression: 36/37 real suites clean on an independently rebuilt
+database (`test:dispute` itself 21/21); the one non-pass is the same
+pre-existing `test:auditlog` DB-naming gap, not a regression.
+
+**Still explicitly open, not silently assumed covered**: Rating
+(outside the settlement/dispute flows), EMD cascade defaults, and
+Admin actions (Emergency Stop, delisting) still have zero broadcast
+coverage; the pre-existing offer-amount page-leak in
+`ListingController::show()` remains unfixed and flagged; the
+role-broadcast gap noted above (no live nudge to admins with pending
+rulings) is new to this decision and also open.

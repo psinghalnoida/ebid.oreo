@@ -296,6 +296,14 @@
       if (msg.event === 'settlement_updated') {
         window.dispatchEvent(new CustomEvent('ebidhub:settlement_updated', { detail: msg.data }));
       }
+
+      // D-110: dispute filing/evidence/ruling/appeal — same per-party
+      // channel, same relay pattern, delivered to whichever of the
+      // filer/respondent (including an admin acting on their own
+      // party account) is on the page.
+      if (msg.event === 'dispute_updated') {
+        window.dispatchEvent(new CustomEvent('ebidhub:dispute_updated', { detail: msg.data }));
+      }
     };
     socket.onerror = function () { /* sidecar unreachable — ticker just doesn't update live, page still works */ };
   })();

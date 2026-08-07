@@ -699,7 +699,7 @@ clean (`test:settlement` 23/23); the sole non-pass is the same
 pre-existing `test:auditlog` DB-naming gap, not a regression. Full
 detail in `docs/DECISIONS.md` D-109.
 
-### Bottom line (current)
+### Bottom line (superseded by D-110 — kept for history)
 
 **Still four items with no path forward without the project owner
 supplying something external — all four are genuinely build-complete,
@@ -729,4 +729,68 @@ real amount and status to any visitor of the listing page, not just
 the seller — found while designing D-108's broadcasts, confirmed not
 made worse by D-108 or D-109, but the underlying page-level access
 control issue itself is still open and needs its own decision.
+
+## Update — D-110: WebSocket coverage extended to Dispute
+
+Third flow in the retrofit sequence (D-108 Buy-Now, D-109 Settlement,
+now Dispute). `DisputeService` has no single completion funnel —
+added one `broadcastDisputeUpdate()` helper called from the end of all
+5 lifecycle methods (`fileDispute`, `submitEvidence`, `ruleOnDispute`,
+`fileAppeal`, `ruleOnAppeal`) instead. Same private-two-party design as
+D-109: broadcasts only to the filer's and respondent's own
+`buyer:<partyId>` channels, never a sale_event room. Confirmed via
+`AuthorizationService` that a Tenant/Super Admin is genuinely just a
+party with an active role flag, not a separate identity — so an admin
+acting as filer/respondent already gets this via their existing
+per-party channel with no special-casing needed.
+
+A new gap surfaced and intentionally not built: there's no live nudge
+to whichever Tenant/Super Admin will eventually rule on a freshly-filed
+dispute, because the sidecar has no "broadcast to every party holding
+role X for tenant Y" room type — only a single sale_event room and
+single per-party rooms exist today. Building that is genuinely new
+sidecar scope, not a reuse, so it wasn't improvised in. Client side
+reuses D-109's exact relay + banner-then-reload pattern.
+
+Verified with a real end-to-end WebSocket test driving a real dispute
+through all 5 lifecycle steps via the actual `DisputeService`; both
+the filer's and respondent's channels received all 5 broadcasts with
+correctly changing state, ending at `status: closed`. Full regression:
+36/37 real suites clean (`test:dispute` itself 21/21); the sole
+non-pass is the same pre-existing `test:auditlog` DB-naming gap. Full
+detail in `docs/DECISIONS.md` D-110.
+
+### Bottom line (current)
+
+**Still four items with no path forward without the project owner
+supplying something external — all four are genuinely build-complete,
+this is a credentials gap, not a build-effort gap**:
+
+1. BR-46 — AI Listing Pre-Audit, fully built, genuinely inert pending a Gemini API key
+2. BR-52 — Chargeback Mitigation, fully built, blocked on real SabPaisa API credentials
+3. A real payment gateway — EMD funding is simulated across every sale format; connects post-deployment
+4. A real SMS provider — OTP is generated/rate-limited correctly but only ever shown on-screen, never sent
+
+**No screens remain blocked on missing backend or product scoping.**
+Every screen tracked in `docs/design/CLAUDE_DESIGN_HANDOFF.md` — the
+original 53-screen design package plus the 6 no-mockup screens closed
+out by D-106 — now has a real, tested backend. What's left everywhere
+else is purely visual design work, not build work.
+
+**Real-time (WebSocket) coverage, tracked precisely as of D-110, not
+assumed complete**: bids (Easy/Express/Tender), Buy-Now offers,
+Settlement (dual-NOC + ratings + completion), and now Dispute (filing,
+evidence, ruling, appeal) are covered. Rating (outside the
+settlement/dispute flows), EMD cascade defaults, and Admin actions
+still have zero broadcast coverage — each is real, unbuilt scope, not
+an oversight to silently assume is fine. There is also no live nudge
+to an admin whose role newly qualifies them to rule on a dispute —
+flagged in D-110, genuinely new sidecar scope, not built.
+
+**One real, pre-existing gap surfaced but deliberately not fixed**:
+`ListingController::show()` renders every submitted Buy-Now offer's
+real amount and status to any visitor of the listing page, not just
+the seller — found while designing D-108's broadcasts, confirmed not
+made worse by D-108, D-109, or D-110, but the underlying page-level
+access control issue itself is still open and needs its own decision.
 
