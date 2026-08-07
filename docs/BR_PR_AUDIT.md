@@ -585,6 +585,26 @@ confirmed for every screen). Full detail in `docs/DECISIONS.md` D-106.
 `docs/design/CLAUDE_DESIGN_HANDOFF.md` §2 updated: the "no backend at
 all" list is now empty.
 
+## Update — D-107: BR-65 formally amended, API now versioned (`/api/v1/`)
+
+Not a repo-audit finding — a direct architecture-policy directive from
+the project owner, checked against the codebase before acting on it
+rather than assumed compliant. It directly conflicted with BR-65's own
+text in `ADWITIX_Master.docx` (*"The API is not exposed to Tenants
+with a visible version number"*) — the same wording D-93 already once
+confirmed and built to. Surfaced the conflict and the two ways to
+resolve it (header-based versioning vs. formally reversing BR-65); the
+project owner chose to reverse it. `ADWITIX_Master.docx`'s BR-65 text
+rewritten in place (Super-Admin-confirmed reversal, same precedent as
+BR-53's TDS rate and BR-68's app-wide scope), all 6 Tenant API routes
+renamed to `/api/v1/...`. Verified real, not assumed: `test:tenantapi`
+25/25 (route-path-insensitive by design, confirms business logic
+untouched), plus real HTTP — old path `/api/oauth/token` → clean 404
+(no alias left behind), new `/api/v1/oauth/token` → real controller
+response, `/api/v1/listings/{id}` unauthenticated → real 401 from
+`ApiAuthFilter`, proving the filter reattached correctly. Full 36-suite
+regression clean. Full detail in `docs/DECISIONS.md` D-107.
+
 ### Bottom line (current)
 
 **Still four items with no path forward without the project owner

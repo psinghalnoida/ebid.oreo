@@ -6969,3 +6969,69 @@ CLAUDE_DESIGN_HANDOFF.md` updated: §2 (the "6 screens, no backend at
 all" list) is now empty — all 7 screens that were ever in that
 category (Lot Reach & Interest plus these 6) are consolidated into one
 "ready to design" section with the real field/route spec for each.
+
+### D-107: BR-65 formally amended — API is now versioned (`/api/v1/`)
+
+Not a repo-audit finding this time — a direct architectural policy
+directive from the project owner (Chief Architect role prompt), stating
+every API must be versioned, e.g. `/api/v1/`, and must never be exposed
+unversioned. Checked it against the actual codebase before touching
+anything, since a blind "yes, will comply" would have been dishonest:
+that directive is in **direct, literal conflict** with BR-65's own text
+in the governing document, `ADWITIX_Master.docx` — *"The API is not
+exposed to Tenants with a visible version number."* This isn't a team
+convention or an unbuilt spec; it was quoted verbatim, already
+identified once before (D-93 confirmed this exact wording and fixed
+D-89's build to match it by *removing* the `/v1/` segment).
+
+Surfaced the conflict and the two ways to resolve it without silently
+picking a side — real header/content-type versioning (keeps BR-65's
+literal text true) vs. formally amending BR-65 in the master document
+(reverses it). The project owner chose the latter: amend the governing
+document.
+
+**What changed:**
+1. `docs/source-documents/ADWITIX_Master.docx` — BR-65's Statement and
+   Logic/Rationale rewritten in place (direct XML edit via the docx
+   skill, `merge_runs`/`validate.py`-checked, paragraph count unchanged
+   at 1250 before/after). New Statement: the API **is** exposed with a
+   visible version number in the URL (`/api/v1/...`); additive changes
+   still ship within the current version with no prior notice; breaking
+   changes now get a new version segment (`/api/v2/`) running alongside
+   the old one for a notice period, instead of the old "parallel
+   shapes, no version marker" mechanism. New Rationale records this as
+   a Super-Admin-confirmed reversal, same style/precedent as BR-53's
+   TDS-rate confirmation (D-71) and BR-68's app-wide scope confirmation
+   (D-93) — a real decision recorded in the real governing document,
+   not just in this changelog.
+2. `app/Config/Routes.php` — all 6 Tenant API routes (`/api/oauth/token`,
+   `/api/listings*`, `/api/sale-events/*`) renamed to `/api/v1/...`.
+   Checked first for any other code referencing the literal old path
+   strings (`ApiAuthFilter`, `ApiCredentialService`, views, the
+   `test:tenantapi` suite, `Config/Filters.php`'s CSRF exclusion) — none
+   found; the CSRF `except: ['api/*']` glob and `ApiAuthFilter` (which
+   authenticates purely off the `Authorization: Bearer` header, never
+   the URL) both needed zero changes. This was a genuinely contained,
+   one-file code change once the document decision was made.
+
+**Verified for real, not assumed**: `test:tenantapi` still 25/25 (it
+calls controller methods directly, so it's insensitive to route-path
+changes by design — confirms the reversal touched only routing, not
+business logic). Then real HTTP, not just the suite: `POST
+/api/oauth/token` (the old path) → **404**, confirming a genuine clean
+cutover, not an alias left behind; `POST /api/v1/oauth/token` → real
+`400 unsupported_grant_type` (the actual controller logic, not a stub);
+`GET /api/v1/listings/{id}` unauthenticated → real `401` from
+`ApiAuthFilter`, proving the filter is still correctly attached to the
+new path. Full 36-suite regression on an independently rebuilt
+database: clean, only the pre-existing, already-diagnosed
+`test:auditlog` DB-naming gap.
+
+**Explicitly out of scope for this decision**: the Chief Architect
+directive's other items (WebSocket layer, Redis caching, the 17
+controllers with direct DB access, bounded-context module structure,
+and the net-new domain concepts — Wallet, Reverse Auctions,
+Procurement, Warehouses, RVSFs, Financial Institutions, Service
+Providers) were sized and sequenced but explicitly not started pending
+their own individual decisions — BR-65 was the one item the project
+owner asked to start with.
