@@ -7329,3 +7329,96 @@ broadcast coverage; the pre-existing offer-amount page-leak in
 role-broadcast gap (no live nudge to admins with pending dispute
 rulings or rating approvals) noted in D-110 is now confirmed to apply
 identically to the rating review queue and remains open.
+
+### D-112: WebSocket coverage extended to EMD cascade defaults (BR-28) — and a real pre-existing gap surfaced along the way
+
+Fifth flow in the retrofit sequence (D-108 Buy-Now, D-109 Settlement,
+D-110 Dispute, D-111 Rating, now the EMD cascade). `CascadeService`
+gained three broadcast points:
+
+- `openTopupWindow()` — the single funnel both `initiateCascade()`
+  (step 1, a fresh cascade opening) and `processDefault()`'s
+  baton-pass branch (step 2/3) already call — now sends a public,
+  amount-free `cascade_topup_window_opened` (cascade step + deadline)
+  to the sale_event room, and a private `cascade_your_turn` (same
+  payload plus `saleEventId`) to the new top holder's own party
+  channel. This is the single highest-value signal in the whole
+  cascade flow — the window is short, and the bidder who's now on the
+  clock has no other way to learn it without polling.
+- `processDefault()` — a public `cascade_defaulted` (cascade step +
+  `outcome`: `baton_passed` or `full_cascade_failure`), amount-free and
+  identity-free like `offer_submitted` (D-108); the "who's now on the
+  clock" detail is deliberately left to `openTopupWindow()`'s own
+  broadcasts, not duplicated here.
+- `processTopupPaid()` — a public `cascade_topup_paid` with the final
+  amount, same "terminal outcome is public" precedent as
+  `offer_accepted` (D-108) — every bid amount on Easy/Express is
+  already public in real time via `bid_placed`, so this adds no new
+  privacy exposure.
+
+Client side: `listing/show.php`'s existing sale_event-room handler
+gained three more amount-free branches (in-place status/price text
+update, same as `bid_placed`/`dynamic_time_update` — no reload, this
+is the live auction view). `layouts/main.php` relays
+`cascade_your_turn` via the same `CustomEvent` pattern as every prior
+private event; `listing/show.php` listens for it unconditionally
+(unlike `offer_received`, the recipient here is typically a visiting
+bidder, not the listing's owner) and filters by matching
+`e.detail.saleEventId` against the page's own sale event, since a
+party can hold this same per-party channel open while browsing an
+entirely unrelated listing.
+
+**A real, pre-existing gap surfaced while wiring this — flagged
+prominently, not buried**: `CascadeService::processDefault()` and
+`::processTopupPaid()` currently have **zero real call sites anywhere
+in the running application** — confirmed by grepping the entire
+`app/` tree outside of test commands. `SchedulerService` only ever
+calls `initiateCascade()` (from `processExpiredExpressBidding()` and
+`processExpiredEasyAuctions()`, both real and scheduler-driven); there
+is no scheduler method that polls for an expired, unpaid top-up window
+and calls `processDefault()`, and no controller route lets a bidder
+submit "I paid the top-up" to trigger `processTopupPaid()`. In other
+words: **today, a cascade can open (a bidder gets told they owe a
+top-up) but nothing in the running system can ever close it** — not a
+default, not a successful payment. This is a functional gap in BR-28's
+own implementation, independent of and larger than WebSocket coverage,
+and out of scope for this decision to silently fix. The new broadcasts
+above are real, tested against the actual service methods via
+`test:cascade`/`test:express` and a live end-to-end WS run, and will
+fire correctly the moment this wiring gap is closed — but until then
+they are unreachable in production. Flagged here and in
+`docs/BR_PR_AUDIT.md` for the project owner's prioritization, the same
+treatment given to the SMS-provider and payment-gateway gaps.
+
+**Verified with a real end-to-end test**, working within that
+constraint by calling the service methods directly (exactly how
+`test:cascade` itself already does, since that's the only way to
+exercise this code at all today): a throwaway spark command drove a
+real Easy Auction with 3 bidders through `initiateCascade()` →
+`processDefault()` (H1 defaults, baton passes to H2) →
+`processTopupPaid()` (H2 pays), while three genuine WebSocket clients
+— one on the public sale_event room, one on H1's own channel, one on
+H2's own channel — confirmed: the public room received all 4
+broadcasts in the correct order (`cascade_topup_window_opened` step 1
+→ `cascade_defaulted` baton_passed → `cascade_topup_window_opened`
+step 2 → `cascade_topup_paid` amount 130000); H1 received exactly one
+private `cascade_your_turn` (step 1) and nothing else; H2 received
+exactly one private `cascade_your_turn` (step 2) and nothing else —
+confirming the privacy boundary (each bidder's own nudge stays theirs
+alone) held under a real test. Throwaway files (3 Node WS clients, a
+spark command) deleted after use, confirmed gone via `ls`.
+
+Full regression: 36/37 real suites clean on an independently rebuilt
+database (`test:cascade` 22/22, `test:express` 16/16 — the format most
+exercising this code path); the sole non-pass is the same pre-existing
+`test:auditlog` DB-naming gap, not a regression.
+
+**Still explicitly open, not silently assumed covered**: Admin actions
+(Emergency Stop, delisting) still have zero broadcast coverage; the
+pre-existing offer-amount page-leak in `ListingController::show()`
+remains unfixed and flagged; the role-broadcast gap for admin queues
+(dispute rulings, rating approvals) remains open; and now this
+decision's own new finding — the missing scheduler/controller wiring
+for cascade default/top-up-paid — is a real, separate, larger gap in
+BR-28 itself, not a WebSocket-coverage item, surfaced for the project
+owner to prioritize.

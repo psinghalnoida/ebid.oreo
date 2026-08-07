@@ -40,6 +40,25 @@ class CascadeService
     {
         $topupRequiredBy = EmdService::calculateTopupWindow($saleEvent['sale_format'], $cascadeStep);
         $this->bidModel->setTopupWindow($bid['id'], $topupRequiredBy->format('Y-m-d H:i:s'));
+
+        // D-112: single funnel for both entry points (a fresh
+        // initiateCascade() at step 1, and a baton-pass from
+        // processDefault() at step 2/3) — whoever now holds the window
+        // needs to know urgently, since the window itself is short. Two
+        // different audiences, like D-108's offer_submitted/
+        // offer_received split: the public sale_event room (any
+        // visitor) only learns a window opened, no identity; the
+        // specific bidder now on the clock gets a private, actionable
+        // nudge on their own already-open party channel.
+        $broadcaster = new RealtimeBroadcastService();
+        $broadcaster->broadcast($saleEvent['id'], 'cascade_topup_window_opened', [
+            'cascadeStep' => $cascadeStep, 'topupRequiredBy' => $topupRequiredBy->format('Y-m-d H:i:s'),
+        ]);
+        $broadcaster->broadcastToBuyer($bid['bidder_party_id'], 'cascade_your_turn', [
+            'saleEventId' => $saleEvent['id'], 'cascadeStep' => $cascadeStep,
+            'topupRequiredBy' => $topupRequiredBy->format('Y-m-d H:i:s'),
+        ]);
+
         return ['bidId' => $bid['id'], 'cascadeStep' => $cascadeStep, 'topupRequiredBy' => $topupRequiredBy];
     }
 
@@ -60,6 +79,15 @@ class CascadeService
         (new \App\Libraries\SettlementService())->createForSaleEvent(
             $paidBid['sale_event_id'], $paidBid['bidder_party_id'], (float) $paidBid['amount']
         );
+
+        // D-112: the terminal, public outcome — same precedent as
+        // OfferService::acceptOffer's offer_accepted (D-108): every bid
+        // amount on Easy/Express is already public in real time via
+        // bid_placed, so revealing the winning top-up price here adds
+        // no new privacy exposure.
+        (new RealtimeBroadcastService())->broadcast($paidBid['sale_event_id'], 'cascade_topup_paid', [
+            'amount' => (float) $paidBid['amount'],
+        ]);
 
         return $paidBid;
     }
@@ -104,6 +132,16 @@ class CascadeService
             default => 'default_3rd',
         };
         (new RatingService())->applyNamedEvent($defaultingPartyId, 'star_rating', $eventKey, "Cascade default, sale event {$saleEventId}", $saleEventId);
+
+        // D-112: public — a default itself carries no bidder identity
+        // or amount, same amount-free treatment as offer_submitted
+        // (D-108). The baton_passed case's "who's now on the clock"
+        // detail is covered separately by openTopupWindow()'s own
+        // broadcasts below, not duplicated here.
+        (new RealtimeBroadcastService())->broadcast($saleEventId, 'cascade_defaulted', [
+            'cascadeStep' => $cascadeStep,
+            'outcome' => $isFullCascadeFailure ? 'full_cascade_failure' : 'baton_passed',
+        ]);
 
         if ($isFullCascadeFailure) {
             $this->saleEventModel->markClosed($saleEventId, 'cancelled');

@@ -476,6 +476,24 @@
           priceEl.textContent = '₹' + Number(msg.data.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 });
           if (statusEl) statusEl.textContent = 'Live — an offer was just accepted. Refresh for full details.';
         }
+
+        // D-112: BR-28 EMD cascade (Easy/Express only) — all three
+        // amount-free, same treatment as bid_placed's own step-by-step
+        // publicity already gives away every bid amount on these
+        // formats in real time, so cascade_topup_paid's final amount
+        // below adds no new exposure.
+        if (msg.event === 'cascade_topup_window_opened' && statusEl) {
+          statusEl.textContent = 'Live — the top-up window is now open (round ' + msg.data.cascadeStep + '). Refresh for the deadline.';
+        }
+        if (msg.event === 'cascade_defaulted' && statusEl) {
+          statusEl.textContent = msg.data.outcome === 'full_cascade_failure'
+            ? 'Live — every bidder defaulted; this auction has been cancelled.'
+            : 'Live — the current top bidder defaulted; the top-up baton just passed on.';
+        }
+        if (msg.event === 'cascade_topup_paid' && priceEl) {
+          priceEl.textContent = '₹' + Number(msg.data.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+          if (statusEl) statusEl.textContent = 'Live — the top-up was paid and the sale just closed.';
+        }
       };
 
       socket.onerror = function () {
@@ -498,6 +516,21 @@
         }
       });
       <?php endif; ?>
+
+      // D-112: the private "you're now on the clock" nudge — unlike
+      // offer_received above, the recipient here is typically the
+      // winning bidder, not this listing's owner, so this listener is
+      // unconditional; saleEventId is what actually scopes it to this
+      // page (a party can hold this same open channel while browsing
+      // an unrelated listing).
+      window.addEventListener('ebidhub:cascade_your_turn', function (e) {
+        if (e.detail && e.detail.saleEventId === saleEventId) {
+          const statusEl = document.getElementById('live-status');
+          if (statusEl) {
+            statusEl.textContent = 'Live — you are now on the clock for a top-up (round ' + e.detail.cascadeStep + '). Refresh to see your deadline.';
+          }
+        }
+      });
     })();
   </script>
   <?php endif; ?>

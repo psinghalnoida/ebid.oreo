@@ -311,6 +311,13 @@
       if (msg.event === 'rating_updated') {
         window.dispatchEvent(new CustomEvent('ebidhub:rating_updated', { detail: msg.data }));
       }
+
+      // D-112: this bidder just became the one on the clock for an
+      // EMD cascade top-up (BR-28) — same per-party channel, same
+      // relay pattern. The listing page filters by saleEventId itself.
+      if (msg.event === 'cascade_your_turn') {
+        window.dispatchEvent(new CustomEvent('ebidhub:cascade_your_turn', { detail: msg.data }));
+      }
     };
     socket.onerror = function () { /* sidecar unreachable — ticker just doesn't update live, page still works */ };
   })();

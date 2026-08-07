@@ -839,7 +839,7 @@ forced_neutral). Full regression: 36/37 real suites clean
 pre-existing `test:auditlog` DB-naming gap. Full detail in
 `docs/DECISIONS.md` D-111.
 
-### Bottom line (current)
+### Bottom line (superseded by D-112 — kept for history)
 
 **Still four items with no path forward without the project owner
 supplying something external — all four are genuinely build-complete,
@@ -873,6 +873,92 @@ built.
 real amount and status to any visitor of the listing page, not just
 the seller — found while designing D-108's broadcasts, confirmed not
 made worse by any of D-108 through D-111, but the underlying
+page-level access control issue itself is still open and needs its
+own decision.
+
+## Update — D-112: WebSocket coverage extended to EMD cascade defaults — and a real BR-28 wiring gap surfaced
+
+Fifth flow in the retrofit sequence. `CascadeService` gained 3
+broadcast points: `openTopupWindow()` (the shared funnel for both a
+fresh cascade and a baton-pass) sends a public `cascade_topup_window_opened`
+to the sale_event room and a private `cascade_your_turn` to the new
+top holder's own party channel — the single highest-value signal in
+this flow, since the window itself is short; `processDefault()` sends
+a public, amount-free `cascade_defaulted`; `processTopupPaid()` sends
+a public `cascade_topup_paid` with the final amount (same "terminal
+outcome is public" precedent as `offer_accepted`, and no new exposure
+since Easy/Express bid amounts are already public via `bid_placed`).
+
+**A real, pre-existing gap surfaced while wiring this, not a
+WebSocket-scope issue**: `CascadeService::processDefault()` and
+`::processTopupPaid()` have **zero real call sites anywhere in the
+running application** — `SchedulerService` only ever calls
+`initiateCascade()`; nothing polls for an expired unpaid top-up window
+to call `processDefault()`, and no controller route lets a bidder
+submit "I paid" to call `processTopupPaid()`. Today a cascade can
+*open* but nothing in the running system can make it *default* or
+*close*. This is independent of and larger than the WebSocket
+retrofit — the new broadcasts are real and verified against the
+actual service methods, and will fire correctly the moment this gap
+is closed, but are unreachable in production until then. Recommending
+this get its own explicit decision, same treatment as the SMS/payment
+gateway gaps above.
+
+Verified with a real 3-client end-to-end WebSocket test (public
+sale_event room, H1's channel, H2's channel) driving a real Easy
+Auction through `initiateCascade` → `processDefault` (H1 defaults) →
+`processTopupPaid` (H2 pays) via the actual `CascadeService`: the
+public room got all 4 broadcasts in order; H1 got exactly their own
+step-1 `cascade_your_turn` and nothing else; H2 got exactly their own
+step-2 `cascade_your_turn` and nothing else — the privacy boundary
+held under a real test. Full regression: 36/37 real suites clean
+(`test:cascade` 22/22, `test:express` 16/16); the sole non-pass is the
+same pre-existing `test:auditlog` DB-naming gap. Full detail in
+`docs/DECISIONS.md` D-112.
+
+### Bottom line (current)
+
+**Still four items with no path forward without the project owner
+supplying something external — all four are genuinely build-complete,
+this is a credentials gap, not a build-effort gap**:
+
+1. BR-46 — AI Listing Pre-Audit, fully built, genuinely inert pending a Gemini API key
+2. BR-52 — Chargeback Mitigation, fully built, blocked on real SabPaisa API credentials
+3. A real payment gateway — EMD funding is simulated across every sale format; connects post-deployment
+4. A real SMS provider — OTP is generated/rate-limited correctly but only ever shown on-screen, never sent
+
+**A fifth item, different in kind — a real in-house build gap, not a
+credentials gap, surfaced by D-112**: BR-28's EMD cascade has no live
+trigger for a defaulted (unpaid, expired) top-up window, and no
+controller route for a bidder to submit a top-up payment —
+`CascadeService::processDefault()`/`::processTopupPaid()` are fully
+built and tested but currently **dead code in the running
+application**. Distinct from items 1-4 above (which wait on external
+credentials) — this one is entirely buildable in-house whenever
+prioritized, needs no external input.
+
+**No screens remain blocked on missing backend or product scoping.**
+Every screen tracked in `docs/design/CLAUDE_DESIGN_HANDOFF.md` — the
+original 53-screen design package plus the 6 no-mockup screens closed
+out by D-106 — now has a real, tested backend. What's left everywhere
+else is purely visual design work, not build work.
+
+**Real-time (WebSocket) coverage, tracked precisely as of D-112, not
+assumed complete**: bids (Easy/Express/Tender), Buy-Now offers,
+Settlement, Dispute, Rating, and now EMD cascade defaults/top-ups are
+covered (though the cascade default/top-up-paid broadcasts specifically
+inherit the dead-code caveat above until that wiring gap closes). Admin
+actions (Emergency Stop, delisting) still have zero broadcast coverage.
+There remains no live nudge to admins with pending work in either the
+dispute-ruling or the rating-approval queue — both share the same
+missing sidecar room type (broadcast to every party holding role X for
+tenant Y), flagged across D-110/D-111, not built.
+
+**One real, pre-existing gap surfaced but deliberately not fixed**:
+`ListingController::show()` renders every submitted Buy-Now offer's
+real amount and status to any visitor of the listing page, not just
+the seller — found while designing D-108's broadcasts, confirmed not
+made worse by any of D-108 through D-112, but the underlying
 page-level access control issue itself is still open and needs its
 own decision.
 
