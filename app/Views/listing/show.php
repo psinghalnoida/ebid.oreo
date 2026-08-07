@@ -312,7 +312,12 @@
           <button type="submit" class="btn btn-emerald">Submit Offer</button>
         </form>
 
-        <?php if (!empty($offers)): ?>
+        <?php // D-116: defense-in-depth alongside the controller-side gate
+        // (ListingController::show() only populates $offers at all for
+        // the seller) — belt-and-suspenders so this block can never
+        // render real amounts to a non-owner even if that gate is ever
+        // loosened by a future edit. ?>
+        <?php if ($isOwner && !empty($offers)): ?>
         <div style="margin-top:20px; border-top:1px solid var(--line); padding-top:16px;">
           <p style="font-size:12px; color:var(--ink-3); font-weight:700; text-transform:uppercase; margin-bottom:10px;">Offers Received (<?= tsx_term('Buyer') ?> identity masked pre-acceptance)</p>
           <?php foreach ($offers as $offer): ?>

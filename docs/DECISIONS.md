@@ -7587,3 +7587,57 @@ staffing the dispute-ruling or rating-approval queues, D-110/D-111);
 the pre-existing offer-amount page-leak in `ListingController::show()`
 (D-108); and this decision's own new finding — whether fraud delisting
 should cascade into emergency-stopping active auctions.
+
+### D-116: fixed the ListingController::show() offer-amount privacy leak
+
+Closes the one item explicitly flagged as a genuine pre-production
+concern during a readiness check: `ListingController::show()` was
+populating `$offers` (every submitted Buy-Now offer, with its real
+amount and per-buyer status) unconditionally whenever the sale format
+was `buy_now` — with no gate on who was viewing the page. Any
+anonymous visitor, or any other logged-in party who wasn't the seller,
+could see every offer's real amount on the public listing page. Found
+incidentally while designing D-108's WebSocket broadcasts (which
+already got this exact boundary right — the real amount only ever
+reaches the seller's own party channel), flagged at the time rather
+than fixed, and left open through D-107–D-115 as a known, tracked gap.
+
+**Fix**: the controller now only populates `$offers` at all when
+`session()->get('logged_in_party_id') === $listing['seller_party_id']`
+— the exact same boundary the WebSocket layer already enforces, so the
+static page render and the live updates now agree. Added a second,
+defense-in-depth gate in the view itself (`$isOwner && !empty($offers)`)
+so the block can never render real amounts even if the controller-side
+gate is ever loosened by a future edit without someone re-checking
+this history. As a side effect, the "Accept" form (which was
+previously rendered to any visitor, though the controller's own
+`OfferController::accept()` already correctly 403s a non-seller caller
+— confirmed by reading it, not assumed) no longer renders to anyone
+but the actual seller either, closing a UI/authorization-surface
+mismatch even though the underlying write path was never actually
+exploitable.
+
+**Verified with real HTTP, three distinct viewer identities**: built a
+real Buy-Now sale event with a real submitted offer, with the seller
+account created through the actual HTTP registration flow (mobile →
+OTP → mPIN → session), not a model-created fixture. Fetched the same
+listing page three ways — anonymous (no session cookie), a second
+real registered party who is not the seller, and the real seller —
+and confirmed by direct string search on the raw HTML: the offer
+amount and "Offers Received" section appear in neither the anonymous
+nor the other-party response, and appear correctly (with the exact
+real amount) only in the seller's own response. Deleted the throwaway
+fixture command after use, confirmed gone via `ls`.
+
+Full regression: 36/37 real suites clean on an independently rebuilt
+database (`test:buynow` itself 16/16 — the format this fix touches
+most directly); the sole non-pass is the same pre-existing
+`test:auditlog` DB-naming gap, not a regression.
+
+This closes the last item from the pre-production readiness review
+that wasn't already covered by the WebSocket retrofit or accepted as
+an external-dependency gap. Still explicitly open, unrelated to this
+fix: the role-broadcast gap for admin queues (D-110/D-111); whether
+fraud delisting should cascade into emergency-stopping active auctions
+(D-114); Event-Driven Design remains a first slice, not the full
+catalog (D-115, on its own unmerged branch).
