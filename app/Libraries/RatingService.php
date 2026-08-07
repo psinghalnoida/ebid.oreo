@@ -171,6 +171,10 @@ class RatingService
             }
         }
 
+        // D-111: upgrades apply immediately (BR-36, no approval gate) —
+        // the party's own rating number just genuinely changed.
+        $this->broadcastRatingUpdate($partyId, $ratingRole, $previousValue, $newValue, 'upgrade');
+
         return $event;
     }
 
@@ -253,6 +257,11 @@ class RatingService
 
         $this->maybeTriggerCrawlBack($event['party_id'], $event['rating_role'], (float) $event['new_value']);
 
+        // D-111: this is the moment a pending downgrade — invisible to
+        // the affected party until now, since initiateDowngrade() never
+        // broadcasts — actually lands on their rating.
+        $this->broadcastRatingUpdate($event['party_id'], $event['rating_role'], (float) $event['previous_value'], (float) $event['new_value'], 'downgrade');
+
         return ['event' => $applied, 'applied' => true];
     }
 
@@ -311,16 +320,19 @@ class RatingService
         $completed = $role === 'buyer' ? $party['crawl_back_clean_completed_buyer'] : $party['crawl_back_clean_completed_seller'];
 
         if ($isActive && $completed >= $required) {
+            $previousValue = (float) $party[$ratingRole];
             $this->partyModel->setRating($partyId, $ratingRole, self::DEFAULT_RATING);
             $this->partyModel->deactivateCrawlBack($partyId, $role);
             $this->ratingEventModel->createEvent([
                 'party_id' => $partyId, 'rating_role' => $ratingRole, 'event_type' => 'upgrade',
-                'previous_value' => (float) $party[$ratingRole], 'new_value' => self::DEFAULT_RATING,
+                'previous_value' => $previousValue, 'new_value' => self::DEFAULT_RATING,
                 'reason' => 'BR-38 Crawl-Back completed — restored to 3.0', 'status' => 'applied',
             ]);
             (new AuditLogService())->log('rating.crawl_back_completed', $partyId, [
                 'ratingRole' => $ratingRole, 'cleanTransactionsCompleted' => $completed, 'restoredTo' => self::DEFAULT_RATING,
             ]);
+            // D-111: the party's number-line rating just genuinely moved.
+            $this->broadcastRatingUpdate($partyId, $ratingRole, $previousValue, self::DEFAULT_RATING, 'crawl_back_completed');
             return ['crawlBackCompleted' => true, 'restoredTo' => self::DEFAULT_RATING];
         }
 
@@ -339,6 +351,8 @@ class RatingService
             'previous_value' => $previousValue, 'new_value' => self::DEFAULT_RATING,
             'reason' => $reason, 'status' => 'applied', 'related_sale_event_id' => $relatedSaleEventId,
         ]);
+        // D-111: applies immediately, same as an upgrade.
+        $this->broadcastRatingUpdate($partyId, $ratingRole, $previousValue, self::DEFAULT_RATING, 'forced_neutral');
 
         $strikeCount = $this->partyModel->incrementForcedNeutralCount($partyId, $ratingRole);
         if ($strikeCount >= self::FORCED_NEUTRAL_PATTERN_LIMIT) {
@@ -480,6 +494,21 @@ class RatingService
     {
         $party = $this->requireParty($partyId);
         return $party['seller_delisted_at'] !== null;
+    }
+
+    // D-111: single broadcast point for every place above where a
+    // party's actual rating number changes (as opposed to
+    // initiateDowngrade(), which only ever creates a pending event no
+    // one sees yet). Reuses the same buyer:<partyId> channel every
+    // logged-in party already holds open — the party watching their own
+    // /my-star-ratings or /my-rating-history page is the only intended
+    // audience, so this goes to nobody else.
+    private function broadcastRatingUpdate(string $partyId, string $ratingRole, float $previousValue, float $newValue, string $eventType): void
+    {
+        (new RealtimeBroadcastService())->broadcastToBuyer($partyId, 'rating_updated', [
+            'ratingRole' => $ratingRole, 'previousValue' => $previousValue,
+            'newValue' => $newValue, 'eventType' => $eventType,
+        ]);
     }
 
     private function requireParty(string $partyId): array

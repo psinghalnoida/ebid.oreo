@@ -304,6 +304,13 @@
       if (msg.event === 'dispute_updated') {
         window.dispatchEvent(new CustomEvent('ebidhub:dispute_updated', { detail: msg.data }));
       }
+
+      // D-111: a rating value on this party's own account just changed
+      // (upgrade, an applied downgrade, forced-neutral, or Crawl-Back
+      // completion) — same per-party channel, same relay pattern.
+      if (msg.event === 'rating_updated') {
+        window.dispatchEvent(new CustomEvent('ebidhub:rating_updated', { detail: msg.data }));
+      }
     };
     socket.onerror = function () { /* sidecar unreachable — ticker just doesn't update live, page still works */ };
   })();

@@ -7258,3 +7258,74 @@ coverage; the pre-existing offer-amount page-leak in
 `ListingController::show()` remains unfixed and flagged; the
 role-broadcast gap noted above (no live nudge to admins with pending
 rulings) is new to this decision and also open.
+
+### D-111: WebSocket coverage extended to Rating (upgrades, applied downgrades, forced-neutral, Crawl-Back completion)
+
+Fourth flow in the retrofit sequence (D-108 Buy-Now, D-109 Settlement,
+D-110 Dispute, now Rating). Unlike those three, Rating's own state
+changes were already indirectly wrapped by `settlement_updated` and
+`dispute_updated` when a rating action happens *through* those flows —
+but the party's actual star-rating number changing was never itself
+broadcast, and several genuine standalone rating paths exist entirely
+outside Settlement/Dispute: BR-36's approval queue
+(`RatingReviewController`/`admin/rating_reviews.php`, closing a
+pre-existing gap where pending downgrades had no real approval UI),
+BR-39's forced-neutral pattern trigger, and BR-38's Crawl-Back
+completion restore. None of those had any live signal to the affected
+party at all.
+
+**What actually changed vs. what didn't**: `RatingService` has no
+single funnel either (same shape as Dispute, D-110) — a new
+`broadcastRatingUpdate()` helper is called from exactly the 4 places a
+party's rating number itself changes: `applyUpgrade()` (BR-36,
+no-approval-needed), `approveDowngrade()` (but only inside the
+`readyToApply` branch — a downgrade sitting in
+`pending_tenant_approval` or `pending_super_admin_approval` produces
+no broadcast, since nothing about the party's own visible rating has
+changed yet), `applyForcedNeutral()` (BR-39), and the Crawl-Back
+restore branch inside `recordCleanTransactionForCrawlBack()` (BR-38).
+`initiateDowngrade()` itself deliberately never broadcasts — it's
+always immediately followed by either an approval-queue wait
+(genuinely nothing changed for the party yet) or, in the
+self-approving Super Admin paths (`DisputeService::executeRuling`,
+`RatingService::delistSellerForFraud`), by an `approveDowngrade()`
+call that does broadcast once it actually lands.
+
+**Design**: reused the exact same pattern as D-108/109/110 — the
+party's own `buyer:<partyId>` channel, no sale_event room, no new
+sidecar room type. Since this event only ever reaches the one party it
+happened to, the payload doesn't need an id to match against (unlike
+`settlement_updated`/`dispute_updated`, which carry
+`settlementId`/`disputeId` so the client can ignore events for a
+*different* record) — any receipt on `/my-star-ratings` or
+`/my-rating-history` is automatically about the viewer's own account.
+
+**A gap surfaced and deliberately not built, same shape as D-110's**:
+no live "a new pending downgrade is in your queue" nudge to the
+Tenant/Super Admins who staff `admin/rating_reviews.php` — that queue
+is shared across everyone with the relevant role, and reaching "every
+party holding role X for tenant Y" is the same missing sidecar
+room-type gap flagged in D-110, not solved here either.
+
+**Verified with a real end-to-end test**: a throwaway spark command
+drove a real party through `applyUpgrade` → `initiateDowngrade` +
+`approveDowngrade` (single-tier, since the resulting value stayed
+above the 2.0 dual-approval line) → `applyForcedNeutral` via the
+actual `RatingService`, while one genuine WebSocket client on that
+party's own channel received all 3 `rating_updated` broadcasts with
+the correct `eventType` and correctly changing `previousValue`/
+`newValue` pairs (3.0→3.2 upgrade, 3.2→2.7 downgrade, 2.7→3.0
+forced_neutral). Throwaway files (a Node WS client, a spark command)
+deleted after use, confirmed gone via `ls`.
+
+Full regression: 36/37 real suites clean on an independently rebuilt
+database (`test:rating` itself 28/28); the one non-pass is the same
+pre-existing `test:auditlog` DB-naming gap, not a regression.
+
+**Still explicitly open, not silently assumed covered**: EMD cascade
+defaults and Admin actions (Emergency Stop, delisting) still have zero
+broadcast coverage; the pre-existing offer-amount page-leak in
+`ListingController::show()` remains unfixed and flagged; the
+role-broadcast gap (no live nudge to admins with pending dispute
+rulings or rating approvals) noted in D-110 is now confirmed to apply
+identically to the rating review queue and remains open.

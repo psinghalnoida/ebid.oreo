@@ -760,7 +760,7 @@ correctly changing state, ending at `status: closed`. Full regression:
 non-pass is the same pre-existing `test:auditlog` DB-naming gap. Full
 detail in `docs/DECISIONS.md` D-110.
 
-### Bottom line (current)
+### Bottom line (superseded by D-111 — kept for history)
 
 **Still four items with no path forward without the project owner
 supplying something external — all four are genuinely build-complete,
@@ -793,4 +793,86 @@ real amount and status to any visitor of the listing page, not just
 the seller — found while designing D-108's broadcasts, confirmed not
 made worse by D-108, D-109, or D-110, but the underlying page-level
 access control issue itself is still open and needs its own decision.
+
+## Update — D-111: WebSocket coverage extended to Rating
+
+Fourth flow in the retrofit sequence. Unlike Settlement/Dispute,
+Rating's changes were already indirectly wrapped whenever they
+happened *through* those two flows — what was missing was any live
+signal for the party's actual star-rating number changing, including
+the genuine standalone paths outside Settlement/Dispute: BR-36's
+approval queue (`RatingReviewController`), BR-39's forced-neutral
+trigger, and BR-38's Crawl-Back completion restore.
+
+`RatingService` has no single funnel either (same shape as Dispute,
+D-110) — a new `broadcastRatingUpdate()` helper is called from exactly
+the 4 places a party's rating number itself changes: `applyUpgrade()`,
+`approveDowngrade()` (only inside its `readyToApply` branch —
+nothing's visibly changed for the party while a downgrade still sits
+pending approval), `applyForcedNeutral()`, and the Crawl-Back restore
+branch in `recordCleanTransactionForCrawlBack()`. `initiateDowngrade()`
+itself deliberately never broadcasts, for the same "nothing actually
+changed yet" reason.
+
+Same design as D-108/109/110: the party's own `buyer:<partyId>`
+channel only, no sale_event room, no new sidecar room type. Unlike
+`settlement_updated`/`dispute_updated`, the payload needs no id to
+match against — this event only ever reaches the one party it happened
+to, so any receipt on `/my-star-ratings` or `/my-rating-history` is
+automatically about the viewer's own account.
+
+Same gap surfaced as D-110, confirmed to apply here too and still not
+solved: no live nudge to the Tenant/Super Admins staffing the shared
+`admin/rating_reviews.php` queue when a new item lands — reaching
+"every party holding role X for tenant Y" remains a genuinely missing
+sidecar room type, not attempted here.
+
+Verified with a real end-to-end WebSocket test: a throwaway spark
+command drove a real party through `applyUpgrade` →
+`initiateDowngrade`+`approveDowngrade` (single-tier) →
+`applyForcedNeutral` via the actual `RatingService`; one genuine
+WebSocket client on that party's channel received all 3
+`rating_updated` broadcasts with correct `eventType` and correctly
+changing values (3.0→3.2 upgrade, 3.2→2.7 downgrade, 2.7→3.0
+forced_neutral). Full regression: 36/37 real suites clean
+(`test:rating` itself 28/28); the sole non-pass is the same
+pre-existing `test:auditlog` DB-naming gap. Full detail in
+`docs/DECISIONS.md` D-111.
+
+### Bottom line (current)
+
+**Still four items with no path forward without the project owner
+supplying something external — all four are genuinely build-complete,
+this is a credentials gap, not a build-effort gap**:
+
+1. BR-46 — AI Listing Pre-Audit, fully built, genuinely inert pending a Gemini API key
+2. BR-52 — Chargeback Mitigation, fully built, blocked on real SabPaisa API credentials
+3. A real payment gateway — EMD funding is simulated across every sale format; connects post-deployment
+4. A real SMS provider — OTP is generated/rate-limited correctly but only ever shown on-screen, never sent
+
+**No screens remain blocked on missing backend or product scoping.**
+Every screen tracked in `docs/design/CLAUDE_DESIGN_HANDOFF.md` — the
+original 53-screen design package plus the 6 no-mockup screens closed
+out by D-106 — now has a real, tested backend. What's left everywhere
+else is purely visual design work, not build work.
+
+**Real-time (WebSocket) coverage, tracked precisely as of D-111, not
+assumed complete**: bids (Easy/Express/Tender), Buy-Now offers,
+Settlement, Dispute, and now Rating (upgrades, applied downgrades,
+forced-neutral, Crawl-Back completion) are covered. EMD cascade
+defaults and Admin actions (Emergency Stop, delisting) still have zero
+broadcast coverage — each is real, unbuilt scope, not an oversight to
+silently assume is fine. There remains no live nudge to admins with
+pending work in either the dispute-ruling or the rating-approval queue
+— both share the same missing sidecar room type (broadcast to every
+party holding role X for tenant Y), flagged across D-110/D-111, not
+built.
+
+**One real, pre-existing gap surfaced but deliberately not fixed**:
+`ListingController::show()` renders every submitted Buy-Now offer's
+real amount and status to any visitor of the listing page, not just
+the seller — found while designing D-108's broadcasts, confirmed not
+made worse by any of D-108 through D-111, but the underlying
+page-level access control issue itself is still open and needs its
+own decision.
 
