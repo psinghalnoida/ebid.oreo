@@ -6,7 +6,7 @@
     Mobile number, PAN, Aadhaar, and other KYC-verification details are not editable here — those require real verification, not a self-service edit.
   </p>
 
-  <form method="post" action="/account/edit" style="margin-top:16px;">
+  <form method="post" action="/account/edit" style="margin-top:16px;"><?= csrf_field() ?>
     <label style="font-size:12px; color:var(--ink-3);">Full Name</label>
     <input type="text" name="full_name" value="<?= esc($party['full_name'] ?? '') ?>"
       style="display:block; width:100%; padding:12px; margin:6px 0 16px; border:1px solid var(--line); border-radius:10px;">

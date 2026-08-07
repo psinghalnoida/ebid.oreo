@@ -4,7 +4,7 @@
   <span class="pc-badge" style="background:var(--emerald-soft); color:var(--emerald-deep); padding:5px 12px; border-radius:100px; font-size:11px; font-weight:700;">LIVE — READ ONLY</span>
   <h1 style="font-size:24px; margin:12px 0 4px;"><?= esc($listing['category']) ?></h1>
   <p style="color:var(--ink-3); font-size:13px;"><?= esc($saleEvent['ern']) ?> · TENDER</p>
-  <p style="font-size:12px; color:var(--ink-3); margin-top:8px;">Bidder identities are never shown here — amounts only, per BR-16.</p>
+  <p style="font-size:12px; color:var(--ink-3); margin-top:8px;">Bidder identities are never shown here — amounts only.</p>
 
   <h3 style="font-size:15px; margin-top:24px;">Bid History (amounts only)</h3>
   <?php foreach ($bidAmounts as $amt): ?>

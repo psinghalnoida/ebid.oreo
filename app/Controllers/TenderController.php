@@ -62,7 +62,7 @@ class TenderController extends BaseController
         $eligiblePartyIds = array_column($eligible, 'party_id');
 
         return view('tender/eligibility', [
-            'title' => 'Manage Tender Eligibility — eBid Hub',
+            'title' => 'Manage Tender Eligibility — AdwitiX',
             'saleEvent' => $saleEvent, 'interested' => $interested, 'eligible' => $eligible,
             'eligiblePartyIds' => $eligiblePartyIds,
         ]);
@@ -162,7 +162,7 @@ class TenderController extends BaseController
         $bidAmounts = array_map(fn($b) => $b['amount'], $bidModel->where('sale_event_id', $saleEvent['id'])->orderBy('placed_at', 'ASC')->findAll());
 
         return view('tender/stakeholder_view', [
-            'title' => 'Tender Live View — eBid Hub', 'saleEvent' => $saleEvent, 'listing' => $listing, 'bidAmounts' => $bidAmounts,
+            'title' => 'Tender Live View — AdwitiX', 'saleEvent' => $saleEvent, 'listing' => $listing, 'bidAmounts' => $bidAmounts,
         ]);
     }
 
@@ -211,6 +211,6 @@ class TenderController extends BaseController
             return service('response')->setStatusCode(403)->setBody('Only the listing\'s seller may view the auction report.');
         }
         $report = $this->review->generateAuctionReport($saleEventId);
-        return view('tender/auction_report', ['title' => 'Auction Report — eBid Hub', 'saleEvent' => $saleEvent, 'report' => $report]);
+        return view('tender/auction_report', ['title' => 'Auction Report — AdwitiX', 'saleEvent' => $saleEvent, 'report' => $report]);
     }
 }

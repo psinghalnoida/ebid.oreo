@@ -21,7 +21,7 @@ class TenantMediaWaiverController extends BaseController
             return redirect()->to('/')->with('error', 'Only this tenant\'s Tenant Admin may request a media waiver.');
         }
 
-        return view('tenant_admin/media_waiver_request', ['title' => 'Request Media Waiver — eBid Hub', 'tenant' => $tenant]);
+        return view('tenant_admin/media_waiver_request', ['title' => 'Request Media Waiver — AdwitiX', 'tenant' => $tenant]);
     }
 
     public function requestSubmit(string $tenantId)
@@ -62,7 +62,7 @@ class TenantMediaWaiverController extends BaseController
             ->orderBy('tmw.expires_at', 'ASC')
             ->get()->getResultArray();
 
-        return view('admin/media_waivers', ['title' => 'Tenant Media Waivers — eBid Hub', 'pending' => $pending, 'active' => $active]);
+        return view('admin/media_waivers', ['title' => 'Tenant Media Waivers — AdwitiX', 'pending' => $pending, 'active' => $active]);
     }
 
     public function decide(string $waiverId)

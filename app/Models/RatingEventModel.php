@@ -52,6 +52,17 @@ class RatingEventModel extends Model
         return $this->find($eventId);
     }
 
+    // D-106: a party's own full rating history across both roles --
+    // "Rating History" had a real, complete audit trail behind it
+    // (this table) with no page ever reading it back for the party it
+    // actually happened to.
+    public function findForParty(string $partyId): array
+    {
+        return $this->where('party_id', $partyId)
+            ->orderBy('created_at', 'DESC')
+            ->findAll();
+    }
+
     // BR-39: count forced-neutral events against a party in a role
     public function countForcedNeutral(string $partyId, string $ratingRole): int
     {

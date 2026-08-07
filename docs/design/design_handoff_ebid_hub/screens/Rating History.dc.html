@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  html, body{overflow-x:hidden;}
+  a{text-decoration:none;}
+  a:link, a:visited{color:#C9974C;}
+  a:hover{color:#A87A38;}
+  @media (max-width:700px){
+    .rh-row{grid-template-columns:80px 60px 90px 70px !important;}
+    .rh-row > div:nth-child(5), .rh-row > div:nth-child(6){display:none;}
+  }
+</style>
+</helmet>
+
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;">
+
+  <header style="position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1400px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:36px; width:36px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:22px; letter-spacing:-0.5px; color:#1E2761; flex-shrink:0;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <a href="Star Ratings.dc.html" style="font-weight:700; font-size:12.5px; padding:9px 18px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233; white-space:nowrap;">← Back to Star Ratings</a>
+    </div>
+  </header>
+
+  <main style="max-width:820px; margin:0 auto; padding:44px 24px 90px;">
+
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:26px; font-weight:800; letter-spacing:-0.5px; margin:0 0 8px;">Rating History</h1>
+    <p style="font-size:14px; color:#565B72; margin:0 0 24px; line-height:1.6;">Every rating change on your account, in both roles — real, permanent, audit-trail data.</p>
+
+    <div style="display:flex; flex-direction:column; gap:2px;">
+      <div class="rh-row" style="display:grid; grid-template-columns:90px 70px 110px 90px 1fr 110px; padding:0 4px; font-size:10px; text-transform:uppercase; color:#9A9FB5; font-weight:700; border-bottom:1px solid #DDE0EA;">
+        <div style="padding:10px 0;">Date</div>
+        <div style="padding:10px 0;">Role</div>
+        <div style="padding:10px 0;">Type</div>
+        <div style="padding:10px 0;">Change</div>
+        <div style="padding:10px 0;">Reason</div>
+        <div style="padding:10px 0;">Status</div>
+      </div>
+      <sc-for list="{{ events }}" as="e" hint-placeholder-count="6">
+        <div class="rh-row" style="display:grid; grid-template-columns:90px 70px 110px 90px 1fr 110px; padding:0 4px; border-bottom:1px solid #EEF0EA; align-items:center;">
+          <div style="padding:12px 0; font-size:11.5px; color:#9A9FB5; white-space:nowrap;">{{ e.date }}</div>
+          <div style="padding:12px 0; font-size:12.5px;">{{ e.roleLabel }}</div>
+          <div style="padding:12px 0; font-size:12.5px; font-weight:700; color:{{ e.typeColor }};">{{ e.typeLabel }}</div>
+          <div style="padding:12px 0; font-size:12.5px; font-weight:700; font-family:'IBM Plex Mono',monospace; white-space:nowrap;">★{{ e.previousValue }}→★{{ e.newValue }}</div>
+          <div style="padding:12px 0; font-size:12px; color:#565B72;">{{ e.reason }}</div>
+          <div style="padding:12px 0; font-size:10.5px; text-transform:uppercase; color:#9A9FB5;">
+            {{ e.statusLabel }}
+            <sc-if value="{{ e.appealed }}" hint-placeholder-val="{{ false }}">
+              <div style="color:#9A9FB5;">Appealed{{ e.appealSuffix }}</div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+      <p style="font-size:12.5px; color:#9A9FB5; margin-top:16px;">No rating events yet — every transaction starts at a neutral 3.0★.</p>
+    </sc-if>
+
+  </main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  rawEvents() {
+    return [
+      { date: '2025-02-14', role: 'star_rating', type: 'upgrade', previousValue: 3.0, newValue: 3.0, reason: 'Account created', status: 'applied' },
+      { date: '2025-03-02', role: 'star_rating', type: 'upgrade', previousValue: 3.0, newValue: 3.2, reason: 'Early settlement', status: 'applied' },
+      { date: '2025-04-18', role: 'seller_star_rating', type: 'upgrade', previousValue: 3.0, newValue: 3.1, reason: 'Rapid handover', status: 'applied' },
+      { date: '2025-06-30', role: 'star_rating', type: 'downgrade', previousValue: 3.2, newValue: 2.7, reason: 'Late payment (>7 days)', status: 'applied' },
+      { date: '2025-08-20', role: 'seller_star_rating', type: 'downgrade', previousValue: 3.1, newValue: 2.5, reason: 'Dispute ruling: Data Mismatch — confirmed', status: 'applied', appealed: true, appealOutcome: 'Denied' },
+      { date: '2025-11-05', role: 'seller_star_rating', type: 'upgrade', previousValue: 2.5, newValue: 3.1, reason: 'Sustained clean streak', status: 'applied' },
+      { date: '2026-01-22', role: 'star_rating', type: 'downgrade', previousValue: 2.7, newValue: 1.9, reason: 'Repeated frivolous disputes', status: 'pending_tenant_approval' },
+      { date: '2026-07-18', role: 'star_rating', type: 'forced_neutral', previousValue: 2.7, newValue: 2.7, reason: 'Non-response strike (1 of 5)', status: 'applied' },
+    ];
+  }
+
+  renderVals() {
+    const typeMeta = {
+      upgrade: { label: 'Upgrade', color: '#3F7A4E' },
+      downgrade: { label: 'Downgrade', color: '#B5482F' },
+      forced_neutral: { label: 'Forced Neutral', color: '#9A9FB5' },
+    };
+    const statusMeta = {
+      applied: 'Applied',
+      pending_tenant_approval: 'Pending Tenant Admin Approval',
+      pending_super_admin_approval: 'Pending Custodian Approval',
+      rejected: 'Rejected',
+    };
+    const events = this.rawEvents().slice().reverse().map(e => ({
+      date: e.date,
+      roleLabel: e.role === 'star_rating' ? 'Trader' : 'Market Maker',
+      typeLabel: typeMeta[e.type].label, typeColor: typeMeta[e.type].color,
+      previousValue: e.previousValue.toFixed(1), newValue: e.newValue.toFixed(1),
+      reason: e.reason,
+      statusLabel: statusMeta[e.status] || e.status,
+      appealed: !!e.appealed,
+      appealSuffix: e.appealOutcome ? ': ' + e.appealOutcome : '',
+    }));
+    return { events, isEmpty: events.length === 0 };
+  }
+}
+
+</script>
+</body>
+</html>

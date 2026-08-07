@@ -33,7 +33,7 @@ class EmdConsentController extends BaseController
         );
 
         return view('emd/consent', [
-            'title' => 'Confirm Your Deposit — eBid Hub',
+            'title' => 'Confirm Your Deposit — AdwitiX',
             'saleEvent' => $saleEvent, 'amount' => $baseline, 'action' => $action,
         ]);
     }

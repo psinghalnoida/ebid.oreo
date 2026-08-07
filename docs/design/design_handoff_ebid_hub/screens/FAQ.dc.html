@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#A87A38;}
+@media (max-width:720px){.faq-split{grid-template-columns:1fr !important;} .faq-split>div:last-child{border-left:none !important; border-top:1px dashed #DDE0EA;}}
+</style>
+</helmet>
+<div style="min-height:100vh; background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif;">
+  <header style="position:sticky; top:0; z-index:60; background:rgba(243,244,248,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1200px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#1E2761;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <a href="Trust and Support.dc.html" style="font-weight:700; font-size:12.5px; padding:9px 18px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233; white-space:nowrap;">← Trust &amp; Support</a>
+    </div>
+  </header>
+
+  <main style="max-width:900px; margin:0 auto; padding:40px 20px 90px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">Trust &amp; Support</div>
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:32px; font-weight:800; letter-spacing:-0.7px; margin:0 0 10px;">Frequently Asked Questions</h1>
+    <p style="font-size:14.5px; color:#565B72; margin:0 0 24px; max-width:600px; line-height:1.6;">Every topic is explained twice — once for Traders, once for Market Makers — so you only read the half that applies to you.</p>
+
+    <div style="position:relative; margin-bottom:14px;">
+      <input placeholder="Search topics — deposits, ratings, disputes, shipping..." value="{{ query }}" onChange="{{ onQueryChange }}" style="width:100%; padding:12px 16px; border-radius:9px; border:1px solid #DDE0EA; background:#fff; font-size:14px; color:#1E2233; font-family:'Inter',sans-serif;">
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px;">
+      <sc-for list="{{ chips }}" as="c" hint-placeholder-count="9">
+        <button onClick="{{ c.onClick }}" style="padding:7px 14px; border-radius:999px; border:1px solid {{ c.borderColor }}; background:{{ c.bg }}; color:{{ c.color }}; font-size:12.5px; font-weight:500; cursor:pointer; white-space:nowrap;">{{ c.label }}</button>
+      </sc-for>
+    </div>
+
+    <div style="font-size:12px; color:#9A9FB5; margin-bottom:16px;">{{ countLabel }}</div>
+
+    <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="text-align:center; padding:50px 20px; color:#9A9FB5; font-size:14px;">No topics match "{{ query }}".</div>
+    </sc-if>
+
+    <sc-for list="{{ groups }}" as="grp" hint-placeholder-count="6">
+      <section style="margin-bottom:30px;">
+        <h2 style="font-size:12.5px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; color:#1E2233; margin:0 0 12px; display:flex; align-items:center; gap:8px;">
+          <span style="width:7px; height:7px; border-radius:100px; background:#C9974C; display:inline-block;"></span>{{ grp.label }}
+        </h2>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <sc-for list="{{ grp.items }}" as="item" hint-placeholder-count="3">
+            <div style="background:#fff; border:1px solid #DDE0EA; border-radius:10px; overflow:hidden;">
+              <button onClick="{{ item.onToggle }}" style="width:100%; display:flex; align-items:center; gap:14px; padding:16px 18px; background:transparent; border:none; cursor:pointer; text-align:left;">
+                <span style="font-size:11px; color:#9A9FB5; border:1px solid #DDE0EA; border-radius:6px; padding:3px 7px; flex-shrink:0;">{{ item.code }}</span>
+                <span style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:15.5px; color:#1E2233; flex:1;">{{ item.q }}</span>
+                <span style="color:#9A9FB5; flex-shrink:0;">{{ item.icon }}</span>
+              </button>
+              <sc-if value="{{ item.open }}" hint-placeholder-val="{{ false }}">
+                <div class="faq-split" style="border-top:1px solid #DDE0EA; display:grid; grid-template-columns:1fr 1fr;">
+                  <div style="padding:16px 18px;">
+                    <div style="font-size:11px; letter-spacing:0.5px; color:#1E2761; font-weight:700; margin-bottom:8px;">FOR TRADERS</div>
+                    <p style="font-size:14px; line-height:1.6; color:#1E2233; margin:0;">{{ item.buyer }}</p>
+                  </div>
+                  <div style="padding:16px 18px; border-left:1px dashed #DDE0EA; background:#F8F1E7;">
+                    <div style="font-size:11px; letter-spacing:0.5px; color:#9C5B1F; font-weight:700; margin-bottom:8px;">FOR MARKET MAKERS</div>
+                    <p style="font-size:14px; line-height:1.6; color:#1E2233; margin:0;">{{ item.seller }}</p>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </sc-for>
+  </main>
+
+  <footer style="border-top:1px solid #DDE0EA; padding:24px 20px; text-align:center;">
+    <p style="font-size:12.5px; color:#9A9FB5; margin:0;">Can't find what you're looking for? Reach out through <a href="Trust and Support.dc.html">Contact Us</a>.</p>
+  </footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { query: '', activeCategory: 'all', open: {} };
+
+  categories() {
+    return [
+      { id: 'start', label: 'Getting Started', items: [
+        { code: 'GS-01', q: 'How do I create an account?', buyer: 'Enter your mobile number and verify it with an OTP. Once verified, set a 4-digit mPIN — you\'ll use your number and mPIN to log in from then on.', seller: 'Same first step — every account starts as a Trader account. To list items, you then apply to a specific TradeSphereX and get approved by that TSX Master.' },
+        { code: 'GS-02', q: 'What documents do I need to verify my account?', buyer: 'Individuals: name, PAN, Aadhaar, date of birth, occupation. Businesses: company registration details (CIN, GST, PAN) and supporting documents. Verification is reviewed by a person, not an automated system.', seller: 'Same requirements as a Trader, since every Market Maker account is a Trader account first. Your TSX may also ask for category-specific documents.' },
+        { code: 'GS-03', q: 'How do I become a Market Maker?', buyer: 'Apply to sell through a specific TradeSphereX\'s storefront. Approval is scoped to that one TSX — approval on one doesn\'t carry over to another.', seller: 'You apply, the TSX Master reviews your request, and once approved you can start listing on that storefront. You can apply to multiple TSXs independently.' },
+      ]},
+      { id: 'money', label: 'Deposits & Balance', items: [
+        { code: 'DB-01', q: 'What is the EMD and why do I need one?', buyer: 'To bid or make an offer, you pledge 10% of the item\'s value upfront. It shows you\'re serious and stops people placing bids they never intend to honour.', seller: 'Market Makers only — Traders never pay a deposit to list or sell. This is what protects you from a winner walking away.' },
+        { code: 'DB-02', q: 'How do I add money to my account balance?', buyer: 'Transfer funds by bank transfer and upload the receipt. Once verified, the equivalent balance credits to your account for bidding anywhere on the platform.', seller: 'Not applicable — Market Makers don\'t need a balance to list items.' },
+        { code: 'DB-03', q: 'Do I get my deposit back if I don\'t win?', buyer: 'Yes. As soon as you\'re outbid or not selected, your deposit is released back to your balance immediately.', seller: 'Not applicable, since you never post a deposit.' },
+        { code: 'DB-04', q: 'Can my deposit be forfeited?', buyer: 'Yes — if you win and then fail to pay, your deposit is forfeited in full. This is treated seriously and affects your rating.', seller: 'If a Trader defaults after winning your Lot, their forfeited deposit generally passes to you as compensation, after the TSX\'s and platform\'s fee is taken out.' },
+        { code: 'DB-05', q: 'Do I pay extra if my payment method charges a fee?', buyer: 'Yes — a card processing charge is added on top of your deposit and shown clearly before you pay. Bank transfer or UPI usually carries little to no such charge.', seller: 'Not applicable to you, since you never pay a deposit.' },
+      ]},
+      { id: 'formats', label: 'Sale Formats', items: [
+        { code: 'SF-01', q: 'What\'s the difference between Buy-Now, Express, Easy, and Tender?', buyer: 'Buy-Now: you offer and the Market Maker picks who to sell to. Express: fast, starts once 3 Traders join, closes within the hour. Easy: scheduled with a proper inspection window. Tender: fully private, invite-only, run directly by the Market Maker.', seller: 'Buy-Now lets you personally choose the best offer. Express gets you a fast sale once enough interest builds. Easy gives Traders time to inspect. Tender gives you complete control over participation.' },
+        { code: 'SF-02', q: 'Can I inspect an item before bidding?', buyer: 'Depends on the format. Easy Auctions give a proper inspection window (24 hours to 7 days). Express Auctions skip inspection — you bid on the listing photos and description alone.', seller: 'For Easy Auctions, you choose the inspection window (24 hours to 7 days). Express Auctions skip inspection entirely, in exchange for a much faster sale.' },
+        { code: 'SF-03', q: 'In Buy-Now, does the highest offer always win?', buyer: 'Not necessarily. The Market Maker can choose a lower offer from a Trader they trust more (based on your rating). If they do, they\'re required to record why.', seller: 'Yes — you\'re not locked into the highest number. You can factor in reliability. If you pick someone other than the top offer, you\'ll need to state a reason, kept on record.' },
+        { code: 'SF-04', q: 'If Express has no inspection, how do I know what I\'m bidding on?', buyer: 'Every Express Lot includes a mandatory checklist the Market Maker fills out declaring known damage or missing parts. A false disclosure is treated as a genuine dispute.', seller: 'You\'re required to complete a defect-disclosure checklist before your Express Lot goes live. Answering it falsely can result in a dispute against you.' },
+      ]},
+      { id: 'winning', label: 'Winning & Payment', items: [
+        { code: 'WP-01', q: 'I won a Trading Session — what happens next?', buyer: 'If the final price is higher than your original deposit covered, you may need to top up first. Then you pay the Market Maker directly (offline) and arrange collection.', seller: 'Once a winner is confirmed, you deal with the Trader directly for payment and handover — the platform never holds the full sale amount, only the deposit.' },
+        { code: 'WP-02', q: 'What happens if the winning bidder doesn\'t pay?', buyer: 'If you win and don\'t pay within the required window, you forfeit your deposit and the win passes to the next-highest bidder.', seller: 'Non-paying winners are automatically replaced by the next-highest bidder. If every bidder fails to pay, the Trading Session is cancelled and you\'ll need to relist.' },
+        { code: 'WP-03', q: 'Can I lose my win to someone else?', buyer: 'No — once confirmed as winner and you pay on time, the sale is yours. You only lose a win by failing to pay in time.', seller: 'No — once a Trader completes payment on time, you can\'t reassign the sale.' },
+      ]},
+      { id: 'ratings', label: 'Ratings & Trust', items: [
+        { code: 'RT-01', q: 'How does the Star Rating system work?', buyer: 'You have your own Trader rating, separate from any Market Maker rating. Everyone starts at 3 stars. Paying promptly and completing deals cleanly raises it; defaulting or late payment lowers it.', seller: 'You have your own Market Maker rating, entirely separate from your Trader rating. Accurate listings and fast handovers raise it; mismatched descriptions or delays lower it.' },
+        { code: 'RT-02', q: 'Can my rating recover after a bad mark?', buyer: 'Yes. If your rating drops significantly, you enter Crawl-Back — temporarily limited to smaller-value purchases until a set number of clean transactions restores you.', seller: 'Yes, the same recovery path applies — a run of clean, accurate listings restores your standing over time.' },
+        { code: 'RT-03', q: 'What happens if my rating gets very low?', buyer: 'Very low-rated accounts are shown less (Shadow Banning) rather than blocked outright. You can still use the platform, just with less visibility.', seller: 'The same applies to your listings — a very low rating means your items stop being actively promoted, though still technically listed.' },
+      ]},
+      { id: 'settlement', label: 'Settlement & Handover', items: [
+        { code: 'ST-01', q: 'How do I actually pay or receive payment?', buyer: 'You pay the Market Maker directly — offline — for 100% of the sale value. The platform only ever holds your deposit.', seller: 'You\'re paid directly by the Trader, in full, outside the platform. Once received, you confirm it to move the deal toward closure.' },
+        { code: 'ST-02', q: 'What is an NOC and why do both sides need to file one?', buyer: 'You confirm receipt of goods, and the Market Maker confirms receipt of payment. A deal only closes once both confirm.', seller: 'You confirm receipt of payment, and the Trader confirms receipt of goods. Both are required before the deal closes and any remaining deposit is released.' },
+        { code: 'ST-03', q: 'What if the other party won\'t confirm?', buyer: 'If the Market Maker goes silent, you\'re sent a reminder, then a TSX Master steps in to review the facts and unstick the deal.', seller: 'The same reminder-then-admin-review process applies if a Trader goes silent on confirming or rating you.' },
+        { code: 'ST-04', q: 'Do I get an invoice for fees paid?', buyer: 'Yes — once a deal closes, an invoice covering the Success Fee (plus tax) is generated automatically.', seller: 'Yes — an invoice is generated for the TSX\'s commission share, accessible against the transaction record.' },
+        { code: 'ST-05', q: 'Why do I have to confirm something specific right before I pledge a deposit?', buyer: 'That acknowledgment spells out exactly what happens if you don\'t follow through on this specific bid — so you know the real consequence before committing.', seller: 'This doesn\'t apply to you directly since you never pledge a deposit — but the same idea protects you too.' },
+      ]},
+      { id: 'disputes', label: 'Disputes', items: [
+        { code: 'DP-01', q: 'What if the item doesn\'t match the listing?', buyer: 'For scheduled auctions, you\'re expected to inspect beforehand, so ordinary condition complaints after winning aren\'t valid. Genuine fraud or material misrepresentation can still be disputed.', seller: 'Traders waive routine condition complaints once they\'ve had an inspection opportunity — but genuine misrepresentation can still be disputed, so accurate listings matter.' },
+        { code: 'DP-02', q: 'How do I file a dispute?', buyer: 'Raise it against the specific Trading Session, choose the fitting category, and submit evidence within the filing window.', seller: 'Same process — file against the transaction, select a category, submit evidence. Both sides get an equal window to respond.' },
+        { code: 'DP-03', q: 'Who decides the outcome of a dispute?', buyer: 'Most disputes are reviewed by the TSX Master; disputes about Trader conduct go to Custodian-level review. Every decision comes with a stated reason and one appeal.', seller: 'Same structure applies — disputes about your conduct are typically reviewed by the TSX Master, with a documented reason and one appeal right.' },
+      ]},
+      { id: 'listings', label: 'Listings & Shipping', items: [
+        { code: 'LS-01', q: 'Can items be grouped and browsed together?', buyer: 'Yes — Lots sharing a common origin are tagged and shown together on one screen, even though each is still its own independent sale.', seller: 'You can tag multiple related Lots as a group so Traders see them together, while each still sells completely independently.' },
+        { code: 'LS-02', q: 'What are the photo and video requirements for a Lot?', buyer: 'Every Lot needs real photos of the actual item — never stock images. Photos and video are automatically optimised for fast loading.', seller: 'You need at least 5 real photos (up to 50), with one as the main photo. Video is optional, up to 2 minutes, compressed automatically after upload.' },
+        { code: 'LS-03', q: 'Does the Market Maker have to arrange shipping?', buyer: 'No — shipping is always optional. You can always self-collect at no extra cost.', seller: 'You can offer shipping if you want, but it\'s never required — Traders can always self-collect instead.' },
+      ]},
+      { id: 'safeguards', label: 'Platform Safeguards', items: [
+        { code: 'PS-01', q: 'Is there a limit on how much a bid can jump?', buyer: 'Yes — no bid can be more than 150% of the current highest bid, catching typing mistakes before they cause real problems.', seller: 'The same limit protects your Trading Session from being disrupted by an obviously mistaken or malicious bid.' },
+        { code: 'PS-02', q: 'How does the platform stop last-second sniping?', buyer: 'A bid landing in the final 10 minutes extends the Trading Session by 2 more minutes, giving everyone a fair chance to respond.', seller: 'The same rule protects your sale from closing on an artificially timed last-second bid.' },
+        { code: 'PS-03', q: 'How does the platform prevent fake or misleading photos?', buyer: 'Photos are captured through the app itself at the moment of listing, with location and time data attached — not uploaded from an old gallery.', seller: 'This in-app capture requirement protects you too — clear evidence the photos are genuinely of your item.' },
+      ]},
+    ];
+  }
+
+  renderVals() {
+    const s = this.state;
+    const q = s.query.trim().toLowerCase();
+    const all = this.categories();
+    const chips = [{ id: 'all', label: 'All topics' }, ...all.map(c => ({ id: c.id, label: c.label }))].map(c => ({
+      label: c.label,
+      bg: s.activeCategory === c.id ? '#1E2233' : '#fff',
+      color: s.activeCategory === c.id ? '#fff' : '#565B72',
+      borderColor: s.activeCategory === c.id ? '#1E2233' : '#DDE0EA',
+      onClick: () => this.setState({ activeCategory: c.id }),
+    }));
+
+    let total = 0;
+    const groups = all.filter(c => s.activeCategory === 'all' || s.activeCategory === c.id).map(c => {
+      const items = c.items.filter(it => !q || (it.q + ' ' + it.buyer + ' ' + it.seller).toLowerCase().includes(q));
+      total += items.length;
+      return {
+        label: c.label,
+        items: items.map(it => ({
+          code: it.code, q: it.q, buyer: it.buyer, seller: it.seller,
+          open: !!s.open[it.code],
+          icon: s.open[it.code] ? '−' : '+',
+          onToggle: () => this.setState({ open: { ...this.state.open, [it.code]: !this.state.open[it.code] } }),
+        })),
+      };
+    }).filter(g => g.items.length > 0);
+
+    return {
+      query: s.query,
+      onQueryChange: (e) => this.setState({ query: e.target.value }),
+      chips,
+      countLabel: total + (total === 1 ? ' entry indexed' : ' entries indexed'),
+      isEmpty: groups.length === 0,
+      groups,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

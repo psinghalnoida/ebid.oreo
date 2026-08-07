@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  a{text-decoration:none;}
+  a:link, a:visited{color:#C9974C;}
+  a:hover{color:#A87A38;}
+  @media (max-width:1000px){
+    .ta-stats{grid-template-columns:repeat(3,1fr) !important;}
+    .ta-twocol{grid-template-columns:1fr !important;}
+    .ta-nav{display:none !important;}
+  }
+  @media (max-width:860px){
+    .ta-quick{grid-template-columns:repeat(2,1fr) !important;}
+    .ta-seller-row{grid-template-columns:1fr 70px 60px 90px 1fr !important;}
+    .ta-seller-row > div:nth-child(5){display:none;}
+  }
+  @media (max-width:600px){
+    .ta-stats{grid-template-columns:repeat(2,1fr) !important;}
+    .ta-quick{grid-template-columns:1fr !important;}
+    .ta-seller-row{grid-template-columns:1fr 60px 1fr !important;}
+    .ta-seller-row > div:nth-child(3), .ta-seller-row > div:nth-child(4){display:none;}
+  }
+  @media (max-width:480px){
+    .ta-header-cta-label{display:none;}
+  }
+  html, body{overflow-x:hidden;}
+</style>
+</helmet>
+
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;">
+
+  <header style="position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1400px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:36px; width:36px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:22px; letter-spacing:-0.5px; color:#1E2761;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <nav class="ta-nav" style="display:flex; gap:4px; background:#E9EBF2; padding:4px; border-radius:100px;">
+        <a href="#pending" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#565B72;">Approvals</a>
+        <a href="#sellers" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#565B72;">Market Makers</a>
+        <a href="#billing" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#565B72;">Billing</a>
+        <a href="#" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#fff; background:#1E2233;">Dashboard</a>
+      </nav>
+      <div style="display:flex; gap:8px; align-items:center; flex:none;">
+        <a href="#" class="ta-header-cta-label" style="font-weight:700; font-size:12.5px; padding:9px 16px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233;">Profile</a>
+        <a href="#" style="font-weight:700; font-size:12.5px; padding:9px 18px; border-radius:100px; background:#C9974C; color:#fff; white-space:nowrap;">Log Out</a>
+      </div>
+    </div>
+  </header>
+
+  <main style="max-width:1130px; margin:0 auto; padding:40px 32px 80px;">
+
+    <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:8px;">
+      <h1 style="font-family:Georgia,'Cambria',serif; font-size:30px; font-weight:800; letter-spacing:-0.6px; margin:0;">TSX Master — {{ tenantName }}</h1>
+      <span style="font-size:12px; font-weight:600; color:#1B2A5B; background:#E7E9F2; padding:6px 13px; border-radius:100px; align-self:flex-start;">{{ tierLabel }}</span>
+    </div>
+    <p style="font-size:14px; color:#565B72; margin:0 0 28px;">Everything awaiting your action across lots, trading sessions, Market Maker standing, and billing on this TradeSphereX.</p>
+
+    <div class="ta-stats" style="display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:44px;">
+      <a href="Lot Approval.dc.html" style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:16px 18px; color:inherit;">
+        <b style="display:block; font-family:Georgia,serif; font-size:24px; font-weight:800;">{{ stats.pendingListings }}</b>
+        <span style="font-size:11px; color:#9A9FB5; font-weight:600;">Lots to Review</span>
+      </a>
+      <a href="Lot Approval.dc.html" style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:16px 18px; color:inherit;">
+        <b style="display:block; font-family:Georgia,serif; font-size:24px; font-weight:800;">{{ stats.pendingSaleEvents }}</b>
+        <span style="font-size:11px; color:#9A9FB5; font-weight:600;">Trading Sessions to Approve</span>
+      </a>
+      <a href="#sellers" style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:16px 18px; color:inherit;">
+        <b style="display:block; font-family:Georgia,serif; font-size:24px; font-weight:800; color:#C9974C;">{{ stats.pendingSellers }}</b>
+        <span style="font-size:11px; color:#9A9FB5; font-weight:600;">Market Maker Applications</span>
+      </a>
+      <a href="TSX Master Dispute Review.dc.html" style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:16px 18px; color:inherit;">
+        <b style="display:block; font-family:Georgia,serif; font-size:24px; font-weight:800;">{{ stats.openDisputes }}</b>
+        <span style="font-size:11px; color:#9A9FB5; font-weight:600;">Open Disputes</span>
+      </a>
+      <a href="#disputes" style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:16px 18px; color:inherit;">
+        <b style="display:block; font-family:Georgia,serif; font-size:24px; font-weight:800;">{{ stats.stalledSettlements }}</b>
+        <span style="font-size:11px; color:#9A9FB5; font-weight:600;">Stalled Settlements</span>
+      </a>
+    </div>
+
+    <section id="pending" style="margin-bottom:44px;">
+      <div class="ta-twocol" style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+        <div>
+          <h2 style="font-size:16px; font-weight:800; margin:0 0 14px; font-family:Archivo,sans-serif;">Lots Awaiting Approval</h2>
+          <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+            <sc-for list="{{ pendingListings }}" as="l" hint-placeholder-count="3">
+              <a href="Lot Approval.dc.html" style="display:block; padding:14px 18px; border-bottom:1px solid #EEF0EA; font-size:13px; color:#1E2233;">{{ l.category }} — {{ l.condition }}</a>
+            </sc-for>
+          </div>
+        </div>
+        <div>
+          <h2 style="font-size:16px; font-weight:800; margin:0 0 14px; font-family:Archivo,sans-serif;">Trading Sessions Awaiting Approval</h2>
+          <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+            <sc-for list="{{ pendingSaleEvents }}" as="se" hint-placeholder-count="2">
+              <a href="Lot Approval.dc.html" style="display:block; padding:14px 18px; border-bottom:1px solid #EEF0EA; font-size:13px; color:#1E2233;">{{ se.ern }} — {{ se.format }}</a>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="disputes" style="margin-bottom:44px;">
+      <div class="ta-twocol" style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+        <div>
+          <h2 style="font-size:16px; font-weight:800; margin:0 0 14px; font-family:Archivo,sans-serif;">Open Disputes</h2>
+          <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+            <sc-for list="{{ openDisputes }}" as="d" hint-placeholder-count="2">
+              <a href="TSX Master Dispute Review.dc.html" style="display:block; padding:14px 18px; border-bottom:1px solid #EEF0EA; font-size:13px; color:#1E2233;">{{ d.category }}</a>
+            </sc-for>
+          </div>
+        </div>
+        <div>
+          <h2 style="font-size:16px; font-weight:800; margin:0 0 14px; font-family:Archivo,sans-serif;">Stalled Settlements</h2>
+          <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+            <sc-for list="{{ stalledSettlements }}" as="s" hint-placeholder-count="2">
+              <a href="#" style="display:block; padding:14px 18px; border-bottom:1px solid #EEF0EA; font-size:13px; color:#C9974C; font-weight:700;">{{ s.price }}</a>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="disposals" style="margin-bottom:44px;">
+      <h2 style="font-size:16px; font-weight:800; margin:0 0 14px; font-family:Archivo,sans-serif;">High-Value Disposal Records (&gt;₹10L)</h2>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+        <sc-for list="{{ highValueDisposals }}" as="d" hint-placeholder-count="2">
+          <a href="#" style="display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid #EEF0EA;">
+            <span style="font-size:13.5px; font-weight:700; color:#C9974C;">{{ d.finalValue }}</span>
+            <span style="font-size:11px; color:#9A9FB5;">RV {{ d.reserveValue }} · Variance {{ d.variance }} · {{ d.format }}</span>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+
+    <section id="sellers" style="margin-bottom:44px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <h2 style="font-size:18px; font-weight:800; margin:0; font-family:Archivo,sans-serif;">Market Maker Management</h2>
+        <a href="#" style="font-size:12px; font-weight:700; padding:8px 16px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233;">Review Pending Applications</a>
+      </div>
+      <p style="font-size:12px; color:#9A9FB5; margin:0 0 14px;">Backed by the Standing Review system — sorted by complaint count.</p>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+        <div class="ta-seller-row" style="display:grid; grid-template-columns:1fr 80px 70px 90px 100px; padding:0 20px; font-size:10px; text-transform:uppercase; color:#9A9FB5; font-weight:700; border-bottom:1px solid #DDE0EA;">
+          <div style="padding:12px 0;">Mobile</div>
+          <div style="padding:12px 0;">Rating</div>
+          <div style="padding:12px 0;">Sales</div>
+          <div style="padding:12px 0;">Complaints</div>
+          <div style="padding:12px 0;">Standing</div>
+        </div>
+        <sc-for list="{{ sellers }}" as="s" hint-placeholder-count="4">
+          <a href="#" style="display:grid; grid-template-columns:1fr 80px 70px 90px 100px; padding:0 20px; border-bottom:1px solid #EEF0EA; align-items:center; font-size:13px; color:#1E2233;" class="ta-seller-row">
+            <div style="padding:12px 0;">{{ s.mobile }}</div>
+            <div style="padding:12px 0;">{{ s.rating }}★</div>
+            <div style="padding:12px 0;">{{ s.sales }}</div>
+            <div style="padding:12px 0;">{{ s.complaints }}</div>
+            <div style="padding:12px 0;"><span style="font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; color:{{ s.standingColor }}; background:{{ s.standingBg }}; padding:4px 10px; border-radius:100px;">{{ s.standing }}</span></div>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+
+    <section id="verification" style="margin-bottom:44px;">
+      <h2 style="font-size:18px; font-weight:800; margin:0 0 6px; font-family:Archivo,sans-serif;">Verification Console</h2>
+      <p style="font-size:12px; color:#9A9FB5; margin:0 0 14px;">Authentic media catalog + thumbnail for every listing awaiting approval.</p>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <sc-for list="{{ verificationQueue }}" as="v" hint-placeholder-count="2">
+          <a href="#" style="display:flex; gap:14px; align-items:center; background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:12px 16px; color:inherit;">
+            <div style="width:60px; height:60px; border-radius:8px; background:repeating-linear-gradient(135deg, #F1F1EE 0px, #F1F1EE 10px, #E7E7E1 10px, #E7E7E1 20px); flex-shrink:0;"></div>
+            <div style="flex:1;">
+              <p style="font-size:13.5px; font-weight:700; margin:0 0 4px;">{{ v.category }}</p>
+              <p style="font-size:11.5px; color:#9A9FB5; margin:0;">{{ v.mediaSummary }}</p>
+            </div>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+
+    <section id="billing" style="margin-bottom:44px;">
+      <h2 style="font-size:18px; font-weight:800; margin:0 0 6px; font-family:Archivo,sans-serif;">Billing</h2>
+      <p style="font-size:12px; color:#9A9FB5; margin:0 0 14px;">Success fees accrue here and consolidate into one GST-compliant invoice per calendar month.</p>
+      <div class="ta-twocol" style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:20px;">
+          <p style="font-size:11px; color:#9A9FB5; font-weight:600; text-transform:uppercase; margin:0 0 6px;">Unbilled This Period</p>
+          <b style="display:block; font-size:24px; font-weight:800; color:#C9974C;">{{ unbilledTotal }}</b>
+        </div>
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:20px;">
+          <p style="font-size:11px; color:#9A9FB5; font-weight:600; text-transform:uppercase; margin:0 0 8px;">Latest Invoice</p>
+          <p style="font-size:13.5px; font-weight:700; margin:0 0 4px;">{{ latestInvoice.number }} — {{ latestInvoice.total }}</p>
+          <p style="font-size:11.5px; color:#9A9FB5; margin:0;">{{ latestInvoice.period }} · {{ latestInvoice.status }}</p>
+        </div>
+      </div>
+    </section>
+
+    <section style="margin-top:36px; padding-top:28px; border-top:1px solid #DDE0EA;">
+      <h3 style="font-size:13px; font-weight:700; color:#9A9FB5; text-transform:uppercase; letter-spacing:0.5px; margin:0 0 14px;">Console</h3>
+      <div class="ta-quick" style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px;">
+        <a href="#" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">Media Waiver Request</a>
+        <a href="#" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">Full Market Maker List</a>
+        <a href="#" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">API Access</a>
+        <a href="#" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">Pending Market Maker Applications</a>
+      </div>
+    </section>
+
+  </main>
+</div>
+</helmet>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const good = { standing: 'Good standing', standingColor: '#3F7A4E', standingBg: '#E4EFE6' };
+    const review = { standing: 'Under Review', standingColor: '#9C5B1F', standingBg: '#FBF2E2' };
+    const delisted = { standing: 'Delisted (fraud)', standingColor: '#B5482F', standingBg: '#FBE8E4' };
+    return {
+      tenantName: 'Northline Industrial Auctions',
+      tierLabel: 'CoCo Tier: Growth',
+      stats: { pendingListings: 5, pendingSaleEvents: 2, pendingSellers: 3, openDisputes: 1, stalledSettlements: 1 },
+      pendingListings: [
+        { category: 'Repossessed Excavator', condition: 'Working, Moderate Wear' },
+        { category: 'Warehouse Racking Lot', condition: 'Used, Good Condition' },
+        { category: 'Diesel Generator Set', condition: 'Working, Minor Wear' }
+      ],
+      pendingSaleEvents: [
+        { ern: 'ERN-20260731-042', format: 'TENDER' },
+        { ern: 'ERN-20260730-039', format: 'EASY' }
+      ],
+      openDisputes: [
+        { category: 'Item condition mismatch' }
+      ],
+      stalledSettlements: [
+        { price: '₹4,80,000' }
+      ],
+      highValueDisposals: [
+        { finalValue: '₹18,50,000', reserveValue: '₹16,00,000', variance: '+₹2,50,000', format: 'TENDER' },
+        { finalValue: '₹12,40,000', reserveValue: '₹11,80,000', variance: '+₹60,000', format: 'TENDER' }
+      ],
+      sellers: [
+        { mobile: '98xxxxxx21', rating: '4.6', sales: 34, complaints: 1, ...good },
+        { mobile: '97xxxxxx08', rating: '3.2', sales: 12, complaints: 7, ...review },
+        { mobile: '99xxxxxx44', rating: '2.1', sales: 5, complaints: 14, ...delisted },
+        { mobile: '96xxxxxx77', rating: '4.9', sales: 61, complaints: 0, ...good }
+      ],
+      verificationQueue: [
+        { category: 'Repossessed Excavator', mediaSummary: '6 photos · 1 video · 0 documents' },
+        { category: 'Warehouse Racking Lot', mediaSummary: '3 photos · 0 videos · 1 document · 2 still processing' }
+      ],
+      unbilledTotal: '₹1,84,600',
+      latestInvoice: { number: 'INV-2026-07-0142', total: '₹2,41,900', period: 'Jun 1 – Jun 30, 2026', status: 'Paid' }
+    };
+  }
+}
+</script>
+</body>
+</html>

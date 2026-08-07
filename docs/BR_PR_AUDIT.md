@@ -451,11 +451,154 @@ return something for this to work end to end — that part cannot be
 exercised without a real key, same honest limitation BR-52's
 chargeback-detection code already carries.
 
+## Update — D-99: BR-/PR- jargon swept from the live portal
+
+Not a build-gap item — a UI/UX pass, first of a joint review the
+project owner asked to start ("let's look together" on the live
+product rather than a fixed brief). D-96/D-97 removed internal
+BR-/PR- citations from the Chronicle report specifically; this found
+and fixed the same pattern across the rest of the customer- and
+Tenant-Admin-facing portal (27 view files), and along the way found
+two real access-control gaps (permission-gated buttons rendered to
+everyone, not just authorized roles) in `listing/show.php`, now fixed.
+Full detail in `docs/DECISIONS.md` D-99.
+
+## Update — D-100: platform renamed from "eBid Hub" to AdwitiX throughout
+
+Same UI/UX review, second finding: the live portal's own name was
+still "eBid Hub" — header, page titles, footer, TOTP issuer, legal
+documents — the working/demo name from before the AdwitiX branding
+(shield icon, full logo) was finalized. Corrected across 38 files;
+the header/footer/favicon now use the real AdwitiX shield icon and
+wordmark rather than invented placeholder text. Full detail in
+`docs/DECISIONS.md` D-100.
+
+## Update — D-101: shared design-system foundation, proved out on Home/Profile/KYC
+
+Not a BR/PR build-gap item — a UI/UX foundation pass. A repo-wide
+check found exactly one responsive `@media` rule across the entire
+portal; every other screen had zero mobile treatment, including the
+header nav itself (which visually broke on every page at phone
+width). Added a real spacing/elevation/color-accent token system and
+shared component classes (`.card`, `.field`, `.badge`, `.grid-2/3/4`,
+responsive nav) to `layouts/main.php`, then proved the system out on
+three pages: Home (bolder hero/format-card treatment), Profile
+(reorganized from one unsorted row of 11 buttons into labelled
+groups), KYC (fixed a real bug — Individual/Organization fields were
+both always visible regardless of selection — plus card grouping).
+The other ~75 view files still use the old inline-style pattern;
+rolling the system out further is flagged as follow-up work, not yet
+requested. Full detail in `docs/DECISIONS.md` D-101.
+
+## Update — D-102: navigation-gap audit — 5 flagged items already wired, 3 genuine gaps closed
+
+Not a BR/PR build-gap item. The project owner reported five specific
+navigation gaps (logout, My Listings, My Bids, account/profile page,
+searchable Browse); investigation confirmed all five were already
+fully wired (verified via a real registered-account browser session,
+not just a code read). The systematic audit that followed — every
+static route cross-referenced against every actual link in the
+codebase — found three routes genuinely unreachable from anywhere in
+the app: `/cookie-policy`, `/account/invoices`, and the "File a
+Dispute" form. All three now have a real entry point, confirmed
+working over real HTTP. Full detail, screenflow diagram, and the
+evidence table in `docs/DECISIONS.md` D-102.
+
+## Update — D-103: Emergency Stop wired, Tenant Admin dashboard entry point wired
+
+A deeper zone-by-zone sweep (auction, negotiate, reports, disputes,
+settlement, TSX, tender, listing/event pages) found two more genuine
+gaps, reported before fixing per instruction. BR-14 Emergency Stop
+had zero UI trigger despite being fully built and tested — added to
+the listing page, real end-to-end verified (real Tenant Admin login,
+real click, sale event genuinely flipped to `cancelled` in the
+database). The bigger one: the entire Tenant Admin dashboard zone had
+no entry point anywhere after login — every sub-page linked back to
+the dashboard, nothing linked to it. Added a header-nav link, shown
+only to parties who actually administer a tenant, verified via a real
+login and click resolving to the correct dashboard. Full detail in
+`docs/DECISIONS.md` D-103.
+
+## Update — D-104: production-readiness audit — real CSRF, real CSP, CI pipeline, backup script, stale docs fixed
+
+Not a BR/PR build-gap item — a production-readiness pass, requested
+directly: audit the whole platform for what's missing to run
+full-fledged on the project owner's own cloud server, then close
+whatever doesn't need external credentials. Five real gaps closed:
+CSRF protection (was fully disabled repo-wide — added to all 90 POST
+forms across 46 views, two real corruption/exit-code bugs found and
+fixed along the way, verified with a real 403-reject/200-accept HTTP
+round trip), a real Content-Security-Policy scoped to what the app
+actually uses rather than generic defaults (was off entirely — a real
+headless-browser check caught a first-pass regression that raw HTTP
+headers didn't show, fixed and re-verified at zero real violations), a
+GitHub Actions CI pipeline running all 35 suites on every push/PR
+(didn't exist — building it surfaced and fixed a genuine
+fixture-collision bug between two test commands that would have made
+CI permanently red), a real `pg_dump`+media backup script with
+retention pruning (no backup strategy existed anywhere), and two
+stale docs (`SETUP.md`'s "Not yet built" list and `README.md`'s
+unmerged-PR warning, both years out of date) corrected against what's
+actually in the codebase today. Full detail in `docs/DECISIONS.md`
+D-104.
+
+## Update — D-105: Lot Reach & Interest built end to end (net-new feature, not a BR/PR item)
+
+Not a BR/PR item — a net-new feature the project owner asked to be
+built after reviewing the design handoff package's "Lot Reach &
+Interest" screen and finding it had no backend anywhere. Real reversed
+CLV matching (listing → matched buyers, extending
+`ClvMatchingService`'s existing buyer-facing direction), real
+per-listing view/favorite tracking, and a real in-app bulk-messaging
+system with a genuine buyer-facing inbox — no external SMS/email
+dependency, delivery is a real database-backed inbox page. `test:
+listingreach`, 29/29 assertions, plus a full real HTTP click-through
+(login → view listing → send message → real inbox delivery → mark
+read), each step checked against real database state. Full detail in
+`docs/DECISIONS.md` D-105. Also produced a further finding: 6 more
+design-package screens (Buyer/Seller Dashboard, Rating History, Star
+Ratings, Lot Directory, Trading Session Directory) have **neither** a
+design nor a consolidated backend — recorded in
+`docs/design/CLAUDE_DESIGN_HANDOFF.md` §2, flagged for a product
+scoping decision, not built here.
+
+## Update — D-106: the 6 no-mockup screens built (not a BR/PR item)
+
+Not a BR/PR item — the scoping decision D-105's writeup said the 6
+screens above needed. The project owner's instruction was explicit:
+"tackle the 6 no-mockup screens next." All 6 built: new
+`DashboardService` (Buyer/Seller Dashboard — a real consolidation of
+each buyer/seller's existing separate pages, not a new source of
+truth), `RatingEventModel::findForParty()` (Rating History — reads the
+BR-35/BR-36 audit trail that already existed but was never shown back
+to the party it happened to), a dedicated Star Ratings page (reads the
+existing rating/shadow-ban/Crawl-Back fields), and new
+`AdminDirectoryService` (Lot Directory / Trading Session Directory —
+the real gap: the Custodian had no way to browse listings/sale events
+platform-wide across every Tenant, only per-tenant pending queues
+existed). No new migrations — every screen reads tables that already
+existed. New suite `test:partydashboards`, 31/31 assertions, plus a
+full real HTTP click-through for all 6 (real register→OTP→mPIN flow,
+real TOTP-gated Super Admin login generating a genuine 6-digit code
+from a real enrolled secret, correct content and correct auth-guarding
+confirmed for every screen). Full detail in `docs/DECISIONS.md` D-106.
+`docs/design/CLAUDE_DESIGN_HANDOFF.md` §2 updated: the "no backend at
+all" list is now empty.
+
 ### Bottom line (current)
 
-**Still two items with no path forward without the project owner
-supplying something external — but BR-46's build itself is done**:
+**Still four items with no path forward without the project owner
+supplying something external — all four are genuinely build-complete,
+this is a credentials gap, not a build-effort gap**:
 
-1. BR-46 — fully built, genuinely inert pending a Gemini API key (no remaining build-effort gap)
-2. BR-52 — Chargeback Mitigation (blocked on real SabPaisa API credentials, no build-effort gap either)
+1. BR-46 — AI Listing Pre-Audit, fully built, genuinely inert pending a Gemini API key
+2. BR-52 — Chargeback Mitigation, fully built, blocked on real SabPaisa API credentials
+3. A real payment gateway — EMD funding is simulated across every sale format; connects post-deployment
+4. A real SMS provider — OTP is generated/rate-limited correctly but only ever shown on-screen, never sent
+
+**No screens remain blocked on missing backend or product scoping.**
+Every screen tracked in `docs/design/CLAUDE_DESIGN_HANDOFF.md` — the
+original 53-screen design package plus the 6 no-mockup screens closed
+out by D-106 — now has a real, tested backend. What's left everywhere
+else is purely visual design work, not build work.
 

@@ -55,7 +55,8 @@ class ContentSecurityPolicy extends BaseConfig
     public $defaultSrc;
 
     /**
-     * Lists allowed scripts' URLs.
+     * Lists allowed scripts' URLs. No external <script src="..."> anywhere
+     * in the app (grep-verified) -- 'self' only.
      *
      * @var list<string>|string
      */
@@ -72,38 +73,54 @@ class ContentSecurityPolicy extends BaseConfig
      * Specifies valid sources for JavaScript inline event
      * handlers and JavaScript URLs.
      *
-     * @var list<string>|string
-     */
-    public array|string $scriptSrcAttr = 'self';
-
-    /**
-     * Lists allowed stylesheets' URLs.
+     * 'unsafe-inline' is a real, deliberate tradeoff, not an oversight:
+     * listing/create.php and listing/show.php use a handful of inline
+     * onclick/onchange/onsubmit handlers (grep-verified, 4 occurrences
+     * across 2 real app views). Rewriting those to addEventListener()
+     * is a separate, larger frontend pass -- not bundled into this one.
      *
      * @var list<string>|string
      */
-    public $styleSrc = 'self';
+    public array|string $scriptSrcAttr = 'unsafe-inline';
+
+    /**
+     * Lists allowed stylesheets' URLs. Google Fonts' CSS host, needed for
+     * the Archivo/Inter/IBM Plex Mono stylesheet link in layouts/main.php.
+     *
+     * @var list<string>|string
+     */
+    public $styleSrc = ['self', 'https://fonts.googleapis.com'];
 
     /**
      * Specifies valid sources for stylesheets <link> elements.
      *
      * @var list<string>|string
      */
-    public array|string $styleSrcElem = 'self';
+    public array|string $styleSrcElem = ['self', 'https://fonts.googleapis.com'];
 
     /**
      * Specifies valid sources for stylesheets inline
      * style attributes and `<style>` elements.
      *
-     * @var list<string>|string
-     */
-    public array|string $styleSrcAttr = 'self';
-
-    /**
-     * Defines the origins from which images can be loaded.
+     * 'unsafe-inline' is a real, deliberate tradeoff, not an oversight:
+     * this entire app is built on inline style="..." attributes -- there
+     * is no separate stylesheet to fall back to. Locking this down
+     * without breaking every page's visual styling would mean migrating
+     * ~75+ view files off inline styles first; that's a real, separate
+     * frontend project, not something to fold into a CSP pass.
      *
      * @var list<string>|string
      */
-    public $imageSrc = 'self';
+    public array|string $styleSrcAttr = 'unsafe-inline';
+
+    /**
+     * Defines the origins from which images can be loaded. 'data:' is
+     * needed for the inline SVG watermarks used as data: URIs (e.g. the
+     * landing page's empty-state shield icon).
+     *
+     * @var list<string>|string
+     */
+    public $imageSrc = ['self', 'data:'];
 
     /**
      * Restricts the URLs that can appear in a page's `<base>` element.
@@ -123,18 +140,26 @@ class ContentSecurityPolicy extends BaseConfig
 
     /**
      * Limits the origins that you can connect to (via XHR,
-     * WebSockets, and EventSource).
+     * WebSockets, and EventSource). 'ws:'/'wss:' cover the D-42 real-time
+     * WebSocket sidecar (listing/show.php + layouts/main.php both open a
+     * WebSocket to the app's own host on a different port -- 8081 by
+     * default -- which is a different origin by browser rules, so 'self'
+     * alone would not cover it; scheme-only keeps this working whether
+     * the sidecar is exposed directly or proxied through Nginx per the
+     * README's two deployment options).
      *
      * @var list<string>|string
      */
-    public $connectSrc = 'self';
+    public $connectSrc = ['self', 'ws:', 'wss:'];
 
     /**
-     * Specifies the origins that can serve web fonts.
+     * Specifies the origins that can serve web fonts. Google Fonts' actual
+     * font-file host (as opposed to fonts.googleapis.com, which serves the
+     * CSS that references this host).
      *
      * @var list<string>|string
      */
-    public $fontSrc;
+    public $fontSrc = 'https://fonts.gstatic.com';
 
     /**
      * Lists valid endpoints for submission from `<form>` tags.
@@ -149,9 +174,13 @@ class ContentSecurityPolicy extends BaseConfig
      * and `<applet>` tags. This directive can't be used in
      * `<meta>` tags and applies only to non-HTML resources.
      *
+     * 'none' -- nothing in this app is meant to be iframed by another
+     * site; blocks clickjacking (also backed by secureheaders' own
+     * X-Frame-Options: SAMEORIGIN, belt-and-braces).
+     *
      * @var list<string>|string|null
      */
-    public $frameAncestors;
+    public $frameAncestors = 'none';
 
     /**
      * The frame-src directive restricts the URLs which may
@@ -169,11 +198,12 @@ class ContentSecurityPolicy extends BaseConfig
     public $mediaSrc;
 
     /**
-     * Allows control over Flash and other plugins.
+     * Allows control over Flash and other plugins. Nothing in this app
+     * uses <object>/<embed>/<applet> (grep-verified) -- locked to 'none'.
      *
      * @var list<string>|string
      */
-    public $objectSrc = 'self';
+    public $objectSrc = 'none';
 
     /**
      * @var list<string>|string|null

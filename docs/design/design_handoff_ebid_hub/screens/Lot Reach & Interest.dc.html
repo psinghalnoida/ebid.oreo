@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;} body{margin:0;} a{text-decoration:none;}
+  a:link, a:visited{color:#C9974C;} a:hover{color:#A87A38;}
+  @media (max-width:860px){ .lr-stats{grid-template-columns:1fr 1fr !important;} }
+  @media (max-width:640px){ .lr-buyertable{font-size:11px;} .lr-buyertable th:nth-child(2), .lr-buyertable td:nth-child(2){display:none;} }
+</style>
+</helmet>
+
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;">
+
+  <header style="position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1400px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:36px; width:36px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:22px; letter-spacing:-0.5px; color:#1E2761;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <a href="Seller Dashboard.dc.html" style="font-size:12.5px; font-weight:700; padding:9px 18px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233; white-space:nowrap;">← Back to Dashboard</a>
+    </div>
+  </header>
+
+  <main style="max-width:1100px; margin:0 auto; padding:36px 20px 80px;">
+
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:26px; font-weight:800; letter-spacing:-0.5px; margin:0 0 8px;">Lot Reach &amp; Interest</h1>
+    <p style="font-size:14px; color:#565B72; margin:0 0 28px; max-width:660px; line-height:1.6;">For each live Listing, see which Buyers match on category, location and value preferences — plus who's actually viewed or favorited it — so you know who to reach out to.</p>
+
+    <sc-if value="{{ flashSuccess }}" hint-placeholder-val="{{ false }}">
+      <p style="color:#1F5A3C; font-size:13px; background:#E4EFE6; padding:10px 14px; border-radius:8px; margin:0 0 16px;">{{ flashSuccess }}</p>
+    </sc-if>
+
+    <div class="lr-stats" style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:28px;">
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:16px 20px;">
+        <b style="display:block; font-family:Georgia,serif; font-size:24px; font-weight:800;">{{ totals.lots }}</b>
+        <span style="font-size:12px; color:#9A9FB5; font-weight:600;">Live Listings</span>
+      </div>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:16px 20px;">
+        <b style="display:block; font-family:Georgia,serif; font-size:24px; font-weight:800; color:#C9974C;">{{ totals.matched }}</b>
+        <span style="font-size:12px; color:#9A9FB5; font-weight:600;">Full Matches (Category + Location + Value)</span>
+      </div>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:16px 20px;">
+        <b style="display:block; font-family:Georgia,serif; font-size:24px; font-weight:800;">{{ totals.viewed }}</b>
+        <span style="font-size:12px; color:#9A9FB5; font-weight:600;">Total Views</span>
+      </div>
+    </div>
+
+    <sc-for list="{{ listings }}" as="entry" hint-placeholder-count="2">
+      <div style="border:1px solid #DDE0EA; border-radius:14px; padding:16px 20px; margin-bottom:14px; background:#fff;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <div>
+            <p style="font-size:14px; font-weight:700; margin:0;"><a href="Lot Detail.dc.html" style="color:inherit;">{{ entry.title }}</a></p>
+            <p style="font-size:11px; color:#9A9FB5; margin:2px 0 0;">{{ entry.viewCount }} views · {{ entry.fullMatchLabel }}</p>
+          </div>
+          <sc-if value="{{ entry.hasMatches }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ entry.onOpenComposer }}" style="font-size:11.5px; font-weight:700; padding:9px 16px; border-radius:100px; background:#1E2233; color:#fff; border:none; cursor:pointer; white-space:nowrap;">Message matched buyers</button>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{ entry.hasMatches }}" hint-placeholder-val="{{ false }}">
+          <table class="lr-buyertable" style="width:100%; margin-top:14px; font-size:12px; border-collapse:collapse;">
+            <thead>
+              <tr style="color:#9A9FB5; text-align:left;">
+                <th style="padding:4px 0;">Buyer</th><th>Category</th><th>Location</th><th>Value</th><th>Viewed</th><th>Favorited</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ entry.matchedBuyers }}" as="m" hint-placeholder-count="3">
+                <tr style="border-top:1px solid #EEF0EA;">
+                  <td style="padding:7px 0; font-family:'IBM Plex Mono',monospace; font-size:11px;">{{ m.partyIdShort }}…</td>
+                  <td>{{ m.categoryMark }}</td>
+                  <td>{{ m.locationMark }}</td>
+                  <td>{{ m.valueMark }}</td>
+                  <td>{{ m.viewedMark }}</td>
+                  <td>{{ m.favoritedMark }}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </sc-if>
+        <sc-if value="{{ entry.noMatches }}" hint-placeholder-val="{{ false }}">
+          <p style="font-size:12px; color:#9A9FB5; margin-top:10px;">No buyers matched on any dimension yet.</p>
+        </sc-if>
+      </div>
+    </sc-for>
+
+  </main>
+
+  <sc-if value="{{ composerOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; inset:0; background:rgba(30,34,51,0.55); z-index:100; display:flex; align-items:center; justify-content:center; padding:20px;" onClick="{{ onCloseComposer }}">
+      <div style="background:#fff; border-radius:18px; max-width:480px; width:100%; padding:26px; box-shadow:0 20px 60px rgba(0,0,0,0.25);" onClick="{{ stopProp }}">
+        <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#C9974C; margin-bottom:6px;">Message Matched Buyers</div>
+        <h3 style="font-family:Georgia,'Cambria',serif; font-size:18px; font-weight:700; margin:0 0 6px;">{{ composerTitle }}</h3>
+        <p style="font-size:12.5px; color:#565B72; margin:0 0 16px; line-height:1.5;">Sending to {{ composerMatchedCount }} matched Buyers. Delivered to their Messages inbox.</p>
+        <textarea value="{{ composerMessage }}" onChange="{{ onComposerMessageChange }}" placeholder="e.g. This listing matches your preferences and closes soon." style="width:100%; min-height:90px; border:1.5px solid #DDE0EA; border-radius:10px; padding:10px 12px; font-size:13px; font-family:'Inter',sans-serif; resize:vertical; margin-bottom:16px;"></textarea>
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+          <button onClick="{{ onCloseComposer }}" style="font-size:13px; font-weight:700; padding:10px 18px; border-radius:100px; border:1px solid #DDE0EA; background:#fff; color:#1E2233; cursor:pointer;">Cancel</button>
+          <button onClick="{{ onSendComposer }}" style="font-size:13px; font-weight:700; padding:10px 20px; border-radius:100px; border:none; background:#C9974C; color:#fff; cursor:pointer;">Send</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { composerListingId: null, message: '', flashSuccess: '' };
+
+  listingDefs() {
+    return [
+      {
+        id: 1, title: 'CNC Lathe (Surplus)', viewCount: 64,
+        matchedBuyers: [
+          { partyId: 'b19f2a7c-11', categoryMatch: true, locationMatch: true, valueMatch: true, viewed: true, favorited: true },
+          { partyId: '4d0e88b3-22', categoryMatch: true, locationMatch: true, valueMatch: false, viewed: true, favorited: false },
+          { partyId: 'a7c15e90-33', categoryMatch: true, locationMatch: false, valueMatch: true, viewed: false, favorited: false },
+        ],
+      },
+      {
+        id: 2, title: 'Repossessed Excavator, CAT 320D', viewCount: 22,
+        matchedBuyers: [
+          { partyId: '9b2fa011-44', categoryMatch: true, locationMatch: true, valueMatch: true, viewed: true, favorited: false },
+        ],
+      },
+      { id: 3, title: 'Office IT Assets Lot', viewCount: 8, matchedBuyers: [] },
+    ];
+  }
+
+  renderVals() {
+    const listings = this.listingDefs();
+    const fullMatchCounts = listings.map(l => l.matchedBuyers.filter(m => m.categoryMatch && m.locationMatch && m.valueMatch).length);
+    const totals = {
+      lots: listings.length,
+      matched: fullMatchCounts.reduce((a, b) => a + b, 0),
+      viewed: listings.reduce((a, l) => a + l.viewCount, 0),
+    };
+    const composerListing = listings.find(l => l.id === this.state.composerListingId);
+    const mark = (b) => (b ? '✓' : '—');
+
+    return {
+      totals,
+      flashSuccess: this.state.flashSuccess,
+      listings: listings.map((l, i) => ({
+        title: l.title, viewCount: l.viewCount,
+        fullMatchLabel: fullMatchCounts[i] + ' full match' + (fullMatchCounts[i] === 1 ? '' : 'es'),
+        hasMatches: l.matchedBuyers.length > 0,
+        noMatches: l.matchedBuyers.length === 0,
+        matchedBuyers: l.matchedBuyers.map(m => ({
+          partyIdShort: m.partyId.slice(0, 8),
+          categoryMark: mark(m.categoryMatch), locationMark: mark(m.locationMatch), valueMark: mark(m.valueMatch),
+          viewedMark: mark(m.viewed), favoritedMark: mark(m.favorited),
+        })),
+        onOpenComposer: () => this.setState({ composerListingId: l.id, message: '' }),
+      })),
+      composerOpen: !!composerListing,
+      composerTitle: composerListing ? composerListing.title : '',
+      composerMatchedCount: composerListing ? composerListing.matchedBuyers.length : 0,
+      composerMessage: this.state.message,
+      onComposerMessageChange: (e) => this.setState({ message: e.target.value }),
+      onCloseComposer: () => this.setState({ composerListingId: null }),
+      stopProp: (e) => e.stopPropagation(),
+      onSendComposer: () => this.setState({ composerListingId: null, flashSuccess: 'Message sent.' }),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

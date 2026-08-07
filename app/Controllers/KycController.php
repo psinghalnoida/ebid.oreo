@@ -33,7 +33,7 @@ class KycController extends BaseController
         }
 
         return view('kyc/form', [
-            'title' => 'KYC Verification — eBid Hub', 'party' => $party,
+            'title' => 'KYC Verification — AdwitiX', 'party' => $party,
             'documents' => $documents, 'addressesByType' => $addressesByType,
             'requiredDocuments' => KycService::requiredDocuments($party['entity_type']),
             'allDocumentTypes' => KycService::allDocumentTypes(),

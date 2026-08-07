@@ -10,7 +10,7 @@
   <?php if (!empty($error)): ?>
     <p style="color:#B5482F; font-size:13px;"><?= esc($error) ?></p>
   <?php endif; ?>
-  <form method="post" action="/payout-bank/confirm">
+  <form method="post" action="/payout-bank/confirm"><?= csrf_field() ?>
     <label style="font-size:12px; color:var(--ink-3);">6-digit OTP</label>
     <input type="text" name="otp" maxlength="6" required
       style="display:block; width:100%; padding:12px; margin:6px 0 16px; border:1px solid var(--line); border-radius:10px;">

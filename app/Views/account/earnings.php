@@ -19,7 +19,7 @@
     </div>
     <div style="flex:1; border:1px solid var(--line); border-radius:12px; padding:14px;">
       <p style="font-size:20px; font-weight:800; margin:0;">₹<?= number_format((float) $thisMonth['total_tds'], 2) ?></p>
-      <p style="font-size:11px; color:var(--ink-3);">TDS Deducted (BR-53)</p>
+      <p style="font-size:11px; color:var(--ink-3);">TDS Deducted</p>
     </div>
   </div>
 
@@ -45,7 +45,7 @@
     — <a href="/payout-bank" style="color:var(--emerald);">manage</a>
   </p>
   <p style="font-size:11px; color:var(--ink-3); margin-top:8px;">
-    "Net Received" reflects the platform fee split (BR-33) and TDS deduction (BR-53, Section 194-O, 10%) —
+    "Net Received" reflects the platform fee split and TDS deduction (10%) —
     actual payout to your bank account requires the real payment gateway, which is not yet connected
     (deferred to post-deployment, per the project's own decision).
   </p>

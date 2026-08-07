@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#A87A38;}
+.tm-letter:hover{background:#C9974C !important; color:#fff !important;}
+@media (max-width:640px){.tm-alpha{display:none !important;}}
+</style>
+</helmet>
+<div style="min-height:100vh; background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif;">
+  <header style="position:sticky; top:0; z-index:60; background:rgba(243,244,248,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1200px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#1E2761;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <a href="Trust and Support.dc.html" style="font-weight:700; font-size:12.5px; padding:9px 18px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233; white-space:nowrap;">← Trust &amp; Support</a>
+    </div>
+  </header>
+
+  <main style="max-width:880px; margin:0 auto; padding:40px 20px 90px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">Trust &amp; Support</div>
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:32px; font-weight:800; letter-spacing:-0.7px; margin:0 0 10px;">Terminology</h1>
+    <p style="font-size:14.5px; color:#565B72; margin:0 0 26px; max-width:560px; line-height:1.6;">Plain-language definitions for every ADWITIX-specific term you'll come across as a Trader or Market Maker.</p>
+
+    <div style="position:relative; margin-bottom:14px;">
+      <input placeholder="Search a term — EMD, Crawl-Back, Verified, Forfeiture..." value="{{ query }}" onChange="{{ onQueryChange }}" style="width:100%; padding:12px 16px; border-radius:9px; border:1px solid #DDE0EA; background:#fff; font-size:14px; color:#1E2233; font-family:'Inter',sans-serif;">
+    </div>
+
+    <div class="tm-alpha" style="display:flex; gap:5px; flex-wrap:wrap; margin-bottom:20px;">
+      <sc-for list="{{ alphabet }}" as="letter" hint-placeholder-count="10">
+        <a class="tm-letter" href="{{ letter.href }}" style="width:26px; height:26px; border-radius:6px; border:1px solid #DDE0EA; background:#fff; color:#1E2233; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center;">{{ letter.char }}</a>
+      </sc-for>
+    </div>
+
+    <div style="font-size:12px; color:#9A9FB5; margin-bottom:16px;">{{ countLabel }}</div>
+
+    <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="text-align:center; padding:50px 20px; color:#9A9FB5; font-size:14px;">No terms match "{{ query }}".</div>
+    </sc-if>
+
+    <sc-for list="{{ groups }}" as="grp" hint-placeholder-count="8">
+      <section id="{{ grp.anchorId }}" style="margin-bottom:28px;">
+        <div style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; color:#C9974C; margin-bottom:12px; padding-bottom:6px; border-bottom:2px solid #F3E3D6;">{{ grp.letter }}</div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <sc-for list="{{ grp.terms }}" as="t" hint-placeholder-count="3">
+            <div style="background:#fff; border:1px solid #DDE0EA; border-radius:10px; padding:16px 18px;">
+              <h3 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:15.5px; color:#1E2233; margin:0 0 6px;">{{ t.term }}</h3>
+              <p style="font-size:13.5px; line-height:1.55; color:#1E2233; margin:0 0 8px;">{{ t.def }}</p>
+              <sc-if value="{{ t.hasRelated }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                  <span style="font-size:10.5px; letter-spacing:0.05px; color:#1E2761; font-weight:700;">SEE ALSO:</span>
+                  <sc-for list="{{ t.related }}" as="r" hint-placeholder-count="2">
+                    <span style="font-size:12px; color:#1E2761; background:#E7E9F2; padding:2px 8px; border-radius:999px;">{{ r }}</span>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </sc-for>
+  </main>
+
+  <footer style="border-top:1px solid #DDE0EA; padding:24px 20px; text-align:center;">
+    <p style="font-size:12.5px; color:#9A9FB5; margin:0;">Still not sure about a term? Check our <a href="FAQ.dc.html">FAQ</a>, or reach out through <a href="Trust and Support.dc.html">Contact Us</a>.</p>
+  </footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { query: '' };
+
+  terms() {
+    return [
+      { term: "Baton-Pass (Cascading Default)", def: "What happens when a winning Trader doesn't pay: the win passes to the next-highest Trader at their own price, within their own time window. This can happen up to three times before a Trading Session is cancelled outright.", related: ["Forfeiture", "H1 / H2 / H3"] },
+      { term: "Bid Ceiling (150% Rule)", def: "A safety limit stopping any single bid from jumping more than 150% above the current price — catches typing mistakes and blocks deliberate price manipulation.", related: [] },
+      { term: "Buy-Now", def: "A sale format where Traders make offers and the Market Maker personally chooses who to sell to, considering price and the Trader's rating — not necessarily the highest offer.", related: ["Express Auction", "Easy Auction"] },
+      { term: "CAT-LOC-VAL", def: "Short for Category-Location-Value — the set of preferences that personalises which Lots and alerts you see.", related: ["Live Ticker"] },
+      { term: "Certified by Seller (CBS)", def: "A Lot where the Market Maker has taken their own photos, by any method. Real, unedited photos of the actual item are required — stock or generated images are never allowed. Contrast with Verified Lot.", related: ["Verified Lot", "Standing Review"] },
+      { term: "Crawl-Back", def: "A recovery path for a Trader whose rating has dropped significantly — temporarily limited to smaller purchases until a set number of clean transactions restores their standing.", related: ["Star Rating", "Shadow Banning"] },
+      { term: "Dispute Resolution", def: "The formal process for resolving a disagreement about a specific Trading Session — filed by a Trader or Market Maker, reviewed with evidence from both sides, and decided with a stated reason.", related: ["Grievance Redressal", "Standing Review"] },
+      { term: "Dynamic Time (Anti-Sniping)", def: "A rule that extends a Trading Session by a short period whenever a bid lands in the closing minutes, so a last-second bid can't unfairly end it before others can respond.", related: [] },
+      { term: "Easy Auction", def: "A scheduled auction with a real inspection window (set by the Market Maker, 24 hours to 7 days) before bidding opens. The Market Maker can choose whether results close instantly or need their approval.", related: ["Buy-Now", "Express Auction"] },
+      { term: "EMD (Security Deposit)", def: "The refundable deposit — 10% of the item's value — a Trader must pledge before placing a bid or offer. Returned automatically unless they win and then fail to pay.", related: ["Forfeiture", "Money Points (PC)"] },
+      { term: "EV (Expected Value)", def: "The price a Market Maker states as their target/asking figure in a Buy-Now Lot. Traders may offer above or below it — it's a reference point, not a hard limit.", related: ["Reserve Value (RV)", "Buy-Now"] },
+      { term: "Express Auction", def: "The fastest sale format — no inspection window at all. The Trading Session only starts once exactly 3 Traders have pledged a deposit, then runs for about an hour.", related: ["Easy Auction", "Buy-Now"] },
+      { term: "Forfeiture", def: "The loss of a Trader's deposit after winning a Trading Session and then failing to complete payment. In most cases the money goes to the Market Maker as compensation; in a full cascading default, it doesn't.", related: ["EMD (Security Deposit)", "Baton-Pass (Cascading Default)"] },
+      { term: "Grievance Redressal", def: "The process for raising a broader concern about the platform itself — separate from a dispute about one specific Trading Session.", related: ["Dispute Resolution"] },
+      { term: "H1 / H2 / H3", def: "Shorthand for the highest, second-highest, and third-highest bidder in a Trading Session at the moment it closes. If H1 defaults, the win passes to H2, then H3.", related: ["Baton-Pass (Cascading Default)"] },
+      { term: "KYC", def: "Know Your Customer — the identity verification every user completes before transacting, using documents like PAN and Aadhaar (individuals) or company registration details (businesses).", related: [] },
+      { term: "Live Ticker", def: "The real-time scrolling feed showing your account balance, the status of your active bids, and new Lots matching your interests.", related: ["CAT-LOC-VAL"] },
+      { term: "Money Points (PC)", def: "The platform's internal representation of deposited funds — always equal in value to what you deposited (1:1), held as a distinct amount tied to each specific bid, not one shared spendable balance.", related: ["EMD (Security Deposit)"] },
+      { term: "NOC (No Objection Certificate)", def: "A digital confirmation both sides must submit before a deal is considered closed — the Market Maker confirms they were paid, the Trader confirms they received the goods.", related: ["Settlement"] },
+      { term: "Payment Gateway Charge", def: "A processing fee some payment methods (like cards) carry, added on top of your deposit so the full deposit amount still reaches escrow untouched.", related: ["EMD (Security Deposit)"] },
+      { term: "Related Auctions", def: "Multiple Lots that share a common origin (e.g., items from the same site) shown together on one screen for convenience — while each one remains a fully separate, independent sale.", related: [] },
+      { term: "Reserve Value (RV)", def: "The confidential floor price a Market Maker sets for an Easy or Express Auction. The item won't sell for less than this, and it's what a Trader's deposit is calculated against.", related: ["EV (Expected Value)", "Easy Auction"] },
+      { term: "Custodian (SaaS Admin)", def: "The platform's top-level administrator, who oversees the whole system but never personally trades, lists, or has any visibility into a live Trading Session while it's happening.", related: ["TSX Master"] },
+      { term: "Market Maker Rating (sellerStarRating)", def: "Your reputation score specifically as a Market Maker — separate from your Trader rating, even if you do both.", related: ["Star Rating"] },
+      { term: "Settlement", def: "The final stage of a completed sale: the Trader pays the Market Maker directly, both confirm their side (NOC), both rate each other, and any remaining deposit is refunded.", related: ["NOC (No Objection Certificate)"] },
+      { term: "Shadow Banning", def: "A gradual reduction in visibility (fewer alerts, less promotion) for an account with a persistently poor rating — not a full block, just reduced platform support.", related: ["Crawl-Back", "Star Rating"] },
+      { term: "Standing Review", def: "A periodic, big-picture check on a Market Maker's overall conduct — triggered either once a year, or sooner if enough complaints build up.", related: ["Certified by Seller (CBS)", "Dispute Resolution"] },
+      { term: "Star Rating", def: "Your reputation score, starting at 3 out of 5, that rises with clean, on-time transactions and falls with defaults or disputes. Traders and Market Makers each have their own, separate score.", related: ["Market Maker Rating (sellerStarRating)", "Crawl-Back"] },
+      { term: "TradeSphereX (TSX) / Shop", def: "An individual storefront operating on ADWITIX under its own branding — could be a bank, an institution, or the platform's own general marketplace.", related: ["TSX Master"] },
+      { term: "TSX Master", def: "The person a TradeSphereX has authorised to approve Lots, set local terms, and manage Market Makers on that specific storefront.", related: ["TradeSphereX (TSX) / Shop", "Custodian (SaaS Admin)"] },
+      { term: "Tender Auction", def: "A fully private, invite-only sale format where the Market Maker personally controls who can participate and on what terms — available only through the platform's own operated shop.", related: ["Buy-Now"] },
+      { term: "Verified Lot", def: "A Lot where ADWITIX's own inspection team has visited the item and taken the photos themselves. Contrast with Certified by Seller.", related: ["Certified by Seller (CBS)"] },
+    ];
+  }
+
+  renderVals() {
+    const q = this.state.query.trim().toLowerCase();
+    const all = this.terms();
+    const filtered = q ? all.filter(t => t.term.toLowerCase().includes(q) || t.def.toLowerCase().includes(q)) : all;
+    const map = new Map();
+    filtered.forEach(t => {
+      const letter = t.term[0].toUpperCase();
+      if (!map.has(letter)) map.set(letter, []);
+      map.get(letter).push(t);
+    });
+    const groups = Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([letter, terms]) => ({
+      letter, anchorId: 'letter-' + letter,
+      terms: terms.map(t => ({ term: t.term, def: t.def, related: t.related, hasRelated: t.related.length > 0 }))
+    }));
+    const allLetters = [...new Set(all.map(t => t.term[0].toUpperCase()))].sort();
+    return {
+      query: this.state.query,
+      onQueryChange: (e) => this.setState({ query: e.target.value }),
+      alphabet: allLetters.map(c => ({ char: c, href: '#letter-' + c })),
+      countLabel: filtered.length + (filtered.length === 1 ? ' term' : ' terms'),
+      isEmpty: groups.length === 0,
+      groups,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

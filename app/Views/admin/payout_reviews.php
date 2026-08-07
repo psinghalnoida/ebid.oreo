@@ -14,7 +14,7 @@
     <div style="border:1px solid var(--line); border-radius:12px; padding:16px; margin-top:10px;">
       <p style="font-size:13px; font-weight:700; margin:0 0 4px;">₹<?= number_format((float) $r['amount'], 2) ?> — <?= esc($r['mobile_number']) ?></p>
       <p style="font-size:12px; color:var(--ink-3); margin:0 0 10px;"><?= esc(str_replace('_', ' ', $r['release_type'])) ?></p>
-      <form method="post" action="/admin/payout-reviews/<?= esc($r['id']) ?>/decide">
+      <form method="post" action="/admin/payout-reviews/<?= esc($r['id']) ?>/decide"><?= csrf_field() ?>
         <textarea name="rationale" placeholder="Decision rationale (required)" required rows="2"
           style="display:block; width:100%; padding:8px; margin-bottom:8px; border:1px solid var(--line); border-radius:8px; font-size:12px;"></textarea>
         <button type="submit" name="decision" value="approve" class="btn btn-emerald" style="font-size:12px;">Approve Release</button>

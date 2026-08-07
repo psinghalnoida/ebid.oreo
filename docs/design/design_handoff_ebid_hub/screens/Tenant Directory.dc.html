@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} html,body{overflow-x:hidden;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#A87A38;}
+.td-card:hover{border-color:#C9974C !important;}
+@media (max-width:900px){.td-grid{grid-template-columns:1fr 1fr !important;}}
+@media (max-width:640px){.td-nav{display:none !important;} .td-grid{grid-template-columns:1fr !important;}}
+</style>
+</helmet>
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;">
+  <header style="position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1200px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#1E2761;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <nav class="td-nav" style="display:flex; gap:4px; background:#E9EBF2; padding:4px; border-radius:100px;">
+        <a href="Marketplace.dc.html" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#565B72;">Marketplace</a>
+        <a href="Seller Dashboard.dc.html" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#565B72;">Dashboard</a>
+        <a href="#" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#fff; background:#1E2233;">Apply to Sell</a>
+      </nav>
+    </div>
+  </header>
+
+  <main style="max-width:1200px; margin:0 auto; padding:36px 20px 100px;">
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:28px; font-weight:800; letter-spacing:-0.6px; margin:0 0 8px;">Choose a TradeSphereX to Apply To</h1>
+    <p style="font-size:13.5px; color:#565B72; margin:0 0 24px; max-width:640px; line-height:1.6;">Selling rights are tenant-specific — approval on one TradeSphereX does not carry over to another. Pick the storefront that fits what you're selling, then apply below.</p>
+
+    <div style="position:relative; max-width:360px; margin-bottom:22px;">
+      <input placeholder="Search TradeSphereX by name or category…" value="{{ query }}" onChange="{{ onQueryChange }}" style="width:100%; padding:10px 14px 10px 34px; border-radius:8px; border:1px solid #DDE0EA; background:#fff; font-size:13px; outline:none; font-family:inherit;">
+      <span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#9A9FB5; font-size:13px;">⌕</span>
+    </div>
+
+    <sc-if value="{{ !applying }}" hint-placeholder-val="{{ true }}">
+      <div class="td-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px;">
+        <sc-for list="{{ tenants }}" as="t" hint-placeholder-count="6">
+          <div class="td-card" style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:20px; display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+              <span style="width:34px; height:34px; border-radius:10px; background:{{ t.swatch }}; flex-shrink:0;"></span>
+              <span style="font-size:10px; font-weight:800; letter-spacing:0.4px; padding:4px 10px; border-radius:100px; background:#F1EDE4; color:#9C7430; text-transform:uppercase;">{{ t.tier }}</span>
+            </div>
+            <div style="font-size:16px; font-weight:800; font-family:Georgia,serif;">{{ t.name }}</div>
+            <div style="font-size:11.5px; color:#9A9FB5; font-family:'IBM Plex Mono',monospace;">{{ t.subdomain }}.ebidhub.com</div>
+            <div style="font-size:11px; font-weight:700; color:#565B72; text-transform:uppercase; letter-spacing:0.3px;">{{ t.tenantClass }}</div>
+            <p style="font-size:12.5px; color:#565B72; margin:0; line-height:1.5; flex:1;">{{ t.blurb }}</p>
+            <div style="font-size:11.5px; color:#9A9FB5;">{{ t.activeLots }} active Lots · {{ t.sellerCount }} Market Makers</div>
+            <button onClick="{{ t.onApply }}" style="margin-top:4px; font-size:12.5px; font-weight:700; padding:10px; border-radius:8px; border:none; background:#1E2233; color:#fff; cursor:pointer;">Apply to Sell Here</button>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ applying }}" hint-placeholder-val="{{ false }}">
+      <sc-if value="{{ !submitted }}" hint-placeholder-val="{{ true }}">
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:28px; max-width:520px;">
+          <button onClick="{{ onCancelApply }}" style="background:none; border:none; color:#9A9FB5; font-size:12.5px; font-weight:700; cursor:pointer; padding:0; margin-bottom:14px;">← Back to directory</button>
+          <div style="font-size:12px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; color:#C9974C; margin-bottom:6px;">Applying to</div>
+          <h2 style="font-family:Georgia,serif; font-size:20px; font-weight:800; margin:0 0 20px;">{{ applyingTenant.name }}</h2>
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <input placeholder="Business / entity name" value="{{ form.businessName }}" onChange="{{ form.onBusinessNameChange }}" style="width:100%; padding:11px 14px; border:1px solid #DDE0EA; border-radius:8px; font-size:13.5px; outline:none; font-family:inherit;">
+            <select value="{{ form.entityType }}" onChange="{{ form.onEntityTypeChange }}" style="width:100%; padding:11px 14px; border:1px solid #DDE0EA; border-radius:8px; font-size:13.5px; outline:none; font-family:inherit; background:#fff;">
+              <option value="">Entity type…</option>
+              <option value="individual">Individual</option>
+              <option value="organization">Organization</option>
+            </select>
+            <input placeholder="Primary category you'll sell" value="{{ form.category }}" onChange="{{ form.onCategoryChange }}" style="width:100%; padding:11px 14px; border:1px solid #DDE0EA; border-radius:8px; font-size:13.5px; outline:none; font-family:inherit;">
+            <input placeholder="Mobile number (+91)" value="{{ form.mobile }}" onChange="{{ form.onMobileChange }}" style="width:100%; padding:11px 14px; border:1px solid #DDE0EA; border-radius:8px; font-size:13.5px; outline:none; font-family:inherit;">
+          </div>
+          <p style="font-size:11.5px; color:#9A9FB5; margin:16px 0 0; line-height:1.5;">Submitting routes your application to {{ applyingTenant.name }}'s Tenant Admin for review. Full KYC is completed separately once approved.</p>
+          <button onClick="{{ onSubmitApply }}" disabled="{{ !form.valid }}" style="margin-top:16px; width:100%; font-size:13.5px; font-weight:700; padding:12px; border-radius:8px; border:none; background:{{ form.valid ? '#1E2233' : '#E9EBF2' }}; color:{{ form.valid ? '#fff' : '#9A9FB5' }}; cursor:pointer;">Submit Application</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{ submitted }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#E7F0E9; border:1px solid #CBE0D1; border-radius:16px; padding:32px; max-width:520px; text-align:center;">
+          <div style="font-size:15px; font-weight:800; color:#38724A; margin-bottom:8px;">Application Submitted</div>
+          <p style="font-size:13px; color:#38724A; margin:0 0 6px; line-height:1.6;">Your application to sell on <strong>{{ applyingTenant.name }}</strong> is now with their Tenant Admin.</p>
+          <p style="font-size:12px; color:#38724A; margin:0 0 18px; font-family:'IBM Plex Mono',monospace;">Reference: {{ appRef }}</p>
+          <a href="Seller Dashboard.dc.html" style="font-size:13px; font-weight:700; padding:10px 20px; border-radius:8px; background:#38724A; color:#fff; display:inline-block;">Go to Dashboard →</a>
+        </div>
+      </sc-if>
+    </sc-if>
+  </main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    query: '', applying: false, applyingTenant: null, submitted: false,
+    businessName: '', entityType: '', category: '', mobile: '',
+  };
+
+  allTenants() {
+    return [
+      { name: 'Northline Industrial Auctions', subdomain: 'northline', tenantClass: 'Industrial', tier: 'Growth', swatch: '#3B5A8A', activeLots: 214, sellerCount: 38, blurb: 'Machinery, surplus equipment, and industrial liquidations across North India.' },
+      { name: 'Coastal Salvage Co-op', subdomain: 'coastal-salvage', tenantClass: 'Salvage', tier: 'Launch', swatch: '#3F7A6B', activeLots: 87, sellerCount: 16, blurb: 'Marine salvage, flood-affected goods, and insurance write-offs.' },
+      { name: 'Metro Surplus Exchange', subdomain: 'metro-surplus', tenantClass: 'Surplus', tier: 'Starter', swatch: '#8A5B3B', activeLots: 52, sellerCount: 11, blurb: 'Office IT assets, furniture, and commercial surplus from urban businesses.' },
+      { name: 'Apex Fleet Disposals', subdomain: 'apex-fleet', tenantClass: 'Fleet', tier: 'Enterprise', swatch: '#6A4A9C', activeLots: 341, sellerCount: 64, blurb: 'Ex-fleet vehicles, delivery vans, and repossessed commercial transport.' },
+      { name: 'Ironclad Metals TSX', subdomain: 'ironclad-metals', tenantClass: 'Industrial', tier: 'Growth', swatch: '#5B6178', activeLots: 176, sellerCount: 29, blurb: 'Repossessed heavy equipment, compressors, and metal-sector assets.' },
+      { name: 'AutoYard TSX', subdomain: 'autoyard', tenantClass: 'Vehicles', tier: 'Launch', swatch: '#A9622C', activeLots: 98, sellerCount: 22, blurb: 'Used and repossessed vehicles, from fleet cars to delivery vans.' },
+    ];
+  }
+
+  renderVals() {
+    const s = this.state;
+    const q = s.query.toLowerCase();
+    const tenants = this.allTenants()
+      .filter(t => !q || t.name.toLowerCase().includes(q) || t.tenantClass.toLowerCase().includes(q))
+      .map(t => ({ ...t, onApply: () => this.setState({ applying: true, applyingTenant: t, submitted: false }) }));
+
+    const valid = !!(s.businessName && s.entityType && s.category && s.mobile.length >= 10);
+
+    return {
+      query: s.query, onQueryChange: (e) => this.setState({ query: e.target.value }),
+      tenants, applying: s.applying, applyingTenant: s.applyingTenant, submitted: s.submitted,
+      appRef: 'APP-' + (s.applyingTenant ? s.applyingTenant.subdomain.slice(0,4).toUpperCase() : 'XXXX') + '-2607',
+      onCancelApply: () => this.setState({ applying: false }),
+      form: {
+        businessName: s.businessName, onBusinessNameChange: (e) => this.setState({ businessName: e.target.value }),
+        entityType: s.entityType, onEntityTypeChange: (e) => this.setState({ entityType: e.target.value }),
+        category: s.category, onCategoryChange: (e) => this.setState({ category: e.target.value }),
+        mobile: s.mobile, onMobileChange: (e) => this.setState({ mobile: e.target.value }),
+        valid,
+      },
+      onSubmitApply: () => { if (!valid) return; this.setState({ submitted: true }); },
+    };
+  }
+}
+
+</script>
+</body>
+</html>

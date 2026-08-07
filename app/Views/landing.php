@@ -1,7 +1,7 @@
 <?= $this->extend('layouts/main') ?>
 
 <?= $this->section('content') ?>
-<style>
+<style {csp-style-nonce}>
   .tag-strip{display:flex; gap:8px; margin-bottom:22px; flex-wrap:wrap;}
   .tag-chip{font-size:12px; font-weight:600; color:var(--emerald-deep); background:var(--emerald-soft); padding:6px 13px; border-radius:var(--radius-pill);}
   .hero{display:grid; grid-template-columns:1.05fr 0.95fr; gap:56px; padding:56px 0 60px; align-items:center;}
@@ -13,9 +13,20 @@
   .hstat b{display:block; font-size:24px; font-weight:800; letter-spacing:-0.5px;}
   .hstat span{font-size:12px; color:var(--ink-3); font-weight:600;}
 
-  .product-card{background:var(--card); border:1px solid var(--line); border-radius:20px; overflow:hidden; box-shadow:0 24px 48px -20px rgba(20,20,20,0.14);}
+  .product-card{background:var(--card); border:1px solid var(--line); border-radius:20px; overflow:hidden; box-shadow:0 24px 48px -20px rgba(20,20,20,0.14); transition:transform 0.18s ease, box-shadow 0.18s ease;}
+  a:has(> .product-card):hover .product-card{transform:translateY(-4px); box-shadow:var(--shadow-lg);}
   .pc-photo{height:200px; background:linear-gradient(135deg,#F1F1EE 0%, #E7E7E1 100%); background-size:cover; background-position:center; position:relative; display:flex; align-items:flex-start; justify-content:space-between; padding:16px;}
-  .pc-badge{font-size:11px; font-weight:700; padding:6px 12px; border-radius:var(--radius-pill); background:var(--amber-soft); color:#9C5B1F;}
+  .pc-photo.pc-empty{
+    background:
+      radial-gradient(circle at 18px 18px, rgba(201,163,86,0.35) 1.5px, transparent 1.5px) 0 0/24px 24px,
+      linear-gradient(135deg, var(--navy) 0%, #10193B 100%);
+  }
+  .pc-photo.pc-empty::after{
+    content:''; position:absolute; inset:0; margin:auto; width:88px; height:88px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C9A356' stroke-width='1.3'%3E%3Cpath d='M12 2 3 6v6c0 5 3.8 8.7 9 10 5.2-1.3 9-5 9-10V6l-9-4Z'/%3E%3Cpath d='m8.5 12 2.5 2.5 5-5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:center; opacity:0.5;
+  }
+  .pc-badge{font-size:11px; font-weight:700; padding:6px 12px; border-radius:var(--radius-pill); background:var(--amber-soft); color:#9C5B1F; position:relative; z-index:1;}
   .pc-body{padding:20px;}
   .pc-body .lot{font-size:11px; color:var(--ink-3); font-weight:600; margin-bottom:4px;}
   .pc-body h3{margin:0 0 12px; font-size:16px; font-weight:700; letter-spacing:-0.2px;}
@@ -33,14 +44,18 @@
   p.block-lead{font-size:14.5px; color:var(--ink-2); max-width:560px; line-height:1.65; margin:0 0 30px;}
 
   .format-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:16px;}
-  .fmt-card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:22px;}
+  .fmt-card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:22px; transition:transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;}
+  .fmt-card:not(.fmt-disabled):hover{transform:translateY(-3px); box-shadow:var(--shadow-md); border-color:transparent;}
   .fmt-icon{width:34px; height:34px; border-radius:10px; background:var(--emerald-soft); color:var(--emerald-deep); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; margin-bottom:14px;}
+  .fmt-card.fmt-navy .fmt-icon{background:var(--navy-soft); color:var(--navy);}
+  .fmt-card.fmt-gold .fmt-icon{background:var(--gold-soft); color:#8A6C2E;}
   .fmt-card h4{margin:0 0 6px; font-size:15px; font-weight:700;}
   .fmt-card p{margin:0; font-size:12.5px; color:var(--ink-2); line-height:1.55;}
   .fmt-card .fmt-tag{font-size:10.5px; font-weight:700; color:var(--ink-3); margin-top:12px; display:block;}
 
   .cat-grid{display:grid; grid-template-columns:repeat(6,1fr); gap:12px;}
-  .cat-tile{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px 12px; text-align:center; font-size:12px; font-weight:600; color:var(--ink-2);}
+  .cat-tile{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px 12px; text-align:center; font-size:12px; font-weight:600; color:var(--ink-2); transition:transform 0.15s ease, box-shadow 0.15s ease;}
+  .cat-tile:hover{transform:translateY(-2px); box-shadow:var(--shadow-sm);}
   .cat-tile .n{display:block; font-size:20px; font-weight:800; color:var(--ink); margin-bottom:5px; letter-spacing:-0.4px;}
 
   .trust-wrap{display:grid; grid-template-columns:0.9fr 1.1fr; gap:44px; align-items:center;}
@@ -55,7 +70,7 @@
   .trust-points b{display:block; font-size:14px; margin-bottom:3px;}
   .trust-points span{font-size:13px; color:var(--ink-2); line-height:1.5;}
 
-  .cta-band{background:var(--emerald); color:#fff; border-radius:22px; padding:40px; display:flex; justify-content:space-between; align-items:center; margin:50px 0;}
+  .cta-band{background:linear-gradient(120deg, var(--emerald) 0%, var(--emerald-deep) 100%); color:#fff; border-radius:22px; padding:40px; display:flex; justify-content:space-between; align-items:center; margin:50px 0; flex-wrap:wrap; gap:20px;}
   .cta-band h3{margin:0 0 6px; font-size:22px; font-weight:800; letter-spacing:-0.4px;}
   .cta-band p{margin:0; color:var(--emerald-soft); font-size:13.5px;}
   .cta-band .btn{background:#fff; color:var(--emerald-deep);}
@@ -74,7 +89,7 @@
       <span class="tag-chip">Confiscated</span>
     </div>
     <h1>Salvage, sold <em>simply</em>.</h1>
-    <p class="lead">eBid Hub is India's multi-tenant marketplace for salvage, surplus, and repossessed assets — three sale formats live today, one global identity, and a rating system that keeps every deal honest.</p>
+    <p class="lead">AdwitiX is India's multi-tenant marketplace for salvage, surplus, and repossessed assets — three sale formats live today, one global identity, and a rating system that keeps every deal honest.</p>
     <div class="hero-ctas">
       <a href="#live-listings" class="btn btn-emerald">Browse Live Auctions</a>
       <a href="/listings/create" class="btn btn-ghost">List an Asset →</a>
@@ -91,7 +106,7 @@
   <?php if ($hero): ?>
     <a href="/listings/<?= esc($hero['listing_id']) ?>" style="text-decoration:none; color:inherit;">
       <div class="product-card">
-        <div class="pc-photo" <?= $hero['photo_path'] ? 'style="background-image:url(/'.esc($hero['photo_path']).')"' : '' ?>>
+        <div class="pc-photo<?= $hero['photo_path'] ? '' : ' pc-empty' ?>" <?= $hero['photo_path'] ? 'style="background-image:url(/'.esc($hero['photo_path']).')"' : '' ?>>
           <span class="pc-badge"><?= esc(strtoupper($hero['sale_format'])) ?></span>
         </div>
         <div class="pc-body">
@@ -105,7 +120,7 @@
     </a>
   <?php else: ?>
     <div class="product-card">
-      <div class="pc-photo"></div>
+      <div class="pc-photo pc-empty"></div>
       <div class="pc-body">
         <div class="lot">NO LIVE <?= strtoupper(tsx_term('Listing', false, true)) ?> YET</div>
         <h3>Be the first on the yard.</h3>
@@ -153,19 +168,19 @@
       <p>Judgment-based offers. <?= tsx_term('Seller', false, true) ?> weigh price against <?= strtolower(tsx_term('Buyer')) ?> rating, not just the highest number.</p>
       <span class="fmt-tag">3-day offer validity</span>
     </div>
-    <div class="fmt-card">
+    <div class="fmt-card fmt-navy">
       <div class="fmt-icon">EA</div>
       <h4>Easy Auction</h4>
       <p>Scheduled open bidding with Dynamic Time extensions — a late bid pushes the deadline back.</p>
       <span class="fmt-tag"><?= tsx_term('Seller') ?> sets the schedule</span>
     </div>
-    <div class="fmt-card">
+    <div class="fmt-card fmt-gold">
       <div class="fmt-icon">EX</div>
       <h4>Express Auction</h4>
       <p>No inspection, no waiting — launches the instant 3 <?= strtolower(tsx_term('Buyer', false, true)) ?> pledge EMD. Fully automatic result.</p>
       <span class="fmt-tag">1-hour run time</span>
     </div>
-    <div class="fmt-card" style="opacity:0.55;">
+    <div class="fmt-card fmt-disabled" style="opacity:0.55;">
       <div class="fmt-icon">TD</div>
       <h4>Tender</h4>
       <p>Fully curated, invitation-only concierge sales — Company Shop exclusive.</p>

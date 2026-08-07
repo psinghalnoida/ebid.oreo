@@ -18,7 +18,7 @@ class TenantController extends BaseController
     // real TOTP-verified Super Admin session (superAdmin filter).
     public function createForm()
     {
-        return view('admin/tenant_create', ['title' => 'Whitelist a Tenant — eBid Hub']);
+        return view('admin/tenant_create', ['title' => 'Whitelist a Tenant — AdwitiX']);
     }
 
     public function createSubmit()
@@ -61,7 +61,7 @@ class TenantController extends BaseController
         if ($q !== '') {
             $builder = $builder->groupStart()->like('name', $q)->orLike('subdomain', $q)->groupEnd();
         }
-        return view('admin/tenants_list', ['title' => 'Tenants — eBid Hub', 'tenants' => $builder->findAll(), 'q' => $q]);
+        return view('admin/tenants_list', ['title' => 'Tenants — AdwitiX', 'tenants' => $builder->findAll(), 'q' => $q]);
     }
 
     // Was missing entirely — Super Admin could only create tenants, not
@@ -72,7 +72,7 @@ class TenantController extends BaseController
         if (!$tenant) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
-        return view('admin/tenant_view', ['title' => 'Tenant — eBid Hub', 'tenant' => $tenant]);
+        return view('admin/tenant_view', ['title' => 'Tenant — AdwitiX', 'tenant' => $tenant]);
     }
 
     // BR-06: tenant branding (logo + primary color) — the columns have
@@ -125,6 +125,6 @@ class TenantController extends BaseController
     public function directory()
     {
         $tenants = $this->tenantModel->orderBy('name', 'ASC')->findAll();
-        return view('tenants_directory', ['title' => 'Browse Tenants — eBid Hub', 'tenants' => $tenants]);
+        return view('tenants_directory', ['title' => 'Browse Tenants — AdwitiX', 'tenants' => $tenants]);
     }
 }

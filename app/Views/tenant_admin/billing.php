@@ -2,7 +2,7 @@
 <?= $this->section('content') ?>
 <main style="max-width:820px; padding:40px 24px;">
   <h1 style="font-size:22px;">Billing — <?= esc($tenant['name']) ?></h1>
-  <p style="font-size:12px; color:var(--ink-3);">BR-32/33: <?= tsx_term('Seller') ?>-Pays Success Fees on this TSX's Trading Sessions accrue here, and are consolidated into one GST-compliant invoice per calendar month.</p>
+  <p style="font-size:12px; color:var(--ink-3);"><?= tsx_term('Seller') ?>-Pays Success Fees on this TSX's Trading Sessions accrue here, and are consolidated into one GST-compliant invoice per calendar month.</p>
 
   <h3 style="font-size:15px; margin-top:24px;">Unbilled this period — ₹<?= number_format(array_sum(array_column($unbilled, 'amount')), 2) ?></h3>
   <table style="width:100%; border-collapse:collapse; font-size:12px;">

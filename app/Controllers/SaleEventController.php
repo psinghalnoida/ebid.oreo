@@ -222,7 +222,7 @@ class SaleEventController extends BaseController
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
 
-        return view('sale_event/defect_disclosure', ['title' => 'Defect Disclosure — eBid Hub', 'saleEvent' => $saleEvent]);
+        return view('sale_event/defect_disclosure', ['title' => 'Defect Disclosure — AdwitiX', 'saleEvent' => $saleEvent]);
     }
 
     public function defectDisclosureSubmit(string $saleEventId)

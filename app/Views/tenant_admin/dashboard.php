@@ -2,13 +2,13 @@
 <?= $this->section('content') ?>
 <main style="max-width:720px; padding:40px 24px;">
   <h1 style="font-size:24px;"><?= tsx_term('Tenant Admin') ?> — <?= esc($tenant['name']) ?></h1>
-  <a href="/tenants/<?= esc($tenant['id']) ?>/verification" class="btn btn-emerald" style="font-size:12px;">Verification Console (PR-09)</a>
-  <a href="/tenants/<?= esc($tenant['id']) ?>/media-waiver" class="btn btn-ghost" style="font-size:12px;">Request Media Waiver (BR-60)</a>
-  <a href="/admin/payout-reviews" class="btn btn-ghost" style="font-size:12px;">Payout Reviews (BR-50)</a>
-  <a href="/admin/rating-reviews" class="btn btn-ghost" style="font-size:12px;">Rating Reviews (BR-36)</a>
-  <a href="/tenants/<?= esc($tenant['id']) ?>/sellers" class="btn btn-ghost" style="font-size:12px;"><?= tsx_term('Seller') ?> Management (BR-61)</a>
-  <a href="/tenants/<?= esc($tenant['id']) ?>/billing" class="btn btn-ghost" style="font-size:12px;">Billing (BR-32/33)</a>
-  <a href="/tenants/<?= esc($tenant['id']) ?>/api-access" class="btn btn-ghost" style="font-size:12px;">API Access (BR-62-66)</a>
+  <a href="/tenants/<?= esc($tenant['id']) ?>/verification" class="btn btn-emerald" style="font-size:12px;">Verification Console</a>
+  <a href="/tenants/<?= esc($tenant['id']) ?>/media-waiver" class="btn btn-ghost" style="font-size:12px;">Request Media Waiver</a>
+  <a href="/admin/payout-reviews" class="btn btn-ghost" style="font-size:12px;">Payout Reviews</a>
+  <a href="/admin/rating-reviews" class="btn btn-ghost" style="font-size:12px;">Rating Reviews</a>
+  <a href="/tenants/<?= esc($tenant['id']) ?>/sellers" class="btn btn-ghost" style="font-size:12px;"><?= tsx_term('Seller') ?> Management</a>
+  <a href="/tenants/<?= esc($tenant['id']) ?>/billing" class="btn btn-ghost" style="font-size:12px;">Billing</a>
+  <a href="/tenants/<?= esc($tenant['id']) ?>/api-access" class="btn btn-ghost" style="font-size:12px;">API Access</a>
 
   <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:12px; margin:20px 0;">
     <div style="border:1px solid var(--line); border-radius:12px; padding:14px; text-align:center;">
@@ -70,7 +70,7 @@
   <?php endforeach; ?>
   <?php if (empty($stalledSettlements)): ?><p style="font-size:12px; color:var(--ink-3);">None</p><?php endif; ?>
 
-  <h3 style="font-size:15px; margin-top:20px;">High-Value Disposal Records (BR-49, &gt;₹10L)</h3>
+  <h3 style="font-size:15px; margin-top:20px;">High-Value Disposal Records (&gt;₹10L)</h3>
   <?php foreach ($highValueDisposals as $d): ?>
     <p style="font-size:13px; padding:10px; border-bottom:1px solid var(--line);">
       <a href="/settlements/<?= esc($d['settlement_id']) ?>">₹<?= number_format((float) $d['final_sale_value'], 2) ?></a>

@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  html, body{overflow-x:hidden;}
+  a{text-decoration:none;}
+  a:link, a:visited{color:#C9974C;}
+  a:hover{color:#A87A38;}
+  @media (max-width:1000px){
+    .pr-nav{display:none !important;}
+    .pr-tiers{grid-template-columns:repeat(2,1fr) !important;}
+  }
+  @media (max-width:860px){
+    .pr-discount-label{display:none;}
+    .pr-storage{overflow-x:auto;}
+    .pr-storage-inner{min-width:640px;}
+    .pr-services{grid-template-columns:1fr !important;}
+    .pr-fee-payer{grid-template-columns:1fr !important;}
+    .pr-ladder{gap:5px !important;}
+  }
+  @media (max-width:640px){
+    .pr-discount-head{display:none !important;}
+    .pr-discount{grid-template-columns:1fr !important; row-gap:6px; padding-top:14px !important; padding-bottom:14px !important;}
+    .pr-discount-label{display:inline; font-size:10px; text-transform:uppercase; font-weight:700; color:#9A9FB5; margin-right:4px;}
+  }
+  @media (max-width:600px){
+    .pr-ladder > div span, .pr-ladder > div{font-size:9px !important;}
+  }
+  @media (max-width:600px){
+    .pr-tiers{grid-template-columns:1fr !important;}
+    .pr-hero-h1{font-size:32px !important;}
+  }
+  @media (max-width:480px){
+    .pr-header-cta-label{display:none;}
+  }
+</style>
+</helmet>
+
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;">
+
+  <header style="position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1400px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:36px; width:36px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:22px; letter-spacing:-0.5px; color:#1E2761; flex-shrink:0;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <nav class="pr-nav" style="display:flex; gap:4px; background:#E9EBF2; padding:4px; border-radius:100px;">
+        <a href="#" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#565B72;">Marketplace</a>
+        <a href="#" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#565B72;">Browse</a>
+        <a href="#" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#fff; background:#1E2233;">Pricing</a>
+        <a href="Trust and Support.dc.html" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#565B72;">Trust &amp; Support</a>
+      </nav>
+      <div style="display:flex; gap:8px; align-items:center; flex:none;">
+        <a href="#" class="pr-header-cta-label" style="font-weight:700; font-size:12.5px; padding:9px 16px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233; white-space:nowrap;">Log In</a>
+        <a href="#" style="font-weight:700; font-size:12.5px; padding:9px 18px; border-radius:100px; background:#C9974C; color:#fff; white-space:nowrap;">Get Started</a>
+      </div>
+    </div>
+  </header>
+
+  <main style="max-width:1130px; margin:0 auto; padding:56px 32px 90px;">
+
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">Pricing</div>
+    <h1 class="pr-hero-h1" style="font-family:Georgia,'Cambria',serif; font-size:42px; font-weight:800; letter-spacing:-1px; margin:0 0 14px; max-width:680px;">Marketplace growth should never be taxed.</h1>
+    <p style="font-size:15.5px; color:#565B72; max-width:600px; line-height:1.65; margin:0 0 48px;">Every plan gets unlimited Lots, Trading Sessions, Market Makers and Traders — no cap on growth. ADWITIX earns only when a sale actually completes. All prices exclude GST unless stated.</p>
+
+    <section style="margin-bottom:56px;">
+      <div class="pr-tiers" style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px;">
+        <sc-for list="{{ tiers }}" as="t" hint-placeholder-count="4">
+          <div style="background:#fff; border:2px solid {{ t.highlight }}; border-radius:18px; padding:24px 22px; display:flex; flex-direction:column; position:relative;">
+            <sc-if value="{{ t.badge }}" hint-placeholder-val="{{ false }}">
+              <span style="position:absolute; top:-12px; left:22px; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; background:#C9974C; color:#fff; padding:5px 12px; border-radius:100px;">{{ t.badge }}</span>
+            </sc-if>
+            <h3 style="font-size:16px; font-weight:800; margin:6px 0 4px; font-family:Archivo,sans-serif;">{{ t.name }}</h3>
+            <div style="margin:6px 0 4px;">
+              <span style="font-size:26px; font-weight:800; font-family:Georgia,serif;">{{ t.price }}</span>
+              <span style="font-size:12px; color:#9A9FB5;">{{ t.period }}</span>
+            </div>
+            <p style="font-size:12px; color:#9A9FB5; margin:0 0 16px;">{{ t.annualNote }}</p>
+            <ul style="margin:0 0 20px; padding:0; list-style:none; display:flex; flex-direction:column; gap:9px; flex:1;">
+              <sc-for list="{{ t.features }}" as="f" hint-placeholder-count="4">
+                <li style="font-size:12.5px; color:#1E2233; line-height:1.5; padding-left:16px; position:relative;">
+                  <span style="position:absolute; left:0; color:#C9974C; font-weight:700;">·</span>{{ f }}
+                </li>
+              </sc-for>
+            </ul>
+            <a href="#" style="text-align:center; font-weight:700; font-size:13px; padding:11px; border-radius:100px; background:{{ t.ctaBg }}; color:{{ t.ctaColor }}; border:{{ t.ctaBorder }};">{{ t.ctaLabel }}</a>
+          </div>
+        </sc-for>
+      </div>
+      <p style="font-size:12.5px; color:#9A9FB5; margin:18px 0 0;">Tender Auctions run through CoCo Concierge — a fully managed path exclusive to the platform's own Company Shop, billed per engagement plus the standard Success Fee.</p>
+    </section>
+
+    <section style="margin-bottom:56px;">
+      <h2 style="font-family:Georgia,'Cambria',serif; font-size:26px; font-weight:800; margin:0 0 10px; letter-spacing:-0.6px;">Success Fee</h2>
+      <p style="font-size:14px; color:#565B72; max-width:620px; line-height:1.65; margin:0 0 24px;">One schedule, the same for every TradeSphereX regardless of tier — it declines as the sale value goes up. Minimum ₹500 + GST.</p>
+
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:28px 24px 20px; margin-bottom:32px;">
+        <div class="pr-ladder" style="display:flex; align-items:flex-end; gap:14px; height:160px;">
+          <sc-for list="{{ ladderBars }}" as="b" hint-placeholder-count="5">
+            <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;">
+              <span style="font-size:{{ b.rateFontSize }}; font-weight:800; color:{{ b.labelColor }}; margin-bottom:8px;">{{ b.rateLabel }}</span>
+              <div style="width:100%; background:{{ b.barBg }}; border:{{ b.barBorder }}; box-shadow:{{ b.barShadow }}; border-radius:8px 8px 0 0; height:{{ b.height }}px; transition:height 0.2s, background 0.2s;"></div>
+            </div>
+          </sc-for>
+        </div>
+        <div class="pr-ladder" style="display:flex; gap:14px; margin-top:12px;">
+          <sc-for list="{{ ladderBars }}" as="b" hint-placeholder-count="5">
+            <div style="flex:1; text-align:center;">
+              <span style="font-size:10.5px; color:{{ b.labelColor }}; font-weight:{{ b.labelWeight }}; line-height:1.3; padding:3px 8px; border-radius:100px; background:{{ b.chipBg }};">{{ b.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:28px 24px; margin-bottom:32px;">
+        <h3 style="font-size:16px; font-weight:800; margin:0 0 4px; font-family:Archivo,sans-serif;">Success Fee Calculator</h3>
+        <p style="font-size:12.5px; color:#9A9FB5; margin:0 0 20px;">Drag the slider or pick a value to see what a sale actually costs.</p>
+
+        <div style="font-size:28px; font-weight:800; font-family:Georgia,serif; color:#1E2761; margin-bottom:6px;">{{ saleValueDisplay }}</div>
+        <input type="range" min="10000" max="20000000" step="10000" value="{{ saleValueInput }}" onChange="{{ onSliderChange }}" onInput="{{ onSliderChange }}" style="width:100%; accent-color:#C9974C; display:block;">
+        <div style="display:flex; justify-content:space-between; margin:6px 0 18px;">
+          <span style="font-size:11px; color:#9A9FB5;">₹10,000</span>
+          <span style="font-size:11px; color:#9A9FB5;">₹2,00,00,000+</span>
+        </div>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px;">
+          <sc-for list="{{ presets }}" as="p" hint-placeholder-count="5">
+            <button onClick="{{ p.onClick }}" style="font-size:12px; font-weight:700; padding:7px 14px; border-radius:100px; border:1px solid #DDE0EA; background:#fff; color:#1E2233; cursor:pointer;" style-hover="border-color:#C9974C; color:#A87A38;">{{ p.label }}</button>
+          </sc-for>
+        </div>
+
+        <div class="pr-fee-payer" style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+          <div style="background:#F6EEDF; border-radius:14px; padding:20px;">
+            <p style="font-size:11px; font-weight:700; text-transform:uppercase; color:#8A6425; margin:0 0 8px;">Applicable Rate</p>
+            <p style="font-size:26px; font-weight:800; color:#1E2761; margin:0; font-family:Georgia,serif;">{{ rateApplied }}</p>
+          </div>
+          <div style="background:#F6EEDF; border-radius:14px; padding:20px;">
+            <p style="font-size:11px; font-weight:700; text-transform:uppercase; color:#8A6425; margin:0 0 8px;">Success Fee + GST</p>
+            <p style="font-size:26px; font-weight:800; color:#1E2761; margin:0; font-family:Georgia,serif;">{{ feeAmount }}<span style="font-size:13px; font-weight:600; color:#9A9FB5;"> + {{ gstAmount }} GST</span></p>
+          </div>
+        </div>
+
+        <div class="pr-fee-payer" style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div style="border:1px solid #DDE0EA; border-radius:14px; padding:18px;">
+            <p style="font-size:11px; font-weight:700; text-transform:uppercase; color:#3F7A4E; margin:0 0 6px;">If Buyer-Pays</p>
+            <p style="font-size:12.5px; color:#565B72; margin:0; line-height:1.5;">Trader pays <strong style="color:#1E2233;">{{ buyerPaysTotal }}</strong> total. Market Maker receives the full {{ saleValueDisplay }}.</p>
+          </div>
+          <div style="border:1px solid #DDE0EA; border-radius:14px; padding:18px;">
+            <p style="font-size:11px; font-weight:700; text-transform:uppercase; color:#9C5B1F; margin:0 0 6px;">If Seller-Pays</p>
+            <p style="font-size:12.5px; color:#565B72; margin:0; line-height:1.5;">Trader pays only <strong style="color:#1E2233;">{{ saleValueDisplay }}</strong>. {{ feeBilledToTsx }} is billed to the TSX monthly instead.</p>
+          </div>
+        </div>
+        <p style="font-size:11.5px; color:#9A9FB5; margin:16px 0 0;">Illustrative only — the minimum Success Fee of ₹500 + GST always applies regardless of sale value.</p>
+      </div>
+
+      <h3 style="font-size:16px; font-weight:800; margin:0 0 14px; font-family:Archivo,sans-serif;">Fee Payer Election</h3>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;" class="pr-fee-payer">
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:20px;">
+          <span style="font-size:11px; font-weight:700; text-transform:uppercase; color:#3F7A4E; background:#E4EFE6; padding:4px 10px; border-radius:100px; white-space:nowrap;">Default — every tier</span>
+          <p style="font-size:14px; font-weight:700; margin:12px 0 6px;">Buyer-Pays</p>
+          <p style="font-size:12.5px; color:#565B72; line-height:1.55; margin:0;">The Trader's total = Trade Value + Success Fee + GST. Listing and selling stay free for the Market Maker.</p>
+        </div>
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:20px;">
+          <span style="font-size:11px; font-weight:700; text-transform:uppercase; color:#9C5B1F; background:#FBF2E2; padding:4px 10px; border-radius:100px; white-space:nowrap;">Paid tiers only</span>
+          <p style="font-size:14px; font-weight:700; margin:12px 0 6px;">Seller-Pays</p>
+          <p style="font-size:12.5px; color:#565B72; line-height:1.55; margin:0;">A 0%-visible-premium option — the Trader pays only the Trade Value. Set per Trading Session, locked once bidding opens.</p>
+        </div>
+      </div>
+    </section>
+
+    <section style="margin-bottom:56px;">
+      <h2 style="font-family:Georgia,'Cambria',serif; font-size:26px; font-weight:800; margin:0 0 10px; letter-spacing:-0.6px;">Prepay and save</h2>
+      <p style="font-size:14px; color:#565B72; max-width:620px; line-height:1.65; margin:0 0 24px;">The same discount ladder applies across all three paid tiers.</p>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+        <div class="pr-discount-head" style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr 1fr; padding:0 22px; font-size:10px; text-transform:uppercase; color:#9A9FB5; font-weight:700; border-bottom:1px solid #DDE0EA;">
+          <div style="padding:12px 0;">Commitment</div>
+          <div style="padding:12px 0;">Discount</div>
+          <div style="padding:12px 0;">TSX Launch</div>
+          <div style="padding:12px 0;">TSX Growth</div>
+          <div style="padding:12px 0;">TSX Enterprise</div>
+        </div>
+        <sc-for list="{{ discountLadder }}" as="row" hint-placeholder-count="5">
+          <div class="pr-discount" style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr 1fr; padding:0 22px; border-bottom:1px solid #EEF0EA; align-items:center; font-size:13px;">
+            <div style="padding:12px 0; font-weight:600;">{{ row.commitment }}</div>
+            <div style="padding:12px 0; color:#C9974C; font-weight:700;"><span class="pr-discount-label">Discount </span>{{ row.discount }}</div>
+            <div style="padding:12px 0;"><span class="pr-discount-label">TSX Launch: </span>{{ row.launch }}</div>
+            <div style="padding:12px 0;"><span class="pr-discount-label">TSX Growth: </span>{{ row.growth }}</div>
+            <div style="padding:12px 0;"><span class="pr-discount-label">TSX Enterprise: </span>{{ row.enterprise }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <p style="font-size:12.5px; color:#9A9FB5; margin:14px 0 0;">Prices per year, ₹. Sales teams may quote below the ladder for negotiated deals, down to a 50% floor.</p>
+    </section>
+
+    <section style="margin-bottom:56px;">
+      <h2 style="font-family:Georgia,'Cambria',serif; font-size:26px; font-weight:800; margin:0 0 10px; letter-spacing:-0.6px;">Storage &amp; data retention</h2>
+      <div class="pr-storage">
+        <div class="pr-storage-inner" style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+          <div style="display:grid; grid-template-columns:1.3fr repeat(4,1fr); padding:0 22px; font-size:10px; text-transform:uppercase; color:#9A9FB5; font-weight:700; border-bottom:1px solid #DDE0EA;">
+            <div style="padding:12px 0;">Feature</div>
+            <div style="padding:12px 0;">CoCo Starter</div>
+            <div style="padding:12px 0;">TSX Launch</div>
+            <div style="padding:12px 0;">TSX Growth</div>
+            <div style="padding:12px 0;">TSX Enterprise</div>
+          </div>
+          <sc-for list="{{ storageRows }}" as="row" hint-placeholder-count="6">
+            <div style="display:grid; grid-template-columns:1.3fr repeat(4,1fr); padding:0 22px; border-bottom:1px solid #EEF0EA; align-items:center; font-size:12.5px;">
+              <div style="padding:11px 0; font-weight:600;">{{ row.feature }}</div>
+              <div style="padding:11px 0; color:#565B72;">{{ row.starter }}</div>
+              <div style="padding:11px 0; color:#565B72;">{{ row.launch }}</div>
+              <div style="padding:11px 0; color:#565B72;">{{ row.growth }}</div>
+              <div style="padding:11px 0; color:#565B72;">{{ row.enterprise }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <p style="font-size:12.5px; color:#9A9FB5; margin:14px 0 0;">Additional storage beyond the included allowance: ₹2,000 per 100 GB/year + GST, the same rate across every tier.</p>
+    </section>
+
+    <section style="margin-bottom:20px;">
+      <div class="pr-services" style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+        <div>
+          <h3 style="font-size:16px; font-weight:800; margin:0 0 14px; font-family:Archivo,sans-serif;">Optional Marketplace Services</h3>
+          <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; overflow:hidden;">
+            <sc-for list="{{ optionalServices }}" as="s" hint-placeholder-count="4">
+              <div style="display:flex; justify-content:space-between; padding:13px 18px; border-bottom:1px solid #EEF0EA; font-size:12.5px;">
+                <span>{{ s.name }}</span>
+                <span style="font-weight:700; color:#1E2233; text-align:right;">{{ s.price }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div>
+          <h3 style="font-size:16px; font-weight:800; margin:0 0 14px; font-family:Archivo,sans-serif;">Enterprise Add-ons</h3>
+          <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; overflow:hidden;">
+            <sc-for list="{{ enterpriseAddons }}" as="s" hint-placeholder-count="4">
+              <div style="display:flex; justify-content:space-between; padding:13px 18px; border-bottom:1px solid #EEF0EA; font-size:12.5px;">
+                <span>{{ s.name }}</span>
+                <span style="font-weight:700; color:#1E2233; text-align:right;">{{ s.price }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <section style="background:#1E2761; padding:44px 32px;">
+    <div style="max-width:1130px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:20px;">
+      <div>
+        <h3 style="margin:0 0 6px; font-size:22px; font-weight:800; letter-spacing:-0.4px; font-family:Georgia,'Cambria',serif; color:#fff;">Start free on CoCo Starter.</h3>
+        <p style="margin:0; color:#CADCFC; font-size:13.5px;">Upgrade whenever Seller-Pays or API access matters to you.</p>
+      </div>
+      <a href="#" style="background:#C9974C; color:#1E2761; font-weight:700; font-size:13.5px; padding:12px 24px; border-radius:100px;">Get Started</a>
+    </div>
+  </section>
+</div>
+</helmet>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { saleValue: 850000 };
+
+  fmt(n) {
+    return '₹' + Math.round(n).toLocaleString('en-IN');
+  }
+
+  bracketFor(v) {
+    if (v <= 1000000) return { rate: 2.00 };
+    if (v <= 5000000) return { rate: 1.50 };
+    if (v <= 20000000) return { rate: 1.00 };
+    if (v <= 100000000) return { rate: 0.75 };
+    return { rate: 0.50 };
+  }
+
+  renderVals() {
+    const v = this.state.saleValue;
+    const { rate } = this.bracketFor(v);
+    const fee = Math.max(v * rate / 100, 500);
+    const gst = fee * 0.18;
+    const buyerTotal = v + fee + gst;
+
+    const brackets = [
+      { label: 'Up to ₹10L', rate: 2.00, max: 1000000 },
+      { label: '₹10L – ₹50L', rate: 1.50, max: 5000000 },
+      { label: '₹50L – ₹2Cr', rate: 1.00, max: 20000000 },
+      { label: '₹2Cr – ₹10Cr', rate: 0.75, max: 100000000 },
+      { label: 'Above ₹10Cr', rate: 0.50, max: Infinity }
+    ];
+    const activeIndex = brackets.findIndex(b => v <= b.max);
+    const ladderBars = brackets.map((b, i) => {
+      const isActive = i === activeIndex;
+      return {
+        label: b.label,
+        rateLabel: b.rate.toFixed(2) + '%',
+        rateFontSize: isActive ? '17px' : '12px',
+        height: Math.round(b.rate * 45) + 24,
+        barBg: isActive ? '#C9974C' : '#EEF0F5',
+        barBorder: isActive ? '2px solid #A87A38' : '1px solid #DDE0EA',
+        barShadow: isActive ? '0 4px 14px rgba(201,151,76,0.35)' : 'none',
+        labelColor: isActive ? '#fff' : '#9A9FB5',
+        labelWeight: isActive ? '800' : '500',
+        chipBg: isActive ? '#C9974C' : 'transparent'
+      };
+    });
+
+    const presetValues = [100000, 1000000, 5000000, 20000000, 150000000];
+    const presetLabels = ['₹1L', '₹10L', '₹50L', '₹2Cr', '₹15Cr'];
+    const presets = presetValues.map((val, i) => ({
+      label: presetLabels[i],
+      onClick: () => this.setState({ saleValue: val })
+    }));
+
+    return {
+      saleValue: v,
+      saleValueInput: v,
+      saleValueDisplay: this.fmt(v),
+      rateApplied: rate.toFixed(2) + '%',
+      feeAmount: this.fmt(fee),
+      gstAmount: this.fmt(gst),
+      buyerPaysTotal: this.fmt(buyerTotal),
+      feeBilledToTsx: this.fmt(fee + gst),
+      onSliderChange: (e) => this.setState({ saleValue: Number(e.target.value) }),
+      ladderBars,
+      presets,
+      tiers: [
+        { name: 'CoCo Starter', price: 'Free', period: '', annualNote: 'For individual & one-time Market Makers', highlight: '#DDE0EA', badge: '', ctaLabel: 'Start Free', ctaBg: 'transparent', ctaColor: '#1E2233', ctaBorder: '1px solid #DDE0EA',
+          features: ['Unlimited Lots & Trading Sessions', 'Standard auction engine', 'Buy-Now, Express, Easy Auction', 'Buyer-Pays only', 'No API access'] },
+        { name: 'TSX Launch', price: '₹10,000', period: '/month', annualNote: '₹1,20,000/yr list', highlight: '#DDE0EA', badge: '', ctaLabel: 'Choose Launch', ctaBg: 'transparent', ctaColor: '#1E2233', ctaBorder: '1px solid #DDE0EA',
+          features: ['Everything in CoCo Starter', 'Branded marketplace', 'One TSX Master (+ add-on)', 'Seller-Pays available', 'Read-only API access'] },
+        { name: 'TSX Growth', price: '₹25,000', period: '/month', annualNote: '₹3,00,000/yr list', highlight: '#C9974C', badge: 'Most Popular', ctaLabel: 'Choose Growth', ctaBg: '#C9974C', ctaColor: '#fff', ctaBorder: 'none',
+          features: ['Everything in TSX Launch', 'Basic RBAC (view/approve)', 'API read + push Lots', '400 GB storage', '7-year data retention'] },
+        { name: 'TSX Enterprise', price: '₹60,000', period: '/month', annualNote: '₹7,20,000/yr list', highlight: '#DDE0EA', badge: '', ctaLabel: 'Talk to Sales', ctaBg: 'transparent', ctaColor: '#1E2233', ctaBorder: '1px solid #DDE0EA',
+          features: ['Everything in TSX Growth', 'Full RBAC & workflow config', 'Full push/pull API, SSO', 'Audit logs', '1 TB storage, unlimited retention'] }
+      ],
+      discountLadder: [
+        { commitment: 'Monthly (no lock-in)', discount: '0%', launch: '1,20,000', growth: '3,00,000', enterprise: '7,20,000' },
+        { commitment: '1-year prepaid', discount: '20%', launch: '96,000', growth: '2,40,000', enterprise: '5,76,000' },
+        { commitment: '2-year prepaid', discount: '30%', launch: '84,000', growth: '2,10,000', enterprise: '5,04,000' },
+        { commitment: '3-year prepaid', discount: '40%', launch: '72,000', growth: '1,80,000', enterprise: '4,32,000' },
+        { commitment: '5-year prepaid', discount: '50%', launch: '60,000', growth: '1,50,000', enterprise: '3,60,000' }
+      ],
+      storageRows: [
+        { feature: 'Included storage', starter: '5 GB', launch: '100 GB', growth: '400 GB', enterprise: '1 TB' },
+        { feature: 'Max file size', starter: '25 MB', launch: '100 MB', growth: '250 MB', enterprise: '500 MB' },
+        { feature: 'Images per Lot', starter: '20', launch: '100', growth: '300', enterprise: 'Unlimited' },
+        { feature: 'Videos per Lot', starter: '1', launch: '5', growth: '10', enterprise: 'Unlimited' },
+        { feature: 'Data retention', starter: '1 Year', launch: '5 Years', growth: '7 Years', enterprise: '10 Yrs / Unlimited' },
+        { feature: 'Deleted-data recovery', starter: '7 Days', launch: '30 Days', growth: '90 Days', enterprise: '180 Days' }
+      ],
+      optionalServices: [
+        { name: 'Marketplace Setup & Branding', price: '₹50,000+' },
+        { name: 'Data Migration', price: '₹25,000+' },
+        { name: 'API Integration Setup (one-time)', price: '₹1,00,000+' },
+        { name: 'Online Training', price: '₹10,000/day' },
+        { name: 'Custom Development', price: '₹2,500/hr' }
+      ],
+      enterpriseAddons: [
+        { name: 'Additional Administrator', price: '₹25,000/yr' },
+        { name: 'Additional Business Unit', price: '₹50,000/yr' },
+        { name: 'Dedicated Account Manager', price: '₹1,00,000/yr' },
+        { name: 'Premium SLA', price: '₹2,00,000/yr' },
+        { name: 'Private Cloud / On-Premise', price: 'On Quotation' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

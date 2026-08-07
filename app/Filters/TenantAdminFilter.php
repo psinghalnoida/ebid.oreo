@@ -39,7 +39,7 @@ class TenantAdminFilter implements FilterInterface
 
         if (!$authorized) {
             return service('response')->setStatusCode(403)
-                ->setBody('BR-09: you are not the Tenant Admin for this listing\'s tenant.');
+                ->setBody('You are not the Tenant Admin for this listing\'s tenant.');
         }
     }
 

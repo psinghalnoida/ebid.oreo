@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} html,body{overflow-x:hidden;} a{text-decoration:none;}
+a:link, a:visited{color:#9C7430;} a:hover{color:#7E5C24;}
+.br-ticker::-webkit-scrollbar{display:none;} .br-scroll::-webkit-scrollbar{display:none;}
+main{overflow-x:hidden;}
+@keyframes br-pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.br-dot{animation:br-pulse 1.6s ease-in-out infinite;}
+@media (max-width:1020px){
+  .br-grid{grid-template-columns:1fr !important;}
+  .br-col{display:contents !important;}
+  .br-bid{position:static !important;}
+  .br-gallery{order:1;} .br-bid-wrap{order:2;} .br-main{order:3;} .br-aside{order:4;}
+  .br-nav-full{display:none !important;}
+  .br-two{grid-template-columns:1fr !important;}
+  .br-five{grid-template-columns:1fr 1fr !important;}
+  .br-tabbar{display:flex !important;}
+  .br-anchor{scroll-margin-top:140px;}
+  .br-page{padding-bottom:76px !important;}
+}
+@media (min-width:1021px){.br-tabbar{display:none !important;}}
+@media (max-width:380px){.br-back-label{display:none !important;}}
+</style>
+</helmet>
+<div class="br-page" style="background:#F2F3F7; color:#171A26; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh; padding-bottom:40px;">
+
+  <header style="position:sticky; top:0; z-index:60;">
+    <div style="background:#fff; border-bottom:1px solid #E1E4ED;">
+      <div style="max-width:1320px; margin:0 auto; display:flex; align-items:center; gap:12px; padding:11px 16px; min-width:0;">
+        <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:9px; flex-shrink:0;">
+          <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block;">
+          <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#1E2761; white-space:nowrap;">Adwiti<span style="color:#C9974C;">X</span></span>
+        </a>
+        <div class="br-nav-full" style="position:relative; flex:1; max-width:400px; min-width:0; margin-left:14px;">
+          <input placeholder="Search auctions, assets, categories…" style="width:100%; padding:9px 14px 9px 34px; border-radius:100px; border:1px solid #E1E4ED; background:#F2F3F7; font-size:12.5px; outline:none; font-family:inherit; color:#171A26;">
+          <span style="position:absolute; left:13px; top:50%; transform:translateY(-50%); color:#9096AC; font-size:13px;">⌕</span>
+        </div>
+        <div style="flex:1;"></div>
+        <a href="{{ backHref }}" style="font-weight:700; font-size:12px; padding:8px 13px; border-radius:100px; border:1px solid #E1E4ED; color:#171A26; white-space:nowrap; flex-shrink:0;">←<span class="br-back-label"> Back</span></a>
+        <div style="width:32px; height:32px; border-radius:100px; background:#171A26; color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; flex-shrink:0;">{{ buyerInitials }}</div>
+      </div>
+    </div>
+    <div class="br-ticker" style="background:#171A26; overflow-x:auto; display:flex; align-items:center; gap:20px; padding:0 16px; height:38px;">
+      <span style="font-size:10px; font-weight:800; color:#E8654F; letter-spacing:0.8px; display:inline-flex; align-items:center; gap:6px; flex-shrink:0;"><span class="br-dot" style="width:6px; height:6px; border-radius:100px; background:#E8654F; display:inline-block;"></span>CLOSING SOON</span>
+      <sc-for list="{{ tickerLots }}" as="t" hint-placeholder-count="4">
+        <span style="font-size:11.5px; color:#8E94AC; flex-shrink:0; letter-spacing:0.1px; display:inline-flex; align-items:center; gap:7px;">{{ t.id }} <strong style="color:#fff; font-family:'IBM Plex Mono',monospace; font-weight:600;">{{ t.timeLeft }}</strong><span style="font-size:9px; font-weight:800; letter-spacing:0.4px; padding:2px 6px; border-radius:4px; background:{{ t.statusBg }}; color:{{ t.statusColor }};">{{ t.status }}</span></span>
+      </sc-for>
+      <span style="margin-left:auto; font-size:10.5px; color:#8E94AC; flex-shrink:0; white-space:nowrap;">Money Points</span>
+      <span style="font-size:12.5px; font-weight:800; color:#fff; flex-shrink:0; font-family:'IBM Plex Mono',monospace;">{{ balance }}</span>
+    </div>
+  </header>
+
+  <main style="max-width:1320px; margin:0 auto; padding:18px 16px 0;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px;">
+      <div style="font-size:11.5px; color:#9096AC; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;">Auctions › {{ fmt.label }} › <span style="color:#5B6178;">{{ lot.title }}</span></div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <span style="font-size:10px; font-weight:800; letter-spacing:0.4px; padding:5px 11px; border-radius:6px; background:#F1EDE4; color:#9C7430; white-space:nowrap;">CONFIDENTIAL BIDDING</span>
+        <span style="font-size:10px; font-weight:800; letter-spacing:0.4px; padding:5px 11px; border-radius:6px; background:#171A26; color:#fff; white-space:nowrap;">{{ fmt.badge }}</span>
+      </div>
+    </div>
+
+    <div class="br-grid" style="display:grid; grid-template-columns:minmax(0,1fr) 392px; gap:18px; align-items:start;">
+
+      <div class="br-col" style="display:flex; flex-direction:column; gap:16px; min-width:0;">
+      <div class="br-gallery br-anchor" id="sec-overview" style="min-width:0;">
+        <div style="position:relative; border-radius:16px; overflow:hidden; background:repeating-linear-gradient(135deg, #EDEEEA 0px, #EDEEEA 16px, #E3E4DE 16px, #E3E4DE 32px); aspect-ratio:16/10;">
+          <sc-if value="{{ fmt.isTimed }}" hint-placeholder-val="{{ true }}">
+            <span style="position:absolute; top:14px; left:14px; font-size:10px; font-weight:800; letter-spacing:0.5px; color:#fff; background:#C0392B; padding:5px 11px; border-radius:6px; display:inline-flex; align-items:center; gap:6px;"><span class="br-dot" style="width:6px; height:6px; border-radius:100px; background:#fff; display:inline-block;"></span>SESSION OPEN</span>
+          </sc-if>
+          <span style="position:absolute; top:14px; right:14px; font-size:11px; font-weight:700; color:#171A26; background:rgba(255,255,255,0.94); padding:5px 11px; border-radius:6px; font-family:'IBM Plex Mono',monospace;">01 / 12</span>
+        </div>
+        <div class="br-scroll" style="display:flex; gap:8px; margin-top:8px; overflow-x:auto; padding-bottom:2px;">
+          <sc-for list="{{ thumbs }}" as="th" hint-placeholder-count="6">
+            <div style="width:70px; height:56px; border-radius:9px; flex-shrink:0; background:repeating-linear-gradient(135deg, #EDEEEA 0px, #EDEEEA 10px, #E3E4DE 10px, #E3E4DE 20px); outline:2px solid {{ th.border }}; outline-offset:-2px;"></div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div class="br-main" style="min-width:0; display:flex; flex-direction:column; gap:16px;">
+        <div class="br-two" style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div style="background:#fff; border:1px solid #E1E4ED; border-radius:16px; padding:18px 20px; min-width:0;">
+            <h3 style="font-size:10.5px; font-weight:800; color:#9096AC; letter-spacing:0.7px; margin:0 0 14px;">ASSET DETAILS</h3>
+            <sc-for list="{{ lot.assetDetails }}" as="d" hint-placeholder-count="6">
+              <div style="padding:8px 0; border-bottom:1px solid #F3F4F8; min-width:0;">
+                <div style="font-size:11px; color:#9096AC; margin-bottom:3px;">{{ d.k }}</div>
+                <div style="font-size:13px; font-weight:700; overflow-wrap:anywhere;">{{ d.v }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{ fmt.hasInspection }}" hint-placeholder-val="{{ true }}">
+            <div style="background:#fff; border:1px solid #E1E4ED; border-radius:16px; padding:18px 20px; min-width:0;">
+              <h3 style="font-size:10.5px; font-weight:800; color:#9096AC; letter-spacing:0.7px; margin:0 0 14px;">INSPECTION</h3>
+              <sc-for list="{{ inspection }}" as="i" hint-placeholder-count="3">
+                <div style="padding:8px 0; border-bottom:1px solid #F3F4F8; min-width:0;">
+                  <div style="font-size:11px; color:#9096AC; margin-bottom:3px;">{{ i.k }}</div>
+                  <div style="font-size:13px; font-weight:700; line-height:1.5; overflow-wrap:anywhere;">{{ i.v }}</div>
+                </div>
+              </sc-for>
+              <div style="background:#E7F0E9; color:#38724A; font-size:11.5px; font-weight:700; padding:10px 12px; border-radius:9px; margin-top:12px; overflow-wrap:anywhere;">✓ You inspected this asset on {{ lot.inspectedOn }}</div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ fmt.noInspection }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#fff; border:1px solid #E1E4ED; border-radius:16px; padding:18px 20px; min-width:0;">
+              <h3 style="font-size:10.5px; font-weight:800; color:#9096AC; letter-spacing:0.7px; margin:0 0 14px;">NO INSPECTION</h3>
+              <p style="font-size:12.5px; color:#5B6178; line-height:1.7; margin:0 0 12px;">{{ fmt.noInspectionNote }}</p>
+              <div style="background:#FBF6EC; color:#9C7430; font-size:11.5px; font-weight:700; padding:10px 12px; border-radius:9px; overflow-wrap:anywhere;">Bid on the strength of the photos, videos and documents provided.</div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div class="br-anchor" id="sec-media" style="background:#fff; border:1px solid #E1E4ED; border-radius:16px; padding:18px 20px; min-width:0;">
+          <div style="display:flex; gap:4px; background:#F2F3F7; border-radius:10px; padding:4px; margin-bottom:16px; width:fit-content; max-width:100%; flex-wrap:wrap;">
+            <sc-for list="{{ mediaTabs }}" as="mt" hint-placeholder-count="3">
+              <button onClick="{{ mt.onClick }}" style="padding:8px 18px; border-radius:7px; border:none; background:{{ mt.bg }}; color:{{ mt.color }}; font-size:12px; font-weight:700; cursor:pointer; box-shadow:{{ mt.shadow }}; white-space:nowrap;">{{ mt.label }}</button>
+            </sc-for>
+          </div>
+          <sc-if value="{{ tabIsPhotos }}" hint-placeholder-val="{{ true }}">
+            <div class="br-five" style="display:grid; grid-template-columns:repeat(4,1fr); gap:9px;">
+              <sc-for list="{{ photoThumbs }}" as="ph" hint-placeholder-count="8">
+                <div style="aspect-ratio:4/3; border-radius:10px; background:repeating-linear-gradient(135deg, #EDEEEA 0px, #EDEEEA 10px, #E3E4DE 10px, #E3E4DE 20px);"></div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ tabIsVideos }}" hint-placeholder-val="{{ false }}">
+            <div class="br-two" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <sc-for list="{{ videoThumbs }}" as="vt" hint-placeholder-count="2">
+                <div style="aspect-ratio:16/9; border-radius:11px; background:repeating-linear-gradient(135deg, #EDEEEA 0px, #EDEEEA 10px, #E3E4DE 10px, #E3E4DE 20px); display:flex; align-items:center; justify-content:center;">
+                  <span style="width:40px; height:40px; border-radius:100px; background:rgba(23,26,38,0.75); color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px;">▶</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ tabIsDocuments }}" hint-placeholder-val="{{ false }}">
+            <sc-for list="{{ documents }}" as="doc" hint-placeholder-count="4">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 0; border-bottom:1px solid #F3F4F8;">
+                <span style="font-size:12.5px; font-weight:600; overflow-wrap:anywhere;">{{ doc.name }}</span>
+                <span style="font-size:10.5px; color:#9096AC; font-weight:700; white-space:nowrap; flex-shrink:0;">{{ doc.type }} ↓</span>
+              </div>
+            </sc-for>
+          </sc-if>
+        </div>
+
+        <div style="background:#fff; border:1px solid #E1E4ED; border-radius:16px; padding:18px 20px; min-width:0;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
+            <h3 style="font-size:10.5px; font-weight:800; color:#9096AC; letter-spacing:0.7px; margin:0;">MARKET MAKER</h3>
+            <span style="font-size:10px; font-weight:800; color:#38724A; background:#E7F0E9; padding:4px 10px; border-radius:6px; white-space:nowrap;">✓ VERIFIED</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; min-width:0;">
+            <div style="width:42px; height:42px; border-radius:100px; background:#F2F3F7; color:#5B6178; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; flex-shrink:0;">{{ mm.initials }}</div>
+            <div style="min-width:0;">
+              <div style="font-size:13.5px; font-weight:700; overflow-wrap:anywhere;">{{ mm.name }}</div>
+              <div style="font-size:11.5px; color:#9096AC;">★ {{ lot.mmRating }} · {{ lot.mmReviews }} reviews</div>
+            </div>
+          </div>
+          <sc-if value="{{ mm.masked }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#FBF6EC; color:#9C7430; font-size:11.5px; font-weight:700; padding:10px 12px; border-radius:9px; margin-bottom:16px; line-height:1.5; overflow-wrap:anywhere;">Seller identity, location and inspection access unlock once you pledge EMD.</div>
+          </sc-if>
+          <div style="border-top:1px solid #F3F4F8; padding-top:14px;">
+            <div style="font-size:10.5px; font-weight:800; color:#9096AC; letter-spacing:0.7px; margin-bottom:10px;">COMMERCIAL TRUST INDEX</div>
+            <div style="display:flex; align-items:center; gap:18px; flex-wrap:wrap;">
+              <div style="display:flex; align-items:baseline; gap:2px;">
+                <span style="font-size:34px; font-weight:800; color:#38724A; letter-spacing:-1px; line-height:1;">{{ lot.trustIndex }}</span>
+                <span style="font-size:13px; color:#9096AC; font-weight:700;">/100</span>
+              </div>
+              <div style="font-size:11.5px; color:#5B6178; line-height:1.8; min-width:0;">✓ Timely settlements<br>✓ Accurate descriptions<br>✓ Low dispute ratio</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      </div>
+
+      <div class="br-col" style="display:flex; flex-direction:column; gap:16px; min-width:0;">
+      <div class="br-bid-wrap br-anchor" id="sec-bid" style="min-width:0;">
+        <div class="br-bid" style="position:sticky; top:112px; background:#fff; border:1px solid #E1E4ED; border-radius:18px; box-shadow:0 1px 2px rgba(23,26,38,0.04), 0 8px 24px rgba(23,26,38,0.05); overflow:hidden;">
+
+          <div style="padding:20px 22px 16px; border-bottom:1px solid #EEF0F5;">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
+              <h1 style="font-size:19px; font-weight:800; margin:0 0 5px; letter-spacing:-0.35px; line-height:1.25; overflow-wrap:anywhere;">{{ lot.title }}</h1>
+              <span style="font-size:17px; color:#9096AC; flex-shrink:0; cursor:pointer;">☆</span>
+            </div>
+            <div style="font-size:11.5px; color:#9096AC; line-height:1.6; overflow-wrap:anywhere;">{{ lot.id }} · {{ lot.category }}<br>{{ lot.location }}</div>
+          </div>
+
+          <div style="padding:18px 22px; background:linear-gradient(180deg,#FCFBF8,#fff);">
+            <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:16px;">
+              <div style="display:flex; gap:20px; min-width:0; flex-wrap:wrap;">
+                <sc-if value="{{ fmt.hasEV }}" hint-placeholder-val="{{ false }}">
+                  <div style="min-width:0;">
+                    <div style="font-size:10px; font-weight:800; color:#9096AC; letter-spacing:0.7px; margin-bottom:4px;">EXPECTED VALUE</div>
+                    <div style="font-size:26px; font-weight:800; letter-spacing:-1px; color:#171A26; line-height:1; overflow-wrap:anywhere;">{{ formattedEV }}</div>
+                    <div style="font-size:10.5px; color:#9096AC; margin-top:5px;">The seller's asking figure — offer above or below</div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ fmt.hasReserve }}" hint-placeholder-val="{{ true }}">
+                  <div style="min-width:0;">
+                    <div style="font-size:10px; font-weight:800; color:#9096AC; letter-spacing:0.7px; margin-bottom:4px;">RESERVE VALUE</div>
+                    <div style="font-size:26px; font-weight:800; letter-spacing:-1px; color:#171A26; line-height:1; overflow-wrap:anywhere;">{{ formattedRV }}</div>
+                    <div style="font-size:10.5px; color:#9096AC; margin-top:5px;">The floor — the Lot will not sell below this</div>
+                  </div>
+                </sc-if>
+              </div>
+              <sc-if value="{{ fmt.isTimed }}" hint-placeholder-val="{{ true }}">
+                <div style="text-align:right;">
+                  <div style="font-size:10px; font-weight:800; color:#9096AC; letter-spacing:0.7px; margin-bottom:5px;">TIME LEFT</div>
+                  <div style="display:flex; gap:4px; align-items:center;">
+                    <span style="font-family:'IBM Plex Mono',monospace; font-size:18px; font-weight:700; color:#fff; background:{{ timeBg }}; padding:6px 9px; border-radius:8px; letter-spacing:0.5px;">{{ minutes }}</span>
+                    <span style="font-size:15px; font-weight:700; color:{{ timeBg }};">:</span>
+                    <span style="font-family:'IBM Plex Mono',monospace; font-size:18px; font-weight:700; color:#fff; background:{{ timeBg }}; padding:6px 9px; border-radius:8px; letter-spacing:0.5px;">{{ seconds }}</span>
+                  </div>
+                  <div style="font-size:9.5px; color:#9096AC; margin-top:5px; white-space:nowrap;">{{ fmt.timeNote }}</div>
+                  <div style="font-size:9.5px; color:#9C7430; font-weight:700; margin-top:3px; white-space:nowrap;">↻ Extends on late bids</div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ fmt.isInstant }}" hint-placeholder-val="{{ false }}">
+                <div style="text-align:right;">
+                  <div style="font-size:10px; font-weight:800; color:#9096AC; letter-spacing:0.7px; margin-bottom:5px;">AVAILABILITY</div>
+                  <div style="font-size:13px; font-weight:800; color:#38724A;">Open until sold</div>
+                  <div style="font-size:9.5px; color:#9096AC; margin-top:5px; white-space:nowrap;">Offer any time</div>
+                </div>
+              </sc-if>
+            </div>
+
+            <sc-if value="{{ fmt.showH1 }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; background:{{ h1.bg }}; border:1px solid {{ h1.border }}; border-radius:10px; padding:10px 13px; margin-bottom:10px;">
+                <span style="font-size:11px; font-weight:800; letter-spacing:0.5px; color:{{ h1.color }};">{{ h1.label }}</span>
+                <span style="font-size:10.5px; color:#5B6178; text-align:right; overflow-wrap:anywhere;">{{ h1.note }}</span>
+              </div>
+            </sc-if>
+            <div style="display:flex; align-items:flex-start; gap:9px; background:{{ strength.bg }}; border:1px solid {{ strength.border }}; border-radius:10px; padding:11px 13px;">
+              <span style="font-size:13px; flex-shrink:0; line-height:1.3;">{{ strength.icon }}</span>
+              <div style="min-width:0;">
+                <div style="font-size:12px; font-weight:700; color:{{ strength.color }}; line-height:1.4; overflow-wrap:anywhere;">{{ strength.title }}</div>
+                <div style="font-size:11px; color:#5B6178; line-height:1.5; margin-top:2px; overflow-wrap:anywhere;">{{ strength.note }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="padding:0 22px 20px;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+              <span style="font-size:10px; font-weight:800; color:#9096AC; letter-spacing:0.7px;">{{ fmt.inputLabel }}</span>
+              <sc-if value="{{ hasMyBid }}" hint-placeholder-val="{{ false }}">
+                <span style="font-size:11px; color:#9096AC;">Your last: <strong style="color:#171A26; font-family:'IBM Plex Mono',monospace;">{{ formattedMyBid }}</strong></span>
+              </sc-if>
+            </div>
+            <div style="display:flex; gap:7px; margin-bottom:11px; flex-wrap:wrap;">
+              <sc-for list="{{ guideChips }}" as="q" hint-placeholder-count="3">
+                <button onClick="{{ q.onClick }}" style="flex:1; min-width:88px; padding:9px 6px; border-radius:9px; border:1px solid {{ q.border }}; background:{{ q.bg }}; color:{{ q.color }}; font-size:11.5px; font-weight:700; cursor:pointer; white-space:nowrap;">{{ q.label }}</button>
+              </sc-for>
+            </div>
+            <input placeholder="{{ inputPlaceholder }}" value="{{ bidInput }}" onChange="{{ onBidInputChange }}" style="width:100%; padding:13px 15px; border:1.5px solid {{ inputBorder }}; border-radius:11px; font-size:15px; font-weight:600; outline:none; font-family:'IBM Plex Mono',monospace; margin-bottom:9px; color:#171A26;">
+            <button onClick="{{ onPlaceBid }}" style="width:100%; padding:15px; border-radius:11px; border:none; background:{{ ctaBg }}; color:{{ ctaColor }}; font-size:14.5px; font-weight:800; letter-spacing:0.2px; cursor:{{ ctaCursor }};">{{ ctaLabel }}</button>
+            <div style="font-size:10.5px; color:#9096AC; text-align:center; margin-top:8px; overflow-wrap:anywhere;">{{ hintText }}</div>
+          </div>
+
+          <div style="border-top:1px solid #EEF0F5; padding:14px 22px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px;">
+            <span style="font-size:11.5px; color:#5B6178; overflow-wrap:anywhere;">🔒 {{ emdLabel }} <strong style="color:#171A26; font-family:'IBM Plex Mono',monospace;">{{ formattedEMD }}</strong></span>
+            <span style="font-size:10.5px; color:#9096AC; white-space:nowrap;">{{ fmt.emdNote }}</span>
+          </div>
+        </div>
+
+        <div style="background:#171A26; border-radius:16px; padding:18px 20px; margin-top:16px;">
+          <div style="font-size:10.5px; font-weight:800; color:#C9974C; letter-spacing:0.7px; margin-bottom:10px;">HOW THE WINNER IS CHOSEN</div>
+          <p style="font-size:12px; color:#C3C7D6; line-height:1.65; margin:0 0 14px;">{{ fmt.winnerNote }}</p>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; background:#20242F; border-radius:10px; padding:11px 13px; flex-wrap:wrap;">
+            <span style="font-size:11.5px; color:#8E94AC;">{{ fmt.ratingRowLabel }}</span>
+            <span style="font-size:13px; font-weight:800; color:{{ ratingColor }};">★ {{ trader.rating }} <span style="font-size:11px; color:#8E94AC; font-weight:600;">· {{ trader.tier }}</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="br-aside" style="min-width:0;">
+        <div style="background:#fff; border:1px solid #E1E4ED; border-radius:16px; padding:18px 20px;">
+          <h3 style="font-size:10.5px; font-weight:800; color:#9096AC; letter-spacing:0.7px; margin:0 0 13px;">QUICK ACTIONS</h3>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:9px;">
+            <sc-for list="{{ quickActions }}" as="qa" hint-placeholder-count="4">
+              <button style="padding:13px 8px; border:1px solid #E1E4ED; border-radius:11px; background:#fff; font-size:11.5px; font-weight:700; color:{{ qa.color }}; cursor:pointer; text-align:center;">{{ qa.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <div class="br-anchor" id="sec-related" style="margin-top:26px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:13px;">
+        <h3 style="font-size:10.5px; font-weight:800; color:#9096AC; letter-spacing:0.7px; margin:0;">RELATED AUCTIONS</h3>
+        <a href="Marketplace.dc.html" style="font-size:11.5px; font-weight:700; white-space:nowrap;">View all →</a>
+      </div>
+      <div class="br-five" style="display:grid; grid-template-columns:repeat(5,1fr); gap:12px;">
+        <sc-for list="{{ related }}" as="r" hint-placeholder-count="5">
+          <a href="{{ r.href }}" style="display:block; background:#fff; border:1px solid #E1E4ED; border-radius:13px; overflow:hidden; color:inherit; min-width:0;">
+            <div style="aspect-ratio:16/10; background:repeating-linear-gradient(135deg, #EDEEEA 0px, #EDEEEA 12px, #E3E4DE 12px, #E3E4DE 24px); position:relative;">
+              <span style="position:absolute; top:8px; left:8px; font-size:8.5px; font-weight:800; letter-spacing:0.4px; color:#fff; background:{{ r.badgeBg }}; padding:3px 8px; border-radius:5px;">{{ r.badge }}</span>
+            </div>
+            <div style="padding:11px 12px;">
+              <div style="font-size:12px; font-weight:700; line-height:1.35; margin-bottom:5px; overflow-wrap:anywhere;">{{ r.title }}</div>
+              <div style="font-size:11.5px; color:#5B6178;">{{ r.refLabel }} <strong style="color:#171A26; font-family:'IBM Plex Mono',monospace;">{{ r.ev }}</strong></div>
+              <div style="font-size:10.5px; color:#9096AC; margin-top:3px;">{{ r.timeNote }}</div>
+            </div>
+          </a>
+        </sc-for>
+      </div>
+    </div>
+  </main>
+
+  <nav class="br-tabbar" style="display:none; position:fixed; bottom:0; left:0; right:0; background:rgba(255,255,255,0.97); backdrop-filter:blur(10px); border-top:1px solid #E1E4ED; z-index:70; padding:7px 4px 11px;">
+    <sc-for list="{{ tabLinks }}" as="tl" hint-placeholder-count="4">
+      <a href="{{ tl.href }}" style="flex:1; text-align:center; font-size:10px; font-weight:700; color:{{ tl.color }}; padding:6px 2px;">{{ tl.label }}</a>
+    </sc-for>
+  </nav>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;format&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;EASY&quot;,&quot;EXPRESS&quot;,&quot;BUYNOW&quot;,&quot;TENDER&quot;],&quot;default&quot;:&quot;EASY&quot;,&quot;tsType&quot;:&quot;'EASY'|'EXPRESS'|'BUYNOW'|'TENDER'&quot;,&quot;section&quot;:&quot;Trade format&quot;}}">
+class Component extends DCLogic {
+  state = { format: null, bidInput: '', myBid: null, secondsLeft: 767, mediaTab: 'photos' };
+
+  componentDidMount() {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      if (p.get('format')) this.setState({ format: p.get('format').toUpperCase().replace(/[^A-Z]/g, '') });
+    } catch (e) {}
+    this._tick = setInterval(() => this.setState(s => ({ secondsLeft: Math.max(0, s.secondsLeft - 1) })), 1000);
+  }
+  componentWillUnmount() { clearInterval(this._tick); }
+
+  fmt(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
+
+  formatMeta(key) {
+    const map = {
+      EASY: {
+        key: 'EASY', label: 'Easy Auction', badge: 'EASY AUCTION', isTimed: true, isInstant: false,
+        hasInspection: true, noInspection: false, timeNote: 'Set by the Market Maker',
+        hasReserve: true, hasEV: false, showH1: true, maskSeller: false,
+        noun: 'bid', arbiter: 'Market Maker', sealedOnce: false,
+        emdNote: '10% of Reserve Value · checked on every bid',
+        inputLabel: 'YOUR BID', cta: 'Submit Bid', revise: 'Revise Bid',
+        winnerNote: "Only the highest valid bid at close (H1) is eligible to win. The Market Maker may close automatically at the top bid, or hold results for manual approval — your Star Rating plays no part in who wins. If H1 defaults, the win passes to H2, then H3.",
+        ratingRowLabel: 'Your rating (reputation only — not a factor here)', ratingMatters: false,
+      },
+      EXPRESS: {
+        key: 'EXPRESS', label: 'Express Auction', badge: 'EXPRESS AUCTION', isTimed: true, isInstant: false,
+        hasInspection: false, noInspection: true, timeNote: 'Starts once 3 Traders pledge EMD',
+        hasReserve: true, hasEV: false, showH1: true, maskSeller: false,
+        noun: 'bid', arbiter: 'Market Maker', sealedOnce: true,
+        emdNote: '10% of Reserve Value · checked on every bid',
+        noInspectionNote: 'Express sessions run without a physical inspection window so the asset can move quickly. There is zero inspection window — the most buyer risk of any format.',
+        inputLabel: 'YOUR BID', cta: 'Submit Bid', revise: 'Revise Bid',
+        winnerNote: "Only the highest valid bid at close (H1) wins, under standard auction rules — no manual review, no rating weighting.",
+        ratingRowLabel: 'Your rating (reputation only — not a factor here)', ratingMatters: false,
+      },
+      BUYNOW: {
+        key: 'BUYNOW', label: 'Buy Now', badge: 'BUY NOW', isTimed: false, isInstant: true,
+        hasInspection: true, noInspection: false, timeNote: '',
+        hasReserve: false, hasEV: true, showH1: false, maskSeller: true,
+        noun: 'offer', arbiter: 'Market Maker', sealedOnce: false,
+        emdNote: '10% of Expected Value · checked on every offer',
+        inputLabel: 'YOUR OFFER', cta: 'Submit Offer', revise: 'Revise Offer',
+        winnerNote: "The Market Maker personally reviews every offer against the stated Expected Value and chooses who to sell to — weighing both price and your Star Rating. The highest offer is not guaranteed to win.",
+        ratingRowLabel: 'Your rating (factored into award)', ratingMatters: true,
+      },
+      TENDER: {
+        key: 'TENDER', label: 'Tender Auction', badge: 'TENDER · BY INVITATION', isTimed: true, isInstant: false,
+        hasInspection: true, noInspection: false, timeNote: 'Window set by the Concierge',
+        hasReserve: true, hasEV: false, showH1: true, maskSeller: false,
+        noun: 'offer', arbiter: 'Concierge', sealedOnce: false,
+        emdNote: 'Per the terms of your invitation',
+        inputLabel: 'YOUR TENDER OFFER', cta: 'Submit Offer', revise: 'Revise Offer',
+        winnerNote: "This is a private, invitation-only tender run by the Company Shop. Offers are sealed — you see only your own. The Concierge evaluates offers against the curated terms of the tender and awards the Lot.",
+        ratingRowLabel: 'Your rating (reputation only)', ratingMatters: false,
+      },
+    };
+    return map[key] || map.EASY;
+  }
+
+  lotData() {
+    return {
+      id: 'EA-2025-07-00056', title: 'Premium SUV — BMW X5 2021', category: 'Vehicles › SUV', location: 'Mumbai, Maharashtra',
+      ev: 1310000, rv: 1180000, emd: '₹1,00,000',
+      mmName: 'AutoCorp Solutions Pvt. Ltd.', mmInitials: 'AC', mmRating: '4.6', mmReviews: 128, trustIndex: 82,
+      inspectedOn: '03 Jul 2025',
+      assetDetails: [
+        { k: 'Make / Model', v: 'BMW X5 xDrive30d' }, { k: 'Year', v: '2021' }, { k: 'Registration No.', v: 'MH14 XX 0077' },
+        { k: 'KM Driven', v: '45,320 km' }, { k: 'Fuel Type', v: 'Diesel' }, { k: 'Transmission', v: 'Automatic' },
+      ],
+    };
+  }
+
+  strengthFor(bid, ev, rv, fmt, placed) {
+    const t = fmt.key === 'TENDER';
+    const noun = fmt.noun;
+    const Noun = noun.charAt(0).toUpperCase() + noun.slice(1);
+    const privacy = t
+      ? 'Your offer is sealed — no other invited trader can see it.'
+      : 'Your ' + noun + ' is confidential — no other trader can see it.';
+    const award = t
+      ? 'The Concierge evaluates every offer against the curated terms of this tender and awards the Lot.'
+      : (fmt.key === 'EXPRESS'
+        ? 'Only the highest valid bid at close (H1) wins.'
+        : 'Only the highest valid bid at close (H1) is eligible for award.');
+
+    if (placed) {
+      if (fmt.key === 'BUYNOW') return {
+        icon: '🔒', title: 'Offer submitted',
+        note: 'Your offer sits with the Market Maker, who reviews it against the Expected Value alongside your Star Rating. You may revise it until the Lot is sold.',
+        bg: '#E7F0E9', border: '#CBE0D1', color: '#38724A',
+      };
+      if (placed < rv) return {
+        icon: '⚠️', title: Noun + ' registered — below the Reserve Value',
+        note: 'Your ' + noun + ' is logged but sits under the reserve. It cannot be awarded unless you raise it above the reserve before close.',
+        bg: '#FBE9E5', border: '#F2CFC6', color: '#A93F2A',
+      };
+      return {
+        icon: '🔒', title: Noun + ' registered — reserve met',
+        note: privacy + ' ' + award,
+        bg: '#E7F0E9', border: '#CBE0D1', color: '#38724A',
+      };
+    }
+
+    if (fmt.key === 'BUYNOW') {
+      if (!bid) return {
+        icon: '🎯', title: 'Bid your best — weigh it against the expected value',
+        note: 'Other offers are never shown. The Market Maker weighs your offer against the expected value and your Star Rating — the highest offer is not guaranteed to win.',
+        bg: '#F7F8FB', border: '#E1E4ED', color: '#5B6178',
+      };
+      const r = bid / ev;
+      if (r < 0.9) return {
+        icon: '⚠️', title: 'Well below expected value', note: 'Offers this far below the expected value are rarely accepted. Consider raising it before you submit.',
+        bg: '#FBE9E5', border: '#F2CFC6', color: '#A93F2A',
+      };
+      if (r < 0.98) return {
+        icon: '📉', title: 'Slightly below expected value', note: 'You are in range but not leading it. A stronger figure meaningfully improves your chances.',
+        bg: '#FBF6EC', border: '#EEE2CB', color: '#9C7430',
+      };
+      if (r < 1.05) return {
+        icon: '✅', title: 'In line with expected value', note: 'A competitive position — the Market Maker weighs this offer alongside your Star Rating.',
+        bg: '#E7F0E9', border: '#CBE0D1', color: '#38724A',
+      };
+      return {
+        icon: '🔥', title: 'Above expected value', note: 'A strong position. The Market Maker still weighs your rating alongside the figure when deciding.',
+        bg: '#E7F0E9', border: '#CBE0D1', color: '#38724A',
+      };
+    }
+
+    if (!bid) return {
+      icon: '🎯',
+      title: t ? 'Offer above the Reserve Value — all offers stay sealed' : 'Bid above the Reserve Value — other bids stay hidden',
+      note: t
+        ? 'Offers are sealed — you see only your own. ' + award
+        : 'Bids are confidential' + (fmt.sealedOnce ? ' and fixed once placed. ' : ' — revisable until close. ') + award,
+      bg: '#F7F8FB', border: '#E1E4ED', color: '#5B6178',
+    };
+    if (bid < rv) return {
+      icon: '⚠️', title: 'Below the Reserve Value — not yet submitted',
+      note: 'This amount sits under the reserve. Raise it above the reserve before you submit your ' + noun + ', or it cannot be awarded.',
+      bg: '#FBE9E5', border: '#F2CFC6', color: '#A93F2A',
+    };
+    return {
+      icon: '✅', title: 'This ' + noun + ' would meet the Reserve Value',
+      note: 'Nothing is placed yet — submit to register it. Once placed, ' + privacy.charAt(0).toLowerCase() + privacy.slice(1).replace('.', '') + ', and ' + award.charAt(0).toLowerCase() + award.slice(1),
+      bg: '#F7F8FB', border: '#E1E4ED', color: '#5B6178',
+    };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const lot = this.lotData();
+    const fmt = this.formatMeta(s.format || this.props.format || 'EASY');
+    const ev = lot.ev;
+    const bidNum = parseFloat((s.bidInput || '').replace(/[^0-9.]/g, ''));
+    const ceiling = fmt.key === 'BUYNOW' ? Infinity : (s.myBid || lot.rv) * 1.5;
+    const overCeiling = bidNum > ceiling;
+    const valid = bidNum > 0 && !overCeiling;
+    const urgent = s.secondsLeft < 120;
+    const rv = lot.rv;
+    const strength = this.strengthFor(valid ? bidNum : 0, ev, rv, fmt, s.bidInput ? 0 : s.myBid);
+    const tabs = [{ key: 'photos', label: 'Photos' }, { key: 'videos', label: 'Videos' }, { key: 'documents', label: 'Documents' }];
+    const chipVals = [ev * 0.95, ev, ev * 1.05];
+    const trader = { rating: '4.4', tier: 'Established Trader' };
+
+    return {
+      backHref: 'Lot Detail.dc.html?id=' + lot.id,
+      buyerInitials: 'AC', balance: '₹4,50,000', lot, fmt, trader, strength,
+      mm: fmt.maskSeller && !s.myBid
+        ? { name: 'Identity locked', initials: '••', masked: true }
+        : { name: lot.mmName, initials: lot.mmInitials, masked: false },
+      inputPlaceholder: 'Enter your ' + fmt.noun + ' amount',
+      emdLabel: fmt.key === 'TENDER' ? 'EMD' : 'EMD pledged',
+      formattedEMD: fmt.key === 'TENDER' ? 'set by invitation' : this.fmt(Math.round((fmt.key === 'BUYNOW' ? ev : rv) * 0.1)),
+      h1: !s.myBid
+        ? { label: 'NO ' + fmt.noun.toUpperCase() + ' PLACED', note: 'Place a' + (fmt.noun === 'offer' ? 'n offer' : ' bid') + ' to see your H1 standing', bg: '#F7F8FB', border: '#E1E4ED', color: '#5B6178' }
+        : (s.myBid >= rv * 1.02
+            ? { label: '★ YOU ARE H1', note: 'Highest ' + fmt.noun + ' — amounts of others stay hidden', bg: '#E7F0E9', border: '#CBE0D1', color: '#38724A' }
+            : { label: 'YOU ARE NOT H1', note: 'Another ' + fmt.noun + ' is higher — its amount is never shown', bg: '#FBF6EC', border: '#EEE2CB', color: '#9C7430' }),
+      ratingColor: fmt.ratingMatters ? '#fff' : '#8E94AC',
+      thumbs: [0,1,2,3,4,5].map(i => ({ border: i === 0 ? '#171A26' : 'transparent' })),
+      tickerLots: [
+        { id: 'Excavator CAT 320D', timeLeft: '04:12', status: 'H1', statusBg: '#1F4D32', statusColor: '#8FD6A9' },
+        { id: 'Compressor Unit', timeLeft: '11:48', status: 'NOT H1', statusBg: '#4A3A16', statusColor: '#E5BE72' },
+        { id: 'Cotton Yarn 40 Bales', timeLeft: '26:03', status: 'H1', statusBg: '#1F4D32', statusColor: '#8FD6A9' },
+        { id: 'Delivery Van Fleet', timeLeft: '48:57', status: 'WATCHING', statusBg: '#2A2E3B', statusColor: '#8E94AC' },
+      ],
+      formattedEV: this.fmt(ev), formattedRV: this.fmt(rv),
+      minutes: String(Math.floor(s.secondsLeft / 60)).padStart(2, '0'),
+      seconds: String(s.secondsLeft % 60).padStart(2, '0'),
+      timeBg: urgent ? '#C0392B' : '#171A26',
+      hasMyBid: !!s.myBid, formattedMyBid: s.myBid ? this.fmt(s.myBid) : '',
+      guideChips: (fmt.key === 'BUYNOW' ? chipVals : [rv, rv * 1.05, rv * 1.1]).map((v, i) => ({
+        label: fmt.key === 'BUYNOW' ? ['5% below EV', 'At EV', '5% above EV'][i] : ['At Reserve', '+5%', '+10%'][i],
+        border: String(Math.round(v)) === s.bidInput ? '#C9974C' : '#E1E4ED',
+        bg: String(Math.round(v)) === s.bidInput ? '#FBF6EC' : '#fff',
+        color: String(Math.round(v)) === s.bidInput ? '#9C7430' : '#5B6178',
+        onClick: () => this.setState({ bidInput: String(Math.round(v)) }),
+      })),
+      bidInput: s.bidInput, onBidInputChange: (e) => this.setState({ bidInput: e.target.value }),
+      inputBorder: s.bidInput ? '#C9974C' : '#E1E4ED',
+      ctaBg: valid ? '#C9974C' : '#EAECF2', ctaColor: valid ? '#fff' : '#9096AC',
+      ctaCursor: valid ? 'pointer' : 'not-allowed',
+      ctaLabel: overCeiling ? (fmt.noun === 'offer' ? 'Offer exceeds 150% ceiling' : 'Bid exceeds 150% ceiling') : (valid ? (s.myBid ? fmt.revise : fmt.cta) + ' · ' + this.fmt(bidNum) : fmt.cta),
+      hintText: overCeiling
+        ? '⚠ Blocked: no ' + fmt.noun + ' may exceed 150% of the current high bid (max ' + this.fmt(ceiling) + '). This guards against typing errors and price-jacking.'
+        : (s.myBid
+            ? 'Your ' + fmt.noun + ' is with the ' + fmt.arbiter + '.' + (fmt.sealedOnce ? ' It is fixed and cannot be revised.' : ' You may revise it until the session closes.')
+            : (fmt.key === 'TENDER' ? 'Offers are sealed — no other invited trader sees what you place.' : (fmt.noun === 'offer' ? 'Offers are confidential — no other trader sees what you place.' : 'Bids are confidential — no other trader sees what you place.'))),
+      onPlaceBid: () => { if (!valid) return; this.setState({ myBid: bidNum, bidInput: '' }); },
+      inspection: [
+        { k: 'Window', v: '01 Jul – 05 Jul 2025, 10:00 AM – 5:00 PM' },
+        { k: 'Location', v: 'AutoCorp Yard, Navi Mumbai, Maharashtra' },
+        { k: 'Contact', v: 'Rohit Sharma · +91 98765 43210' },
+      ],
+      mediaTabs: tabs.map(t => ({
+        label: t.label, onClick: () => this.setState({ mediaTab: t.key }),
+        bg: s.mediaTab === t.key ? '#fff' : 'transparent', color: s.mediaTab === t.key ? '#171A26' : '#9096AC',
+        shadow: s.mediaTab === t.key ? '0 1px 3px rgba(23,26,38,0.12)' : 'none',
+      })),
+      tabIsPhotos: s.mediaTab === 'photos', tabIsVideos: s.mediaTab === 'videos', tabIsDocuments: s.mediaTab === 'documents',
+      photoThumbs: [0,1,2,3,4,5,6,7], videoThumbs: [0,1],
+      documents: [
+        { name: 'Registration Certificate', type: 'PDF' }, { name: 'Insurance Certificate', type: 'PDF' },
+        { name: 'Pollution Certificate', type: 'PDF' }, { name: 'Fitness Certificate', type: 'PDF' },
+      ],
+      quickActions: [
+        { label: '↓ Lot Brochure', color: '#171A26' }, { label: '☆ Watchlist', color: '#171A26' },
+        { label: '↗ Share', color: '#171A26' }, { label: '⚠ Report Issue', color: '#A93F2A' },
+      ],
+      tabLinks: [
+        { label: 'Overview', href: '#sec-overview', color: '#5B6178' },
+        { label: 'Bid', href: '#sec-bid', color: '#9C7430' },
+        { label: 'Media', href: '#sec-media', color: '#5B6178' },
+        { label: 'Related', href: '#sec-related', color: '#5B6178' },
+      ],
+      related: [
+        { title: 'Honda City 2020', refLabel: 'RV', ev: '₹5,80,000', timeNote: 'Closes in 18m', badge: 'OPEN', badgeBg: '#C0392B', href: 'Lot Detail.dc.html' },
+        { title: 'Ford Endeavour 2019', refLabel: 'RV', ev: '₹9,40,000', timeNote: 'Closes in 21m', badge: 'OPEN', badgeBg: '#C0392B', href: 'Lot Detail.dc.html' },
+        { title: 'Mercedes C200 2021', refLabel: 'RV', ev: '₹11,60,000', timeNote: 'Opens in 2h 15m', badge: 'UPCOMING', badgeBg: '#5B6178', href: 'Lot Detail.dc.html' },
+        { title: 'Toyota Fortuner 2018', refLabel: 'RV', ev: '₹9,05,000', timeNote: 'Opens in 3h 40m', badge: 'UPCOMING', badgeBg: '#5B6178', href: 'Lot Detail.dc.html' },
+        { title: 'Hyundai Creta 2020', refLabel: 'EV', ev: '₹6,45,000', timeNote: 'Opens in 5h 10m', badge: 'UPCOMING', badgeBg: '#5B6178', href: 'Lot Detail.dc.html' },
+      ],
+    };
+  }
+}
+
+</script>
+</body>
+</html>

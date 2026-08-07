@@ -14,7 +14,7 @@
     <div style="border:1px solid var(--line); border-radius:12px; padding:16px; margin-top:10px;">
       <p style="font-size:13px; font-weight:700; margin:0 0 4px;"><?= esc(strtoupper(str_replace('_', ' ', $f['flag_type']))) ?> — <?= esc($f['mobile_number']) ?></p>
       <p style="font-size:12px; color:var(--ink-3); margin:0 0 10px;"><?= esc($f['detail']) ?></p>
-      <form method="post" action="/admin/aml/<?= esc($f['id']) ?>/review">
+      <form method="post" action="/admin/aml/<?= esc($f['id']) ?>/review"><?= csrf_field() ?>
         <textarea name="notes" placeholder="Review notes (required)" required rows="2"
           style="display:block; width:100%; padding:8px; margin-bottom:8px; border:1px solid var(--line); border-radius:8px; font-size:12px;"></textarea>
         <input type="text" name="str_reference" placeholder="STR reference (required only if filing)"

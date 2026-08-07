@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#A87A38;}
+</style>
+</helmet>
+<div style="min-height:100vh; background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif;">
+  <header style="position:sticky; top:0; z-index:60; background:rgba(243,244,248,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1200px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#1E2761;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <a href="Trust and Support.dc.html" style="font-weight:700; font-size:12.5px; padding:9px 18px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233; white-space:nowrap;">← Trust &amp; Support</a>
+    </div>
+  </header>
+
+  <main style="max-width:760px; margin:0 auto; padding:40px 20px 90px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">Legal</div>
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:30px; font-weight:800; letter-spacing:-0.6px; margin:0 0 10px;">Terms of Usage</h1>
+    <p style="font-size:13px; color:#9A9FB5; margin:0 0 30px;">Operator: [entity name — TODO] · Effective Date: [TODO] · Contact: [TODO]</p>
+
+    <p style="font-size:14px; line-height:1.7; margin:0 0 22px;">ADWITIX ("the Platform", "we", "us") is a multi-tenant online marketplace enabling the sale of salvaged, surplus, repossessed, used, and specialised assets between registered Market Makers and registered Traders, operating through individually branded storefronts ("TradeSphereX" or "TSX"). By registering an account, browsing Lots, placing a bid or offer, or otherwise using the Platform, you agree to be bound by these Terms of Usage, our Privacy Policy, and any additional terms published by the specific TSX through which you transact. If you do not agree, you must not register for or use the Platform.</p>
+
+    <h2 id="def" style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:18px; margin:28px 0 10px;">1. Definitions</h2>
+    <ul style="padding-left:18px; margin:0; display:flex; flex-direction:column; gap:8px;">
+      <li style="font-size:13.5px; line-height:1.6;"><strong>Custodian:</strong> The sovereign administrator of the Platform, who does not participate as a Trader, Market Maker, or TSX Master in any transaction.</li>
+      <li style="font-size:13.5px; line-height:1.6;"><strong>TradeSphereX / TSX:</strong> A whitelisted storefront on the Platform under its own branding, administered by a TSX Master.</li>
+      <li style="font-size:13.5px; line-height:1.6;"><strong>TSX Master:</strong> A person authorised by a TSX's company, under formal agreement with ADWITIX, to administer that TSX's storefront.</li>
+      <li style="font-size:13.5px; line-height:1.6;"><strong>Trader:</strong> A registered user who bids on, offers for, or purchases a Lot.</li>
+      <li style="font-size:13.5px; line-height:1.6;"><strong>Market Maker:</strong> A registered user approved by a specific TSX to list items for sale on that TSX's storefront.</li>
+      <li style="font-size:13.5px; line-height:1.6;"><strong>Lot:</strong> A cataloged item and its associated description, media, and condition information.</li>
+      <li style="font-size:13.5px; line-height:1.6;"><strong>Sale System:</strong> The transactional format under which a Lot is offered — Buy-Now, Express Auction, Easy Auction, or Tender Auction.</li>
+      <li style="font-size:13.5px; line-height:1.6;"><strong>EMD:</strong> A refundable security deposit pledged by a Trader to participate in a bid or offer, calculated as 10% of the applicable value.</li>
+      <li style="font-size:13.5px; line-height:1.6;"><strong>PC / Money Points:</strong> The Platform's internal representation of a Trader's deposited funds, held at 1:1 parity, maintained as segregated per-pledge escrow holdings rather than a pooled or freely spendable balance. PC is never used to pay for goods directly.</li>
+      <li style="font-size:13.5px; line-height:1.6;"><strong>RV / EV:</strong> Reserve Value and Expected Value — the floor and target prices set by a Market Maker for a Lot.</li>
+      <li style="font-size:13.5px; line-height:1.6;"><strong>NOC:</strong> A digital No Objection Certificate confirming, respectively, receipt of funds (Market Maker) or receipt of goods (Trader).</li>
+      <li style="font-size:13.5px; line-height:1.6;"><strong>Star Rating:</strong> The Platform's dual, independent reputation scores — Trader★ and Market Maker★ — reflecting a user's transaction history.</li>
+    </ul>
+
+    <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:18px; margin:28px 0 10px;">2. Eligibility &amp; Registration</h2>
+    <p style="font-size:13.5px; line-height:1.65; margin:0 0 8px;">2.1. You must be at least 18 years of age and capable of entering into a legally binding contract under Indian law to register for or use the Platform.</p>
+    <p style="font-size:13.5px; line-height:1.65; margin:0 0 8px;">2.2. Registration requires a valid 10-digit Indian mobile number, verified by OTP. You are responsible for the confidentiality of your account credentials, including your 4-digit mPIN.</p>
+    <p style="font-size:13.5px; line-height:1.65; margin:0 0 8px;">2.3. Each user may hold only one account, uniquely tied to their verified mobile number. Creating multiple accounts, or registering on behalf of another person without authorisation, is prohibited.</p>
+    <p style="font-size:13.5px; line-height:1.65; margin:0 0 8px;">2.4. You agree to provide accurate, current, and complete information during registration and KYC verification, and to promptly update it if it changes.</p>
+    <p style="font-size:13.5px; line-height:1.65; margin:0;">2.5. Business/organisational users must additionally provide corporate verification details (CIN, GSTIN, company PAN) as prescribed by KYC requirements.</p>
+
+    <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:18px; margin:28px 0 10px;">3. Account Security</h2>
+    <p style="font-size:13.5px; line-height:1.65; margin:0 0 8px;">3.1. You are solely responsible for all activity under your account, whether or not authorised by you, except where it results from the Platform's own security failure.</p>
+    <p style="font-size:13.5px; line-height:1.65; margin:0 0 8px;">3.2. You must notify the Platform immediately if you suspect unauthorised access to your account.</p>
+    <p style="font-size:13.5px; line-height:1.65; margin:0;">3.3. Three consecutive failed mPIN attempts trigger a mandatory OTP verification step before further access is permitted.</p>
+
+    <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:18px; margin:28px 0 10px;">4. Nature of the Platform</h2>
+    <p style="font-size:13.5px; line-height:1.65; margin:0 0 8px;">4.1. ADWITIX is a marketplace facilitator only. We are not a party to, and assume no responsibility for, the underlying sale contract between a Trader and a Market Maker. Title to any item transfers directly between them, not through the Platform.</p>
+    <p style="font-size:13.5px; line-height:1.65; margin:0 0 8px;">4.2. The Platform does not take custody of, inspect, or guarantee the condition, legality, or authenticity of any Lot, except as expressly stated in these Terms (e.g., mandatory listing media requirements).</p>
+    <p style="font-size:13.5px; line-height:1.65; margin:0 0 8px;">4.3. 100% of the sale value for any completed transaction is settled directly and offline between Trader and Market Maker. The Platform never holds, transmits, or has custody of the full sale value — only the EMD (where applicable) is held via the Platform's payment mechanisms.</p>
+    <p style="font-size:13.5px; line-height:1.65; margin:0;">4.4. The Custodian does not participate as a Trader, Market Maker, or TSX Master in any transaction, and has no visibility into live bidding activity while it is in progress.</p>
+
+    <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:18px; margin:28px 0 10px;">5. Bidding, EMD &amp; Settlement</h2>
+    <p style="font-size:13.5px; line-height:1.65; margin:0 0 8px;">5.1. A Trader must pledge an EMD of 10% of the applicable value before placing a bid or offer. The EMD is refunded automatically once no longer required (outbid, not selected, or deal closed with balance remaining).</p>
+    <p style="font-size:13.5px; line-height:1.65; margin:0 0 8px;">5.2. A winning Trader who fails to complete payment within the applicable window forfeits their EMD. The win passes to the next-highest bidder (Baton-Pass), up to three times, before the Trading Session is cancelled.</p>
+    <p style="font-size:13.5px; line-height:1.65; margin:0;">5.3. Both parties must file an NOC before a deal is considered closed — the Market Maker confirming receipt of funds, the Trader confirming receipt of goods.</p>
+
+    <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:18px; margin:28px 0 10px;">6. Star Ratings, Crawl-Back &amp; Shadow Banning</h2>
+    <p style="font-size:13.5px; line-height:1.65; margin:0 0 8px;">6.1. Every user holds two independent Star Ratings — Trader★ and Market Maker★ — starting at 3.0 of 5.0, rising with clean conduct and falling with defaults or disputes.</p>
+    <p style="font-size:13.5px; line-height:1.65; margin:0;">6.2. A rating below 2★ enters Crawl-Back (restricted to smaller-value transactions); a persistently low rating may result in Shadow Banning (reduced visibility, not a block).</p>
+
+    <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:18px; margin:28px 0 10px;">7. Disputes &amp; Termination</h2>
+    <p style="font-size:13.5px; line-height:1.65; margin:0 0 8px;">7.1. Disputes are handled under our separate Dispute Resolution Process. A TSX Master ruling may be appealed once, to the Custodian, whose decision is final.</p>
+    <p style="font-size:13.5px; line-height:1.65; margin:0;">7.2. We may suspend or terminate your account for breach of these Terms, fraud, repeated non-payment, or as required by law, with a stated reason.</p>
+
+    <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:18px; margin:28px 0 10px;">8. Governing Law</h2>
+    <p style="font-size:13.5px; line-height:1.65; margin:0;">8.1. These Terms are governed by the laws of India. Disputes not resolved through our internal process are subject to the exclusive jurisdiction of the courts at [city — TODO].</p>
+
+    <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:18px; margin:28px 0 10px;">9. Changes to These Terms</h2>
+    <p style="font-size:13.5px; line-height:1.65; margin:0;">9.1. We may update these Terms from time to time. Material changes will be reflected in the "Effective Date" above and, where required, notified to you directly.</p>
+  </main>
+
+  <footer style="border-top:1px solid #DDE0EA; padding:24px 20px; text-align:center;">
+    <p style="font-size:12.5px; color:#9A9FB5; margin:0;">See also our <a href="Privacy Policy.dc.html">Privacy Policy</a> and <a href="Trust and Support.dc.html">Trust &amp; Support</a>.</p>
+  </footer>
+</div>
+
+</x-dc>
+</body>
+</html>

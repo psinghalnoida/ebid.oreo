@@ -1,7 +1,9 @@
-# eBid Hub
+# AdwitiX
 
 Multi-tenant B2B/B2C salvage and surplus auction platform, built on
-CodeIgniter 4 (PHP) with server-rendered views.
+CodeIgniter 4 (PHP) with server-rendered views. (Repo/folder name is
+still `ebid.oreo` — "eBid Hub" was the working name before the AdwitiX
+rebrand; see `docs/DECISIONS.md` D-100.)
 
 **Super Admin:** Piyush Singhal
 **Deployment contact:** Arpit (SSH/server access, i2k2)
@@ -18,24 +20,27 @@ thresholds, the current TSX/TradeSphereX commercial model (a declining
 Success Fee schedule, per-Trading-Session Fee Payer Election,
 subscription tiers with monthly Tenant billing for Seller-Pays fees), a
 Tenant API Access module (OAuth2 client-credentials, tier-gated
-push/pull endpoints, webhook delivery), and a full Trust & Support
-content section — all built and verified against real PostgreSQL data
-before ever being pushed. 33 permanent test-command suites (see Step 10
-below), each with real assertions re-run on every change, not
-throwaway scripts.
+push/pull endpoints, webhook delivery), the Trading Session Chronicle
+(immutable, publicly QR-verifiable settlement record), BR-46's AI
+Listing Pre-Audit (built end to end, inert until a Gemini key lands),
+real CSRF protection and a real Content-Security-Policy on every page,
+and a full Trust & Support content section — all built and verified
+against real PostgreSQL data before ever being pushed. 37 permanent
+test-command suites (see Step 10 below), each with real assertions
+re-run on every change, not throwaway scripts, now also run
+automatically on every push/PR — see `.github/workflows/tests.yml`.
 
 ## ⚠️ Before deploying — read this first
 
-**`main` is currently the more current branch — `dev` has not been
-updated since PR #12 and is now behind `main`, not ahead of it.** Newer
-work than either branch reflects also exists: the ADWITIX_Master.docx
-governing-document replacement, the current TSX commercial model
-(Success Fee schedule, Fee Payer Election, subscription-tier Tenant
-billing), the Tenant API Access module, and the Terminology
-restructuring all currently sit on open, unmerged pull requests
-(#31 → #32 → #33 → #34, stacked in that order) — none of that is in
-`main` or `dev` yet. Before following the deployment guide below,
-confirm which branch/PR you're actually deploying:
+**`main` is the branch to deploy — `dev` has not been updated since PR
+#12 and is permanently behind `main` (confirmed: `dev` is a strict
+ancestor of `main`, not a diverged branch).** As of this update, the
+current session's own work — the AdwitiX visual rebrand, a shared
+design-system foundation, a two-pass navigation-gap audit (D-99–D-103),
+and a production-readiness pass closing CSRF/CSP/CI/backup gaps
+(D-104) — sits on its own open pull request, not yet merged into
+`main`. Before following the deployment guide below, confirm which
+branch/PR you're actually deploying:
 
 ```bash
 git log --oneline -3 origin/main
@@ -296,7 +301,27 @@ sudo php spark test:discovery              # Trending/recommendation feed
 sudo php spark test:browse                 # CLV preference matching
 sudo php spark test:br35                   # Dispute-driven rating event attribution
 sudo php spark test:terminology            # BR-67 tsx_term() branded terminology map
+sudo php spark test:chronicle              # Trading Session Chronicle, QR verification
+sudo php spark test:aiaudit                # BR-46 AI Listing Pre-Audit (Gemini-gated)
+sudo php spark test:listingreach           # Lot Reach & Interest: reversed CLV matching, real in-app messaging (D-105)
+sudo php spark test:partydashboards        # Buyer/Seller Dashboard, Rating History, Star Ratings, admin directories (D-106)
 ```
+
+37 suites total, not 33 — this list itself had drifted out of date before this
+update (D-104); `grep -h "protected \$name" app/Commands/Test*.php` is the
+source of truth if this list and the codebase ever disagree again.
+
+**Fixture-collision note (D-104):** these suites share one PostgreSQL
+session when run back-to-back like this, and two of them — a hardcoded
+mobile number reused by both `TestChronicle.php` and
+`TestEasySchedule.php` — used to collide because of it, failing
+`test:chronicle` with a `duplicate key` error that had nothing to do with
+the code under test. Fixed by giving `TestChronicle.php` its own numbers.
+If a suite fails here with a `duplicate key value violates unique
+constraint` error and the code you're testing genuinely didn't change,
+check for this pattern before assuming a real regression — grep the
+fixture numbers across `app/Commands/Test*.php` for a collision, the same
+way this one was found.
 
 If any of these fail here but passed during development, something about
 *this specific server's* PHP version, PostgreSQL version, or configuration
@@ -493,13 +518,21 @@ correctly either way, this only affects the live-update experience.
 ### Before real users touch this — read first
 
 Search the codebase for `DEV-ONLY` (`grep -rn "DEV-ONLY" app/`). Every
-match is a stand-in for something not yet built — mainly payment gateway
-simulation, SMS (OTP still shows on-screen), and a couple of time-based
-triggers that need the scheduled-job cron entry below to actually run
-automatically. Each is explained in `docs/DECISIONS.md`. This deployment
-guide gets the *application* running correctly; it does not by itself
-make every feature production-safe for real money and real users. Review
-those markers with Piyush before opening this up beyond internal testing.
+match is a stand-in for something not yet built — payment gateway
+simulation and SMS (OTP still shows on-screen) are the two real ones
+left; the time-based triggers just need the scheduled-job cron entry
+below to run automatically. Each is explained in `docs/DECISIONS.md`.
+This deployment guide gets the *application* running correctly; it does
+not by itself make every feature production-safe for real money and
+real users. Review those two markers with Piyush before opening this up
+beyond internal testing.
+
+**Already closed, as of D-104** — not open items anymore, no action
+needed here: real CSRF protection on every state-changing POST (was
+fully disabled repo-wide before), a real Content-Security-Policy on
+every response (was off entirely before), and a CI pipeline
+(`.github/workflows/tests.yml`) that runs all 37 suites automatically
+on every push/PR against a real Postgres service container.
 
 ### Scheduled jobs — required for timers to work automatically
 
@@ -515,8 +548,36 @@ Add:
 * * * * * cd /var/www/ebid.oreo && php spark run:scheduler >> /var/log/ebidhub-scheduler.log 2>&1
 ```
 
+### Database + media backups (D-104)
+
+No backup strategy existed anywhere in this repo before D-104 —
+`scripts/backup.sh` closes that. It reads the real DB credentials
+straight out of `.env` (nothing to duplicate or keep in sync), runs a
+compressed `pg_dump`, tars up `public/uploads/` (real listing
+photos/videos/documents — these live on local disk, see the "Not yet
+built" caveats above about scaling past one server), and prunes
+anything older than 14 days. Exits non-zero on a genuinely failed
+backup rather than silently leaving an empty file, so cron's own
+mail-on-error catches it.
+
+```bash
+sudo mkdir -p /var/backups/ebidhub
+sudo chown www-data:www-data /var/backups/ebidhub
+crontab -e
+```
+Add (daily at 02:00 server time):
+```
+0 2 * * * cd /var/www/ebid.oreo && BACKUP_DIR=/var/backups/ebidhub ./scripts/backup.sh >> /var/log/ebidhub-backup.log 2>&1
+```
+
+Restore a database dump with:
+```bash
+gunzip -c /var/backups/ebidhub/ebidhub-db-<timestamp>.sql.gz | sudo -u postgres psql -d ebidhub
+```
+
 ## Verifying the build (quick reference)
 
-See Step 10 above for the full list of 33 test commands — all real,
+See Step 10 above for the full list of 37 test commands — all real,
 permanent verification tooling, not throwaway scripts. Rerun any of them
-after making a change to confirm nothing broke.
+after making a change to confirm nothing broke. They also now run
+automatically on every push/PR via `.github/workflows/tests.yml`.

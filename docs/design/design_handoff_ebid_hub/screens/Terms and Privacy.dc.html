@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  html, body{overflow-x:hidden;}
+  a{text-decoration:none;}
+  a:link, a:visited{color:#C9974C;}
+  a:hover{color:#A87A38;}
+  @media (max-width:860px){
+    .tp-layout{grid-template-columns:1fr !important;}
+    .tp-toc{display:none !important;}
+  }
+  @media (max-width:480px){
+    .tp-header-cta-label{display:none;}
+  }
+</style>
+</helmet>
+
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;">
+
+  <header style="position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1400px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:36px; width:36px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:22px; letter-spacing:-0.5px; color:#1E2761; flex-shrink:0;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <a href="Trust and Support.dc.html" class="tp-header-cta-label" style="font-weight:700; font-size:12.5px; padding:9px 18px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233; white-space:nowrap;">Trust &amp; Support</a>
+    </div>
+  </header>
+
+  <main style="max-width:1060px; margin:0 auto; padding:44px 24px 90px;">
+
+    <div style="background:#FBF2E2; border:1px solid #EBD9AE; border-radius:14px; padding:16px 20px; margin-bottom:32px;">
+      <p style="font-size:12.5px; color:#8A6425; margin:0; line-height:1.55;"><strong>Draft for review.</strong> This copy is structured from ADWITIX's internal Business Rules (Sections 2 &amp; 6 of the master specification) to show shape and coverage — it is not final legal text. Replace with counsel-reviewed language before publishing.</p>
+    </div>
+
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:32px; font-weight:800; letter-spacing:-0.6px; margin:0 0 8px;">Terms of Use &amp; Privacy Policy</h1>
+    <p style="font-size:13px; color:#9A9FB5; margin:0 0 40px;">Last updated: August 2026 · Applies to every TradeSphereX operating on ADWITIX</p>
+
+    <div class="tp-layout" style="display:grid; grid-template-columns:220px 1fr; gap:40px; align-items:start;">
+      <nav class="tp-toc" style="position:sticky; top:80px; display:flex; flex-direction:column; gap:4px;">
+        <sc-for list="{{ tocItems }}" as="t" hint-placeholder-count="9">
+          <a href="{{ t.href }}" style="font-size:12.5px; font-weight:600; color:#565B72; padding:7px 0;">{{ t.label }}</a>
+        </sc-for>
+      </nav>
+
+      <div style="display:flex; flex-direction:column; gap:36px;">
+        <sc-for list="{{ sections }}" as="sec" hint-placeholder-count="9">
+          <section id="{{ sec.id }}">
+            <h2 style="font-size:17px; font-weight:800; margin:0 0 10px; font-family:Archivo,sans-serif;">{{ sec.title }}</h2>
+            <p style="font-size:13.5px; color:#565B72; line-height:1.7; margin:0;">{{ sec.body }}</p>
+          </section>
+        </sc-for>
+      </div>
+    </div>
+
+  </main>
+</div>
+</helmet>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  data() {
+    return [
+      { id: 'accounts', title: '1. Accounts & Roles', body: 'You may hold multiple roles on ADWITIX — Trader, Market Maker, or both — under a single verified identity. Custodians are structurally barred from holding any participant role. A suspension or revoked compliance flag on your master KYC status cascades automatically to every role you hold.' },
+      { id: 'kyc', title: '2. Identity Verification (KYC)', body: 'You must complete KYC before bidding or listing: document upload to an encrypted vault, Aadhaar tokenization, and PAN/GSTIN registry checks. Buyers are verified by the platform Custodian; Market Makers are verified by their TSX Master. Submitted KYC dossiers lock until a Verified or Suspended decision is issued.' },
+      { id: 'listings', title: '3. Listings & Trading Sessions', body: 'Every listing requires authentic, unedited media of the actual item — stock, catalogue, or generated imagery is never permitted absent an approved Tenant Media Waiver. Approved listings enter a limited post-approval edit window before parameters freeze for the live Trading Session.' },
+      { id: 'bidding', title: '4. Bidding, EMD & Settlement', body: 'Bids constitute a binding commitment backed by an escrowed Earnest Money Deposit. Winning bidders and Market Makers must each submit a No Objection Certificate and a mandatory settlement rating before a deal is considered closed; unresponsive parties are subject to stall resolution and rating consequences.' },
+      { id: 'fees', title: '5. Fees & Payment', body: 'A Success Fee applies only on completed sales, on a declining schedule by final sale value, subject to a minimum of ₹500 + GST. Buyer-Pays is the default fee allocation; Seller-Pays is available on paid subscription tiers and, once selected for a Trading Session, is locked at bidding open.' },
+      { id: 'ratings', title: '6. Ratings, Standing & Rehabilitation', body: 'Every account holds separate Trader and Market Maker star ratings, starting at 3★. A rating below 2★ triggers Crawl-Back — a temporary restriction to your tenant\'s Low value bracket. Persistently poor standing triggers Shadow Banning, a graduated reduction in platform-driven visibility rather than an outright block.' },
+      { id: 'disputes', title: '7. Disputes & Standing Review', body: 'Disputes are filed against a specific transaction within a defined window, resolved with evidence from both sides and a stated rationale. Tenant Admin rulings may be appealed once, to the Custodian, whose decision is final. Market Makers are additionally subject to periodic Standing Review, opened annually or once complaints exceed a set threshold.' },
+      { id: 'payouts', title: '8. Payout Accounts', body: 'Any change to your registered payout bank account requires OTP re-verification of the account holder and a mandatory 24-hour cooling-off period before the new account becomes active for settlements or refunds.' },
+      { id: 'privacy', title: '9. Data Handling & Privacy', body: 'KYC documents are encrypted end-to-end; Aadhaar numbers are tokenized and never stored in plain text. Every material action is logged to a tamper-evident audit trail, retained for the statutory period applicable to your subscription tier. Consent is captured and logged individually at registration, KYC, and each EMD pledge.' }
+    ];
+  }
+  renderVals() {
+    const sections = this.data();
+    return {
+      sections,
+      tocItems: sections.map(s => ({ href: '#' + s.id, label: s.title.replace(/^\d+\.\s*/, '') }))
+    };
+  }
+}
+</script>
+</body>
+</html>

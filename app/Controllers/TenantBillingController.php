@@ -32,7 +32,7 @@ class TenantBillingController extends BaseController
     public function index()
     {
         return view('admin/tenant_invoices', [
-            'title' => 'Tenant Monthly Invoices — eBid Hub',
+            'title' => 'Tenant Monthly Invoices — AdwitiX',
             'pending' => (new TenantMonthlyInvoiceModel())->findAllPending(),
         ]);
     }

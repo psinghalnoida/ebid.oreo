@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  a{text-decoration:none;}
+  a:link, a:visited{color:#C9974C;}
+  a:hover{color:#A87A38;}
+  @media (max-width:1000px){
+    .cu-stats{grid-template-columns:repeat(2,1fr) !important;}
+    .cu-today{grid-template-columns:repeat(3,1fr) !important;}
+    .cu-nav{display:none !important;}
+  }
+  @media (max-width:860px){
+    .cu-quick{grid-template-columns:repeat(2,1fr) !important;}
+    .cu-tenant-row{grid-template-columns:1fr 90px 1fr !important;}
+    .cu-tenant-row > div:nth-child(3){display:none;}
+    .cu-user-row{grid-template-columns:100px 1fr 70px 90px !important;}
+    .cu-user-row > div:nth-child(5), .cu-user-row > div:nth-child(6){display:none;}
+    .cu-disposal-row{grid-template-columns:1fr 90px 110px !important;}
+    .cu-disposal-row > div:nth-child(3), .cu-disposal-row > div:nth-child(5){display:none;}
+  }
+  @media (max-width:600px){
+    .cu-stats{grid-template-columns:1fr 1fr !important;}
+    .cu-today{grid-template-columns:1fr 1fr !important;}
+    .cu-quick{grid-template-columns:1fr !important;}
+    .cu-tenant-row{grid-template-columns:1fr 80px !important;}
+    .cu-user-row{grid-template-columns:1fr 60px !important;}
+    .cu-user-row > div:nth-child(3), .cu-user-row > div:nth-child(4){display:none;}
+    .cu-disposal-row{grid-template-columns:1fr 90px !important;}
+  }
+  @media (max-width:560px){
+    .cu-header-cta-label{display:none;}
+  }
+  html, body{overflow-x:hidden;}
+</style>
+</helmet>
+
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;">
+
+  <header style="position:sticky; top:0; z-index:60; background:#1E2233; border-bottom:1px solid #33374A;">
+    <div style="max-width:1400px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:36px; width:36px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:22px; letter-spacing:-0.5px; color:#fff; flex-shrink:0;">Adwiti<span style="color:#C9974C;">X</span></span>
+        <span class="cu-header-cta-label" style="font-size:11px; font-weight:700; color:#9A9FB5; text-transform:uppercase; letter-spacing:0.6px; border-left:1px solid #45495E; padding-left:12px; margin-left:4px; white-space:nowrap;">Custodian Console</span>
+      </a>
+      <nav class="cu-nav" style="display:flex; gap:4px; background:#2A2E40; padding:4px; border-radius:100px;">
+        <a href="#tenants" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#C7CADA;">TradeSphereX</a>
+        <a href="User Directory.dc.html" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#C7CADA;">Users</a>
+        <a href="Lot Directory.dc.html" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#C7CADA;">Lots</a>
+        <a href="Trading Session Directory.dc.html" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#C7CADA;">Sessions</a>
+        <a href="#compliance" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#C7CADA;">Compliance</a>
+        <a href="#" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#fff; background:#C9974C;">Dashboard</a>
+      </nav>
+      <div style="display:flex; gap:8px; align-items:center; flex:none;">
+        <a href="#" style="font-weight:700; font-size:12.5px; padding:9px 18px; border-radius:100px; border:1px solid #45495E; color:#fff; white-space:nowrap; flex-shrink:0;">Log Out</a>
+      </div>
+    </div>
+  </header>
+
+  <main style="max-width:1130px; margin:0 auto; padding:40px 32px 80px;">
+
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:30px; font-weight:800; letter-spacing:-0.6px; margin:0 0 8px;">Custodian Dashboard</h1>
+    <p style="font-size:14px; color:#565B72; margin:0 0 28px;">Platform-wide oversight — TradeSphereX onboarding, compliance, billing, and governance.</p>
+
+    <div class="cu-stats" style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:32px;">
+      <a href="#tenants" style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:18px 20px; color:inherit;">
+        <b style="display:block; font-family:Georgia,serif; font-size:26px; font-weight:800;">{{ stats.tenants }}</b>
+        <span style="font-size:12px; color:#9A9FB5; font-weight:600;">Whitelisted TradeSphereX</span>
+      </a>
+      <a href="Custodian Dispute Review.dc.html" style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:18px 20px; color:inherit;">
+        <b style="display:block; font-family:Georgia,serif; font-size:26px; font-weight:800;">{{ stats.openDisputes }}</b>
+        <span style="font-size:12px; color:#9A9FB5; font-weight:600;">Open Disputes</span>
+      </a>
+      <a href="#" style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:18px 20px; color:inherit;">
+        <b style="display:block; font-family:Georgia,serif; font-size:26px; font-weight:800;">{{ stats.stalledSettlements }}</b>
+        <span style="font-size:12px; color:#9A9FB5; font-weight:600;">Stalled Settlements</span>
+      </a>
+      <a href="#compliance" style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:18px 20px; color:inherit;">
+        <b style="display:block; font-family:Georgia,serif; font-size:26px; font-weight:800; color:#C9974C;">{{ stats.openAmlFlags }}</b>
+        <span style="font-size:12px; color:#9A9FB5; font-weight:600;">Open AML Flags</span>
+      </a>
+    </div>
+
+    <section style="margin-bottom:44px;">
+      <h2 style="font-size:14px; font-weight:700; color:#9A9FB5; text-transform:uppercase; letter-spacing:0.4px; margin:0 0 14px;">Today</h2>
+      <div class="cu-today" style="display:grid; grid-template-columns:repeat(5,1fr); gap:12px;">
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:16px;">
+          <b style="display:block; font-size:20px; font-weight:800;">{{ today.bidsPlaced }}</b>
+          <span style="font-size:11px; color:#9A9FB5; font-weight:600;">Bids Placed</span>
+        </div>
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:16px;">
+          <b style="display:block; font-size:20px; font-weight:800;">{{ today.salesClosed }}</b>
+          <span style="font-size:11px; color:#9A9FB5; font-weight:600;">Trading Sessions Closed</span>
+        </div>
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:16px;">
+          <b style="display:block; font-size:20px; font-weight:800;">{{ today.disputesFiled }}</b>
+          <span style="font-size:11px; color:#9A9FB5; font-weight:600;">Disputes Filed</span>
+        </div>
+        <sc-for list="{{ today.newByFormat }}" as="lf" hint-placeholder-count="2">
+          <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:16px;">
+            <b style="display:block; font-size:20px; font-weight:800;">{{ lf.count }}</b>
+            <span style="font-size:11px; color:#9A9FB5; font-weight:600;">New {{ lf.format }} Sessions</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section id="tenants" style="margin-bottom:44px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <h2 style="font-size:18px; font-weight:800; margin:0; font-family:Archivo,sans-serif;">TradeSphereX</h2>
+        <div style="display:flex; gap:8px;">
+          <a href="Trading Session Directory.dc.html" style="font-size:12px; font-weight:700; padding:8px 16px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233;">Full Session Directory →</a>
+          <a href="#" style="font-size:12px; font-weight:700; padding:8px 16px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233;">+ Whitelist New TradeSphereX</a>
+        </div>
+      </div>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+        <div class="cu-tenant-row" style="display:grid; grid-template-columns:1.4fr 100px 1fr 140px; padding:0 20px; font-size:10px; text-transform:uppercase; color:#9A9FB5; font-weight:700; border-bottom:1px solid #DDE0EA;">
+          <div style="padding:12px 0;">Name</div>
+          <div style="padding:12px 0;">Class</div>
+          <div style="padding:12px 0;">Subdomain</div>
+          <div style="padding:12px 0;">CoCo Tier</div>
+        </div>
+        <sc-for list="{{ tenants }}" as="t" hint-placeholder-count="4">
+          <a href="{{ t.href }}" class="cu-tenant-row" style="display:grid; grid-template-columns:1.4fr 100px 1fr 140px; padding:0 20px; border-bottom:1px solid #EEF0EA; align-items:center; font-size:13px; color:#1E2233;">
+            <div style="padding:12px 0; font-weight:600;">{{ t.name }}</div>
+            <div style="padding:12px 0; font-size:12px; color:#9A9FB5;">{{ t.tenantClass }}</div>
+            <div style="padding:12px 0; font-size:12px; font-family:'IBM Plex Mono',monospace; color:#9A9FB5;">{{ t.subdomain }}</div>
+            <div style="padding:12px 0; font-size:12px;">{{ t.tier }}</div>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="margin-bottom:44px;">
+      <h2 style="font-size:18px; font-weight:800; margin:0 0 16px; font-family:Archivo,sans-serif;">Stalled Settlements — Aging</h2>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+        <sc-for list="{{ stalledAging }}" as="s" hint-placeholder-count="2">
+          <a href="#" style="display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid #EEF0EA;">
+            <span style="font-size:13.5px; font-weight:700; color:#C9974C;">{{ s.amount }}</span>
+            <span style="font-size:11px; color:#9A9FB5;">since {{ s.since }} · {{ s.daysStalled }} days stalled</span>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="margin-bottom:44px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <h2 style="font-size:18px; font-weight:800; margin:0; font-family:Archivo,sans-serif;">High-Value Disposal Records (&gt;₹10L, platform-wide)</h2>
+        <a href="Lot Directory.dc.html" style="font-size:12px; font-weight:700; padding:8px 16px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233;">Full Lot Directory →</a>
+      </div>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+        <div class="cu-disposal-row" style="display:grid; grid-template-columns:1fr 80px 100px 120px 110px; padding:0 20px; font-size:10px; text-transform:uppercase; color:#9A9FB5; font-weight:700; border-bottom:1px solid #DDE0EA;">
+          <div style="padding:12px 0;">TradeSphereX</div>
+          <div style="padding:12px 0;">Format</div>
+          <div style="padding:12px 0;">Final Value</div>
+          <div style="padding:12px 0;">Variance</div>
+          <div style="padding:12px 0;">Date</div>
+        </div>
+        <sc-for list="{{ highValueDisposals }}" as="d" hint-placeholder-count="3">
+          <div class="cu-disposal-row" style="display:grid; grid-template-columns:1fr 80px 100px 120px 110px; padding:0 20px; border-bottom:1px solid #EEF0EA; align-items:center; font-size:13px;">
+            <div style="padding:12px 0; font-weight:600;">{{ d.tenantName }}</div>
+            <div style="padding:12px 0; font-size:12px; color:#9A9FB5;">{{ d.format }}</div>
+            <div style="padding:12px 0; font-weight:700; color:#C9974C;">{{ d.finalValue }}</div>
+            <div style="padding:12px 0; font-size:12px;">{{ d.variance }}</div>
+            <div style="padding:12px 0; font-size:12px; color:#9A9FB5;">{{ d.date }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section id="users" style="margin-bottom:44px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <h2 style="font-size:18px; font-weight:800; margin:0; font-family:Archivo,sans-serif;">Users</h2>
+        <a href="User Directory.dc.html" style="font-size:12px; font-weight:700; padding:8px 16px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233;">Full User Directory →</a>
+      </div>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+        <div class="cu-user-row" style="display:grid; grid-template-columns:120px 1fr 90px 90px 70px 70px 100px; padding:0 20px; font-size:10px; text-transform:uppercase; color:#9A9FB5; font-weight:700; border-bottom:1px solid #DDE0EA;">
+          <div style="padding:12px 0;">Mobile</div>
+          <div style="padding:12px 0;">Name</div>
+          <div style="padding:12px 0;">Type</div>
+          <div style="padding:12px 0;">KYC</div>
+          <div style="padding:12px 0;">Trader★</div>
+          <div style="padding:12px 0;">MM★</div>
+          <div style="padding:12px 0;">Status</div>
+        </div>
+        <sc-for list="{{ users }}" as="u" hint-placeholder-count="4">
+          <a href="User Directory.dc.html" class="cu-user-row" style="display:grid; grid-template-columns:120px 1fr 90px 90px 70px 70px 100px; padding:0 20px; border-bottom:1px solid #EEF0EA; align-items:center; font-size:13px; color:#1E2233;">
+            <div style="padding:12px 0; font-family:'IBM Plex Mono',monospace; font-size:12px;">{{ u.mobile }}</div>
+            <div style="padding:12px 0; font-size:12.5px;">{{ u.name }}</div>
+            <div style="padding:12px 0; font-size:12px; color:#9A9FB5;">{{ u.type }}</div>
+            <div style="padding:12px 0; font-size:11px; color:#9A9FB5;">{{ u.kyc }}</div>
+            <div style="padding:12px 0; font-size:12px;">{{ u.traderRating }}★</div>
+            <div style="padding:12px 0; font-size:12px;">{{ u.mmRating }}★</div>
+            <div style="padding:12px 0;"><span style="font-size:10.5px; font-weight:700; text-transform:uppercase; color:{{ u.statusColor }}; background:{{ u.statusBg }}; padding:4px 10px; border-radius:100px;">{{ u.status }}</span></div>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+
+    <section id="compliance" style="margin-top:36px; padding-top:28px; border-top:1px solid #DDE0EA;">
+      <h3 style="font-size:13px; font-weight:700; color:#9A9FB5; text-transform:uppercase; letter-spacing:0.5px; margin:0 0 14px;">Governance &amp; Compliance</h3>
+      <div class="cu-quick" style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px;">
+        <a href="Alerts.dc.html" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">Alerts</a>
+        <a href="Delist Market Maker.dc.html" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">Delist Market Maker</a>
+        <a href="Audit Ledger.dc.html" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">Audit Log</a>
+        <a href="Statutory Export.dc.html" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">Statutory Export</a>
+        <a href="Media Waivers.dc.html" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">Media Waivers</a>
+        <a href="AML Monitoring.dc.html" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">AML Monitoring</a>
+        <a href="Payout Reviews.dc.html" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">Payout Reviews</a>
+        <a href="Invoices.dc.html" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">TradeSphereX Invoices</a>
+        <a href="Rating Reviews.dc.html" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">Rating Reviews</a>
+        <a href="Consent Audit.dc.html" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">Consent Audit</a>
+        <a href="Rules and Specifications.dc.html" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">Rules &amp; Specifications</a>
+        <a href="KYC Queue.dc.html" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">KYC Review Queue</a>
+        <a href="Whitelist Tenant.dc.html" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">Whitelist TradeSphereX</a>
+      </div>
+    </section>
+
+  </main>
+</div>
+</helmet>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const active = { status: 'Active', statusColor: '#3F7A4E', statusBg: '#E4EFE6' };
+    const banned = { status: 'Shadow-banned', statusColor: '#9C5B1F', statusBg: '#FBF2E2' };
+    const delisted = { status: 'Delisted', statusColor: '#B5482F', statusBg: '#FBE8E4' };
+    return {
+      stats: { tenants: 42, openDisputes: 6, stalledSettlements: 3, openAmlFlags: 2 },
+      today: {
+        bidsPlaced: 318, salesClosed: 24, disputesFiled: 2,
+        newByFormat: [{ format: 'EASY', count: 11 }, { format: 'TENDER', count: 3 }]
+      },
+      tenants: [
+        { name: 'Salvage Managers TSX (Company Shop)', tenantClass: 'Tender · Concierge-Only', subdomain: 'salvage-managers', tier: 'CoCo Concierge', href: 'Tender Concierge Console.dc.html' },
+        { name: 'Northline Industrial Auctions', tenantClass: 'Industrial', subdomain: 'northline', tier: 'Growth', href: '#' },
+        { name: 'Coastal Salvage Co-op', tenantClass: 'Salvage', subdomain: 'coastal-salvage', tier: 'Launch', href: '#' },
+        { name: 'Metro Surplus Exchange', tenantClass: 'Surplus', subdomain: 'metro-surplus', tier: 'Starter', href: '#' },
+        { name: 'Apex Fleet Disposals', tenantClass: 'Fleet', subdomain: 'apex-fleet', tier: 'Enterprise', href: '#' }
+      ],
+      stalledAging: [
+        { amount: '₹4,80,000', since: '2026-07-10', daysStalled: 22 },
+        { amount: '₹1,15,000', since: '2026-07-24', daysStalled: 8 }
+      ],
+      highValueDisposals: [
+        { tenantName: 'Northline Industrial Auctions', format: 'TENDER', finalValue: '₹18,50,000', variance: '+₹2,50,000', date: '2026-07-30' },
+        { tenantName: 'Apex Fleet Disposals', format: 'TENDER', finalValue: '₹22,00,000', variance: '+₹1,10,000', date: '2026-07-22' },
+        { tenantName: 'Northline Industrial Auctions', format: 'EASY', finalValue: '₹12,40,000', variance: '+₹60,000', date: '2026-07-02' }
+      ],
+      users: [
+        { mobile: '98xxxxxx21', name: 'Ravi Kumar', type: 'Individual', kyc: 'Verified', traderRating: '4.6', mmRating: '4.2', ...active },
+        { mobile: '97xxxxxx08', name: 'Priya Singh', type: 'Individual', kyc: 'Verified', traderRating: '3.9', mmRating: '3.2', ...banned },
+        { mobile: '99xxxxxx44', name: 'Metro Traders LLP', type: 'Business', kyc: 'Verified', traderRating: '2.1', mmRating: '2.1', ...delisted },
+        { mobile: '96xxxxxx77', name: 'Anil Deshmukh', type: 'Individual', kyc: 'Pending', traderRating: '0.0', mmRating: '4.9', ...active }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

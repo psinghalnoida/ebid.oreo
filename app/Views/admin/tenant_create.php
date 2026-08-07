@@ -7,7 +7,7 @@
   <?php if ($flashError): ?>
     <p style="color:#B5482F; font-size:13px; background:#FBE8E4; padding:10px; border-radius:8px;"><?= esc($flashError) ?></p>
   <?php endif; ?>
-  <form method="post" action="/admin/tenants">
+  <form method="post" action="/admin/tenants"><?= csrf_field() ?>
     <label style="font-size:12px; color:var(--ink-3);"><?= tsx_term('Tenant') ?> Name</label>
     <input type="text" name="name" required
       style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">

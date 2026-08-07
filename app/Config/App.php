@@ -198,5 +198,8 @@ class App extends BaseConfig
      * @see http://www.html5rocks.com/en/tutorials/security/content-security-policy/
      * @see http://www.w3.org/TR/CSP/
      */
-    public bool $CSPEnabled = false;
+    // Enabled — see app/Config/ContentSecurityPolicy.php for the real
+    // directive set this app actually needs (grep-verified against every
+    // view, not a generic default).
+    public bool $CSPEnabled = true;
 }

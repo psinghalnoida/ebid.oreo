@@ -1,6 +1,6 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
-<style>
+<style {csp-style-nonce}>
   .browse-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:20px;}
   .filter-bar{display:flex; gap:10px; flex-wrap:wrap; margin-top:16px;}
   .filter-chip{font-size:12px; padding:8px 14px; border-radius:100px; border:1px solid var(--line); color:var(--ink-2); text-decoration:none;}
@@ -51,7 +51,7 @@
   </form>
 
   <?php if (session()->get('logged_in_party_id')): ?>
-  <form method="post" action="/my-searches" style="margin-top:8px; display:flex; gap:8px;">
+  <form method="post" action="/my-searches" style="margin-top:8px; display:flex; gap:8px;"><?= csrf_field() ?>
     <?php foreach (['category' => $selectedCategory, 'format' => $selectedFormat, 'price_min' => $priceMin, 'price_max' => $priceMax, 'location' => $location, 'min_rating' => $minRating, 'condition' => $condition, 'posted' => $posted, 'sort' => $sort, 'q' => $q] as $k => $v): ?>
       <input type="hidden" name="<?= esc($k) ?>" value="<?= esc($v ?? '') ?>">
     <?php endforeach; ?>

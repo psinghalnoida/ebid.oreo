@@ -38,7 +38,7 @@ class RatingReviewController extends BaseController
             $pending = $eventModel->findPendingForTenants($tenantIds);
         }
 
-        return view('admin/rating_reviews', ['title' => 'Pending Rating Downgrades — eBid Hub', 'pending' => $pending]);
+        return view('admin/rating_reviews', ['title' => 'Pending Rating Downgrades — AdwitiX', 'pending' => $pending]);
     }
 
     public function approve(string $eventId)

@@ -13,7 +13,7 @@
     creation. Reserved strictly for a confirmed fraud finding — never use for ordinary poor ratings or disputes.
   </p>
 
-  <form method="post" action="/admin/delist-seller" style="margin-top:24px;">
+  <form method="post" action="/admin/delist-seller" style="margin-top:24px;"><?= csrf_field() ?>
     <label style="font-size:12px; color:var(--ink-3);"><?= tsx_term('Seller') ?>'s Mobile Number</label>
     <input type="text" name="mobile_number" required placeholder="+919876543210"
       style="display:block; width:100%; padding:12px; margin:6px 0 16px; border:1px solid var(--line); border-radius:10px;">

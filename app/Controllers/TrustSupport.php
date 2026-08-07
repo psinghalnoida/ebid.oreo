@@ -29,11 +29,12 @@ class TrustSupport extends BaseController
             ],
             [
                 'title' => 'Legal',
-                'subtitle' => 'The formal documents governing your use of eBid Hub',
+                'subtitle' => 'The formal documents governing your use of AdwitiX',
                 'cards' => [
                     ['icon' => '§', 'title' => 'Terms of Service', 'description' => 'The full terms governing every transaction on the platform.', 'url' => '/terms'],
                     ['icon' => '🔒', 'title' => 'Privacy Policy', 'description' => 'What we collect, how it\'s used, and how KYC data is protected.', 'url' => '/privacy'],
                     ['icon' => '!', 'title' => 'Grievance Redressal', 'description' => 'How to formally escalate a complaint, and expected timelines.', 'url' => '/grievance-redressal'],
+                    ['icon' => '🍪', 'title' => 'Cookie Policy', 'description' => 'What cookies the platform uses and which ones you can opt out of.', 'url' => '/cookie-policy'],
                 ],
             ],
         ];
@@ -46,7 +47,7 @@ class TrustSupport extends BaseController
         // an invented value. See docs/DECISIONS.md D-15.
 
         return view('trust_support', [
-            'title' => 'Trust & Support — eBid Hub',
+            'title' => 'Trust & Support — AdwitiX',
             'groups' => $groups,
         ]);
     }

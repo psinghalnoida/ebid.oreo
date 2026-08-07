@@ -37,7 +37,7 @@ class SuperAdminAuthController extends BaseController
             return redirect()->to('/')->with('error', $e->getMessage());
         }
 
-        return view('admin/setup_totp', ['title' => 'Set Up Super Admin 2FA — eBid Hub', 'setup' => $setup]);
+        return view('admin/setup_totp', ['title' => 'Set Up Super Admin 2FA — AdwitiX', 'setup' => $setup]);
     }
 
     public function setupTotpSubmit()
@@ -60,14 +60,14 @@ class SuperAdminAuthController extends BaseController
         // plain codes are never put in session/flash, only the bcrypt
         // hashes persist (in super_admin_backup_code).
         return view('admin/setup_totp_backup_codes', [
-            'title' => 'Save Your Backup Codes — eBid Hub',
+            'title' => 'Save Your Backup Codes — AdwitiX',
             'codes' => $confirmed,
         ]);
     }
 
     public function loginForm()
     {
-        return view('admin/login', ['title' => 'Super Admin Login — eBid Hub']);
+        return view('admin/login', ['title' => 'Super Admin Login — AdwitiX']);
     }
 
     public function loginSubmit()
@@ -79,7 +79,7 @@ class SuperAdminAuthController extends BaseController
         try {
             $party = $this->auth->login($mobile, $mpin, $totpCode);
         } catch (\RuntimeException $e) {
-            return view('admin/login', ['title' => 'Super Admin Login — eBid Hub', 'error' => $e->getMessage()]);
+            return view('admin/login', ['title' => 'Super Admin Login — AdwitiX', 'error' => $e->getMessage()]);
         }
 
         // Distinct session markers from regular login — this is the real

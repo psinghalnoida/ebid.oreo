@@ -26,7 +26,7 @@
       <span style="display:flex; align-items:center; gap:10px;">
         <span style="font-size:11px; color:var(--ink-3); text-transform:uppercase;"><?= esc($o['status']) ?></span>
         <?php if ($o['status'] === 'submitted'): ?>
-          <form method="post" action="/offers/<?= esc($o['id']) ?>/withdraw" style="display:inline;">
+          <form method="post" action="/offers/<?= esc($o['id']) ?>/withdraw" style="display:inline;"><?= csrf_field() ?>
             <input type="text" name="reason" placeholder="Reason" required style="font-size:11px; padding:4px; border:1px solid var(--line); border-radius:6px; width:100px;">
             <button type="submit" class="btn btn-ghost" style="font-size:11px; padding:4px 8px;">Withdraw</button>
           </form>

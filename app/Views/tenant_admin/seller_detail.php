@@ -20,7 +20,7 @@
   <?php if ($openCase): ?>
     <p style="font-size:13px;">An open case exists — <a href="/admin/standing-review/<?= esc($openCase['id']) ?>" style="color:var(--emerald);">view / rule on it</a></p>
   <?php else: ?>
-    <form method="post" action="/tenants/<?= esc($tenant['id']) ?>/sellers/<?= esc($seller['id']) ?>/initiate-review">
+    <form method="post" action="/tenants/<?= esc($tenant['id']) ?>/sellers/<?= esc($seller['id']) ?>/initiate-review"><?= csrf_field() ?>
       <textarea name="reason" placeholder="Reason for opening a Standing Review case (required)" required rows="2"
         style="display:block; width:100%; padding:8px; margin:8px 0; border:1px solid var(--line); border-radius:8px; font-size:12px;"></textarea>
       <button type="submit" class="btn btn-ghost" style="font-size:12px;">Initiate Standing Review Case</button>
@@ -28,7 +28,7 @@
     <p style="font-size:11px; color:var(--ink-3); margin-top:6px;">Note: cases also open automatically once complaints exceed 10, or on the <?= strtolower(tsx_term('Seller')) ?>'s annual anniversary — this is for a <?= tsx_term('Tenant Admin') ?> to act ahead of that threshold on their own judgment.</p>
   <?php endif; ?>
 
-  <h3 style="font-size:15px; margin-top:24px;">Violation History (real named rating consequences, BR-35)</h3>
+  <h3 style="font-size:15px; margin-top:24px;">Violation History (real named rating consequences)</h3>
   <?php foreach ($violations as $v): ?>
     <p style="font-size:13px; padding:8px 0; border-bottom:1px solid var(--line);">
       <?= esc(substr($v['created_at'] ?? '', 0, 10)) ?> — <?= esc($v['reason']) ?>

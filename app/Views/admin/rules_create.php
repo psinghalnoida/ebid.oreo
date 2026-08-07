@@ -10,7 +10,7 @@
   <h1 style="font-size:22px;">Define a New Rule</h1>
   <p style="font-size:12px; color:var(--ink-3);">A freeform governance rule — versioned and audited like any other, but with no direct code effect (no rule_key exists to wire it to).</p>
 
-  <form method="post" action="/admin/rules/new" style="margin-top:20px;">
+  <form method="post" action="/admin/rules/new" style="margin-top:20px;"><?= csrf_field() ?>
     <label style="font-size:12px; color:var(--ink-3);">Title</label>
     <input type="text" name="title" required
       style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px; box-sizing:border-box;">

@@ -22,14 +22,14 @@
   <?php endforeach; ?>
 
   <?php if (in_array($dispute['status'], ['filed', 'evidence_window'], true)): ?>
-    <form method="post" action="/disputes/<?= esc($dispute['id']) ?>/evidence" style="margin:12px 0;">
+    <form method="post" action="/disputes/<?= esc($dispute['id']) ?>/evidence" style="margin:12px 0;"><?= csrf_field() ?>
       <textarea name="content" required rows="3" placeholder="Submit your evidence/statement" style="display:block; width:100%; padding:10px; border:1px solid var(--line); border-radius:10px;"></textarea>
       <button type="submit" class="btn btn-ghost" style="margin-top:8px; font-size:12px;">Submit Evidence</button>
     </form>
 
     <div style="background:var(--line-soft); padding:14px; border-radius:10px; margin-top:16px;">
-      <p style="font-size:12px; color:var(--ink-3); margin:0 0 8px;">Ruling action — requires the correct authority (<?= tsx_term('Tenant Admin') ?> or <?= tsx_term('Super Admin') ?> per category, BR-40)</p>
-      <form method="post" action="/disputes/<?= esc($dispute['id']) ?>/rule">
+      <p style="font-size:12px; color:var(--ink-3); margin:0 0 8px;">Ruling action — requires the correct authority (<?= tsx_term('Tenant Admin') ?> or <?= tsx_term('Super Admin') ?> per category)</p>
+      <form method="post" action="/disputes/<?= esc($dispute['id']) ?>/rule"><?= csrf_field() ?>
         <select name="outcome" style="padding:8px; border:1px solid var(--line); border-radius:8px; font-size:12px; margin-bottom:6px; width:100%;">
           <option value="dismissed">Dismiss the claim</option>
           <option value="force_log_noc">Force-log an NOC</option>
@@ -48,7 +48,7 @@
       <p style="margin:0 0 6px;"><strong>Ruling:</strong> <?= esc(str_replace('_', ' ', $dispute['ruling_outcome'])) ?></p>
       <p style="margin:0 0 10px;"><strong>Rationale:</strong> <?= esc($dispute['ruling_rationale']) ?></p>
       <?php if ($dispute['ruling_authority_type'] === 'tenant_admin'): ?>
-        <form method="post" action="/disputes/<?= esc($dispute['id']) ?>/appeal">
+        <form method="post" action="/disputes/<?= esc($dispute['id']) ?>/appeal"><?= csrf_field() ?>
           <button type="submit" class="btn btn-ghost" style="font-size:12px;">Appeal to <?= tsx_term('Super Admin') ?></button>
         </form>
       <?php endif; ?>
@@ -58,7 +58,7 @@
   <?php if ($dispute['status'] === 'appealed'): ?>
     <div style="background:var(--line-soft); padding:14px; border-radius:10px; margin-top:16px;">
       <p style="font-size:12px; color:var(--ink-3); margin:0 0 8px;"><?= tsx_term('Super Admin') ?> appeal ruling</p>
-      <form method="post" action="/disputes/<?= esc($dispute['id']) ?>/rule-appeal">
+      <form method="post" action="/disputes/<?= esc($dispute['id']) ?>/rule-appeal"><?= csrf_field() ?>
         <textarea name="rationale" required placeholder="Appeal rationale" rows="2" style="display:block; width:100%; padding:8px; border:1px solid var(--line); border-radius:8px; font-size:12px;"></textarea>
         <button type="submit" class="btn btn-emerald" style="margin-top:8px; font-size:12px;">Rule on Appeal</button>
       </form>

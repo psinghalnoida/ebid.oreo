@@ -6247,3 +6247,725 @@ called, no token gets 401. Regression: `tenantapi`, `buynow`,
 `browse`, `lifecycle` all re-run clean against the shared files this
 touched (`ListingController`, `TenantApiController`, `ListingModel`,
 `Routes.php`).
+
+### D-99: BR-/PR- jargon swept from the live portal (not just the Chronicle), two access-control gaps fixed along the way
+
+The project owner asked to work on the platform's UI/UX directly
+("not sure yet — let's look together" rather than a fixed brief), so
+this started as a joint walkthrough of the live product: registration
+→ mPIN → marketplace home → list-an-asset → KYC → listing detail →
+profile, captured as real screenshots via a Playwright-driven browser
+session against the running `spark serve` app. D-96/D-97's "no
+BR/PR jargon" instruction had been scoped to the Chronicle report
+only — the walkthrough showed the same pattern is actually
+platform-wide: raw citations like "BR-11: universal required lot
+metadata," "Category (BR-07)," "Media Tier (BR-59)," and "PR-09: your
+progress is auto-saved" sitting directly in seller- and Tenant-Admin-
+facing copy. The project owner picked killing this as the first
+priority.
+
+**Scope**: every `app/Views/*` file outside `admin/` (SaaS Admin's own
+internal operator screens, left untouched — that audience is
+platform staff, the same category BR/PR shorthand was always fine
+for). 27 files, 71 occurrences found via
+`grep -rEo "BR-[0-9]+|PR-[0-9]+"`, all removed from rendered output —
+parenthetical citations dropped, surrounding sentences kept as plain
+English. PHP/JS comments inside those same files (developer-facing,
+never sent to the browser as visible text, confirmed by checking
+which are inside `<?php ... ?>` blocks vs. `<script>` tags) were
+deliberately left alone, same distinction D-97 already established.
+`TenantAdminFilter`'s 403 body ("BR-09: you are not the Tenant Admin
+for this listing's tenant.") also had the citation stripped — that
+text is returned straight to a browser on a denied request.
+
+**Two real access-control gaps found and fixed while sweeping
+`listing/show.php`, not just cosmetic**: the "Flag CBS Violation
+(BR-59/61)" button, the pending-listing Approve/Reject block, and the
+Sale-Event Approve/"Force-freeze (dev)" controls were all rendered
+unconditionally to *any* visitor (including anonymous ones, since
+`isOwner` is simply `false` when logged out) — the actual
+authorization lived only in the controller/route filter
+(`flagCbsViolation()`'s explicit role check, the `tenantAdmin:listing`
+/`tenantAdmin:saleEvent` route filters), so every non-admin who
+happened to view a pending listing saw working-looking buttons that
+would just redirect back with a permission error on click.
+`ListingController::show()` now computes
+`isTenantAdminForListing` once (`AuthorizationService::
+isTenantAdminForListing()` — the exact same check the route filter
+uses, not a parallel rule that could drift) and the view gates all
+four blocks on it. The "Force-freeze to Active (dev)" button — a
+demo-only shortcut around the real 60-minute grace window — additionally
+now requires `ENVIRONMENT !== 'production'`, so it can't render at
+all outside a dev/staging build regardless of role.
+
+**Verified**: `php -l` across all 28 touched files. Full regression —
+all 34 `test:*` suites re-run clean against a rebuilt-from-scratch
+database (`auth`, `kyc`, `lifecycle`, `media`, `dispute`, `settlement`,
+`cascade`, `buynow`, `express`, `successfee`, `tenantapi`,
+`terminology`, `tier3`, `standingreview`, `br35`, `rating`, `aiaudit`,
+`aml`, `browse`, `crawlback`, `discovery`, `easyexpresscorrections`,
+`easyschedule`, `invoices`, `payoutcontrol`, `phase3a`, `scheduler`,
+`selleraudit`, `servertimecheck`, `sovereignrule`, `tenderbidding`,
+`tenderfoundation`, `tenderreview`); `test:auditlog`'s 3 failures are
+the pre-existing, documented, sandbox-DB-name mismatch (unrelated to
+this change, confirmed still present against a bare fresh migration).
+Real HTTP, not just read: a fresh party registered through the actual
+mobile → OTP → mPIN flow, then Playwright screenshots of the live
+`list-an-asset`, KYC, and listing-detail pages confirmed both the
+jargon is gone from the rendered page and — logged in as an ordinary
+non-admin party — the Flag/Approve/Reject/Force-freeze controls no
+longer appear at all.
+
+Not done, flagged as a follow-up rather than folded in unprompted:
+the KYC form (`kyc/form.php`) shows both Individual and Organization
+field groups at once regardless of the selected Entity Type — a
+real UX rough edge spotted during the same walkthrough, but a
+distinct problem (conditional field display) from the jargon sweep
+that was actually asked for.
+
+### D-100: platform name corrected from "eBid Hub" to AdwitiX, real logo/icon wired into the header, footer, favicon, and page titles
+
+Continuing the same joint UI/UX walkthrough, the project owner
+pointed out that the live portal still names itself "eBid Hub"
+throughout — header wordmark, browser tab titles, footer, TOTP
+authenticator-app issuer, the marketing copy on the homepage and
+Trust & Support hub, even the Terms/Privacy/Grievance legal
+documents — when the platform's real identity is AdwitiX, per the
+shield icon and full logo lockup already supplied and already in use
+on the Chronicle report since D-97. "eBid Hub" turns out to have been
+the working/demo name baked into the build before the AdwitiX
+branding was finalized, not a name the project owner asked to keep
+alongside it.
+
+**Scope**: every literal `eBid Hub`/`eBidHub` occurrence across the
+app — 38 files, all of `app/Controllers/*` (mostly `'title' => '... —
+eBid Hub'` page titles), the four view files that reference it in
+body copy (`landing.php`, `trust_support.php`, `legal/document.php`,
+`listing/create.php`), `TotpService::getProvisioningUri()`'s default
+issuer (shown inside Google Authenticator/Authy when Super Admin sets
+up 2FA — a real functional string, not just decorative), and
+`TestTerminology.php`'s own assertion that probes `tsx_term()` with
+the platform's own name to confirm BR-67's mapping leaves it
+untouched (`eBid Hub` → `AdwitiX` there too, same invariant, correct
+name). Every occurrence reads as a proper noun in a sentence
+("AdwitiX operates a zero-seller-fee model...", "AdwitiX's aggregate
+liability...", "the AdwitiX name, logo, and Platform design are the
+property of AdwitiX") — a plain find-and-replace, verified afterward
+with a repo-wide grep down to zero remaining hits.
+
+**The header/footer/favicon needed real image integration, not just
+text** — `layouts/main.php`'s brand mark was `eBid<span>Hub</span>`
+(two-tone: Ink + the app's `--emerald` token, which BR-68 already
+repointed to Rust `#B85C2C`). Replaced with the actual shield icon
+(`public/images/brand/adwitix-shield.jpg`, already on disk from D-97)
+at 26px next to `Adwiti<span>X</span>` — same two-tone split
+convention, just the real name and a real icon instead of invented
+placeholder text. This only fires in the platform-default branch of
+the existing tenant-branding conditional (`$__tenant['branding_logo_
+url']` still takes priority when a Tenant has its own white-label
+logo, untouched) — it's the platform's own identity being fixed, not
+a change to how Tenant white-labeling works. Footer `&copy; eBid Hub`
+→ `&copy; AdwitiX`. `<title>` fallback `eBid Hub` → `AdwitiX`
+(confirmed via a real page load: `document.title` now reads "AdwitiX
+— Salvage & Surplus Marketplace" on the homepage). Added a real
+`<link rel="icon">` pointing at the shield image — there was no
+AdwitiX favicon at all before this, just the CodeIgniter-generated
+default `favicon.ico` — confirmed via a real HTTP fetch of the
+resolved favicon URL returning 200.
+
+**Verified**: `php -l` across all touched files. Full regression run
+against a rebuilt-from-scratch database — all 34 suites, same list as
+D-99 plus `chronicle` (confirmed clean in isolation; it collided with
+its own earlier fixture only when re-run a second time against a
+DB that already had that run's data, a pre-existing test-idempotency
+quirk unrelated to this change, not a real failure). Real HTTP/browser
+check: fresh page load's `document.title`, the rendered header and
+footer screenshotted and read back, and the favicon URL fetched
+directly.
+
+### D-101: shared design-system foundation — responsive nav, spacing/elevation tokens, component classes; proved out on Home, Profile, KYC
+
+The project owner's next observation, same UI/UX walkthrough: "all the
+screens are very basic and unorganised and lack any visual excitement
+... we don't know if they render mobile adaptive." Checked rather than
+assumed — a repo-wide grep found exactly one `@media` rule in the
+entire shared layout (`layouts/main.php`), hiding the Live Ticker
+sidebar under 900px. Every other screen, including every form and
+dashboard, had zero responsive treatment. Given two explicit choices
+from the project owner — fix the foundation first rather than keep
+patching page-by-page, and go bolder rather than just tightening the
+existing spare aesthetic — this pass builds the shared system in
+`layouts/main.php` and proves it out on three flagship pages rather
+than a wide shallow sweep.
+
+**Foundation, `layouts/main.php`**: extended `:root` with a spacing
+scale (`--sp-1`…`--sp-8`), an elevation scale (`--shadow-sm/md/lg`,
+previously zero box-shadow usage anywhere), and two new accent colors
+lifted from the AdwitiX shield/logo — `--navy` and `--gold` —
+decorative only, never used for buttons or status states, which stay
+Rust/Amber. New shared component classes: `.card`, `.section`,
+`.grid-2/3/4` (collapse to one column under 900px), `.field` (label +
+input, replacing hand-rolled inline styles), `.badge` (+ `-emerald`/
+`-amber`/`-navy` variants), `.table-wrap` (horizontal-scroll wrapper
+for wide tables). Real breakpoints added at 900px and 640px.
+
+**The actual nav bug, fixed at the root**: the header had no mobile
+treatment at all — at phone width, the full desktop nav (4 tabs + up
+to 6 account links) simply wrapped and visually overlapped the
+logo and page content, on every single page, since they all share
+this layout. Added a hamburger toggle (`.nav-toggle`, vanilla JS,
+CSS-only otherwise) that hides the two nav groups under 900px and
+reveals them as a stacked full-width panel on tap. First
+implementation had both groups independently `position:absolute` at
+the same coordinates, so they overlapped each other — caught via a
+real screenshot of the opened menu, fixed by making both normal-flow
+flex children of the wrapping header row instead (`width:100%;
+order:10`), which stacks them in DOM order with no coordinate math.
+Verified via a real Playwright click on `#navToggle`, both logged-out
+and logged-in states, screenshotted open and closed.
+
+**Proved out on three pages, not applied blindly everywhere**:
+- **Home** (`landing.php`): the empty-state hero card was a flat gray
+  box: replaced with a navy gradient, a gold dot-grid texture, and a
+  faint shield-checkmark watermark (inline SVG data URI, no new
+  asset). Format cards (Buy-Now/Easy/Express/Tender) previously all
+  shared one color; now Easy carries the navy accent and Express the
+  gold, so the four read as genuinely distinct at a glance. Added
+  hover lift + shadow on product cards, format cards, and category
+  tiles for basic interactivity.
+- **Profile** (`my/profile.php`): was one unsorted row of 11
+  identical pill buttons. Rebuilt as an avatar/summary header, a
+  stat-pill row (ratings/KYC/last login), and three labelled
+  `.settings-list` groups (Account / Activity / Discovery) plus a
+  separated Log Out / Delete Account row — same 11 destinations,
+  organized instead of dumped.
+- **KYC** (`kyc/form.php`): fixed a real bug flagged in the prior
+  walkthrough — Individual and Organization questionnaire fields
+  were both always visible regardless of the selected Entity Type.
+  Added a plain `change`-event toggle (`entityTypeSelect` show/hides
+  `#individualFields`/`#organizationFields`, synced on load too) so
+  only the relevant set shows. Also wrapped each of the four
+  numbered sections in `.card` with a numbered step badge, and
+  converted the field markup to the new `.field` component.
+
+**Verified**: `php -l` on every touched file. Full regression against
+a rebuilt-from-scratch database — all 32 non-`kyc` suites clean;
+`kyc` itself confirmed clean standalone (32/32 assertions) against a
+fresh DB, the loop failure being the same known same-DB double-run
+fixture collision already documented in D-98/D-99, not a regression
+— the KYC form's field `name` attributes are byte-for-byte unchanged
+from before this pass, so `KycController` never saw a different
+payload shape. Real browser verification, not just markup review:
+Home and Profile screenshotted at both 1440px and 390px; KYC
+screenshotted at 1440px in both Individual and Organization states
+(toggled live via Playwright's `selectOption`, not two separate page
+loads) plus at 390px.
+
+Not done, flagged rather than folded in: the remaining ~75 view files
+still use the old hand-rolled inline-style pattern rather than the
+new `.field`/`.card` classes — the foundation and the pattern are
+proven, but rolling it out further is real per-page work the project
+owner hasn't asked for yet.
+
+### D-102: navigation-gap audit — 5 flagged items already wired, 3 genuine gaps found and closed
+
+The project owner reported five specific navigation gaps, framed as
+"app logic fully built and tested, but no page/button reaches it":
+no logout except Super Admin, no My Listings for sellers, no My Bids
+for buyers, no account/profile page, no searchable/filterable browse
+page. Asked for a full screenflow, gap-find, and wire-up.
+
+**Checked rather than assumed, and the five named items turned out to
+already be fully wired** — confirmed both by reading the code and by
+a real browser session (fresh account registered through the actual
+mobile → OTP → mPIN flow, then live click-throughs): `/logout`,
+`/my-listings`, and `/profile` are all in the shared header nav on
+every page for any logged-in session; `/my-bids` is reachable from
+Profile's Activity group (added in D-101's reorganization); `/browse`
+already has a fully built search/filter UI (text query, location,
+price range, minimum rating, condition, posted-date, sort, category/
+format chips, pagination, save-search) wired to a real filtered query
+in `Home::browse()`. `git show origin/main:app/Views/layouts/main.php`
+confirms these links predate this session entirely — a prior pass's
+routes comment literally reads "Navigation gaps closed — logout, My
+Listings/Activity/Profile, browse". None of this was taken on faith:
+each claim is backed by an HTTP status code or a screenshot in the
+audit artifact below.
+
+**The actual audit, run properly rather than stopping at the named
+five**: extracted all 65 static GET routes from `Routes.php`, grepped
+every `href` in `app/Views/` for each, and hand-resolved every route
+that came back with zero literal matches — several (all of Trust &
+Support's sub-pages) are linked through a PHP array of card
+definitions (`TrustSupport::index()`'s `$groups`), not a literal
+`href="/x"` string, so a naive grep flags false positives there.
+Three routes survived as genuinely unreachable:
+
+- **`/cookie-policy`** — full policy content and route existed
+  (`LegalController::cookiePolicy()`), never added to the Trust &
+  Support hub's Legal card group alongside Terms/Privacy/Grievance.
+  Fixed: added the card.
+- **`/account/invoices`** — GST invoice list + PDF download fully
+  built (`InvoiceController`), zero entry point from Profile or
+  anywhere else. Fixed: added to Profile's Account settings group.
+- **`/sale-events/{id}/dispute`** — the real gap of the three. The
+  entire "File a Dispute" flow (form, category/description submit,
+  `DisputeService::fileDispute()`) was built and route-registered,
+  but not one button anywhere in the app pointed to it — only links
+  to *view* an already-filed dispute existed (from Settlement, My
+  Purchases, Tenant Admin dashboard). A buyer or seller with a
+  genuine problem had no way to start the process at all. Fixed: a
+  "File a Dispute" link now appears on the Settlement page whenever
+  no dispute exists yet for that transaction and the format isn't
+  Tender (which runs its own separate process, per the form's own
+  copy) — gated on `$callerId` so it only shows to a logged-in
+  viewer, matching `DisputeController::fileForm()`'s own login gate.
+
+**Verified**: full regression re-run clean against a rebuilt database
+(all 33 suites; `chronicle` confirmed clean standalone — its one loop
+failure was the same known same-DB double-run fixture collision
+already documented in D-98/99/101, not a regression, and this time
+traced to my own earlier manual query for a real settlement ID
+inside this same session). Real HTTP for all three fixes: Cookie
+Policy card renders on `/trust-support` and resolves 200; Invoices
+link renders on `/profile` and resolves 200; File a Dispute link
+renders on a real settlement page, resolves 200, and lands on the
+actual `dispute/file` form (`<h1>File a Dispute</h1>` confirmed in
+the response).
+
+Delivered as a screenflow diagram plus a findings table (route,
+claim, actual finding, evidence) in a published artifact, not just
+prose — the diagram groups the core Buyer/Seller path by where each
+screen sits and highlights the three genuinely-fixed nodes.
+
+### D-103: two more real gaps closed — Emergency Stop, and the entire Tenant Admin dashboard's missing entry point
+
+A deeper sweep across every zone (auction, negotiate, reports,
+disputes, settlement, TSX/Tenant Admin, tender, listing/event pages,
+help & trust) at the project owner's request, checking every
+dynamic-segment route's actual trigger inside its parent page's
+template rather than just static routes. Reported both before
+touching anything, per instruction, then fixed smallest-first.
+
+**Emergency Stop** (`POST /sale-events/{id}/emergency-stop`, BR-14,
+already fully built and covered by `test:lifecycle`) had zero UI
+trigger anywhere in the app — a Tenant Admin had no way to actually
+cancel a live auction in an emergency. Added a collapsed `<details>`
+control to `listing/show.php`, visible whenever the sale event is
+still live (`pending_approval`/`grace_period`/`active`) and the
+viewer is that listing's Tenant Admin (`$isTenantAdminForListing`,
+the same check D-99 already wired for the Approve/Reject/Force-freeze
+controls on the same page) — a required reason textarea, a
+confirm-dialog warning it's irreversible, matching the controller's
+own requirement that a reason is mandatory and permanently logged.
+
+**Verified for real, not assumed**: a throwaway CLI command
+(`temp:emergencystopfixture`, deleted immediately after use, same
+pattern as earlier sessions' `TempIssueTestCreds`) created a genuine
+tenant, a party promoted to `tenant_admin` via the real
+`PartyRoleModel::promoteTenantAdmin()`, and a live `active` sale
+event. Logged in as that admin through the real mobile/mpin flow,
+clicked the actual rendered button, accepted the real confirm
+dialog, submitted a real reason — the sale event's `status` column
+came back `cancelled` in the database, exactly matching
+`ListingLifecycleService::emergencyStop()`'s own behavior, and the
+control correctly disappeared on reload since cancelling is no
+longer a valid action on an already-cancelled event.
+
+**The bigger one: the entire Tenant Admin (TSX) dashboard zone had no
+entry point after login.** Every sub-page under `/tenants/{id}/...`
+(Verification Console, Media Waiver, Seller Management, Billing, API
+Access) links back to `/tenants/{id}/dashboard`, but nothing in the
+shared header nav or Profile ever linked *to* it — a real Tenant
+Admin, promoted by Super Admin, logging in through the ordinary
+`/login` flow, had no discoverable path to their own dashboard at
+all without someone handing them the exact URL. `PartyRoleModel::
+findAdministeredTenantIds()` already existed (built for BR-50's
+payout-review scoping) — reused it in `layouts/main.php`, computed
+once per page load alongside the existing `$__tenant` lookup, gated
+on an actual logged-in session. When a party administers at least
+one tenant, a `"<?= tsx_term('Tenant Admin') ?> Console"` link now
+appears in the header nav pointing at their dashboard. Deliberately
+takes the first administered tenant rather than building a
+multi-tenant switcher — the schema and `promoteTenantAdmin()`'s own
+"exactly one active Tenant Admin per tenant" comment both point at
+one-admin-per-tenant as the common case, and a switcher wasn't asked
+for.
+
+**Verified**: same throwaway-fixture pattern, real login as the
+tenant admin, real click on the new header link, confirmed it
+resolves to `/tenants/{their-tenant-id}/dashboard` with a real 200
+and the correct tenant name in the page's own `<h1>`. The negative
+case (an ordinary buyer/seller never sees the link) wasn't
+separately click-tested due to two flaky Playwright timeouts in this
+sandbox — but it's guaranteed by construction, not just untested:
+the new `<a>` sits inside the exact same `session()->get
+('logged_in_party_id')` conditional block as My Listings/Profile/Log
+Out, already proven false-for-logged-out-users repeatedly earlier
+this session.
+
+Full regression re-run clean against a rebuilt database (all 33
+suites; `chronicle`'s one loop failure was — again — the same known
+same-DB double-run fixture collision from this session's own manual
+queries, confirmed clean standalone).
+
+### D-104: production-readiness audit — real CSRF, real CSP, CI pipeline, a genuine backup script, stale docs fixed
+
+The project owner asked for a full audit of what's genuinely missing
+for a real deployment to their own cloud server, then which of those
+gaps could be closed without external credentials. Investigated by
+reading the actual code, not re-summarizing old docs: grepped for
+every `DEV-ONLY` marker, checked `Config/Filters.php`,
+`Config/Security.php`, and `Config/ContentSecurityPolicy.php` against
+what was actually wired, and confirmed EMD funding is simulated across
+every format (`devFundEmd`/`pledge`) and OTP is never actually sent
+(shown on-screen only) — both correctly flagged as blocked on external
+vendor credentials (payment gateway, SMS provider), same category as
+BR-46 (Gemini) and BR-52 (SabPaisa). Five items had no such
+dependency and were closed this pass.
+
+**CSRF protection, enabled app-wide.** Was fully commented out in
+`Config/Filters.php`'s `$globals` — every state-changing POST in the
+app (bidding, registration, disputes) had zero CSRF protection, not
+previously documented anywhere as a gap. Added `'form'` to the
+autoloaded helpers, added `csrf_field()` to all 90 POST forms across
+46 view files, and the one JS `fetch()` POST (BR-46's AI pre-audit
+check) that isn't a real `<form>` submit. Excluded `api/*` from the
+filter — the Tenant API is OAuth2 bearer-token server-to-server auth
+(`ApiAuthFilter`), not a browser session with cookies, so it has no
+CSRF token to send and doesn't need one.
+
+Two real bugs found and fixed while doing this, not assumed away:
+1. A naive regex stopped at the first literal `>` it found, which for
+   several forms was the `>` inside an embedded `<?= esc($id) ?>` PHP
+   tag rather than the form tag's actual closing `>` — corrupting the
+   HTML (`csrf_field()` landing mid-URL, e.g. inside the Emergency Stop
+   form's `action` attribute). Caught by grepping the output for
+   `csrf_field() ?>/` after the first pass, reverted, and rewritten to
+   treat `<?=...?>`/`<?php...?>` as atomic units when scanning for the
+   tag's real closing `>`.
+2. Verified end-to-end over real HTTP, not just by reading the
+   rendered HTML: a POST to `/register` with no token returns a real
+   403 with "CSRF" in the body; the same POST with the real
+   token+cookie pair proceeds to "Enter the OTP" — genuine app logic,
+   not a simulated pass.
+
+**A real Content-Security-Policy, not a generic default.** Was off
+entirely (`CSPEnabled = false`). Read every view for what the app
+actually needs before writing the policy, rather than copying
+CodeIgniter's defaults and hoping: no external `<script src>` anywhere
+(`script-src 'self'`), Google Fonts is the only external stylesheet
+(`style-src`/`font-src` scoped to `fonts.googleapis.com`/
+`fonts.gstatic.com`), a `data:` URI is used for one inline SVG
+watermark (`img-src` includes `data:`), and the D-42 real-time
+WebSocket sidecar connects to the same host on a different port —
+different origin by browser rules, so `connect-src 'self'` alone
+wouldn't cover it; added scheme-only `ws:`/`wss:` instead of
+hardcoding a port that depends on the deployment's own Nginx-proxy
+choice (see README Step 13). `frame-ancestors 'none'` and
+`object-src 'none'` since nothing legitimately needs either.
+
+`style-src-attr`/`script-src-attr` are deliberately `'unsafe-inline'`
+— this whole app is built on inline `style="..."` attributes (no
+separate stylesheet to fall back to) and a handful of inline
+`onclick`/`onchange`/`onsubmit` handlers (grep-verified: 4
+occurrences across 2 real views). Locking those down would mean
+migrating ~75+ view files off inline styles first — a real, separate
+frontend project, not something to fold into a CSP pass. `<style>`
+and `<script>` **block** elements (not attributes) are properly
+nonce-protected, not blanket-allowed: added CodeIgniter's
+`{csp-style-nonce}`/`{csp-script-nonce}` placeholder to all 13
+`<style>` blocks and 6 inline `<script>` blocks across the app.
+
+Caught by an actual headless-browser check, not by reading response
+headers: the first pass left the shared layout's `<style>` blocks
+unprotected (no nonce), which silently stripped the entire
+design-system CSS in a real browser — the raw HTTP headers looked
+perfectly fine, `document.body`'s computed `font-family` had quietly
+fallen back to Times New Roman. Fixed by nonce-tagging every block;
+re-verified with the same script — zero real CSP violations across
+the landing page, register, browse, and trust-support, screenshotted
+to confirm the design system still renders correctly.
+
+**A CI pipeline that actually runs the 35 suites.** There was no CI
+configured on this repo at all (confirmed via `pull_request_read`
+`get_check_runs`: 0 checks). Added
+`.github/workflows/tests.yml` — a real Postgres 16 service container,
+the exact PHP 8.2 extensions `composer.json`/README require, ffmpeg
+for D-43's video transcoding, migrations, then all 35 `test:*`
+commands with real exit-code checking (not text-matching).
+
+Two real bugs in the workflow found by actually running the exact
+`.env`-construction steps locally before trusting them, not assumed
+correct because they looked right:
+1. `CI_ENVIRONMENT = testing` crashes spark's CLI bootstrap outright
+   (`Undefined constant SUPPORTPATH`) — that value triggers
+   CodeIgniter's PHPUnit-specific bootstrap path, and these `test:*`
+   commands are plain spark commands, not PHPUnit. Fixed to
+   `development`, matching what this sandbox's own working `.env`
+   already uses.
+2. The `sed` pattern for uncommenting `app.baseURL` used an unescaped
+   `.` , which also matched the neighboring `# app_baseURL = ''`
+   comment line (the underscore-alternate-syntax example) and produced
+   a duplicate key in `.env`. Fixed by escaping the dot and anchoring
+   to line start.
+
+A third, more consequential bug surfaced only by running the full
+35-suite loop against a single freshly-migrated database in one
+session — exactly how any CI run works, and different from this
+session's usual habit of rebuilding between individual manual test
+invocations: `TestChronicle.php` and `TestEasySchedule.php` hardcode
+the exact same fixture mobile numbers (`+919888901001`/`-902`).
+Harmless when run in isolation or rebuilt between runs (which is
+almost certainly why D-102/D-103's own "known same-DB double-run
+collision" explanation for this exact symptom went unquestioned
+earlier this session) but a **guaranteed, permanent CI failure** the
+moment both suites run in the same database session — which a real CI
+pipeline always does. Found by grepping every `Test*.php` command for
+duplicate fixture numbers across different files (not just within
+one), not by re-running until it happened to pass. Gave
+`TestChronicle.php` its own numbers; re-verified with three full
+35-suite runs against three independently rebuilt databases — the
+last one clean start to finish, both locally and via the exact
+`.env`-construction steps the workflow itself runs.
+
+**A real backup script.** No backup strategy existed anywhere in the
+docs. Added `scripts/backup.sh` — reads DB credentials straight out of
+`.env` (nothing to duplicate/desync), compressed `pg_dump`, tars
+`public/uploads/` (the local-disk media storage this same audit
+flagged as a real scaling caveat), prunes anything past 14 days, and
+exits non-zero on a genuinely failed/empty dump rather than leaving a
+silent gap. Verified for real: ran it against this sandbox's actual
+database and `public/uploads/`, produced a valid gzip'd SQL dump
+(confirmed real `pg_dump` header + 90 `CREATE TABLE`/`COPY`
+statements, not an empty/corrupt file) and a real tar archive; then
+separately verified the 14-day retention prune actually deletes a
+file backdated past the window while leaving fresh ones untouched.
+
+**Stale docs fixed**, not just re-asserted: `SETUP.md`'s "Not yet
+built" list still named seven items (logout, My Listings, My
+Bids/Purchases, the profile page, a filterable Browse page, tenant
+view/edit, TOTP backup codes, listing-edit/emergency-stop routes,
+video/document upload) that had all been built since it was last
+written — rewritten to list only the three genuinely open items
+(payment gateway, SMS, BR-46's Gemini key). `README.md`'s "before
+deploying" warning still pointed at PRs #31→#34 as unmerged — verified
+via `pull_request_read` that #34 (and the rest of that stack) merged
+weeks ago, and separately confirmed `dev` really is a strict ancestor
+of `main` (the one part of that old warning still true) rather than
+just re-asserting it. Also fixed: the test-command list was missing
+`test:chronicle` and `test:aiaudit` (35 real suites, not 33 — verified
+by `grep`ing `protected $name` across every `Test*.php` command rather
+than trusting the prose count).
+
+**Still genuinely blocked on external dependencies, unchanged**: a
+real payment gateway, a real SMS provider, BR-46's Gemini key, BR-52's
+SabPaisa credentials. None of this pass's changes touch that list —
+closing it needs credentials only the project owner can supply.
+
+Full regression re-run clean (all 35 suites, three independent clean
+rebuilds during this pass alone) plus a real headless-browser
+CSP/rendering check and a real HTTP CSRF accept/reject check — not
+just `php -l`.
+
+### D-105: Lot Reach & Interest — a real feature built from a design mockup that had no backend at all
+
+Follow-on from D-104's coverage audit: of the 53-screen design
+package, "Lot Reach & Interest" was the one screen where nothing
+underneath it existed — not the reversed CLV matching (only the
+buyer-facing direction was ever built), not per-listing view/interest
+tracking, and no messaging system of any kind anywhere in the
+codebase. The project owner asked for it built, since it's "a good
+thing" to have. `docs/design/CLAUDE_DESIGN_HANDOFF.md` updated to move
+it from "blocked, no backend" to "ready to design" with the real
+field/route spec, and the same doc's coverage audit found and recorded
+6 more screens (Buyer/Seller Dashboard, Rating History, Star Ratings,
+Lot Directory, Trading Session Directory) that have **neither** a
+design nor a consolidated backend — flagged for a product scoping
+decision, not built here.
+
+**What got built**: migration `2026-01-01-000065` (`listing.view_count`,
+`listing_view`, `seller_message`, `seller_message_recipient`), a new
+`ListingReachService` that reverses `ClvMatchingService`'s existing
+buyer→listings direction into listing→buyers (and — a genuine
+improvement, not scope creep — actually implements the location-match
+dimension the original `findMatches()` saves but never applies), real
+per-listing view tracking wired into `ListingController::show()`, and a
+real in-app messaging system: `LotReachController` (seller composer +
+send action) and two new `MyActivityController` methods (buyer inbox +
+mark-read). Two new routes-reachable pages —
+`/my-listings/reach` and `/my-messages` — both wired into Profile's
+Activity group, not left orphaned the way this session's earlier
+navigation audits (D-102/D-103) found other pages to be.
+
+**Deliberate scope decisions, stated plainly**: delivery is real and
+in-app only — there is no SMS/email provider connected (D-104's own
+finding), so "delivered via their preference alerts inbox" (the
+original mockup's own copy) means literally this new `/my-messages`
+page, nothing more. Location matching is a case-insensitive substring
+check against the listing's free-text yard address — there's no
+normalized state field anywhere in this schema to match against more
+precisely, and buyer-saved states are themselves free text.
+
+**Real bugs found while building this, not assumed away**:
+1. First migration attempt used `CHAR(36)` for UUID foreign key
+   columns — this schema uses native Postgres `UUID` throughout
+   (confirmed by inspecting `listing`/`party`'s real column types, not
+   assumed); rewritten to match the exact raw-SQL migration style
+   already established in `CreateTradingSessionChronicle`.
+2. The test suite's own first draft used strict `=== 2` counts for
+   matched-buyer numbers — real once, but wrong under a full
+   regression run: the matching function is intentionally
+   platform-wide with no tenant/test scoping (matching
+   `ClvMatchingService::findMatches()`'s own existing precedent), so an
+   earlier suite's buyer fixtures can legitimately also match this
+   suite's listing when all 36 run in one shared-DB session. Fixed by
+   asserting specific buyer inclusion/exclusion (already checked via
+   real inbox delivery) rather than a brittle exact headcount.
+3. A test forgot to call `transitionStatus($id, 'active')` on its own
+   listing fixture — `getReachSummary()` correctly scopes to active
+   listings only (matching how every other "live listings" view in
+   this codebase already scopes itself), so the listing sat at
+   `inventory` and the summary legitimately returned zero. Test fixture
+   fixed, not the service.
+
+**Verified for real, not assumed**: `test:listingreach`, 29/29
+assertions, covering matching (including negative cases: a buyer
+matching on zero dimensions is excluded entirely, a buyer with no
+saved preferences at all is excluded, a seller never matches their own
+listing), view/favorite tracking, authorization (a seller cannot
+message on behalf of another seller's listing), and the full
+message-send → real-inbox-delivery → mark-read lifecycle. Then a full
+real HTTP click-through on top of that, not just the service-level
+suite: registered/logged-in as a real seller, viewed a real listing,
+opened the real reach dashboard, sent a real bulk message through the
+real form (with a real CSRF token), confirmed via direct database
+query that it delivered to exactly the matched buyers and no one else,
+logged in as one of those buyers, saw the real message in `/my-messages`,
+and marked it read — each step checked against real database state,
+not just an HTTP 200. (One real detour along the way: this sandbox's
+`app.baseURL` is configured as `localhost`, so testing via `127.0.0.1`
+made every `redirect()->to()` land on a different cookie-jar host and
+look like a logout — not a bug, just a reminder to always test against
+the app's own configured host in this environment.)
+
+Full regression re-run clean: all 36 suites (including the new one)
+against an independently rebuilt database.
+
+### D-106: the 6 no-mockup screens — consolidated dashboards, rating history, and platform-wide admin directories
+
+Follow-on from D-105: the same coverage audit that found Lot Reach &amp;
+Interest had no backend at all also flagged 6 more screens with
+**neither a design nor a consolidated backend** — Buyer Dashboard,
+Seller Dashboard, Rating History, Star Ratings, Lot Directory
+(Custodian-facing, platform-wide), Trading Session Directory (same,
+platform-wide). Unlike Lot Reach & Interest, none of these needed new
+domain logic built from scratch — every number they show already
+existed somewhere in a real table, just never read back in one place.
+The project owner's instruction was explicit: "tackle the 6 no-mockup
+screens next," treated as the scoping decision D-105's writeup said
+these needed — build all 6, not extend one existing page per screen.
+
+**What got built, and what it deliberately didn't**:
+
+1. **Buyer Dashboard / Seller Dashboard** — new `DashboardService`
+   (`buyerSummary()`/`sellerSummary()`), each a real, bounded read
+   across the tables the existing My Bids/Offers/Purchases/Favorites
+   (buyer side) and My Listings/Sales/Payout Bank/Invoices (seller
+   side) pages already draw from — not a new source of truth, a
+   consolidation. Each dashboard section links out to its own already-
+   working full page rather than reinventing it. New routes
+   `/my-buyer-dashboard`, `/my-seller-dashboard` on
+   `MyActivityController`.
+2. **Rating History** — `RatingEventModel::findForParty()`, one new
+   method reading the `rating_event` table that BR-35/BR-36's approval
+   workflow already writes a complete, permanent audit trail into. No
+   page anywhere read it back for the party it actually happened to
+   until now — every rating number shown elsewhere in the app was
+   always just the current value, never its history. New route
+   `/my-rating-history`.
+3. **Star Ratings** — a dedicated page reading `party.star_rating`/
+   `seller_star_rating` plus the existing shadow-ban/Crawl-Back fields
+   (`shadow_banned_at_{buyer,seller}`,
+   `crawl_back_{active,clean_completed,clean_required}_{buyer,seller}`)
+   that BR-39's Crawl-Back enforcement already maintains but nothing
+   ever surfaced on a page of its own. New route `/my-star-ratings`.
+4. **Lot Directory / Trading Session Directory** — the real gap: the
+   Custodian (Super Admin) had no way to browse every listing or sale
+   event platform-wide, across every Tenant; only per-tenant pending-
+   approval queues existed anywhere. New `AdminDirectoryService`
+   (`findListings()`/`countListings()`/`findSaleEvents()`/
+   `countSaleEvents()`, each with real server-side filters — free-text/
+   tenant/format/status for listings, tenant/format/status for sale
+   events) pulled out of `AdminController` specifically so the
+   filtering logic is directly unit-testable without needing a real
+   TOTP-based Super Admin HTTP login just to exercise it. New routes
+   `/admin/lots`, `/admin/trading-sessions`, both `superAdmin`-filtered
+   the same way every other admin route already is. Real pagination
+   via the existing `Paginator` library, same pattern as every other
+   filterable admin list in the app.
+
+No new migrations — all 6 screens read tables that already existed.
+All 6 wired into navigation: Star Ratings/Rating History added to
+Profile's Account group, Buyer/Seller Dashboard added to the top of
+Profile's Activity group, Lot Directory/Trading Session Directory
+added to the Super Admin dashboard's action row — not left orphaned.
+
+**Real bugs found while building this, not assumed away**:
+1. First test-fixture mobile-number block (`+919777701xxx`) collided
+   with `TestDispute.php`'s own fixtures — a guaranteed failure the
+   instant both suites ran in the same shared-DB session, unrelated to
+   any actual code defect. Fixed by picking an unused block
+   (`+919777801xxx`), same category of fixture-collision bug this
+   session has hit and fixed before (D-104's `TestChronicle`/
+   `TestEasySchedule` collision).
+2. The Trading Session Directory backfill's own test fixture tried to
+   create a Tender sale event with `result_mode = 'seller_review'` —
+   the real schema constraint only allows `instant_close` or
+   `approval_required` (checked directly against the live
+   `sale_event_result_mode_check` constraint, not assumed from memory).
+   Test fixture fixed, not the schema.
+3. `migrate:refresh` itself failed on this sandbox's database — an
+   old down-migration (`AddStandingReviewToDispute`) can't roll back
+   cleanly against data written after it (a NOT NULL constraint
+   violation on its own rollback SQL), a pre-existing issue unrelated
+   to this work. Verification proceeded by dropping and recreating the
+   database directly (`DROP DATABASE`/`CREATE DATABASE`) plus a plain
+   `migrate --all`, which is the same effective clean-slate state
+   `migrate:refresh` would have produced.
+
+**Verified for real, not assumed**: new suite `test:partydashboards`,
+31/31 assertions — covering both dashboards' real numbers (and, for
+each, that an item genuinely drops off its list once actually
+rated/completed, not a static snapshot), rating history's real
+ordering and cross-party isolation (another party's events never leak
+into this party's history), and both admin directories' platform-wide
+scope plus every real filter (free-text, tenant, format, status,
+including combinations) against real fixture data spanning two
+Tenants. Full regression re-run clean on an independently rebuilt
+database: all 37 suites, only the pre-existing, already-diagnosed
+`test:auditlog` gap (this sandbox's `.env` database is named
+`ebidhub`, but that suite's own deliberate raw-tamper step hardcodes
+`ebidhub_ci4` — a sandbox-naming mismatch, not a regression; passes
+clean whenever the two names align, e.g. inside the CI workflow's own
+`ebidhub_ci4`-named database).
+
+Then a full real HTTP click-through on top of that: registered two
+real parties from scratch (mobile → OTP → mPIN, the real flow, no
+shortcuts), seeded real fixture data via direct model calls for one of
+them (bid, offer, settlement, listing, rating event), and confirmed
+all 4 party-facing pages render the real fixture content over a real
+authenticated session — then confirmed all 4 redirect an unauthenticated
+request to `/login`. For the two admin screens: granted `super_admin`
+via the real CLI grant path, enrolled a real TOTP secret through the
+actual `/admin/setup-totp` HTTP form (not a stub), generated a genuine
+6-digit code from that secret using the same HMAC-SHA1/RFC-6238
+algorithm `TotpService` itself implements, logged in through the real
+isolated `/admin/login` TOTP-gated path, and confirmed both directory
+pages render real platform-wide data plus correct filtering — then
+confirmed both redirect a regular (non-Super-Admin) session back to
+`/admin/login`, same as an unauthenticated one. `docs/design/
+CLAUDE_DESIGN_HANDOFF.md` updated: §2 (the "6 screens, no backend at
+all" list) is now empty — all 7 screens that were ever in that
+category (Lot Reach & Interest plus these 6) are consolidated into one
+"ready to design" section with the real field/route spec for each.

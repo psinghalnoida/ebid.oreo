@@ -32,7 +32,7 @@ class SellerApplicationController extends BaseController
         $tenant = $this->tenantModel->find($tenantId);
         $existing = $this->applicationModel->findForPartyAndTenant($partyId, $tenantId);
 
-        return view('seller/apply', ['title' => 'Apply to Sell — eBid Hub', 'tenant' => $tenant, 'existing' => $existing]);
+        return view('seller/apply', ['title' => 'Apply to Sell — AdwitiX', 'tenant' => $tenant, 'existing' => $existing]);
     }
 
     public function applySubmit(string $tenantId)
@@ -53,7 +53,7 @@ class SellerApplicationController extends BaseController
     {
         $applications = $this->applicationModel->findPendingForTenant($tenantId);
         $tenant = $this->tenantModel->find($tenantId);
-        return view('seller/pending', ['title' => 'Pending Seller Applications — eBid Hub', 'applications' => $applications, 'tenant' => $tenant]);
+        return view('seller/pending', ['title' => 'Pending Seller Applications — AdwitiX', 'applications' => $applications, 'tenant' => $tenant]);
     }
 
     public function approve(string $applicationId)

@@ -46,7 +46,7 @@ class MyActivityController extends BaseController
         $bids = $query->limit($pg['perPage'], $pg['offset'])->get()->getResultArray();
 
         return view('my/bids', [
-            'title' => 'My Bids — eBid Hub', 'bids' => $bids, 'format' => $format, 'status' => $status, 'sort' => $sort,
+            'title' => 'My Bids — AdwitiX', 'bids' => $bids, 'format' => $format, 'status' => $status, 'sort' => $sort,
             'page' => $pg['page'], 'perPage' => $pg['perPage'], 'totalPages' => Paginator::totalPages($total, $pg['perPage']), 'total' => $total,
         ]);
     }
@@ -74,7 +74,7 @@ class MyActivityController extends BaseController
             ->orderBy('o.created_at', 'DESC')->limit($pg['perPage'], $pg['offset'])->get()->getResultArray();
 
         return view('my/offers', [
-            'title' => 'My Offers — eBid Hub', 'offers' => $offers, 'status' => $status,
+            'title' => 'My Offers — AdwitiX', 'offers' => $offers, 'status' => $status,
             'page' => $pg['page'], 'perPage' => $pg['perPage'], 'totalPages' => Paginator::totalPages($total, $pg['perPage']), 'total' => $total,
         ]);
     }
@@ -127,7 +127,7 @@ class MyActivityController extends BaseController
         unset($p);
 
         return view('my/purchases', [
-            'title' => 'My Purchases — eBid Hub', 'purchases' => $purchases,
+            'title' => 'My Purchases — AdwitiX', 'purchases' => $purchases,
             'format' => $format, 'status' => $status, 'from' => $from, 'to' => $to,
             'page' => $pg['page'], 'perPage' => $pg['perPage'], 'totalPages' => Paginator::totalPages($total, $pg['perPage']), 'total' => $total,
         ]);
@@ -185,7 +185,7 @@ class MyActivityController extends BaseController
             ->orderBy('s.created_at', 'DESC')->limit($pg['perPage'], $pg['offset'])->get()->getResultArray();
 
         return view('my/sales', [
-            'title' => 'My Sales — eBid Hub', 'sales' => $sales,
+            'title' => 'My Sales — AdwitiX', 'sales' => $sales,
             'format' => $format, 'status' => $status, 'from' => $from, 'to' => $to,
             'page' => $pg['page'], 'perPage' => $pg['perPage'], 'totalPages' => Paginator::totalPages($total, $pg['perPage']), 'total' => $total,
         ]);
@@ -241,7 +241,7 @@ class MyActivityController extends BaseController
             ->orderBy('l.created_at', 'DESC')
             ->get()->getResultArray();
 
-        return view('my/listings', ['title' => 'My Listings — eBid Hub', 'listings' => $listings]);
+        return view('my/listings', ['title' => 'My Listings — AdwitiX', 'listings' => $listings]);
     }
 
     public function myActivity()
@@ -276,7 +276,7 @@ class MyActivityController extends BaseController
             ->get()->getResultArray();
 
         return view('my/activity', [
-            'title' => 'My Activity — eBid Hub', 'bids' => $bids, 'offers' => $offers, 'settlements' => $settlements,
+            'title' => 'My Activity — AdwitiX', 'bids' => $bids, 'offers' => $offers, 'settlements' => $settlements,
         ]);
     }
 
@@ -286,6 +286,76 @@ class MyActivityController extends BaseController
         if (!$partyId) return redirect()->to('/login');
 
         $party = (new \App\Models\PartyModel())->find($partyId);
-        return view('my/profile', ['title' => 'My Profile — eBid Hub', 'party' => $party]);
+        return view('my/profile', ['title' => 'My Profile — AdwitiX', 'party' => $party]);
+    }
+
+    // D-105: the buyer-side half of Lot Reach & Interest — a real inbox
+    // for messages a Market Maker sent because this buyer matched one of
+    // their listings.
+    public function messages()
+    {
+        $partyId = $this->requireLogin();
+        if (!$partyId) return redirect()->to('/login');
+
+        $recipientModel = new \App\Models\SellerMessageRecipientModel();
+        $messages = $recipientModel->findForBuyer($partyId);
+        return view('my/messages', ['title' => 'Messages — AdwitiX', 'messages' => $messages]);
+    }
+
+    public function markMessageRead(string $recipientId)
+    {
+        $partyId = $this->requireLogin();
+        if (!$partyId) return redirect()->to('/login');
+
+        (new \App\Models\SellerMessageRecipientModel())->markRead($recipientId, $partyId);
+        return redirect()->to('/my-messages');
+    }
+
+    // D-106: "Star Ratings" -- a party's current standing in both roles,
+    // previously only ever shown as a bare number on other pages (the
+    // listing page's seller_star_rating, the settlement page's rating
+    // form) with no page of its own explaining what it means.
+    public function starRatings()
+    {
+        $partyId = $this->requireLogin();
+        if (!$partyId) return redirect()->to('/login');
+
+        $party = (new \App\Models\PartyModel())->find($partyId);
+        return view('my/star_ratings', ['title' => 'Star Ratings — AdwitiX', 'party' => $party]);
+    }
+
+    // D-106: "Rating History" -- the real rating_event audit trail
+    // (built for BR-35/BR-36's approval workflow) had no page reading it
+    // back for the party it actually happened to.
+    public function ratingHistory()
+    {
+        $partyId = $this->requireLogin();
+        if (!$partyId) return redirect()->to('/login');
+
+        $events = (new \App\Models\RatingEventModel())->findForParty($partyId);
+        return view('my/rating_history', ['title' => 'Rating History — AdwitiX', 'events' => $events]);
+    }
+
+    // D-106: "Buyer Dashboard" -- a real consolidation of My Bids/
+    // Offers/Purchases-to-rate/Favorites into one summary screen, each
+    // section linking out to its own already-working full page.
+    public function buyerDashboard()
+    {
+        $partyId = $this->requireLogin();
+        if (!$partyId) return redirect()->to('/login');
+
+        $summary = (new \App\Libraries\DashboardService())->buyerSummary($partyId);
+        return view('my/buyer_dashboard', ['title' => 'Buyer Dashboard — AdwitiX', 'summary' => $summary]);
+    }
+
+    // D-106: "Seller Dashboard" -- same consolidation, seller side (My
+    // Listings/Sales/Earnings/Payout Bank/Invoices).
+    public function sellerDashboard()
+    {
+        $partyId = $this->requireLogin();
+        if (!$partyId) return redirect()->to('/login');
+
+        $summary = (new \App\Libraries\DashboardService())->sellerSummary($partyId);
+        return view('my/seller_dashboard', ['title' => 'Seller Dashboard — AdwitiX', 'summary' => $summary]);
     }
 }

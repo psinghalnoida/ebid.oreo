@@ -20,7 +20,7 @@
         <?= $e['tenant_admin_approved_at'] ? '✓ ' . tsx_term('Tenant Admin') . ' approved' : 'Awaiting ' . tsx_term('Tenant Admin') ?>
         <?= (float) $e['new_value'] <= 2.0 ? (' · ' . ($e['super_admin_approved_at'] ? '✓ ' . tsx_term('Super Admin') . ' approved' : 'Awaiting ' . tsx_term('Super Admin'))) : '' ?>
       </p>
-      <form method="post" action="/admin/rating-reviews/<?= esc($e['id']) ?>/approve">
+      <form method="post" action="/admin/rating-reviews/<?= esc($e['id']) ?>/approve"><?= csrf_field() ?>
         <button type="submit" class="btn btn-emerald" style="font-size:12px;">Approve</button>
       </form>
     </div>

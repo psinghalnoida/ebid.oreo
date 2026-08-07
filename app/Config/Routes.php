@@ -209,6 +209,22 @@ $routes->post('/my-searches/(:segment)/delete', 'DiscoveryController::deleteSear
 $routes->get('/search-history', 'DiscoveryController::searchHistory');
 $routes->get('/recommendations', 'DiscoveryController::recommendations');
 
+// D-105: Lot Reach & Interest -- per-listing reach analytics + real
+// in-app bulk messaging to matched buyers.
+$routes->get('/my-listings/reach', 'LotReachController::index');
+$routes->post('/listings/(:segment)/reach/message', 'LotReachController::sendMessage/$1');
+$routes->get('/my-messages', 'MyActivityController::messages');
+$routes->post('/my-messages/(:segment)/read', 'MyActivityController::markMessageRead/$1');
+
+// D-106: the 6 screens flagged in the design handoff as having neither
+// a design nor a consolidated backend (docs/design/CLAUDE_DESIGN_HANDOFF.md §2).
+$routes->get('/my-star-ratings', 'MyActivityController::starRatings');
+$routes->get('/my-rating-history', 'MyActivityController::ratingHistory');
+$routes->get('/my-buyer-dashboard', 'MyActivityController::buyerDashboard');
+$routes->get('/my-seller-dashboard', 'MyActivityController::sellerDashboard');
+$routes->get('/admin/lots', 'AdminController::lotDirectory', ['filter' => 'superAdmin']);
+$routes->get('/admin/trading-sessions', 'AdminController::tradingSessionDirectory', ['filter' => 'superAdmin']);
+
 // Legal documents (BR-01/D-15: reviewed structural content, pending fields flagged)
 $routes->get('/terms', 'LegalController::termsOfUsage');
 $routes->get('/privacy', 'LegalController::privacyPolicy');

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#A87A38;}
+</style>
+</helmet>
+<div style="min-height:100vh; background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif;">
+  <header style="position:sticky; top:0; z-index:60; background:rgba(243,244,248,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1200px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#1E2761;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <a href="Trust and Support.dc.html" style="font-weight:700; font-size:12.5px; padding:9px 18px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233; white-space:nowrap;">← Trust &amp; Support</a>
+    </div>
+  </header>
+
+  <main style="max-width:760px; margin:0 auto; padding:40px 20px 90px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">Legal</div>
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:30px; font-weight:800; letter-spacing:-0.6px; margin:0 0 10px;">Refund &amp; Cancellation Policy</h1>
+    <p style="font-size:13px; color:#9A9FB5; margin:0 0 30px;">Effective Date: [TODO] · Contact: [TODO]</p>
+
+    <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:18px; margin:0 0 10px;">1. Scope</h2>
+    <p style="font-size:13.5px; line-height:1.65; margin:0;">1.1. This Policy explains when an EMD is refunded, when it is forfeited, and how Lot or Trading Session cancellations are handled on ADWITIX. It should be read together with our Fee &amp; Charges Schedule and Terms of Usage.</p>
+
+    <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:18px; margin:28px 0 10px;">2. EMD Refunds</h2>
+    <p style="font-size:13.5px; line-height:1.65; margin:0 0 8px;">2.1. An EMD pledged on a bid or offer is refunded in full, automatically, the moment it is no longer required — for example, when a Trader is outbid, not selected, or a transaction formally closes with a balance remaining.</p>
+    <p style="font-size:13.5px; line-height:1.65; margin:0 0 8px;">2.2. Refunds are processed as soon as operationally possible. No fixed turnaround time is guaranteed, though refunds are not intentionally delayed.</p>
+    <p style="font-size:13.5px; line-height:1.65; margin:0;">2.3. Any Payment Gateway collection charge added at the time of deposit is not itself refunded, as it is a pass-through charge for processing the original transaction, not a platform fee.</p>
+
+    <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:18px; margin:28px 0 10px;">3. Forfeiture (When a Deposit Is Not Refunded)</h2>
+    <p style="font-size:13.5px; line-height:1.65; margin:0 0 8px;">3.1. If a winning Trader fails to complete payment within the applicable window, their EMD is forfeited in full — this is not a refundable event.</p>
+    <p style="font-size:13.5px; line-height:1.65; margin:0 0 8px;">3.2. In a standard default, the forfeited amount is applied first to platform/TSX commission, with the remainder passed to the Market Maker as compensation.</p>
+    <p style="font-size:13.5px; line-height:1.65; margin:0;">3.3. In a full cascade failure on Express or Easy Auctions (the winning bidder and up to two subsequent bidders all default in sequence), all forfeited amounts are retained by the Platform; none is passed to the Market Maker. Full detail and worked examples appear in the Fee &amp; Charges Schedule.</p>
+
+    <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:18px; margin:28px 0 10px;">4. Withdrawing an Offer or Bid</h2>
+    <p style="font-size:13.5px; line-height:1.65; margin:0 0 8px;">4.1. Buy-Now: an offer may be withdrawn before the Market Maker accepts it, provided the Trader states a reason from the list provided in-app. No reason is required if the offer simply lapses unactioned after 3 days.</p>
+    <p style="font-size:13.5px; line-height:1.65; margin:0 0 8px;">4.2. Easy and Express Auctions: once a bid is placed and the required EMD is pledged, it stands for the remainder of that Trading Session. There is no separate mid-auction bid withdrawal mechanism distinct from being outbid.</p>
+    <p style="font-size:13.5px; line-height:1.65; margin:0;">4.3. Tender Auction: withdrawal and its consequences are entirely as set by the Market Maker for that specific auction.</p>
+
+    <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:18px; margin:28px 0 10px;">5. Listing &amp; Trading Session Cancellation</h2>
+    <p style="font-size:13.5px; line-height:1.65; margin:0 0 8px;">5.1. A Market Maker may request a change to an approved Lot at any time; if an active Trading Session is attached, that session is cancelled and all active bids/deposits are refunded in full, with bidders notified. The Lot is then archived and a new version re-enters approval.</p>
+    <p style="font-size:13.5px; line-height:1.65; margin:0;">5.2. Once a Trading Session is live, it cannot be cancelled by the Market Maker directly (Express Auctions cannot be cancelled by the Market Maker at all). The TSX Master or Custodian may terminate any live session via an Emergency Stop, with a mandatory, logged reason, in which case all active bids/deposits are refunded in full.</p>
+
+    <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:18px; margin:28px 0 10px;">6. Verified Lot Inspection Fee</h2>
+    <p style="font-size:13.5px; line-height:1.65; margin:0;">6.1. The inspection fee for a Verified Lot is payable before inspection is scheduled.</p>
+
+    <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:18px; margin:28px 0 10px;">7. How Refunds Are Paid</h2>
+    <p style="font-size:13.5px; line-height:1.65; margin:0;">7.1. Refunds are paid to the account originally used to fund the deposit. A different payout account may only be used if it has been formally verified and any required cooling-off period has elapsed, per the Terms of Usage.</p>
+
+    <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:18px; margin:28px 0 10px;">8. Contact</h2>
+    <p style="font-size:13.5px; line-height:1.65; margin:0;">Questions about a specific refund or forfeiture should be raised through our <a href="Dispute Resolution Process.dc.html">Dispute Resolution Process</a> or directly with your TradeSphereX's support channel.</p>
+  </main>
+
+  <footer style="border-top:1px solid #DDE0EA; padding:24px 20px; text-align:center;">
+    <p style="font-size:12.5px; color:#9A9FB5; margin:0;">See also our <a href="Pricing.dc.html">Fee &amp; Charges Schedule</a> and <a href="Terms of Usage.dc.html">Terms of Usage</a>.</p>
+  </footer>
+</div>
+
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} html,body{overflow-x:hidden;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#A87A38;}
+.tm-row:hover{border-color:#C9974C !important;}
+@media (max-width:900px){.tm-split{grid-template-columns:1fr !important;}}
+@media (max-width:640px){.tm-nav{display:none !important;}}
+</style>
+</helmet>
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; min-height:100vh;">
+  <header style="position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1200px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#1E2761;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <nav class="tm-nav" style="display:flex; gap:4px; background:#E9EBF2; padding:4px; border-radius:100px;">
+        <a href="Tenant Admin Dashboard.dc.html#disputes" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#565B72;">Dashboard</a>
+        <a href="#" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#fff; background:#1E2233;">Dispute Review</a>
+      </nav>
+    </div>
+  </header>
+
+  <main style="max-width:920px; margin:0 auto; padding:40px 20px 90px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">TSX Master · {{ tenantName }}</div>
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:30px; font-weight:800; letter-spacing:-0.6px; margin:0 0 10px;">Dispute Review</h1>
+    <p style="font-size:14px; color:#565B72; margin:0 0 6px; max-width:600px; line-height:1.6;">Disputes filed on this TradeSphereX, awaiting a stated ruling. Trader Non-Response disputes are reviewed directly by the Custodian, not shown here.</p>
+    <p style="font-size:12px; color:#9A9FB5; margin:0 0 26px;">Reviewing as: {{ tsxMasterName }} · {{ tsxMasterMobile }}</p>
+
+    <sc-if value="{{ isQueueView }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <sc-for list="{{ queue }}" as="d" hint-placeholder-count="3">
+          <button onClick="{{ d.onOpen }}" class="tm-row" style="text-align:left; background:#fff; border:2px solid #DDE0EA; border-radius:14px; padding:18px 20px; cursor:pointer; display:flex; align-items:flex-start; justify-content:space-between; gap:14px;">
+            <div>
+              <p style="font-size:11px; color:#9A9FB5; margin:0 0 4px; font-weight:600;">{{ d.id }} · FILED {{ d.filedDate }} · EVIDENCE CLOSES {{ d.evidenceCloses }}</p>
+              <p style="font-size:15px; font-weight:800; margin:0 0 6px;">{{ d.category }} — {{ d.txnRef }}</p>
+              <p style="font-size:12.5px; color:#565B72; margin:0;">{{ d.trader }} vs {{ d.marketMaker }}</p>
+            </div>
+            <span style="font-size:10.5px; font-weight:700; text-transform:uppercase; color:{{ d.statusColor }}; background:{{ d.statusBg }}; padding:4px 10px; border-radius:100px; white-space:nowrap;">{{ d.status }}</span>
+          </button>
+        </sc-for>
+      </div>
+      <sc-if value="{{ isQueueEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="text-align:center; padding:60px 20px; color:#9A9FB5; font-size:14px;">No disputes are currently awaiting your review.</div>
+      </sc-if>
+    </sc-if>
+
+    <sc-if value="{{ isDetailView }}" hint-placeholder-val="{{ false }}">
+      <button onClick="{{ onBackToQueue }}" style="font-size:12.5px; font-weight:700; color:#565B72; background:none; border:none; cursor:pointer; padding:0; margin-bottom:18px;">← Back to Queue</button>
+
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:22px 24px; margin-bottom:20px;">
+        <p style="font-size:11px; color:#9A9FB5; margin:0 0 6px; font-weight:600;">{{ selected.id }} · FILED {{ selected.filedDate }}</p>
+        <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:20px; margin:0 0 10px;">{{ selected.category }} — {{ selected.txnRef }}</h2>
+        <div style="display:flex; gap:24px; flex-wrap:wrap; font-size:12.5px; color:#565B72; margin-bottom:14px;">
+          <span><strong style="color:#1E2233;">Trader:</strong> {{ selected.trader }}</span>
+          <span><strong style="color:#1E2233;">Market Maker:</strong> {{ selected.marketMaker }}</span>
+          <span><strong style="color:#1E2233;">Value:</strong> {{ selected.value }}</span>
+        </div>
+      </div>
+
+      <div class="tm-split" style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px;">
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:18px 20px;">
+          <p style="font-size:11px; font-weight:700; color:#1E2761; margin:0 0 4px;">TRADER'S ACCOUNT — {{ selected.trader }}</p>
+          <p style="font-size:10.5px; color:#9A9FB5; margin:0 0 8px;">SUBMITTED {{ selected.traderStatementAt }} · CALL BACK: {{ selected.trader }}</p>
+          <p style="font-size:13.5px; line-height:1.6; margin:0;">{{ selected.traderStatement }}</p>
+        </div>
+        <div style="background:#F8F1E7; border:1px solid #E9D9BE; border-radius:14px; padding:18px 20px;">
+          <p style="font-size:11px; font-weight:700; color:#9C5B1F; margin:0 0 4px;">MARKET MAKER'S ACCOUNT — {{ selected.marketMaker }}</p>
+          <p style="font-size:10.5px; color:#8A6A3C; margin:0 0 8px;">SUBMITTED {{ selected.sellerStatementAt }} · CALL BACK: {{ selected.marketMakerMobile }}</p>
+          <p style="font-size:13.5px; line-height:1.6; margin:0;">{{ selected.sellerStatement }}</p>
+        </div>
+      </div>
+
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:18px 20px; margin-bottom:24px;">
+        <p style="font-size:11px; font-weight:700; color:#1E2233; margin:0 0 10px;">EVIDENCE SUBMITTED</p>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <sc-for list="{{ selected.evidence }}" as="e" hint-placeholder-count="3">
+            <div style="display:flex; align-items:center; gap:10px; font-size:13px;">
+              <span style="width:6px; height:6px; border-radius:100px; background:#C9974C; flex-shrink:0;"></span>
+              <span style="color:#1E2233; font-weight:600;">{{ e.label }}</span>
+              <span style="color:#9A9FB5;">— {{ e.by }}, {{ e.at }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <sc-if value="{{ isRuled }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#E4EFE6; border:1px solid #C8DFCC; border-radius:14px; padding:20px 22px;">
+          <p style="font-size:11px; color:#4C7A57; margin:0 0 4px; font-weight:700;">DECIDED {{ rulingTimestamp }} BY {{ tsxMasterName }} ({{ tsxMasterMobile }})</p>
+          <p style="font-size:13px; font-weight:800; color:#2F5E3B; margin:0 0 6px;">Ruling submitted — {{ rulingOutcome }}</p>
+          <p style="font-size:13px; color:#1E2233; margin:0; line-height:1.55;">{{ rulingReason }}</p>
+          <sc-if value="{{ isReferred }}" hint-placeholder-val="{{ false }}">
+            <p style="font-size:11.5px; color:#8A6A3C; margin:8px 0 0;">Referred to Custodian for final review.</p>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isNotRuled }}" hint-placeholder-val="{{ true }}">
+        <h3 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:17px; margin:0 0 12px;">Your Ruling</h3>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
+          <sc-for list="{{ outcomes }}" as="o" hint-placeholder-count="3">
+            <button onClick="{{ o.onSelect }}" style="padding:10px 18px; border-radius:100px; border:2px solid {{ o.borderColor }}; background:{{ o.bg }}; color:{{ o.color }}; font-size:12.5px; font-weight:700; cursor:pointer;">{{ o.label }}</button>
+          </sc-for>
+        </div>
+        <textarea placeholder="State the reason behind this ruling — this is shown to both parties." value="{{ rulingReasonDraft }}" onChange="{{ onRulingReasonChange }}" rows="4" style="width:100%; padding:14px 16px; border:1px solid #DDE0EA; border-radius:10px; font-size:13.5px; outline:none; resize:vertical; font-family:inherit; margin-bottom:8px;"></textarea>
+        <sc-if value="{{ rulingError }}" hint-placeholder-val="{{ false }}">
+          <p style="font-size:12px; color:#B5482F; margin:0 0 12px;">{{ rulingError }}</p>
+        </sc-if>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <button onClick="{{ onSubmitRuling }}" style="padding:12px 22px; border:none; border-radius:100px; background:#1E2233; color:#fff; font-weight:700; font-size:13.5px; cursor:pointer;">Submit Ruling</button>
+          <button onClick="{{ onReferToCustodian }}" style="padding:12px 22px; border:2px solid #9C5B1F; border-radius:100px; background:#fff; color:#9C5B1F; font-weight:700; font-size:13.5px; cursor:pointer;">Refer to Custodian Instead</button>
+        </div>
+      </sc-if>
+    </sc-if>
+  </main>
+
+  <footer style="border-top:1px solid #DDE0EA; padding:24px 20px; text-align:center;">
+    <p style="font-size:12.5px; color:#9A9FB5; margin:0;">A ruling may be appealed once, directly to the Custodian. See our <a href="Dispute Resolution Process.dc.html">Dispute Resolution Process</a>.</p>
+  </footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    view: 'queue', selectedId: null, rulingOutcomeId: null, rulingReasonDraft: '', rulingError: '',
+    disputes: [
+      { id: 'DSP-10422', txnRef: 'EXPRESS Trading Session — ₹1,15,000', value: '₹1,15,000', category: 'Non-Lifting/Collection', filedDate: '2026-07-30', evidenceCloses: '2026-08-02', status: 'Evidence Window Open', statusColor: '#9C5B1F', statusBg: '#F8F1E7',
+        trader: '99xxxxxx44', marketMaker: 'Northline Salvage Co.', marketMakerMobile: '91xxxxxx02',
+        traderStatement: 'I completed payment on 2026-07-28 and have followed up three times by chat. The Market Maker has not responded to arrange collection.',
+        traderStatementAt: '2026-07-30 09:14',
+        sellerStatement: 'I have been traveling for a family emergency and only saw the payment confirmation today. Ready to arrange collection immediately.',
+        sellerStatementAt: '2026-07-30 18:42',
+        evidence: [ { label: 'Payment confirmation screenshot', by: '99xxxxxx44 (Trader)', at: '2026-07-30 09:12' }, { label: 'Chat log (3 follow-ups, no response)', by: '99xxxxxx44 (Trader)', at: '2026-07-30 09:16' } ],
+        ruled: false, ruling: null },
+      { id: 'DSP-10390', txnRef: 'EASY Auction — ₹2,40,000', value: '₹2,40,000', category: 'Condition/Delivery', filedDate: '2026-07-22', evidenceCloses: '2026-07-25', status: 'Evidence Closed', statusColor: '#B5482F', statusBg: '#F7E4E0',
+        trader: '98xxxxxx09', marketMaker: 'Coastal Fleet Disposals', marketMakerMobile: '90xxxxxx55',
+        traderStatement: 'The hydraulic pump shown in the listing photos is not the one that was delivered — serial numbers do not match.',
+        traderStatementAt: '2026-07-22 10:05',
+        sellerStatement: 'The unit shipped is from the same lot and functionally identical; a labelling mix-up at the yard, not a substitution.',
+        sellerStatementAt: '2026-07-23 14:30',
+        evidence: [ { label: 'Delivered unit photo with serial number', by: '98xxxxxx09 (Trader)', at: '2026-07-22 10:02' }, { label: 'Original listing photo with serial number', by: '98xxxxxx09 (Trader)', at: '2026-07-22 10:03' }, { label: 'Yard dispatch log', by: 'Coastal Fleet Disposals (Market Maker)', at: '2026-07-23 14:28' } ],
+        ruled: false, ruling: null },
+    ],
+  };
+
+  logAudit(entry) {
+    try {
+      const key = 'adwitix_audit_ledger';
+      const existing = JSON.parse(localStorage.getItem(key) || '[]');
+      existing.push({ at: new Date().toISOString().slice(0, 16).replace('T', ' '), ...entry });
+      localStorage.setItem(key, JSON.stringify(existing.slice(-300)));
+    } catch (e) {}
+  }
+
+  outcomeDefs() {
+    return [
+      { id: 'upheld_trader', label: 'Uphold — Favor Trader' },
+      { id: 'upheld_seller', label: 'Uphold — Favor Market Maker' },
+      { id: 'dismissed', label: 'Dismiss Dispute' },
+      { id: 'referred', label: 'Refer to Custodian' },
+    ];
+  }
+
+  renderVals() {
+    const s = this.state;
+    const selected = s.disputes.find(d => d.id === s.selectedId);
+    return {
+      tenantName: 'Northline Industrial Auctions',
+      tsxMasterName: 'Rajesh Menon', tsxMasterMobile: '91xxxxxx10',
+      isQueueView: s.view === 'queue',
+      isDetailView: s.view === 'detail' && !!selected,
+      isQueueEmpty: s.disputes.length === 0,
+      queue: s.disputes.map(d => ({ ...d, onOpen: () => this.setState({ view: 'detail', selectedId: d.id, rulingOutcomeId: null, rulingReasonDraft: '', rulingError: '' }) })),
+
+      selected: selected || {},
+      onBackToQueue: () => this.setState({ view: 'queue' }),
+
+      isRuled: !!(selected && selected.ruled),
+      isNotRuled: !!(selected && !selected.ruled),
+      rulingOutcome: selected && selected.ruling ? (this.outcomeDefs().find(o => o.id === selected.ruling.outcomeId) || {}).label || 'Referred to Custodian' : '',
+      rulingReason: selected && selected.ruling ? selected.ruling.reason : '',
+      rulingTimestamp: selected && selected.ruling ? selected.ruling.decidedAt : '',
+      isReferred: !!(selected && selected.ruling && selected.ruling.referred),
+
+      outcomes: this.outcomeDefs().map(o => ({
+        ...o,
+        borderColor: s.rulingOutcomeId === o.id ? '#C9974C' : '#DDE0EA',
+        bg: s.rulingOutcomeId === o.id ? '#F8F1E7' : '#fff',
+        color: s.rulingOutcomeId === o.id ? '#9C5B1F' : '#1E2233',
+        onSelect: () => this.setState({ rulingOutcomeId: o.id, rulingError: '' }),
+      })),
+      rulingReasonDraft: s.rulingReasonDraft,
+      onRulingReasonChange: (e) => this.setState({ rulingReasonDraft: e.target.value, rulingError: '' }),
+      rulingError: s.rulingError,
+      onSubmitRuling: () => {
+        if (!s.rulingOutcomeId) { this.setState({ rulingError: 'Select an outcome before submitting.' }); return; }
+        if (!s.rulingReasonDraft.trim()) { this.setState({ rulingError: 'A stated reason is required — this is shown to both parties.' }); return; }
+        const decidedAt = new Date().toISOString().slice(0, 16).replace('T', ' ');
+        const outcomeLabel = this.outcomeDefs().find(o => o.id === s.rulingOutcomeId).label;
+        this.logAudit({ actorRole: 'TSX Master', actorName: 'Rajesh Menon', actorMobile: '91xxxxxx10', action: 'Ruled on Dispute — ' + outcomeLabel, target: s.selectedId, detail: s.rulingReasonDraft });
+        this.setState({
+          disputes: this.state.disputes.map(d => d.id === s.selectedId
+            ? { ...d, ruled: true, status: 'Ruled', statusColor: '#3F7A4E', statusBg: '#E4EFE6', ruling: { outcomeId: s.rulingOutcomeId, reason: s.rulingReasonDraft, decidedAt } }
+            : d),
+        });
+      },
+      onReferToCustodian: () => {
+        if (!s.rulingReasonDraft.trim()) { this.setState({ rulingError: 'State a reason for referring this to the Custodian.' }); return; }
+        const decidedAt = new Date().toISOString().slice(0, 16).replace('T', ' ');
+        this.logAudit({ actorRole: 'TSX Master', actorName: 'Rajesh Menon', actorMobile: '91xxxxxx10', action: 'Referred Dispute to Custodian', target: s.selectedId, detail: s.rulingReasonDraft });
+        this.setState({
+          disputes: this.state.disputes.map(d => d.id === s.selectedId
+            ? { ...d, ruled: true, status: 'Referred to Custodian', statusColor: '#9C5B1F', statusBg: '#F8F1E7', ruling: { outcomeId: s.rulingOutcomeId || 'referred', reason: s.rulingReasonDraft, decidedAt, referred: true } }
+            : d),
+        });
+      },
+    };
+  }
+}
+
+</script>
+</body>
+</html>

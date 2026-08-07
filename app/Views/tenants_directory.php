@@ -2,7 +2,7 @@
 <?= $this->section('content') ?>
 <main style="max-width:640px; padding:40px 24px;">
   <h1 style="font-size:22px;">Browse Tenants</h1>
-  <p style="color:var(--ink-3); font-size:13px;">Apply to sell on any of these storefronts — approval is per-tenant, per BR-09.</p>
+  <p style="color:var(--ink-3); font-size:13px;">Apply to sell on any of these storefronts — approval is per-tenant.</p>
   <?php foreach ($tenants as $t): ?>
     <div style="border:1px solid var(--line); border-radius:12px; padding:16px; margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
       <div>

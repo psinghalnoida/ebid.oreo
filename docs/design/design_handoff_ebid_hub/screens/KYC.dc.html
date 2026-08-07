@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  html, body{overflow-x:hidden;}
+  a{text-decoration:none;}
+  a:link, a:visited{color:#C9974C;}
+  a:hover{color:#A87A38;}
+  @media (max-width:760px){
+    .kyc-grid2{grid-template-columns:1fr !important;}
+    .kyc-grid3{grid-template-columns:1fr 1fr !important;}
+    .kyc-steps-label{display:none !important;}
+  }
+  @media (max-width:480px){
+    .kyc-header-label{display:none !important;}
+  }
+  @media (max-width:480px){
+    .kyc-grid3{grid-template-columns:1fr !important;}
+  }
+</style>
+</helmet>
+
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;">
+
+  <header style="position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1400px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0; position:relative;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:36px; width:36px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:22px; letter-spacing:-0.5px; color:#1E2761; flex-shrink:0;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <span class="kyc-header-label" style="font-size:12px; font-weight:600; color:#9A9FB5; white-space:nowrap; flex-shrink:0;">Identity Verification</span>
+      <a href="Profile.dc.html" style="font-weight:700; font-size:12.5px; padding:9px 18px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233; white-space:nowrap; flex-shrink:0;">Back to Profile</a>
+    </div>
+  </header>
+
+  <main style="max-width:720px; margin:0 auto; padding:44px 24px 90px;">
+
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:36px;">
+      <sc-for list="{{ steps }}" as="st" hint-placeholder-count="4">
+        <div style="display:flex; align-items:center; flex:1; min-width:0;">
+          <button onClick="{{ st.onJump }}" style="display:flex; align-items:center; gap:8px; flex-shrink:0; background:none; border:none; padding:0; cursor:{{ st.cursor }}; pointer-events:{{ st.pointerEvents }};">
+            <div style="width:28px; height:28px; border-radius:100px; background:{{ st.circleBg }}; color:{{ st.circleColor }}; display:flex; align-items:center; justify-content:center; font-size:12.5px; font-weight:800; flex-shrink:0;">{{ st.num }}</div>
+            <span class="kyc-steps-label" style="font-size:11.5px; font-weight:600; color:{{ st.circleColor }}; white-space:nowrap;">{{ st.label }}</span>
+          </button>
+          <sc-if value="{{ st.showLine }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1; height:1px; background:#DDE0EA; margin-left:10px;"></div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{ isEntityStep }}" hint-placeholder-val="{{ true }}">
+      <h1 style="font-family:Georgia,'Cambria',serif; font-size:26px; font-weight:800; letter-spacing:-0.5px; margin:0 0 8px;">Who are you registering as?</h1>
+      <p style="font-size:14px; color:#565B72; margin:0 0 28px; line-height:1.6;">This determines your KYC questionnaire and the documents you'll need.</p>
+      <div class="kyc-grid2" style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:28px;">
+        <button onClick="{{ onSelectIndividual }}" style="text-align:left; padding:24px; border-radius:16px; cursor:pointer; background:#fff; border:2px solid {{ individualBorder }};">
+          <p style="font-size:15px; font-weight:800; margin:0 0 6px;">Individual</p>
+          <p style="font-size:12.5px; color:#9A9FB5; margin:0; line-height:1.5;">PAN, Aadhaar, and a personal bank account.</p>
+        </button>
+        <button onClick="{{ onSelectOrganization }}" style="text-align:left; padding:24px; border-radius:16px; cursor:pointer; background:#fff; border:2px solid {{ organizationBorder }};">
+          <p style="font-size:15px; font-weight:800; margin:0 0 6px;">Organization</p>
+          <p style="font-size:12.5px; color:#9A9FB5; margin:0; line-height:1.5;">GSTIN, incorporation certificate, and authorized signatory details.</p>
+        </button>
+      </div>
+      <button onClick="{{ onNextFromEntity }}" style="width:100%; padding:14px; border:none; border-radius:100px; background:#1E2233; color:#fff; font-weight:700; font-size:14px; cursor:pointer;" style-hover="background:#2A2E40;">Continue</button>
+    </sc-if>
+
+    <sc-if value="{{ isDocsStep }}" hint-placeholder-val="{{ false }}">
+      <h1 style="font-family:Georgia,'Cambria',serif; font-size:26px; font-weight:800; letter-spacing:-0.5px; margin:0 0 8px;">Upload your documents</h1>
+      <p style="font-size:14px; color:#565B72; margin:0 0 28px; line-height:1.6;">Documents are encrypted end-to-end; Aadhaar numbers are tokenized and never stored in plain text.</p>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:28px;">
+        <sc-for list="{{ requiredDocs }}" as="doc" hint-placeholder-count="4">
+          <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:16px 18px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:{{ doc.fileMarginBottom }};">
+              <div>
+                <p style="font-size:13.5px; font-weight:700; margin:0 0 3px;">{{ doc.name }}</p>
+                <p style="font-size:11.5px; color:#9A9FB5; margin:0;">{{ doc.hint }}</p>
+              </div>
+              <label style="font-size:12px; font-weight:700; padding:8px 16px; border-radius:100px; border:1px solid {{ doc.uploaded }}; background:{{ doc.btnBg }}; color:{{ doc.btnColor }}; cursor:pointer; flex-shrink:0;">
+                {{ doc.btnLabel }}
+                <input type="file" accept="image/*,.pdf" onChange="{{ doc.onUpload }}" style="display:none;">
+              </label>
+            </div>
+            <sc-if value="{{ doc.fileName }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; align-items:center; gap:10px; background:#F3F4F8; border:1px solid #EEF0EA; border-radius:10px; padding:10px 12px;">
+                <span style="font-size:16px;">📄</span>
+                <span style="font-size:12.5px; color:#1E2233; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ doc.fileName }}</span>
+                <button onClick="{{ doc.onRemove }}" style="border:none; background:none; color:#9A9FB5; font-size:16px; cursor:pointer; padding:0 4px;">×</button>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex; gap:12px;">
+        <button onClick="{{ onBackToEntity }}" style="flex:1; padding:14px; border-radius:100px; background:#fff; border:1px solid #DDE0EA; color:#1E2233; font-weight:700; font-size:14px; cursor:pointer;">Back</button>
+        <button onClick="{{ onNextFromDocs }}" style="flex:2; padding:14px; border:none; border-radius:100px; background:#1E2233; color:#fff; font-weight:700; font-size:14px; cursor:pointer;" style-hover="background:#2A2E40;">Continue</button>
+      </div>
+      <sc-if value="{{ docsError }}" hint-placeholder-val="{{ false }}">
+        <p style="font-size:12px; color:#B5482F; margin:14px 0 0;">{{ docsError }}</p>
+      </sc-if>
+    </sc-if>
+
+    <sc-if value="{{ isAddressStep }}" hint-placeholder-val="{{ false }}">
+      <h1 style="font-family:Georgia,'Cambria',serif; font-size:26px; font-weight:800; letter-spacing:-0.5px; margin:0 0 8px;">Your address portfolio</h1>
+      <p style="font-size:14px; color:#565B72; margin:0 0 24px; line-height:1.6;">Registered is mandatory. Add Billing, Correspondence, or Site/Yard if they differ.</p>
+      <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px;">
+        <sc-for list="{{ addresses }}" as="a" hint-placeholder-count="1">
+          <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:20px;">
+            <div style="display:flex; align-items:center; justify-content:between; justify-content:space-between; margin-bottom:14px;">
+              <span style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; color:#C9974C;">{{ a.kind }}</span>
+              <sc-if value="{{ a.required }}" hint-placeholder-val="{{ true }}">
+                <span style="font-size:10.5px; font-weight:700; color:#9A9FB5;">Required</span>
+              </sc-if>
+            </div>
+            <div class="kyc-grid2" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+              <input placeholder="Address Line 1" value="{{ a.line1 }}" onChange="{{ a.onLine1 }}" style="padding:11px 13px; border:1px solid #DDE0EA; border-radius:9px; font-size:13px; outline:none;">
+              <input placeholder="Address Line 2 (optional)" value="{{ a.line2 }}" onChange="{{ a.onLine2 }}" style="padding:11px 13px; border:1px solid #DDE0EA; border-radius:9px; font-size:13px; outline:none;">
+            </div>
+            <div class="kyc-grid3" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+              <input placeholder="City" value="{{ a.city }}" onChange="{{ a.onCity }}" style="padding:11px 13px; border:1px solid #DDE0EA; border-radius:9px; font-size:13px; outline:none;">
+              <input placeholder="State" value="{{ a.state }}" onChange="{{ a.onState }}" style="padding:11px 13px; border:1px solid #DDE0EA; border-radius:9px; font-size:13px; outline:none;">
+              <input placeholder="PIN Code" inputmode="numeric" maxlength="6" value="{{ a.pin }}" onChange="{{ a.onPin }}" style="padding:11px 13px; border:1px solid #DDE0EA; border-radius:9px; font-size:13px; outline:none; font-family:'IBM Plex Mono',monospace;">
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:28px;">
+        <sc-for list="{{ addableKinds }}" as="k" hint-placeholder-count="3">
+          <button onClick="{{ k.onAdd }}" style="font-size:12px; font-weight:700; padding:8px 16px; border-radius:100px; border:1px dashed #DDE0EA; background:transparent; color:#565B72; cursor:pointer;">+ Add {{ k.label }}</button>
+        </sc-for>
+      </div>
+      <div style="display:flex; gap:12px;">
+        <button onClick="{{ onBackToDocs }}" style="flex:1; padding:14px; border-radius:100px; background:#fff; border:1px solid #DDE0EA; color:#1E2233; font-weight:700; font-size:14px; cursor:pointer;">Back</button>
+        <button onClick="{{ onNextFromAddress }}" style="flex:2; padding:14px; border:none; border-radius:100px; background:#1E2233; color:#fff; font-weight:700; font-size:14px; cursor:pointer;" style-hover="background:#2A2E40;">Continue to Review</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isReviewStep }}" hint-placeholder-val="{{ false }}">
+      <h1 style="font-family:Georgia,'Cambria',serif; font-size:26px; font-weight:800; letter-spacing:-0.5px; margin:0 0 8px;">Review before you submit</h1>
+      <p style="font-size:14px; color:#565B72; margin:0 0 24px; line-height:1.6;">Check everything below. Once submitted, this dossier locks — no changes until {{ approverLabel }} verifies it.</p>
+
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:20px; margin-bottom:14px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+          <span style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; color:#C9974C;">Entity Type</span>
+          <button onClick="{{ onEditEntity }}" style="font-size:12px; font-weight:700; color:#1E2233; background:none; border:none; cursor:pointer;">Edit</button>
+        </div>
+        <p style="font-size:14px; margin:0;">{{ reviewEntityType }}</p>
+      </div>
+
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:20px; margin-bottom:14px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+          <span style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; color:#C9974C;">Documents</span>
+          <button onClick="{{ onEditDocs }}" style="font-size:12px; font-weight:700; color:#1E2233; background:none; border:none; cursor:pointer;">Edit</button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <sc-for list="{{ reviewDocs }}" as="rd" hint-placeholder-count="3">
+            <div style="display:flex; justify-content:space-between; font-size:13px;">
+              <span style="color:#565B72;">{{ rd.name }}</span>
+              <span style="font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:60%;">{{ rd.fileName }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:20px; margin-bottom:24px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+          <span style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; color:#C9974C;">Address Portfolio</span>
+          <button onClick="{{ onEditAddress }}" style="font-size:12px; font-weight:700; color:#1E2233; background:none; border:none; cursor:pointer;">Edit</button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <sc-for list="{{ reviewAddresses }}" as="ra" hint-placeholder-count="1">
+            <div>
+              <p style="font-size:11px; font-weight:700; text-transform:uppercase; color:#9A9FB5; margin:0 0 3px;">{{ ra.kind }}</p>
+              <p style="font-size:13px; margin:0; color:#1E2233;">{{ ra.line1 }}{{ ra.line2 }}, {{ ra.city }}, {{ ra.state }} {{ ra.pin }}</p>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <label style="display:flex; align-items:flex-start; gap:10px; margin-bottom:8px; cursor:pointer;">
+        <input type="checkbox" checked="{{ consentChecked }}" onChange="{{ onToggleConsent }}" style="margin-top:3px; width:16px; height:16px; accent-color:#C9974C; flex-shrink:0;">
+        <span style="font-size:12.5px; color:#565B72; line-height:1.55;">I confirm the information above is accurate and I consent to ADWITIX's Terms of Use and Privacy Policy, and to verification of these details by {{ approverLabel }}.</span>
+      </label>
+      <sc-if value="{{ consentError }}" hint-placeholder-val="{{ false }}">
+        <p style="font-size:12px; color:#B5482F; margin:0 0 14px;">{{ consentError }}</p>
+      </sc-if>
+
+      <div style="display:flex; gap:12px; margin-top:22px;">
+        <button onClick="{{ onBackToAddress }}" style="flex:1; padding:14px; border-radius:100px; background:#fff; border:1px solid #DDE0EA; color:#1E2233; font-weight:700; font-size:14px; cursor:pointer;">Back</button>
+        <button onClick="{{ onSubmitKyc }}" style="flex:2; padding:14px; border:none; border-radius:100px; background:#C9974C; color:#fff; font-weight:700; font-size:14px; cursor:pointer;" style-hover="background:#A87A38;">Submit for Review</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isSubmittedStep }}" hint-placeholder-val="{{ false }}">
+      <div style="text-align:center; padding:40px 0;">
+        <div style="width:64px; height:64px; border-radius:100px; background:#E4EFE6; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; font-size:28px; color:#3F7A4E;">✓</div>
+        <h1 style="font-family:Georgia,'Cambria',serif; font-size:24px; font-weight:800; margin:0 0 10px;">Submitted for review</h1>
+        <p style="font-size:14px; color:#565B72; max-width:460px; margin:0 auto; line-height:1.6;">Your compliance dossier is locked and with {{ approverLabel }}. You'll be notified once your KYC status moves to Verified — usually within 1–2 business days.</p>
+      </div>
+    </sc-if>
+
+  </main>
+</div>
+</helmet>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    step: 'entity',
+    entityType: 'individual',
+    docs: {},
+    docsError: '',
+    addresses: [{ kind: 'Registered', required: true, line1: '', line2: '', city: '', state: '', pin: '' }],
+    consentChecked: false,
+    consentError: ''
+  };
+
+  docsFor(entityType) {
+    return entityType === 'organization'
+      ? [
+        { key: 'gstin', name: 'GSTIN Certificate', hint: 'GST registration certificate' },
+        { key: 'incorp', name: 'Incorporation Certificate', hint: 'Certificate of Incorporation / Partnership Deed' },
+        { key: 'pan', name: 'Company PAN', hint: 'PAN card issued to the entity' },
+        { key: 'signatory', name: 'Authorized Signatory ID', hint: 'PAN + Aadhaar of the signatory' }
+      ]
+      : [
+        { key: 'pan', name: 'PAN Card', hint: 'Used for registry verification' },
+        { key: 'aadhaar', name: 'Aadhaar Card', hint: 'Number is tokenized, never stored in plain text' },
+        { key: 'bank', name: 'Bank Proof', hint: 'Cancelled cheque or passbook first page' }
+      ];
+  }
+
+  renderVals() {
+    const s = this.state;
+    const stepOrder = ['entity', 'docs', 'address', 'review', 'submitted'];
+    const rawIndex = stepOrder.indexOf(s.step);
+    const currentIndex = Math.min(rawIndex, 3);
+    const stepLabels = ['Entity Type', 'Documents', 'Address', 'Review'];
+    const approverLabel = s.entityType === 'organization' ? 'your TSX Master (Market Maker/Seller verification)' : 'your Custodian (Buyer/Trader verification)';
+    const isSubmitted = s.step === 'submitted';
+    const canJump = (i) => i < currentIndex && !isSubmitted && s.step !== 'review';
+    const steps = stepLabels.map((label, i) => ({
+      num: i < currentIndex ? '✓' : i + 1,
+      label,
+      circleBg: isSubmitted ? '#E9EBF2' : (i <= currentIndex ? '#C9974C' : '#E9EBF2'),
+      circleColor: isSubmitted ? '#9A9FB5' : (i <= currentIndex ? '#fff' : '#9A9FB5'),
+      showLine: i < stepLabels.length - 1,
+      cursor: canJump(i) ? 'pointer' : 'default',
+      pointerEvents: canJump(i) ? 'auto' : 'none',
+      onJump: () => { if (canJump(i)) this.setState({ step: stepOrder[i] }); }
+    }));
+
+    const requiredDocsList = this.docsFor(s.entityType);
+    const requiredDocs = requiredDocsList.map(d => {
+      const fileName = s.docs[d.key];
+      const uploaded = !!fileName;
+      return {
+        name: d.name, hint: d.hint, fileName,
+        fileMarginBottom: uploaded ? '12px' : '0',
+        uploaded: uploaded ? '#3F7A4E' : '#DDE0EA',
+        btnBg: uploaded ? '#E4EFE6' : '#fff',
+        btnColor: uploaded ? '#3F7A4E' : '#1E2233',
+        btnLabel: uploaded ? 'Replace' : 'Upload',
+        onUpload: (e) => {
+          const f = e.target.files && e.target.files[0];
+          if (!f) return;
+          this.setState({ docs: { ...this.state.docs, [d.key]: f.name }, docsError: '' });
+        },
+        onRemove: () => {
+          const next = { ...this.state.docs };
+          delete next[d.key];
+          this.setState({ docs: next });
+        }
+      };
+    });
+
+    const addrFieldSetter = (idx, field) => (e) => {
+      const next = [...this.state.addresses];
+      next[idx] = { ...next[idx], [field]: field === 'pin' ? e.target.value.replace(/\D/g, '').slice(0, 6) : e.target.value };
+      this.setState({ addresses: next });
+    };
+    const addresses = s.addresses.map((a, i) => ({
+      kind: a.kind, required: a.required,
+      line1: a.line1, line2: a.line2, city: a.city, state: a.state, pin: a.pin,
+      onLine1: addrFieldSetter(i, 'line1'), onLine2: addrFieldSetter(i, 'line2'),
+      onCity: addrFieldSetter(i, 'city'), onState: addrFieldSetter(i, 'state'), onPin: addrFieldSetter(i, 'pin')
+    }));
+    const existingKinds = s.addresses.map(a => a.kind);
+    const allKinds = ['Billing', 'Correspondence', 'Site/Yard'];
+    const addableKinds = allKinds.filter(k => !existingKinds.includes(k)).map(k => ({
+      label: k,
+      onAdd: () => this.setState({ addresses: [...this.state.addresses, { kind: k, required: false, line1: '', line2: '', city: '', state: '', pin: '' }] })
+    }));
+
+    return {
+      isEntityStep: s.step === 'entity', isDocsStep: s.step === 'docs',
+      isAddressStep: s.step === 'address', isSubmittedStep: s.step === 'submitted',
+      steps,
+      individualBorder: s.entityType === 'individual' ? '#C9974C' : '#DDE0EA',
+      organizationBorder: s.entityType === 'organization' ? '#C9974C' : '#DDE0EA',
+      onSelectIndividual: () => this.setState({ entityType: 'individual' }),
+      onSelectOrganization: () => this.setState({ entityType: 'organization' }),
+      onNextFromEntity: () => this.setState({ step: 'docs' }),
+      requiredDocs, docsError: s.docsError,
+      onBackToEntity: () => this.setState({ step: 'entity' }),
+      onNextFromDocs: () => {
+        const allUploaded = requiredDocsList.every(d => s.docs[d.key]);
+        if (!allUploaded) { this.setState({ docsError: 'Please upload all required documents to continue.' }); return; }
+        this.setState({ step: 'address' });
+      },
+      addresses, addableKinds,
+      onBackToDocs: () => this.setState({ step: 'docs' }),
+      onNextFromAddress: () => this.setState({ step: 'review' }),
+      isReviewStep: s.step === 'review',
+      approverLabel,
+      reviewEntityType: s.entityType === 'organization' ? 'Organization' : 'Individual',
+      reviewDocs: requiredDocsList.map(d => ({ name: d.name, fileName: s.docs[d.key] || '—' })),
+      reviewAddresses: addresses,
+      consentChecked: s.consentChecked,
+      consentError: s.consentError,
+      onToggleConsent: () => this.setState({ consentChecked: !this.state.consentChecked, consentError: '' }),
+      onEditEntity: () => this.setState({ step: 'entity' }),
+      onEditDocs: () => this.setState({ step: 'docs' }),
+      onEditAddress: () => this.setState({ step: 'address' }),
+      onBackToAddress: () => this.setState({ step: 'address' }),
+      onSubmitKyc: () => {
+        if (!this.state.consentChecked) {
+          this.setState({ consentError: 'Please accept the Terms of Use to submit your KYC.' });
+          return;
+        }
+        this.setState({ step: 'submitted' });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

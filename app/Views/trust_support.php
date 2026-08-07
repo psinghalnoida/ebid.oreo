@@ -1,7 +1,7 @@
 <?= $this->extend('layouts/main') ?>
 
 <?= $this->section('content') ?>
-<style>
+<style {csp-style-nonce}>
   .hub-hero{padding:56px 0 40px; text-align:center;}
   .eyebrow{font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--emerald); margin:0 0 12px;}
   .hub-hero h1{font-size:38px; font-weight:800; letter-spacing:-1px; margin:0 0 14px;}
@@ -23,7 +23,7 @@
   <div class="hub-hero">
     <div class="eyebrow">Trust & Support</div>
     <h1>How can we help?</h1>
-    <p>Answers, policies, and safeguards — everything about how eBid Hub protects buyers, sellers, and every transaction in between.</p>
+    <p>Answers, policies, and safeguards — everything about how AdwitiX protects buyers, sellers, and every transaction in between.</p>
   </div>
 
   <?php foreach ($groups as $group): ?>

@@ -18,10 +18,12 @@
   </p>
   <?php if ($dispute): ?>
     <p style="font-size:13px;"><a href="/disputes/<?= esc($dispute['id']) ?>" style="color:#B5482F;">A dispute exists on this transaction (<?= esc($dispute['status']) ?>) — view it &rarr;</a></p>
+  <?php elseif ($callerId && $saleEvent['sale_format'] !== 'tender'): ?>
+    <p style="font-size:13px;"><a href="/sale-events/<?= esc($saleEvent['id']) ?>/dispute" style="color:var(--ink-3);">Something wrong with this transaction? File a Dispute &rarr;</a></p>
   <?php endif; ?>
 
   <p style="font-size:13px; color:var(--ink-2); margin:16px 0;">
-    BR-33: a sale only formally closes once all four steps below are complete — both parties confirming the physical transaction, and both parties rating each other.
+    A sale only formally closes once all four steps below are complete — both parties confirming the physical transaction, and both parties rating each other.
   </p>
 
   <div style="border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:12px;">
@@ -29,7 +31,7 @@
     <?php if ($settlement['seller_noc_confirmed_at']): ?>
       <p style="font-size:12px; color:var(--emerald);">✓ Confirmed</p>
     <?php elseif ($callerId === $settlement['seller_party_id']): ?>
-      <form method="post" action="/settlements/<?= esc($settlement['id']) ?>/confirm-seller-noc">
+      <form method="post" action="/settlements/<?= esc($settlement['id']) ?>/confirm-seller-noc"><?= csrf_field() ?>
         <button type="submit" class="btn btn-emerald" style="font-size:12px; padding:8px 14px;">I received payment</button>
       </form>
     <?php else: ?>
@@ -42,7 +44,7 @@
     <?php if ($settlement['buyer_noc_confirmed_at']): ?>
       <p style="font-size:12px; color:var(--emerald);">✓ Confirmed</p>
     <?php elseif ($callerId === $settlement['buyer_party_id']): ?>
-      <form method="post" action="/settlements/<?= esc($settlement['id']) ?>/confirm-buyer-noc">
+      <form method="post" action="/settlements/<?= esc($settlement['id']) ?>/confirm-buyer-noc"><?= csrf_field() ?>
         <button type="submit" class="btn btn-emerald" style="font-size:12px; padding:8px 14px;">I received the item</button>
       </form>
     <?php else: ?>
@@ -55,7 +57,7 @@
     <?php if ($settlement['buyer_rated_seller_at']): ?>
       <p style="font-size:12px; color:var(--emerald);">✓ Rated</p>
     <?php elseif ($callerId === $settlement['buyer_party_id']): ?>
-      <form method="post" action="/settlements/<?= esc($settlement['id']) ?>/rate-as-buyer" style="display:flex; gap:6px; align-items:center;">
+      <form method="post" action="/settlements/<?= esc($settlement['id']) ?>/rate-as-buyer" style="display:flex; gap:6px; align-items:center;"><?= csrf_field() ?>
         <select name="outcome" style="padding:8px; border:1px solid var(--line); border-radius:8px; font-size:12px;">
           <option value="good">Good transaction</option>
           <option value="problem">There was a problem</option>
@@ -73,7 +75,7 @@
     <?php if ($settlement['seller_rated_buyer_at']): ?>
       <p style="font-size:12px; color:var(--emerald);">✓ Rated</p>
     <?php elseif ($callerId === $settlement['seller_party_id']): ?>
-      <form method="post" action="/settlements/<?= esc($settlement['id']) ?>/rate-as-seller" style="display:flex; gap:6px; align-items:center;">
+      <form method="post" action="/settlements/<?= esc($settlement['id']) ?>/rate-as-seller" style="display:flex; gap:6px; align-items:center;"><?= csrf_field() ?>
         <select name="outcome" style="padding:8px; border:1px solid var(--line); border-radius:8px; font-size:12px;">
           <option value="good">Good transaction</option>
           <option value="problem">There was a problem</option>
@@ -92,8 +94,8 @@
     </p>
   <?php elseif ($settlement['status'] === 'stalled'): ?>
     <div style="background:var(--amber-soft); color:#9C5B1F; padding:12px; border-radius:10px; font-size:13px;">
-      <p style="margin:0 0 10px;">⚠️ This settlement stalled (BR-39) — flagged after sitting incomplete too long.</p>
-      <form method="post" action="/settlements/<?= esc($settlement['id']) ?>/force-resolve">
+      <p style="margin:0 0 10px;">⚠️ This settlement stalled — flagged after sitting incomplete too long.</p>
+      <form method="post" action="/settlements/<?= esc($settlement['id']) ?>/force-resolve"><?= csrf_field() ?>
         <p style="font-size:11px; margin:0 0 6px;"><?= tsx_term('Tenant Admin') ?> action — applies forced-neutral (3.0★) ratings for whoever never rated, and force-confirms any missing NOC.</p>
         <button type="submit" class="btn btn-ghost" style="font-size:12px;">Force-resolve</button>
       </form>
@@ -101,7 +103,7 @@
   <?php endif; ?>
 
   <?php if (!empty($invoices)): ?>
-    <h3 style="font-size:15px; margin-top:24px;">Invoices (BR-56)</h3>
+    <h3 style="font-size:15px; margin-top:24px;">Invoices</h3>
     <?php foreach ($invoices as $inv): ?>
       <div style="border:1px solid var(--line); border-radius:12px; padding:16px; margin-top:10px;">
         <p style="font-size:12px; color:var(--ink-3); margin:0 0 4px;"><?= esc($inv['invoice_number']) ?> — <?= esc(str_replace('_', ' ', $inv['invoice_type'])) ?></p>
@@ -115,7 +117,7 @@
   <?php endif; ?>
 
   <?php if (!empty($settlement['tds_amount'])): ?>
-    <h3 style="font-size:15px; margin-top:24px;">TDS Deducted (BR-53, Section 194-O)</h3>
+    <h3 style="font-size:15px; margin-top:24px;">TDS Deducted</h3>
     <div style="border:1px solid var(--line); border-radius:12px; padding:16px; margin-top:10px;">
       <p style="font-size:13px; margin:0;">
         ₹<?= number_format((float) $settlement['final_price'], 2) ?> gross ×
@@ -134,7 +136,7 @@
   <?php endif; ?>
 
   <?php if (!empty($auditEvents)): ?>
-    <h3 style="font-size:15px; margin-top:24px;">Audit Trail (BR-05)</h3>
+    <h3 style="font-size:15px; margin-top:24px;">Audit Trail</h3>
     <?php foreach ($auditEvents as $ev): ?>
       <p style="font-size:12px; color:var(--ink-3); padding:6px 0; border-bottom:1px solid var(--line);">
         <?= esc(substr($ev['occurred_at'], 0, 19)) ?> — <?= esc($ev['event_type']) ?>

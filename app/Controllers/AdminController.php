@@ -48,7 +48,7 @@ class AdminController extends BaseController
             ->get()->getResultArray();
 
         return view('admin/dashboard', [
-            'title' => 'Super Admin — eBid Hub',
+            'title' => 'Super Admin — AdwitiX',
             'tenants' => $tenantModel->findAll(),
             'openDisputes' => $disputeModel->whereIn('status', ['filed', 'evidence_window', 'appealed'])->countAllResults(),
             'stalledSettlements' => $settlementModel->where('status', 'stalled')->countAllResults(),
@@ -91,7 +91,7 @@ class AdminController extends BaseController
         $driftAlerts = (new \App\Models\ServerTimeCheckModel())->findUnacknowledgedDriftAlerts();
 
         return view('admin/alerts', [
-            'title' => 'Alerts — eBid Hub',
+            'title' => 'Alerts — AdwitiX',
             'amlFlags' => $amlFlags,
             'stalledSettlements' => $stalledSettlements,
             'openDisputes' => $openDisputes,
@@ -112,5 +112,53 @@ class AdminController extends BaseController
             return redirect()->to('/admin/alerts')->with('error', $e->getMessage());
         }
         return redirect()->to('/admin/alerts')->with('error', 'Drift alert acknowledged.');
+    }
+
+    // D-106: "Lot Directory" -- the Custodian had no way to browse every
+    // listing platform-wide across every Tenant; only per-tenant pending
+    // queues existed. Real filters, real pagination, same shape as
+    // TenantController::list()'s existing filterable-admin pattern.
+    public function lotDirectory()
+    {
+        $q = trim((string) $this->request->getGet('q'));
+        $tenantId = $this->request->getGet('tenant_id');
+        $format = $this->request->getGet('format');
+        $status = $this->request->getGet('status');
+        $pg = \App\Libraries\Paginator::fromRequest($this->request);
+
+        $svc = new \App\Libraries\AdminDirectoryService();
+        $qOrNull = $q !== '' ? $q : null;
+        $total = $svc->countListings($qOrNull, $tenantId, $format, $status);
+        $listings = $svc->findListings($qOrNull, $tenantId, $format, $status, $pg['perPage'], $pg['offset']);
+        $tenants = (new TenantModel())->orderBy('name', 'ASC')->findAll();
+
+        return view('admin/lot_directory', [
+            'title' => 'Lot Directory — AdwitiX', 'listings' => $listings, 'tenants' => $tenants,
+            'q' => $q, 'tenantId' => $tenantId, 'format' => $format, 'status' => $status,
+            'page' => $pg['page'], 'perPage' => $pg['perPage'],
+            'totalPages' => \App\Libraries\Paginator::totalPages($total, $pg['perPage']), 'total' => $total,
+        ]);
+    }
+
+    // D-106: "Trading Session Directory" -- same gap, for sale events
+    // rather than listings.
+    public function tradingSessionDirectory()
+    {
+        $tenantId = $this->request->getGet('tenant_id');
+        $format = $this->request->getGet('format');
+        $status = $this->request->getGet('status');
+        $pg = \App\Libraries\Paginator::fromRequest($this->request);
+
+        $svc = new \App\Libraries\AdminDirectoryService();
+        $total = $svc->countSaleEvents($tenantId, $format, $status);
+        $saleEvents = $svc->findSaleEvents($tenantId, $format, $status, $pg['perPage'], $pg['offset']);
+        $tenants = (new TenantModel())->orderBy('name', 'ASC')->findAll();
+
+        return view('admin/trading_session_directory', [
+            'title' => 'Trading Session Directory — AdwitiX', 'saleEvents' => $saleEvents, 'tenants' => $tenants,
+            'tenantId' => $tenantId, 'format' => $format, 'status' => $status,
+            'page' => $pg['page'], 'perPage' => $pg['perPage'],
+            'totalPages' => \App\Libraries\Paginator::totalPages($total, $pg['perPage']), 'total' => $total,
+        ]);
     }
 }

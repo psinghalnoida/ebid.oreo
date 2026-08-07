@@ -35,7 +35,7 @@ class KycReviewController extends BaseController
     public function index()
     {
         $submitted = $this->partyModel->where('kyc_status', 'submitted')->orderBy('kyc_submitted_at', 'ASC')->findAll();
-        return view('admin/kyc_review_list', ['title' => 'KYC Review Queue — eBid Hub', 'parties' => $submitted]);
+        return view('admin/kyc_review_list', ['title' => 'KYC Review Queue — AdwitiX', 'parties' => $submitted]);
     }
 
     public function detail(string $partyId)
@@ -48,7 +48,7 @@ class KycReviewController extends BaseController
         $addresses = (new PartyAddressModel())->forParty($partyId);
 
         return view('admin/kyc_review_detail', [
-            'title' => 'KYC Dossier — eBid Hub', 'party' => $party,
+            'title' => 'KYC Dossier — AdwitiX', 'party' => $party,
             'documents' => $documents, 'addresses' => $addresses,
             'suspensionReasons' => KycService::suspensionReasons(),
         ]);

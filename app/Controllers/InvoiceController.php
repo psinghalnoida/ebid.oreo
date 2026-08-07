@@ -33,7 +33,7 @@ class InvoiceController extends BaseController
         $invoices = $this->invoices->findForParty($partyId, $pg['perPage'], $pg['offset']);
 
         return view('account/invoices', [
-            'title' => 'Invoices — eBid Hub', 'invoices' => $invoices,
+            'title' => 'Invoices — AdwitiX', 'invoices' => $invoices,
             'page' => $pg['page'], 'perPage' => $pg['perPage'],
             'totalPages' => Paginator::totalPages($total, $pg['perPage']), 'total' => $total,
         ]);

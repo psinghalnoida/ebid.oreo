@@ -13,7 +13,7 @@
     <?= $rule['rule_key'] ? '· wired into live enforcement' : '· freeform governance rule (no code effect)' ?>
   </p>
 
-  <form method="post" action="/admin/rules/<?= esc($rule['id']) ?>/edit" style="margin-top:20px;">
+  <form method="post" action="/admin/rules/<?= esc($rule['id']) ?>/edit" style="margin-top:20px;"><?= csrf_field() ?>
     <label style="font-size:12px; color:var(--ink-3);">Title</label>
     <input type="text" name="title" value="<?= esc($rule['title']) ?>" required
       style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px; box-sizing:border-box;">

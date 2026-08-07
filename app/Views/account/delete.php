@@ -13,7 +13,7 @@
       Deletion requested on <?= esc(substr($party['deletion_requested_at'], 0, 10)) ?> — your account will be archived
       30 days from that date unless cancelled first.
     </p>
-    <form method="post" action="/account/delete/cancel">
+    <form method="post" action="/account/delete/cancel"><?= csrf_field() ?>
       <button type="submit" class="btn btn-emerald">Cancel Deletion Request</button>
     </form>
   <?php else: ?>
@@ -21,7 +21,7 @@
       Requesting deletion gives you a 30-day grace period to change your mind. After 30 days, your account is
       archived and you can no longer log in.
     </p>
-    <form method="post" action="/account/delete/request" style="margin-top:16px;">
+    <form method="post" action="/account/delete/request" style="margin-top:16px;"><?= csrf_field() ?>
       <textarea name="reason" placeholder="Reason (optional)" rows="3"
         style="display:block; width:100%; padding:8px; margin-bottom:12px; border:1px solid var(--line); border-radius:8px; font-size:12px;"></textarea>
       <button type="submit" class="btn btn-ghost" style="color:#B5482F;">Request Account Deletion</button>

@@ -13,10 +13,10 @@
     <div style="border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:10px;">
       <p style="font-size:13px; color:var(--ink-3);">Party ID: <?= esc($app['party_id']) ?></p>
       <p style="font-size:11px; color:var(--ink-3);">Applied: <?= esc($app['applied_at']) ?></p>
-      <form method="post" action="/seller-applications/<?= esc($app['id']) ?>/approve" style="display:inline;">
+      <form method="post" action="/seller-applications/<?= esc($app['id']) ?>/approve" style="display:inline;"><?= csrf_field() ?>
         <button type="submit" class="btn btn-emerald" style="font-size:12px; padding:8px 14px;">Approve</button>
       </form>
-      <form method="post" action="/seller-applications/<?= esc($app['id']) ?>/reject" style="display:inline;">
+      <form method="post" action="/seller-applications/<?= esc($app['id']) ?>/reject" style="display:inline;"><?= csrf_field() ?>
         <input type="text" name="reason" placeholder="Reason" style="font-size:11px; padding:6px; border:1px solid var(--line); border-radius:6px;">
         <button type="submit" class="btn btn-ghost" style="font-size:12px; padding:8px 14px;">Reject</button>
       </form>
