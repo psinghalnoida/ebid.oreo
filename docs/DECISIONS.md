@@ -7035,3 +7035,95 @@ Procurement, Warehouses, RVSFs, Financial Institutions, Service
 Providers) were sized and sequenced but explicitly not started pending
 their own individual decisions — BR-65 was the one item the project
 owner asked to start with.
+
+### D-108: WebSocket layer — corrected my own earlier audit, then extended real-time coverage to Buy-Now offers
+
+Two distinct pieces. First, a correction to my own prior claim: when
+sizing the Chief Architect directive's retrofit items, I reported "no
+WebSocket layer exists at all." That was **wrong**. A real, working
+sidecar (`realtime/server.js`, Node.js + the `ws` package) already
+existed, built and documented in D-42/D-52 — I missed it because I only
+searched `app/`, `composer.json`, and `public/`; the sidecar is a
+deliberately separate process living in its own top-level `realtime/`
+directory, and I never checked there. Caught it myself before building
+anything, by re-verifying the audit rather than proceeding on the
+earlier claim — same standard this project has held throughout.
+
+Re-verified the existing sidecar genuinely still works, not just
+trusted the historical record: `npm install` clean, started the
+sidecar, connected a real WebSocket client to a `sale_event:<id>` room
+and a `buyer:<id>` room, sent real broadcasts to both, confirmed
+correct receipt on both, then cleaned up. Confirmed coverage as it
+actually stands: `bid_placed`/`ticker_bid_update`/`dynamic_time_update`
+are wired across all three bidding formats (Easy/Express/Tender).
+**Buy-Now had zero broadcast coverage** — `OfferService` never called
+`RealtimeBroadcastService` at all, the one sale format left out.
+Settlement, Dispute, Rating, EMD cascade, and Admin actions are also
+still unwired — flagged, not silently assumed covered, and left for
+their own future decision.
+
+**Found and deliberately avoided worsening a real, pre-existing privacy
+gap while designing this**: `ListingController::show()` renders every
+submitted Buy-Now offer's real amount and status to **any visitor** of
+the listing page — not gated to the seller (`$offers` is populated
+whenever `sale_format === 'buy_now'`, with no `$isOwner` check
+anywhere around it). This predates D-108 and wasn't fixed here — fixing
+an existing page's access control is a distinct, more invasive change
+than what was asked for. What D-108 does guarantee: the new WebSocket
+broadcasts never make this worse. The `sale_event:<id>` room (watched
+by any visitor, same audience as that leaky page) only ever receives
+an amount-free `offer_submitted` signal (`{offerCount}`); the real
+offer amount is broadcast only to `broadcastToBuyer($sellerPartyId,
+'offer_received', ...)` — the seller's own private party channel.
+
+**Reused existing infrastructure instead of building parallel
+machinery**: `RealtimeBroadcastService::broadcastToBuyer()` already
+targets an arbitrary party ID, not literally only buyer-role parties —
+every logged-in party already holds this exact connection open via
+`layouts/main.php`'s global Live Ticker script (`?buyerId=<their own
+party ID>`), buyer or seller alike. Rather than opening a second
+sidecar connection or adding a `seller:<id>` room type, `OfferService`
+calls the same method as-is; `layouts/main.php`'s existing socket
+handler gained one new branch that relays `offer_received` as a
+`window.dispatchEvent(new CustomEvent('ebidhub:offer_received', ...))`
+for whichever page cares — `listing/show.php` listens for it only when
+`$isOwner` is true, no second connection, no new sidecar code at all.
+
+**Events added**:
+- `OfferService::submitOffer()` — `offer_submitted` (amount-free) to
+  the sale_event room; `offer_received` (real amount) to the seller's
+  party channel.
+- `OfferService::acceptOffer()` — `offer_accepted` (amount included) to
+  the sale_event room, matching the existing `bid_placed` precedent
+  that a closed sale's winning amount is public; `ticker_bid_update`
+  (the existing, already-handled event type) to the winning buyer's
+  party channel, so their Live Ticker refreshes without a manual poll.
+
+**Verified with a real, complete end-to-end test, not a mocked one** —
+same discipline D-42 itself set: started the sidecar and the PHP app
+together, created a real Buy-Now sale event and EMD hold through the
+real `OfferService`, connected three genuine WebSocket clients (a
+separate Node.js process, not the server) — one on the `sale_event`
+room, one on the seller's party room, one on the buyer's party room —
+then called `submitOffer()` and `acceptOffer()` for real. Confirmed
+exactly the right client received exactly the right payload each time:
+the sale_event room got `offer_submitted {offerCount:1}` then
+`offer_accepted {amount:92000}`; the seller's room alone got
+`offer_received` with the real amount; the buyer's room got
+`ticker_bid_update`. The sale_event room never once received the raw
+amount before acceptance — the privacy boundary held under a real
+test, not just by code inspection. All throwaway test files (a Node
+WS client, a two-mode spark command) deleted after use.
+
+Full regression: 36 real suites clean on an independently rebuilt
+database (only the pre-existing `test:auditlog` DB-naming gap);
+`test:buynow` specifically still 16/16 — the new broadcast calls sit
+outside the transactional logic path entirely and, like every other
+`RealtimeBroadcastService` call site, fail silently by design if the
+sidecar is unreachable.
+
+**Still explicitly open, not silently assumed covered**: Settlement,
+Dispute, Rating, EMD cascade defaults, and Admin actions (Emergency
+Stop, delisting) still have zero broadcast coverage; the pre-existing
+offer-amount page-leak in `ListingController::show()` is unfixed and
+was deliberately left alone, flagged for its own decision.

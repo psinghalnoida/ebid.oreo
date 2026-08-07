@@ -458,6 +458,24 @@
         if (msg.event === 'dynamic_time_update' && statusEl) {
           statusEl.textContent = 'Live — the auction just extended or its increment changed. Refresh for exact details.';
         }
+
+        // D-108: Buy-Now offers — amount-free by design. This room is
+        // watched by ANY visitor on this page, including other buyers,
+        // so it never carries an offer amount or buyer identity —
+        // that detail goes only to the seller's own party channel,
+        // handled separately below via the CustomEvent the global
+        // ticker connection dispatches.
+        if (msg.event === 'offer_submitted' && statusEl) {
+          statusEl.textContent = 'Live — a new offer was just submitted (' + msg.data.offerCount + ' total). Refresh to see it.';
+        }
+
+        // Acceptance is the terminal, public outcome — same as any
+        // closed auction's winning bid — so the amount is safe to show
+        // here, same treatment as bid_placed above.
+        if (msg.event === 'offer_accepted' && priceEl) {
+          priceEl.textContent = '₹' + Number(msg.data.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+          if (statusEl) statusEl.textContent = 'Live — an offer was just accepted. Refresh for full details.';
+        }
       };
 
       socket.onerror = function () {
@@ -465,6 +483,21 @@
         // live updates. No error shown to the user; refreshing the page
         // always shows the correct, current state regardless.
       };
+
+      <?php if ($isOwner && $saleEvent['sale_format'] === 'buy_now'): ?>
+      // D-108: the actual offer amount only ever reaches the seller,
+      // delivered via their own already-open party channel (the same
+      // buyer:<partyId> connection every logged-in party holds from the
+      // global layout for their Live Ticker — not a second connection).
+      // layouts/main.php relays it here as a CustomEvent so this page
+      // doesn't need to open a WebSocket connection of its own for it.
+      window.addEventListener('ebidhub:offer_received', function (e) {
+        const statusEl = document.getElementById('live-status');
+        if (statusEl) {
+          statusEl.textContent = 'Live — a new offer of ₹' + Number(e.detail.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' was just received. Refresh to review and accept.';
+        }
+      });
+      <?php endif; ?>
     })();
   </script>
   <?php endif; ?>

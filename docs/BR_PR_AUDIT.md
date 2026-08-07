@@ -605,6 +605,37 @@ response, `/api/v1/listings/{id}` unauthenticated → real 401 from
 `ApiAuthFilter`, proving the filter reattached correctly. Full 36-suite
 regression clean. Full detail in `docs/DECISIONS.md` D-107.
 
+## Update — D-108: corrected a wrong claim about the WebSocket layer, then extended it to Buy-Now
+
+Self-correction, not a new finding by someone else: sizing the Chief
+Architect directive's retrofit items, I reported "no WebSocket layer
+exists." That was wrong — a real sidecar (`realtime/server.js`, D-42,
+extended D-52 for the Live Ticker) already existed; I'd only searched
+`app/`, `composer.json`, and `public/`, missing the separate top-level
+`realtime/` directory. Caught and corrected it myself before building
+anything on the wrong premise, and re-verified the existing sidecar
+genuinely still works with a real WebSocket client, not just trusted
+the historical record.
+
+Confirmed real coverage gaps once the audit was accurate: bids across
+all three formats are broadcast, but **Buy-Now offers had zero
+WebSocket coverage** — `OfferService` never called
+`RealtimeBroadcastService`. Closed that gap: `offer_submitted`
+(amount-free, to anyone watching the listing page) and `offer_received`
+(the real amount, private, to the seller's own channel) on submit;
+`offer_accepted` (public, matching the existing precedent that a
+closed sale's winning amount is public) and `ticker_bid_update` (to the
+winning buyer) on acceptance. Reused the existing per-party channel
+every logged-in user already holds open (no new sidecar code, no
+second connection). Found a real, pre-existing, unrelated privacy gap
+while designing this — `ListingController::show()` renders every
+Buy-Now offer's real amount to any visitor, not just the seller — left
+unfixed (out of scope for this task) but confirmed the new broadcasts
+don't add to it. Verified with a real three-client WebSocket test
+against real `OfferService` calls, not mocked; full 36-suite regression
+clean; `test:buynow` still 16/16. Full detail in `docs/DECISIONS.md`
+D-108.
+
 ### Bottom line (current)
 
 **Still four items with no path forward without the project owner
@@ -621,4 +652,17 @@ Every screen tracked in `docs/design/CLAUDE_DESIGN_HANDOFF.md` — the
 original 53-screen design package plus the 6 no-mockup screens closed
 out by D-106 — now has a real, tested backend. What's left everywhere
 else is purely visual design work, not build work.
+
+**Real-time (WebSocket) coverage, tracked precisely as of D-108, not
+assumed complete**: bids (Easy/Express/Tender) and now Buy-Now offers
+are covered. Settlement, Dispute, Rating, EMD cascade defaults, and
+Admin actions still have zero broadcast coverage — each is real,
+unbuilt scope, not an oversight to silently assume is fine.
+
+**One real, pre-existing gap surfaced but deliberately not fixed**:
+`ListingController::show()` renders every submitted Buy-Now offer's
+real amount and status to any visitor of the listing page, not just
+the seller — found while designing D-108's broadcasts, confirmed not
+made worse by them, but the underlying page-level access control issue
+itself is still open and needs its own decision.
 
