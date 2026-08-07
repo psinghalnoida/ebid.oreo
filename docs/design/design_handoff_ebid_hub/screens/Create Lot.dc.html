@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+*{box-sizing:border-box;} body{margin:0;} html,body{overflow-x:hidden;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#A87A38;}
+.cl-opt:hover{border-color:#C9974C !important;}
+@media (max-width:760px){.cl-grid2{grid-template-columns:1fr !important;} .cl-media{grid-template-columns:repeat(3,1fr) !important;}}
+</style>
+</helmet>
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; min-height:100vh;">
+  <header style="position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1200px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#1E2761;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <a href="Seller Dashboard.dc.html" style="font-weight:700; font-size:12.5px; padding:9px 18px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233; white-space:nowrap;">← Market Maker Dashboard</a>
+    </div>
+  </header>
+
+  <main style="max-width:840px; margin:0 auto; padding:40px 20px 90px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">Market Maker</div>
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:30px; font-weight:800; letter-spacing:-0.6px; margin:0 0 10px;">Create Lot</h1>
+    <p style="font-size:14px; color:#565B72; margin:0 0 26px; max-width:600px; line-height:1.6;">List an asset for sale. Every Lot goes through an AI Pre-Check before routing to your TSX Master for approval.</p>
+
+    <div style="display:flex; gap:6px; margin-bottom:28px;">
+      <sc-for list="{{ steps }}" as="st" hint-placeholder-count="5">
+        <div style="flex:1; height:4px; border-radius:100px; background:{{ st.bg }};"></div>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{ isSubmitted }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:32px; text-align:center;">
+        <div style="width:52px; height:52px; border-radius:100px; background:#E4EFE6; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-size:22px; color:#3F7A4E;">✓</div>
+        <p style="font-size:16px; font-weight:800; margin:0 0 6px;">Lot {{ newLotId }} submitted for review</p>
+        <p style="font-size:13px; color:#565B72; margin:0 0 4px; max-width:440px; margin-left:auto; margin-right:auto;">Routed to your TSX Master. You'll be notified once it's approved and live, or if changes are requested.</p>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isStep1 }}" hint-placeholder-val="{{ true }}">
+      <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:19px; margin:0 0 14px;">1. What are you listing?</h2>
+      <div class="cl-grid2" style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;">
+        <div>
+          <label style="font-size:12px; font-weight:700; color:#565B72; display:block; margin-bottom:6px;">Category</label>
+          <select value="{{ category }}" onChange="{{ onCategoryChange }}" style="width:100%; padding:12px 14px; border:1px solid #DDE0EA; border-radius:9px; font-size:13.5px; outline:none; background:#fff;">
+            <option value="">Select category</option>
+            <option value="industrial">Industrial Machinery</option>
+            <option value="vehicles">Vehicles &amp; Fleet</option>
+            <option value="construction">Construction Equipment</option>
+            <option value="electronics">Electronics &amp; IT Assets</option>
+            <option value="furniture">Furniture &amp; Fixtures</option>
+            <option value="scrap">Scrap &amp; Salvage</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px; font-weight:700; color:#565B72; display:block; margin-bottom:6px;">Condition</label>
+          <select value="{{ condition }}" onChange="{{ onConditionChange }}" style="width:100%; padding:12px 14px; border:1px solid #DDE0EA; border-radius:9px; font-size:13.5px; outline:none; background:#fff;">
+            <option value="">Select condition</option>
+            <option value="working_minimal">Working, Minimal Wear</option>
+            <option value="working_moderate">Working, Moderate Wear</option>
+            <option value="needs_repair">Needs Repair</option>
+            <option value="non_functional">Non-Functional / For Parts</option>
+          </select>
+        </div>
+      </div>
+      <label style="font-size:12px; font-weight:700; color:#565B72; display:block; margin-bottom:6px;">Title</label>
+      <input placeholder="e.g. CNC Lathe Machine, 2018, Surplus" value="{{ title }}" onChange="{{ onTitleChange }}" style="width:100%; padding:12px 14px; border:1px solid #DDE0EA; border-radius:9px; font-size:13.5px; outline:none; margin-bottom:16px;">
+      <label style="font-size:12px; font-weight:700; color:#565B72; display:block; margin-bottom:6px;">Description — include any known defects</label>
+      <textarea placeholder="Describe the item accurately, including condition, age, and any known flaws." value="{{ description }}" onChange="{{ onDescriptionChange }}" rows="4" style="width:100%; padding:12px 14px; border:1px solid #DDE0EA; border-radius:9px; font-size:13.5px; outline:none; resize:vertical; font-family:inherit; margin-bottom:8px;"></textarea>
+      <sc-if value="{{ step1Error }}" hint-placeholder-val="{{ false }}">
+        <p style="font-size:12px; color:#B5482F; margin:0 0 12px;">{{ step1Error }}</p>
+      </sc-if>
+      <button onClick="{{ onGoToStep2 }}" style="padding:12px 22px; border:none; border-radius:100px; background:#1E2233; color:#fff; font-weight:700; font-size:13.5px; cursor:pointer;">Continue</button>
+    </sc-if>
+
+    <sc-if value="{{ isStep2 }}" hint-placeholder-val="{{ false }}">
+      <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:19px; margin:0 0 6px;">2. Upload media</h2>
+      <p style="font-size:12.5px; color:#9A9FB5; margin:0 0 16px;">At least 5 real photos of the actual item, captured through the app — no stock images. Location/timestamp is captured automatically.</p>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+        <p style="font-size:12px; font-weight:700; color:#1E2233; margin:0;">Photos ({{ photoCount }}/50)</p>
+        <button onClick="{{ onBulkUpload }}" style="font-size:12px; font-weight:700; color:#1E2233; background:#fff; border:1px solid #DDE0EA; border-radius:100px; padding:7px 14px; cursor:pointer;">⇪ Bulk Upload</button>
+      </div>
+      <div class="cl-media" style="display:grid; grid-template-columns:repeat(5, 1fr); gap:10px; margin-bottom:8px;">
+        <image-slot id="lot-media-1" style="width:100%; height:110px;" shape="rounded" radius="10" placeholder="Main photo"></image-slot>
+        <image-slot id="lot-media-2" style="width:100%; height:110px;" shape="rounded" radius="10" placeholder="Photo 2"></image-slot>
+        <image-slot id="lot-media-3" style="width:100%; height:110px;" shape="rounded" radius="10" placeholder="Photo 3"></image-slot>
+        <image-slot id="lot-media-4" style="width:100%; height:110px;" shape="rounded" radius="10" placeholder="Photo 4"></image-slot>
+        <image-slot id="lot-media-5" style="width:100%; height:110px;" shape="rounded" radius="10" placeholder="Photo 5"></image-slot>
+      </div>
+      <sc-if value="{{ hasExtraPhotos }}" hint-placeholder-val="{{ false }}">
+        <div class="cl-media" style="display:grid; grid-template-columns:repeat(5, 1fr); gap:10px; margin-bottom:8px;">
+          <sc-for list="{{ extraPhotoSlots }}" as="ep" hint-placeholder-count="5">
+            <image-slot id="{{ ep.id }}" style="width:100%; height:110px;" shape="rounded" radius="10" placeholder="{{ ep.label }}"></image-slot>
+          </sc-for>
+        </div>
+      </sc-if>
+      <p style="font-size:11.5px; color:#9A9FB5; margin:0 0 20px;">Up to 50 photos total. Bulk Upload adds 5 more slots at a time.</p>
+
+      <p style="font-size:12px; font-weight:700; color:#1E2233; margin:0 0 10px;">Video (optional, up to 2 minutes)</p>
+      <div style="display:grid; grid-template-columns:1fr; gap:10px; margin-bottom:20px; max-width:220px;">
+        <image-slot id="lot-video-1" style="width:100%; height:110px;" shape="rounded" radius="10" placeholder="Video walkthrough"></image-slot>
+      </div>
+
+      <p style="font-size:12px; font-weight:700; color:#1E2233; margin:0 0 10px;">Supporting documents (optional — invoice, registration, inspection report)</p>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:20px;">
+        <sc-for list="{{ documents }}" as="doc" hint-placeholder-count="2">
+          <div style="display:flex; align-items:center; gap:10px; background:#fff; border:1px solid #DDE0EA; border-radius:10px; padding:10px 14px;">
+            <span style="font-size:13px; color:#1E2233; flex:1;">{{ doc.name }}</span>
+            <button onClick="{{ doc.onRemove }}" style="font-size:12px; color:#B5482F; background:none; border:none; cursor:pointer; padding:0;">Remove</button>
+          </div>
+        </sc-for>
+        <button onClick="{{ onAddDocument }}" style="align-self:flex-start; font-size:12.5px; font-weight:700; color:#1E2233; background:#fff; border:1px dashed #C7CADA; border-radius:100px; padding:9px 16px; cursor:pointer;">+ Add Document</button>
+      </div>
+
+      <div style="display:flex; gap:14px;">
+        <button onClick="{{ onBackToStep1 }}" style="font-size:12.5px; font-weight:700; color:#565B72; background:none; border:none; cursor:pointer; padding:0;">← Back</button>
+        <button onClick="{{ onGoToStep3 }}" style="margin-left:auto; padding:11px 22px; border:none; border-radius:100px; background:#1E2233; color:#fff; font-weight:700; font-size:13.5px; cursor:pointer;">Continue</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isStep3 }}" hint-placeholder-val="{{ false }}">
+      <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:19px; margin:0 0 14px;">3. Choose a sale format</h2>
+      <div class="cl-grid2" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
+        <sc-for list="{{ formats }}" as="f" hint-placeholder-count="4">
+          <button onClick="{{ f.onSelect }}" class="cl-opt" style="text-align:left; background:#fff; border:2px solid {{ f.borderColor }}; border-radius:12px; padding:16px 18px; cursor:pointer;">
+            <p style="font-size:13.5px; font-weight:700; margin:0 0 4px;">{{ f.label }}</p>
+            <p style="font-size:12px; color:#9A9FB5; margin:0; line-height:1.4;">{{ f.desc }}</p>
+          </button>
+        </sc-for>
+      </div>
+
+      <div class="cl-grid2" style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:8px;">
+        <div>
+          <label style="font-size:12px; font-weight:700; color:#565B72; display:block; margin-bottom:6px;">Reserve Value (RV) — confidential floor price</label>
+          <input placeholder="₹" value="{{ reserveValue }}" onChange="{{ onReserveValueChange }}" style="width:100%; padding:12px 14px; border:1px solid #DDE0EA; border-radius:9px; font-size:13.5px; outline:none;">
+        </div>
+        <sc-if value="{{ isBuyNow }}" hint-placeholder-val="{{ false }}">
+          <div>
+            <label style="font-size:12px; font-weight:700; color:#565B72; display:block; margin-bottom:6px;">Expected Value (EV) — target/asking price</label>
+            <input placeholder="₹" value="{{ expectedValue }}" onChange="{{ onExpectedValueChange }}" style="width:100%; padding:12px 14px; border:1px solid #DDE0EA; border-radius:9px; font-size:13.5px; outline:none;">
+          </div>
+        </sc-if>
+        <sc-if value="{{ isEasy }}" hint-placeholder-val="{{ false }}">
+          <div>
+            <label style="font-size:12px; font-weight:700; color:#565B72; display:block; margin-bottom:6px;">Inspection window</label>
+            <select value="{{ inspectionWindow }}" onChange="{{ onInspectionWindowChange }}" style="width:100%; padding:12px 14px; border:1px solid #DDE0EA; border-radius:9px; font-size:13.5px; outline:none; background:#fff;">
+              <option value="24h">24 hours</option>
+              <option value="48h">48 hours</option>
+              <option value="3d">3 days</option>
+              <option value="7d">7 days</option>
+            </select>
+          </div>
+        </sc-if>
+      </div>
+      <sc-if value="{{ step3Error }}" hint-placeholder-val="{{ false }}">
+        <p style="font-size:12px; color:#B5482F; margin:12px 0 0;">{{ step3Error }}</p>
+      </sc-if>
+      <div style="display:flex; gap:14px; margin-top:16px;">
+        <button onClick="{{ onBackToStep2 }}" style="font-size:12.5px; font-weight:700; color:#565B72; background:none; border:none; cursor:pointer; padding:0;">← Back</button>
+        <button onClick="{{ onRunPreCheck }}" style="margin-left:auto; padding:11px 22px; border:none; border-radius:100px; background:#1E2233; color:#fff; font-weight:700; font-size:13.5px; cursor:pointer;">Run AI Pre-Check</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isStep4 }}" hint-placeholder-val="{{ false }}">
+      <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:19px; margin:0 0 6px;">4. AI Pre-Check</h2>
+      <p style="font-size:12.5px; color:#9A9FB5; margin:0 0 16px;">An advisory scan of your listing content — not a substitute for your TSX Master's review.</p>
+
+      <sc-if value="{{ isPreChecking }}" hint-placeholder-val="{{ true }}">
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:40px 20px; text-align:center;">
+          <p style="font-size:13.5px; color:#565B72; margin:0;">Scanning listing content…</p>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isPreCheckDone }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:22px 24px; margin-bottom:16px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+            <p style="font-size:13px; font-weight:700; margin:0;">Listing Quality Score</p>
+            <p style="font-family:Georgia,serif; font-size:22px; font-weight:800; margin:0; color:{{ preCheckScoreColor }};">{{ preCheckScore }}/100</p>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <sc-for list="{{ preCheckFlags }}" as="fl" hint-placeholder-count="3">
+              <div style="display:flex; gap:10px; align-items:flex-start; font-size:13px;">
+                <span style="color:{{ fl.color }}; flex-shrink:0;">{{ fl.icon }}</span>
+                <span style="color:#1E2233;">{{ fl.text }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex; gap:14px;">
+          <button onClick="{{ onBackToStep3 }}" style="font-size:12.5px; font-weight:700; color:#565B72; background:none; border:none; cursor:pointer; padding:0;">← Back</button>
+          <button onClick="{{ onGoToStep5 }}" style="margin-left:auto; padding:11px 22px; border:none; border-radius:100px; background:#1E2233; color:#fff; font-weight:700; font-size:13.5px; cursor:pointer;">Continue to Review</button>
+        </div>
+      </sc-if>
+    </sc-if>
+
+    <sc-if value="{{ isStep5 }}" hint-placeholder-val="{{ false }}">
+      <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:19px; margin:0 0 14px;">5. Review &amp; submit</h2>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:20px 22px; margin-bottom:18px; display:flex; flex-direction:column; gap:10px;">
+        <div style="display:flex; justify-content:space-between; font-size:13px;"><span style="color:#9A9FB5;">Title</span><span style="font-weight:700;">{{ title }}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:13px;"><span style="color:#9A9FB5;">Category</span><span style="font-weight:700;">{{ categoryLabel }}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:13px;"><span style="color:#9A9FB5;">Format</span><span style="font-weight:700;">{{ selectedFormatLabel }}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:13px;"><span style="color:#9A9FB5;">Reserve Value</span><span style="font-weight:700;">₹{{ reserveValue }}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:13px;"><span style="color:#9A9FB5;">AI Pre-Check Score</span><span style="font-weight:700; color:{{ preCheckScoreColor }};">{{ preCheckScore }}/100</span></div>
+      </div>
+      <div style="background:#F8F1E7; border:1px solid #E9D9BE; border-radius:12px; padding:16px 18px; margin-bottom:20px;">
+        <p style="font-size:12.5px; color:#1E2233; margin:0; line-height:1.55;">Submitting routes this Lot to your TSX Master for approval. It won't go live until approved.</p>
+      </div>
+      <div style="display:flex; gap:14px;">
+        <button onClick="{{ onBackToStep4 }}" style="font-size:12.5px; font-weight:700; color:#565B72; background:none; border:none; cursor:pointer; padding:0;">← Back</button>
+        <button onClick="{{ onSubmitLot }}" style="margin-left:auto; padding:11px 22px; border:none; border-radius:100px; background:#C9974C; color:#fff; font-weight:700; font-size:13.5px; cursor:pointer;" style-hover="background:#A87A38;">Submit for Approval</button>
+      </div>
+    </sc-if>
+  </main>
+
+  <footer style="border-top:1px solid #DDE0EA; padding:24px 20px; text-align:center;">
+    <p style="font-size:12.5px; color:#9A9FB5; margin:0;">See our <a href="Dos and Donts.dc.html">Dos &amp; Don'ts</a> for listing best practices.</p>
+  </footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    step: 1, submitted: false, newLotId: '',
+    category: '', condition: '', title: '', description: '', step1Error: '',
+    formatId: null, reserveValue: '', expectedValue: '', inspectionWindow: '3d', step3Error: '',
+    preCheckStatus: 'idle',
+    extraPhotoBatches: 0, documents: [],
+  };
+
+  categories() {
+    return { industrial: 'Industrial Machinery', vehicles: 'Vehicles & Fleet', construction: 'Construction Equipment', electronics: 'Electronics & IT Assets', furniture: 'Furniture & Fixtures', scrap: 'Scrap & Salvage' };
+  }
+  formatDefs() {
+    return [
+      { id: 'buynow', label: 'Buy-Now', desc: 'Traders make offers; you choose who to sell to.' },
+      { id: 'easy', label: 'Easy Auction', desc: 'Scheduled, with a real inspection window.' },
+      { id: 'express', label: 'Express Auction', desc: 'Fast — starts once 3 Traders pledge, closes within the hour.' },
+      { id: 'tender', label: 'Tender Auction', desc: 'Fully private, invite-only — you control participation.' },
+    ];
+  }
+
+  renderVals() {
+    const s = this.state;
+    const cats = this.categories();
+    const formats = this.formatDefs();
+    const selectedFormat = formats.find(f => f.id === s.formatId);
+
+    return {
+      steps: [1, 2, 3, 4, 5].map(n => ({ bg: n <= s.step ? '#C9974C' : '#DDE0EA' })),
+      isSubmitted: s.submitted,
+      newLotId: s.newLotId,
+      isStep1: !s.submitted && s.step === 1,
+      isStep2: !s.submitted && s.step === 2,
+      isStep3: !s.submitted && s.step === 3,
+      isStep4: !s.submitted && s.step === 4,
+      isStep5: !s.submitted && s.step === 5,
+
+      category: s.category, onCategoryChange: (e) => this.setState({ category: e.target.value, step1Error: '' }),
+      condition: s.condition, onConditionChange: (e) => this.setState({ condition: e.target.value, step1Error: '' }),
+      title: s.title, onTitleChange: (e) => this.setState({ title: e.target.value, step1Error: '' }),
+      description: s.description, onDescriptionChange: (e) => this.setState({ description: e.target.value, step1Error: '' }),
+      step1Error: s.step1Error,
+      onGoToStep2: () => {
+        if (!s.category || !s.condition || !s.title.trim()) { this.setState({ step1Error: 'Fill in category, condition, and title before continuing.' }); return; }
+        this.setState({ step: 2 });
+      },
+      onBackToStep1: () => this.setState({ step: 1 }),
+      onGoToStep3: () => this.setState({ step: 3 }),
+      onBackToStep2: () => this.setState({ step: 2 }),
+
+      photoCount: 5 + s.extraPhotoBatches * 5,
+      hasExtraPhotos: s.extraPhotoBatches > 0,
+      extraPhotoSlots: Array.from({ length: s.extraPhotoBatches * 5 }, (_, i) => ({ id: 'lot-media-' + (6 + i), label: 'Photo ' + (6 + i) })),
+      onBulkUpload: () => { if (s.extraPhotoBatches * 5 < 45) this.setState({ extraPhotoBatches: s.extraPhotoBatches + 1 }); },
+      documents: s.documents.map((d, i) => ({ name: d, onRemove: () => this.setState({ documents: this.state.documents.filter((_, idx) => idx !== i) }) })),
+      onAddDocument: () => this.setState({ documents: [...this.state.documents, 'Document ' + (this.state.documents.length + 1) + '.pdf'] }),
+
+      formats: formats.map(f => ({ ...f, borderColor: s.formatId === f.id ? '#C9974C' : '#DDE0EA', onSelect: () => this.setState({ formatId: f.id, step3Error: '' }) })),
+      isBuyNow: s.formatId === 'buynow',
+      isEasy: s.formatId === 'easy',
+      reserveValue: s.reserveValue, onReserveValueChange: (e) => this.setState({ reserveValue: e.target.value, step3Error: '' }),
+      expectedValue: s.expectedValue, onExpectedValueChange: (e) => this.setState({ expectedValue: e.target.value }),
+      inspectionWindow: s.inspectionWindow, onInspectionWindowChange: (e) => this.setState({ inspectionWindow: e.target.value }),
+      step3Error: s.step3Error,
+      onRunPreCheck: () => {
+        if (!s.formatId) { this.setState({ step3Error: 'Choose a sale format.' }); return; }
+        if (!s.reserveValue) { this.setState({ step3Error: 'Enter a Reserve Value.' }); return; }
+        this.setState({ step: 4, preCheckStatus: 'running' });
+        setTimeout(() => { if (this.state.preCheckStatus === 'running') this.setState({ preCheckStatus: 'done' }); }, 1400);
+      },
+      onBackToStep3: () => this.setState({ step: 3 }),
+
+      isPreChecking: s.preCheckStatus === 'running',
+      isPreCheckDone: s.preCheckStatus === 'done',
+      preCheckScore: 84,
+      preCheckScoreColor: '#3F7A4E',
+      preCheckFlags: [
+        { icon: '✓', color: '#3F7A4E', text: '5 photos meet the minimum requirement, captured in-app with location/timestamp data.' },
+        { icon: '✓', color: '#3F7A4E', text: 'Description length and detail are adequate for this category.' },
+        { icon: '!', color: '#9C5B1F', text: 'Consider adding a close-up photo of any visible wear — improves Trader confidence.' },
+      ],
+      onGoToStep5: () => this.setState({ step: 5 }),
+      onBackToStep4: () => this.setState({ step: 4 }),
+
+      categoryLabel: cats[s.category] || '',
+      selectedFormatLabel: selectedFormat ? selectedFormat.label : '',
+      onSubmitLot: () => {
+        const id = 'LOT-' + Math.floor(10000 + Math.random() * 89999);
+        this.setState({ submitted: true, newLotId: id });
+      },
+    };
+  }
+}
+
+</script>
+</body>
+</html>

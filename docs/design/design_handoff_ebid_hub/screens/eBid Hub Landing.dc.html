@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html, body{overflow-x:hidden;}
+  body{margin:0;}
+  a{text-decoration:none;}
+  a:link, a:visited{color:#C9974C;}
+  a:hover{color:#A87A38;}
+
+  @media (max-width:900px){
+    .af-header{padding-left:20px !important; padding-right:20px !important;}
+    .af-icon{height:44px !important; width:44px !important;}
+    .af-wordmark{font-size:26px !important;}
+    .af-nav{display:none !important;}
+    .af-header-ctas a{padding:9px 16px !important; font-size:12.5px !important;}
+    .af-logo-wrap{min-width:0; overflow:hidden; flex-shrink:1;}
+    .af-hero{grid-template-columns:1fr !important; gap:32px !important;}
+    .af-h1{font-size:38px !important;}
+    .af-cmp{grid-template-columns:1fr !important;}
+    .af-stats{grid-template-columns:repeat(2,1fr) !important; row-gap:26px !important;}
+    .af-listings{grid-template-columns:repeat(2,1fr) !important;}
+    .af-formats{grid-template-columns:repeat(2,1fr) !important;}
+    .af-steps{grid-template-columns:repeat(2,1fr) !important; row-gap:24px !important;}
+    .af-trust{grid-template-columns:1fr !important;}
+    .af-testi{grid-template-columns:1fr !important;}
+    .af-cta{flex-direction:column !important; align-items:flex-start !important; gap:18px !important;}
+    .af-cta a{width:100%; text-align:center;}
+    .af-footer{flex-direction:column !important; align-items:flex-start !important; gap:14px !important;}
+  }
+  @media (max-width:560px){
+    .af-login-label{display:none !important;}
+  }
+  @media (max-width:600px){
+    .af-icon{height:38px !important; width:38px !important;}
+    .af-wordmark{font-size:22px !important;}
+    .af-h1{font-size:30px !important;}
+    .af-stats{grid-template-columns:repeat(2,1fr) !important;}
+    .af-listings{grid-template-columns:1fr !important;}
+    .af-formats{grid-template-columns:1fr !important;}
+    .af-steps{grid-template-columns:1fr !important;}
+    .af-hero-ctas{flex-direction:column !important;}
+    .af-hero-ctas a{width:100%; text-align:center;}
+  }
+</style>
+</helmet>
+
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;">
+
+  <header style="position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.9); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div class="af-header" style="max-width:1240px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:16px 32px; gap:12px; min-width:0;">
+      <div class="af-logo-wrap" style="display:flex; align-items:center; gap:16px; flex-shrink:0;">
+        <img class="af-icon" src="uploads/adwitix-icon.svg" alt="" style="height:72px; width:72px; display:block; flex:none;">
+        <span class="af-wordmark" style="font-family:Georgia, 'Cambria', serif; font-weight:800; font-size:48px; letter-spacing:-1px; color:#1E2761;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </div>
+      <nav class="af-nav" style="display:flex; gap:4px; background:#E9EBF2; padding:4px; border-radius:100px;">
+        <a href="Marketplace.dc.html" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#fff; background:#1E2233;">Marketplace</a>
+        <a href="Marketplace.dc.html" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#565B72;">Browse</a>
+        <a href="#" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#565B72;">Sell</a>
+        <a href="Trust and Support.dc.html" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#565B72;">Trust &amp; Support</a>
+      </nav>
+      <sc-if value="{{ isLoggedIn }}" hint-placeholder-val="{{ false }}">
+        <a href="Profile.dc.html" class="af-header-ctas" style="display:flex; align-items:center; gap:10px; flex-shrink:0; color:inherit;">
+          <div style="width:38px; height:38px; border-radius:100px; background:#1E2233; color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; flex-shrink:0;">{{ userInitials }}</div>
+          <div class="af-login-label" style="display:flex; flex-direction:column; gap:2px;">
+            <span style="font-size:13px; font-weight:700; color:#1E2233; line-height:1.2; white-space:nowrap;">{{ userName }}</span>
+            <span style="font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.3px; color:{{ kycColor }}; white-space:nowrap;">{{ kycStatusLabel }}</span>
+          </div>
+        </a>
+      </sc-if>
+      <sc-if value="{{ isLoggedOut }}" hint-placeholder-val="{{ true }}">
+        <div class="af-header-ctas" style="display:flex; gap:10px; flex-shrink:0;">
+          <a href="#" class="af-login-label" style="font-weight:700; font-size:13.5px; padding:10px 20px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233; white-space:nowrap;">Log In</a>
+          <a href="#" style="font-weight:700; font-size:13.5px; padding:10px 20px; border-radius:100px; background:#C9974C; color:#fff; white-space:nowrap;">List an Asset</a>
+        </div>
+      </sc-if>
+    </div>
+  </header>
+
+  <main style="max-width:1240px; margin:0 auto; padding:0 24px;">
+
+    <section class="af-hero" style="display:grid; grid-template-columns:1.05fr 0.95fr; gap:56px; padding:56px 0 60px; align-items:center;">
+      <div>
+        <div style="display:flex; gap:8px; margin-bottom:22px; flex-wrap:wrap;">
+          <span style="font-size:12px; font-weight:600; color:#A87A38; background:#F6EEDF; padding:6px 13px; border-radius:100px;">Repossessed</span>
+          <span style="font-size:12px; font-weight:600; color:#A87A38; background:#F6EEDF; padding:6px 13px; border-radius:100px;">Salvaged Claims</span>
+          <span style="font-size:12px; font-weight:600; color:#A87A38; background:#F6EEDF; padding:6px 13px; border-radius:100px;">Industrial Surplus</span>
+        </div>
+        <h1 class="af-h1" style="font-family:Georgia, 'Cambria', serif; font-size:52px; line-height:1.06; font-weight:800; margin:0 0 20px; letter-spacing:-1.5px;">You list the asset. <span style="color:#C9974C;">We settle the sale.</span></h1>
+        <p style="font-size:16.5px; line-height:1.65; color:#565B72; max-width:460px; margin:0 0 30px;">Disposing of salvage and surplus the old way means chasing scrap dealers for weeks, guessing at fair value, and hoping the buyer actually pays. AdwitiX runs the whole thing: verified bidders, escrowed deposits, and a rating system that keeps every deal honest.</p>
+        <div class="af-hero-ctas" style="display:flex; gap:12px; margin-bottom:38px;">
+          <a href="Marketplace.dc.html#live-listings" style="font-weight:700; font-size:13.5px; padding:12px 24px; border-radius:100px; background:#C9974C; color:#fff;">Browse Live Auctions</a>
+          <a href="#" style="font-weight:700; font-size:13.5px; padding:12px 24px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233;">List an Asset →</a>
+        </div>
+        <div style="display:flex; gap:36px;">
+          <div><b style="display:block; font-size:24px; font-weight:800; letter-spacing:-0.5px;">128</b><span style="font-size:12px; color:#9A9FB5; font-weight:600;">Live Right Now</span></div>
+          <div><b style="display:block; font-size:24px; font-weight:800; letter-spacing:-0.5px;">3</b><span style="font-size:12px; color:#9A9FB5; font-weight:600;">Sale Formats</span></div>
+          <div><b style="display:block; font-size:24px; font-weight:800; letter-spacing:-0.5px;">10%</b><span style="font-size:12px; color:#9A9FB5; font-weight:600;">Flat EMD Entry</span></div>
+          <div><b style="display:block; font-size:24px; font-weight:800; letter-spacing:-0.5px;">100%</b><span style="font-size:12px; color:#9A9FB5; font-weight:600;">Direct Settlement</span></div>
+        </div>
+      </div>
+
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:20px; overflow:hidden; box-shadow:0 24px 48px -20px rgba(20,20,20,0.14);">
+        <div style="height:200px; background:repeating-linear-gradient(135deg, #F1F1EE 0px, #F1F1EE 14px, #E7E7E1 14px, #E7E7E1 28px); position:relative; display:flex; align-items:flex-start; justify-content:space-between; padding:16px;">
+          <span style="font-size:11px; font-weight:700; padding:6px 12px; border-radius:100px; background:#FBF2E2; color:#8A6425;">EASY AUCTION</span>
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#9A9FB5; background:rgba(255,255,255,0.7); padding:4px 8px; border-radius:6px;">photo placeholder</span>
+        </div>
+        <div style="padding:20px;">
+          <div style="font-size:11px; color:#9A9FB5; font-weight:600; margin-bottom:4px;">LOT #4471 · PIN 201301</div>
+          <h3 style="margin:0 0 12px; font-size:16px; font-weight:700; letter-spacing:-0.2px;">Industrial — CNC Lathe (Surplus)</h3>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><span style="font-size:11.5px; color:#9A9FB5; font-weight:600;">Current Price</span><span style="font-size:22px; color:#C9974C; font-weight:800;">₹3,42,000</span></div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><span style="font-size:11.5px; color:#9A9FB5; font-weight:600;">Condition</span><span style="font-size:13.5px; font-weight:700;">Working, Minor Wear</span></div>
+          <span style="width:100%; padding:12px; background:#C9974C; color:#fff; font-weight:700; font-family:'Inter',sans-serif; border-radius:100px; font-size:13.5px; text-align:center; display:block;">View Listing</span>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:50px 0; border-top:1px solid #DDE0EA;">
+      <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">The Real Bottleneck</div>
+      <h2 style="font-family:Georgia, 'Cambria', serif; font-size:28px; font-weight:800; margin:0 0 10px; letter-spacing:-0.7px;">Selling salvage the old way costs you weeks and certainty.</h2>
+      <p style="font-size:14.5px; color:#565B72; max-width:560px; line-height:1.65; margin:0 0 30px;">Cold-calling scrap dealers gets you one lowball number and no proof anyone else would've paid more. AdwitiX replaces that with a transparent auction, an escrowed deposit, and a settlement that only completes once both sides confirm.</p>
+      <div class="af-cmp" style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:26px;">
+          <div style="font-size:12px; font-weight:700; color:#9A9FB5; text-transform:uppercase; margin-bottom:14px;">Without AdwitiX</div>
+          <ul style="margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:12px;">
+            <li style="font-size:13.5px; color:#565B72;">— Call scrap dealers one by one, no competing bids</li>
+            <li style="font-size:13.5px; color:#565B72;">— No proof the price offered was fair</li>
+            <li style="font-size:13.5px; color:#565B72;">— Trader pays late, or not at all, with no recourse</li>
+            <li style="font-size:13.5px; color:#565B72;">— No record of Trader/Market Maker reliability</li>
+            <li style="font-size:13.5px; color:#565B72;">— Disputes settled by whoever shouts louder</li>
+          </ul>
+        </div>
+        <div style="background:#fff; border:1px solid #C9974C; border-radius:16px; padding:26px;">
+          <div style="font-size:12px; font-weight:700; color:#C9974C; text-transform:uppercase; margin-bottom:14px;">With AdwitiX</div>
+          <ul style="margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:12px;">
+            <li style="font-size:13.5px; color:#1E2233; font-weight:600;">— Verified bidders compete in the open</li>
+            <li style="font-size:13.5px; color:#1E2233; font-weight:600;">— Winning price is set by the market, not a phone call</li>
+            <li style="font-size:13.5px; color:#1E2233; font-weight:600;">— EMD held in escrow before bidding even opens</li>
+            <li style="font-size:13.5px; color:#1E2233; font-weight:600;">— Every account carries a real, earned rating</li>
+            <li style="font-size:13.5px; color:#1E2233; font-weight:600;">— A dispute framework — not a shouting match</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="af-stats" style="padding:50px 0; border-top:1px solid #DDE0EA; display:grid; grid-template-columns:repeat(4,1fr); gap:20px; text-align:center;">
+      <div><b style="display:block; font-family:Georgia, 'Cambria', serif; font-size:34px; font-weight:800;">10%</b><span style="font-size:12.5px; color:#9A9FB5; font-weight:600;">Flat EMD, Any Format</span></div>
+      <div><b style="display:block; font-family:Georgia, 'Cambria', serif; font-size:34px; font-weight:800;">4</b><span style="font-size:12.5px; color:#9A9FB5; font-weight:600;">Trust Scores Tracked</span></div>
+      <div><b style="display:block; font-family:Georgia, 'Cambria', serif; font-size:34px; font-weight:800;">1hr</b><span style="font-size:12.5px; color:#9A9FB5; font-weight:600;">Fastest Auction Format</span></div>
+      <div><b style="display:block; font-family:Georgia, 'Cambria', serif; font-size:34px; font-weight:800;">0</b><span style="font-size:12.5px; color:#9A9FB5; font-weight:600;">Lot Fees, Ever</span></div>
+    </section>
+
+    <section id="live-listings" style="padding:50px 0; border-top:1px solid #DDE0EA;">
+      <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">Live Right Now</div>
+      <h2 style="font-family:Georgia, 'Cambria', serif; font-size:28px; font-weight:800; margin:0 0 10px; letter-spacing:-0.7px;">What's actually on the yard.</h2>
+      <p style="font-size:14.5px; color:#565B72; max-width:560px; line-height:1.65; margin:0 0 30px;">Every Lot here is a real, active Trading Session — not a demo.</p>
+      <div class="af-listings" style="display:grid; grid-template-columns:repeat(3,1fr); gap:18px;">
+        <sc-for list="{{ listings }}" as="item" hint-placeholder-count="3">
+          <div style="background:#fff; border:1px solid #DDE0EA; border-radius:20px; overflow:hidden; box-shadow:0 24px 48px -20px rgba(20,20,20,0.14);">
+            <div style="height:160px; background:repeating-linear-gradient(135deg, #F1F1EE 0px, #F1F1EE 14px, #E7E7E1 14px, #E7E7E1 28px); position:relative; display:flex; align-items:flex-start; justify-content:flex-end; padding:16px;">
+              <span style="font-size:11px; font-weight:700; padding:6px 12px; border-radius:100px; background:#FBF2E2; color:#8A6425;">{{ item.format }}</span>
+            </div>
+            <div style="padding:18px;">
+              <div style="font-size:11px; color:#9A9FB5; font-weight:600; margin-bottom:4px;">LOT #{{ item.lot }}</div>
+              <h3 style="margin:0 0 12px; font-size:15px; font-weight:700; letter-spacing:-0.2px;">{{ item.title }}</h3>
+              <div style="display:flex; justify-content:space-between; align-items:center;"><span style="font-size:11.5px; color:#9A9FB5; font-weight:600;">Price</span><span style="font-size:18px; color:#C9974C; font-weight:800;">{{ item.price }}</span></div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="padding:50px 0; border-top:1px solid #DDE0EA;">
+      <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">How Selling Works</div>
+      <h2 style="font-family:Georgia, 'Cambria', serif; font-size:28px; font-weight:800; margin:0 0 10px; letter-spacing:-0.7px;">Five steps, one settled sale.</h2>
+      <p style="font-size:14.5px; color:#565B72; max-width:560px; line-height:1.65; margin:0 0 30px;">From listing an asset to money in your account — every step is tracked, and nothing closes until both sides confirm.</p>
+      <div class="af-steps" style="display:grid; grid-template-columns:repeat(5,1fr); gap:16px;">
+        <div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:#C9974C; margin-bottom:10px;">01</div>
+          <h4 style="margin:0 0 6px; font-size:14.5px; font-weight:700;">List the asset</h4>
+          <p style="margin:0; font-size:12.5px; color:#565B72; line-height:1.55;">Photos, condition, location, expected value.</p>
+        </div>
+        <div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:#C9974C; margin-bottom:10px;">02</div>
+          <h4 style="margin:0 0 6px; font-size:14.5px; font-weight:700;">Get approved</h4>
+          <p style="margin:0; font-size:12.5px; color:#565B72; line-height:1.55;">Your TSX Master reviews before it goes live.</p>
+        </div>
+        <div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:#C9974C; margin-bottom:10px;">03</div>
+          <h4 style="margin:0 0 6px; font-size:14.5px; font-weight:700;">Pick a format</h4>
+          <p style="margin:0; font-size:12.5px; color:#565B72; line-height:1.55;">Buy-Now, Easy, or Express Auction.</p>
+        </div>
+        <div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:#C9974C; margin-bottom:10px;">04</div>
+          <h4 style="margin:0 0 6px; font-size:14.5px; font-weight:700;">Bidding closes</h4>
+          <p style="margin:0; font-size:12.5px; color:#565B72; line-height:1.55;">Highest verified bid wins, EMD already held.</p>
+        </div>
+        <div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:#C9974C; margin-bottom:10px;">05</div>
+          <h4 style="margin:0 0 6px; font-size:14.5px; font-weight:700;">Settle &amp; rate</h4>
+          <p style="margin:0; font-size:12.5px; color:#565B72; line-height:1.55;">Both sides confirm NOC, then rate each other.</p>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:50px 0; border-top:1px solid #DDE0EA;">
+      <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">Sale Formats</div>
+      <h2 style="font-family:Georgia, 'Cambria', serif; font-size:28px; font-weight:800; margin:0 0 10px; letter-spacing:-0.7px;">Three ways to sell today. One winner, always.</h2>
+      <p style="font-size:14.5px; color:#565B72; max-width:560px; line-height:1.65; margin:0 0 30px;">Every listing is matched to the disposal mechanism that fits it — Tender is coming soon, Company Shop exclusive.</p>
+      <div class="af-formats" style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px;">
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:22px;">
+          <div style="width:34px; height:34px; border-radius:10px; background:#F6EEDF; color:#A87A38; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; margin-bottom:14px;">BN</div>
+          <h4 style="margin:0 0 6px; font-size:15px; font-weight:700;">Buy-Now</h4>
+          <p style="margin:0; font-size:12.5px; color:#565B72; line-height:1.55;">Judgment-based offers. Market Makers weigh price against Trader rating, not just the highest number.</p>
+          <span style="font-size:10.5px; font-weight:700; color:#9A9FB5; margin-top:12px; display:block;">3-day offer validity</span>
+        </div>
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:22px;">
+          <div style="width:34px; height:34px; border-radius:10px; background:#F6EEDF; color:#A87A38; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; margin-bottom:14px;">EA</div>
+          <h4 style="margin:0 0 6px; font-size:15px; font-weight:700;">Easy Auction</h4>
+          <p style="margin:0; font-size:12.5px; color:#565B72; line-height:1.55;">Scheduled open bidding with Dynamic Time extensions — a late bid pushes the deadline back.</p>
+          <span style="font-size:10.5px; font-weight:700; color:#9A9FB5; margin-top:12px; display:block;">Market Maker sets the schedule</span>
+        </div>
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:22px;">
+          <div style="width:34px; height:34px; border-radius:10px; background:#F6EEDF; color:#A87A38; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; margin-bottom:14px;">EX</div>
+          <h4 style="margin:0 0 6px; font-size:15px; font-weight:700;">Express Auction</h4>
+          <p style="margin:0; font-size:12.5px; color:#565B72; line-height:1.55;">No inspection, no waiting — launches the instant 3 Traders pledge EMD. Fully automatic result.</p>
+          <span style="font-size:10.5px; font-weight:700; color:#9A9FB5; margin-top:12px; display:block;">1-hour run time</span>
+        </div>
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:22px; opacity:0.55;">
+          <div style="width:34px; height:34px; border-radius:10px; background:#F6EEDF; color:#A87A38; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; margin-bottom:14px;">TD</div>
+          <h4 style="margin:0 0 6px; font-size:15px; font-weight:700;">Tender</h4>
+          <p style="margin:0; font-size:12.5px; color:#565B72; line-height:1.55;">Fully curated, invitation-only concierge sales — Company Shop exclusive.</p>
+          <span style="font-size:10.5px; font-weight:700; color:#9A9FB5; margin-top:12px; display:block;">Coming soon</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="trust" style="padding:50px 0; border-top:1px solid #DDE0EA;">
+      <div class="af-trust" style="display:grid; grid-template-columns:0.9fr 1.1fr; gap:44px; align-items:center;">
+        <div>
+          <div style="display:flex; align-items:center; gap:8px; margin:0 0 10px;">
+            <img src="uploads/adwitix-icon.svg" alt="" style="height:24px; width:24px;">
+            <span style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C;">Trust System</span>
+          </div>
+          <h2 style="font-family:Georgia, 'Cambria', serif; font-size:28px; font-weight:800; margin:0 0 10px; letter-spacing:-0.7px;">Four scores, one honest track record.</h2>
+          <ul style="list-style:none; margin:0; padding:0;">
+            <li style="display:flex; gap:14px; margin-bottom:18px; align-items:flex-start;">
+              <span style="width:28px; height:28px; flex:none; background:#C9974C; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px;">1</span>
+              <div><b style="display:block; font-size:14px; margin-bottom:3px;">Every profile starts at 3★</b><span style="font-size:13px; color:#565B72; line-height:1.5;">No advantage for age of account — rating reflects behaviour, never frequency.</span></div>
+            </li>
+            <li style="display:flex; gap:14px; margin-bottom:18px; align-items:flex-start;">
+              <span style="width:28px; height:28px; flex:none; background:#C9974C; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px;">2</span>
+              <div><b style="display:block; font-size:14px; margin-bottom:3px;">Downgrades are human-reviewed</b><span style="font-size:13px; color:#565B72; line-height:1.5;">No rating drops silently. Tenant Admin — and Super Admin below 2★ — must approve it.</span></div>
+            </li>
+            <li style="display:flex; gap:14px; align-items:flex-start;">
+              <span style="width:28px; height:28px; flex:none; background:#C9974C; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px;">3</span>
+              <div><b style="display:block; font-size:14px; margin-bottom:3px;">Recovery is real</b><span style="font-size:13px; color:#565B72; line-height:1.5;">Crawl-Back lets a buyer rebuild trust through clean transactions.</span></div>
+            </li>
+          </ul>
+        </div>
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:24px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #E9EBF2;"><span style="font-size:13px; font-weight:600; color:#565B72;">Buyer Rating</span><span style="font-weight:800; color:#C9974C; font-size:14px;">★★★☆☆ 3.0</span></div>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #E9EBF2;"><span style="font-size:13px; font-weight:600; color:#565B72;">Seller Rating</span><span style="font-weight:800; color:#C9974C; font-size:14px;">★★★☆☆ 3.0</span></div>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0;"><span style="font-size:13px; font-weight:600; color:#565B72;">Every account starts here</span><span style="font-weight:800; color:#C9974C; font-size:14px;">Neutral baseline</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:50px 0; border-top:1px solid #DDE0EA;">
+      <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">Trusted On The Yard</div>
+      <h2 style="font-family:Georgia, 'Cambria', serif; font-size:28px; font-weight:800; margin:0 0 30px; letter-spacing:-0.7px;">What Market Makers and Traders say.</h2>
+      <div class="af-testi" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:24px;">
+          <p style="font-size:14px; line-height:1.6; margin:0 0 16px; color:#1E2233;">"First time I actually got competing bids on scrap machinery instead of one lowball number over the phone."</p>
+          <b style="display:block; font-size:13px;">Ramesh Yadav</b><span style="font-size:12px; color:#9A9FB5;">Plant Manager, Surplus Market Maker</span>
+        </div>
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:24px;">
+          <p style="font-size:14px; line-height:1.6; margin:0 0 16px; color:#1E2233;">"The EMD escrow means I don't chase payment anymore. Settlement happens automatically once both sides confirm."</p>
+          <b style="display:block; font-size:13px;">Neha Kapoor</b><span style="font-size:12px; color:#9A9FB5;">Insurance Salvage Coordinator</span>
+        </div>
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:24px;">
+          <p style="font-size:14px; line-height:1.6; margin:0 0 16px; color:#1E2233;">"Express Auction cleared a repossessed fleet in under an hour. No inspection delays, no back-and-forth."</p>
+          <b style="display:block; font-size:13px;">Arvind Mehta</b><span style="font-size:12px; color:#9A9FB5;">Recovery Agent, Regional Bank</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="af-cta" style="background:#1E2761; color:#fff; border-radius:22px; padding:40px; display:flex; justify-content:space-between; align-items:center; margin:50px 0;">
+      <div>
+        <h3 style="margin:0 0 6px; font-size:22px; font-weight:800; letter-spacing:-0.4px; font-family:Georgia, 'Cambria', serif;">Ready to clear the yard?</h3>
+        <p style="margin:0; color:#CADCFC; font-size:13.5px;">List your first asset in minutes — no listing fee, ever.</p>
+      </div>
+      <a href="#" style="background:#C9974C; color:#1E2761; font-weight:700; font-size:13.5px; padding:12px 24px; border-radius:100px;">Get Started</a>
+    </div>
+
+  </main>
+
+  <footer style="border-top:1px solid #DDE0EA; padding:32px 0 44px; font-size:12.5px; color:#9A9FB5; margin-top:20px;">
+    <div class="af-footer" style="max-width:1240px; margin:0 auto; padding:0 24px; display:flex; justify-content:space-between; align-items:center;">
+      <span style="display:flex; align-items:center; gap:8px;"><img src="uploads/adwitix-icon.svg" alt="" style="height:20px; width:20px;">© AdwitiX — Building trust into every asset transaction</span>
+      <div style="display:flex; gap:24px;">
+        <a href="Trust and Support.dc.html" style="color:#9A9FB5;">Trust &amp; Support</a>
+        <a href="Pricing.dc.html" style="color:#9A9FB5;">Pricing</a>
+        <a href="Terms and Privacy.dc.html" style="color:#9A9FB5;">Terms</a>
+        <a href="#" style="color:#9A9FB5;">Privacy</a>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;isLoggedIn&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Header&quot;}, &quot;userName&quot;: {&quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;Ravi Kumar&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Header&quot;}, &quot;kycStatus&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;verified&quot;, &quot;options&quot;: [&quot;verified&quot;, &quot;pending&quot;, &quot;suspended&quot;], &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Header&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const isLoggedIn = this.props.isLoggedIn ?? true;
+    const kycStatus = this.props.kycStatus ?? 'verified';
+    const kycMap = {
+      verified: { label: 'KYC Verified', color: '#3F7A4E' },
+      pending: { label: 'KYC Pending', color: '#9C5B1F' },
+      suspended: { label: 'KYC Suspended', color: '#B5482F' }
+    };
+    const kyc = kycMap[kycStatus] || kycMap.verified;
+    const userName = this.props.userName ?? 'Ravi Kumar';
+    const userInitials = userName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    return {
+      isLoggedIn, isLoggedOut: !isLoggedIn,
+      userName, userInitials,
+      kycStatusLabel: kyc.label, kycColor: kyc.color,
+      listings: [
+        { format: 'BUY-NOW', lot: '4488', title: 'Repossessed Sedan — Fleet Lot', price: '₹2,10,000' },
+        { format: 'EASY AUCTION', lot: '4501', title: 'Warehouse Racking, 40 Units', price: '₹95,000' },
+        { format: 'EXPRESS', lot: '4512', title: 'Salvaged Transformer Bank', price: '₹5,60,000' }
+      ]
+    };
+  }
+}
+
+</script>
+</body>
+</html>

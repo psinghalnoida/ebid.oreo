@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} html,body{overflow-x:hidden;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#C9974C;}
+@media (max-width:640px){.al-nav{display:none !important;}}
+</style>
+</helmet>
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; min-height:100vh;">
+  <header style="position:sticky; top:0; z-index:60; background:#1E2233; border-bottom:1px solid #33374A;">
+    <div style="max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#fff;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <nav class="al-nav" style="display:flex; gap:4px; background:#2A2E40; padding:4px; border-radius:100px;">
+        <a href="Custodian Dashboard.dc.html" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#C7CADA;">Dashboard</a>
+        <a href="#" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#fff; background:#C9974C;">Alerts</a>
+      </nav>
+    </div>
+  </header>
+
+  <main style="max-width:900px; margin:0 auto; padding:40px 20px 90px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">Custodian</div>
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+      <h1 style="font-family:Georgia,'Cambria',serif; font-size:30px; font-weight:800; letter-spacing:-0.6px; margin:0;">Alerts</h1>
+      <button onClick="{{ onToggleInfo }}" title="Why this screen exists" style="width:22px; height:22px; border-radius:50%; border:1px solid #9A9FB5; background:#fff; color:#565B72; font-size:12px; font-weight:700; font-family:Georgia,serif; font-style:italic; cursor:pointer; flex-shrink:0;">i</button>
+    </div>
+    <p style="font-size:14px; color:#565B72; margin:0 0 12px; max-width:620px; line-height:1.6;">Platform-wide conditions that need Custodian attention — compliance flags, stalled processes, and pending reviews aging past their SLA.</p>
+    <sc-if value="{{ showInfo }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#FBF8F0; border:1px solid #E9DCC0; border-radius:10px; padding:14px 16px; margin:0 0 20px; font-size:13px; color:#6B5D3F; line-height:1.6; max-width:620px;">
+        <strong>Why this screen exists:</strong> This feed surfaces conditions flagged by the platform's compliance rules — AML monitoring, settlement SLAs, KYC review windows, payout cooling-off, and media/rating disputes — so nothing ages silently.
+        <button onClick="{{ onToggleInfo }}" style="display:block; margin-top:8px; font-size:12px; font-weight:700; color:#9C874C; background:none; border:none; cursor:pointer; padding:0;">Close</button>
+      </div>
+    </sc-if>
+
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
+      <sc-for list="{{ sevFilters }}" as="f" hint-placeholder-count="4">
+        <button onClick="{{ f.onClick }}" style="padding:7px 14px; border-radius:100px; border:1px solid {{ f.borderColor }}; background:{{ f.bg }}; color:{{ f.color }}; font-size:12px; font-weight:600; cursor:pointer;">{{ f.label }}</button>
+      </sc-for>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <sc-for list="{{ visibleAlerts }}" as="a" hint-placeholder-count="6">
+        <div style="background:#fff; border:1px solid #DDE0EA; border-left:4px solid {{ a.stripe }}; border-radius:10px; padding:16px 18px; display:flex; gap:14px; align-items:flex-start;">
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px; flex-wrap:wrap;">
+              <span style="font-size:10px; font-weight:700; text-transform:uppercase; color:{{ a.sevColor }}; background:{{ a.sevBg }}; padding:3px 8px; border-radius:100px;">{{ a.severity }}</span>
+              <span style="font-size:11px; color:#9A9FB5;">{{ a.category }}</span>
+              <span style="font-size:11px; color:#9A9FB5; font-family:'IBM Plex Mono',monospace;">{{ a.at }}</span>
+            </div>
+            <div style="font-size:14.5px; font-weight:700; margin-bottom:3px;">{{ a.title }}</div>
+            <div style="font-size:13px; color:#565B72; line-height:1.5;">{{ a.detail }}</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px; flex-shrink:0;">
+            <a href="{{ a.href }}" style="font-size:12px; font-weight:700; padding:8px 14px; border-radius:8px; background:#1E2233; color:#fff; text-align:center;">Review →</a>
+            <button onClick="{{ a.onDismiss }}" style="font-size:11.5px; font-weight:600; color:#9A9FB5; background:none; border:none; cursor:pointer;">Dismiss</button>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="text-align:center; padding:60px 20px; color:#9A9FB5; font-size:14px;">No alerts match this filter — or everything's been cleared. Nice.</div>
+    </sc-if>
+  </main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { sev: 'all', dismissed: this.loadDismissed(), showInfo: false };
+
+  loadDismissed() { try { return JSON.parse(localStorage.getItem('adwitix_alerts_dismissed') || '[]'); } catch (e) { return []; } }
+  saveDismissed(ids) { localStorage.setItem('adwitix_alerts_dismissed', JSON.stringify(ids)); }
+
+  pushLedger(action, target, detail) {
+    try {
+      const key = 'adwitix_audit_ledger';
+      const cur = JSON.parse(localStorage.getItem(key) || '[]');
+      const at = new Date().toISOString().slice(0, 16).replace('T', ' ');
+      cur.push({ at, actorRole: 'Custodian', actorName: 'Custodian', actorMobile: '—', action, target, detail });
+      localStorage.setItem(key, JSON.stringify(cur));
+    } catch (e) {}
+  }
+
+  seedAlerts() {
+    return [
+      { id: 'ALT-01', severity: 'Critical', category: 'AML', at: '2026-08-02 09:10', title: 'High-velocity bidding pattern flagged', detail: 'Trader placing bids across 6 unrelated Lots within 90 seconds — TSX Ironclad Metals.', href: 'AML Monitoring.dc.html' },
+      { id: 'ALT-02', severity: 'Critical', category: 'Settlement', at: '2026-08-01 17:40', title: 'Settlement stalled 11 days', detail: 'EXPRESS Trading Session ERN-88213 — dual NOC not received from either party.', href: 'Trading Session Directory.dc.html' },
+      { id: 'ALT-03', severity: 'Warning', category: 'KYC', at: '2026-08-01 08:05', title: 'KYC dossier pending review 6 days', detail: 'Organization entity, Northline Salvage Co. — awaiting Verified/Suspended decision.', href: 'KYC Queue.dc.html' },
+      { id: 'ALT-04', severity: 'Warning', category: 'Payout', at: '2026-07-31 14:22', title: 'Payout bank change in cooling-off', detail: 'Account change requested — 24hr window closes 2026-08-02 14:22.', href: 'Payout Reviews.dc.html' },
+      { id: 'ALT-05', severity: 'Info', category: 'Media Waiver', at: '2026-07-31 10:00', title: 'Media waiver requested', detail: 'Market Maker requests waiver on 2 of 5 required photos for LOT-48210 — site-access restriction cited.', href: 'Media Waivers.dc.html' },
+      { id: 'ALT-06', severity: 'Info', category: 'Rating', at: '2026-07-30 16:15', title: 'Star rating flagged for review', detail: 'Market Maker disputes a 1★ rating as retaliatory after a rejected offer.', href: 'Rating Reviews.dc.html' },
+    ];
+  }
+
+  sevMeta(s) {
+    const map = { Critical: { color: '#B5482F', bg: '#F7E4E0', stripe: '#B5482F' }, Warning: { color: '#9C5B1F', bg: '#F8F1E7', stripe: '#C9974C' }, Info: { color: '#2B5C8A', bg: '#E6EEF5', stripe: '#6F91B5' } };
+    return map[s] || map.Info;
+  }
+
+  renderVals() {
+    const s = this.state;
+    const sevs = ['all', 'Critical', 'Warning', 'Info'];
+    let all = this.seedAlerts().filter(a => !s.dismissed.includes(a.id));
+    if (s.sev !== 'all') all = all.filter(a => a.severity === s.sev);
+
+    return {
+      showInfo: s.showInfo, onToggleInfo: () => this.setState({ showInfo: !s.showInfo }),
+      sevFilters: sevs.map(v => ({
+        label: v === 'all' ? 'All' : v,
+        borderColor: s.sev === v ? '#1E2233' : '#DDE0EA',
+        bg: s.sev === v ? '#1E2233' : '#fff',
+        color: s.sev === v ? '#fff' : '#565B72',
+        onClick: () => this.setState({ sev: v }),
+      })),
+      isEmpty: all.length === 0,
+      visibleAlerts: all.map(a => ({
+        ...a,
+        ...this.sevMeta(a.severity),
+        sevColor: this.sevMeta(a.severity).color,
+        sevBg: this.sevMeta(a.severity).bg,
+        onDismiss: () => {
+          const next = [...s.dismissed, a.id];
+          this.saveDismissed(next);
+          this.pushLedger('Dismissed Alert', a.title, a.detail);
+          this.setState({ dismissed: next });
+        },
+      })),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

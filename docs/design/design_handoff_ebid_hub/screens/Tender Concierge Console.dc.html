@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} html,body{overflow-x:hidden;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#C9974C;}
+@media (max-width:640px){.tc-nav{display:none !important;}}
+</style>
+</helmet>
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; min-height:100vh;">
+  <header style="position:sticky; top:0; z-index:60; background:#1E2233; border-bottom:1px solid #33374A;">
+    <div style="max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#fff;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <nav class="tc-nav" style="display:flex; gap:4px; background:#2A2E40; padding:4px; border-radius:100px;">
+        <a href="Custodian Dashboard.dc.html" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#C7CADA;">Dashboard</a>
+        <a href="#" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#fff; background:#C9974C;">Concierge Console</a>
+        <a href="Tender Eligibility.dc.html" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#C7CADA;">Eligibility</a>
+        <a href="Tender Auction Report.dc.html" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#C7CADA;">Report</a>
+      </nav>
+    </div>
+  </header>
+
+  <main style="max-width:1000px; margin:0 auto; padding:40px 20px 100px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">CoCo Concierge · Salvage Managers TSX</div>
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+      <h1 style="font-family:Georgia,'Cambria',serif; font-size:28px; font-weight:800; letter-spacing:-0.6px; margin:0;">Tender Auction Back Office</h1>
+      <button onClick="{{ onToggleInfo }}" title="Why this screen exists" style="width:22px; height:22px; border-radius:50%; border:1px solid #9A9FB5; background:#fff; color:#565B72; font-size:12px; font-weight:700; font-family:Georgia,serif; font-style:italic; cursor:pointer; flex-shrink:0;">i</button>
+    </div>
+    <p style="font-size:14px; color:#565B72; margin:0 0 6px; max-width:680px; line-height:1.6;">Tender is fully private and invite-only, run exclusively through the Concierge team on Salvage Managers' own storefront — no self-service seller tools apply here.</p>
+    <p style="font-size:12px; color:#9A9FB5; margin:0 0 16px;">{{ lot.id }} · {{ lot.title }} · RV {{ lot.rv }}</p>
+
+    <sc-if value="{{ showInfo }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#FBF8F0; border:1px solid #E9DCC0; border-radius:10px; padding:14px 16px; margin:0 0 20px; font-size:13px; color:#6B5D3F; line-height:1.6; max-width:680px;">
+        <strong>Why this screen exists:</strong> Tender Auctions carry no fixed edit-hold window, no gateway EMD routing, and no automatic close — every step is Concierge-operated by hand, per BR-12/BR-26. This console covers the four operational pieces that self-service Lot flows don't need: who's invited, what's published to them, manually-logged EMD, and the manual close itself.
+        <button onClick="{{ onToggleInfo }}" style="display:block; margin-top:8px; font-size:12px; font-weight:700; color:#9C874C; background:none; border:none; cursor:pointer; padding:0;">Close</button>
+      </div>
+    </sc-if>
+
+    <div style="display:flex; gap:4px; background:#E9EBF2; padding:4px; border-radius:100px; width:fit-content; margin-bottom:24px; flex-wrap:wrap;">
+      <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="4">
+        <button onClick="{{ tb.onClick }}" style="font-size:12.5px; font-weight:700; padding:8px 16px; border-radius:100px; border:none; cursor:pointer; background:{{ tb.bg }}; color:{{ tb.color }};">{{ tb.label }}</button>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{ tab === 'eligibility' }}" hint-placeholder-val="{{ true }}">
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:22px 24px; margin-bottom:18px;">
+        <div style="font-size:15px; font-weight:800; margin-bottom:14px;">Invite a Stakeholder</div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <input placeholder="Full name" value="{{ invite.name }}" onChange="{{ invite.onNameChange }}" style="flex:1; min-width:160px; padding:10px 12px; border:1px solid #DDE0EA; border-radius:8px; font-size:13px; outline:none; font-family:inherit;">
+          <input placeholder="Mobile (+91)" value="{{ invite.mobile }}" onChange="{{ invite.onMobileChange }}" style="width:160px; padding:10px 12px; border:1px solid #DDE0EA; border-radius:8px; font-size:13px; outline:none; font-family:inherit;">
+          <button onClick="{{ invite.onSend }}" disabled="{{ !invite.valid }}" style="font-size:12.5px; font-weight:700; padding:10px 18px; border-radius:8px; border:none; background:{{ invite.valid ? '#1E2233' : '#E9EBF2' }}; color:{{ invite.valid ? '#fff' : '#9A9FB5' }}; cursor:pointer;">Grant Eligibility &amp; Invite</button>
+        </div>
+      </div>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+        <div style="display:grid; grid-template-columns:1fr 130px 100px 1fr 90px; padding:0 20px; font-size:10px; text-transform:uppercase; color:#9A9FB5; font-weight:700; letter-spacing:0.4px; border-bottom:1px solid #EEF0EA;">
+          <div style="padding:12px 0;">Stakeholder</div>
+          <div style="padding:12px 0;">KYC</div>
+          <div style="padding:12px 0;">Status</div>
+          <div style="padding:12px 0;">Stakeholder Link</div>
+          <div style="padding:12px 0;">Action</div>
+        </div>
+        <sc-for list="{{ invitees }}" as="inv" hint-placeholder-count="3">
+          <div style="display:grid; grid-template-columns:1fr 130px 100px 1fr 90px; padding:0 20px; border-bottom:1px solid #EEF0EA; align-items:center; font-size:12.5px; min-height:52px;">
+            <div>
+              <div style="font-weight:700;">{{ inv.name }}</div>
+              <div style="font-size:11px; color:#9A9FB5; font-family:'IBM Plex Mono',monospace;">{{ inv.mobile }}</div>
+            </div>
+            <div style="font-size:11.5px; color:{{ inv.kycColor }};">{{ inv.kyc }}</div>
+            <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:{{ inv.statusColor }};">{{ inv.status }}</div>
+            <div style="font-size:11px; font-family:'IBM Plex Mono',monospace; color:#9A9FB5; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ inv.link }}</div>
+            <div style="display:flex; gap:6px;">
+              <button onClick="{{ inv.onCopyLink }}" title="Copy link" style="border:1px solid #DDE0EA; background:#fff; border-radius:6px; padding:5px 8px; font-size:11px; cursor:pointer;">Copy</button>
+              <button onClick="{{ inv.onRevoke }}" title="Revoke" style="border:1px solid #F2CFC6; background:#FBE9E5; color:#A93F2A; border-radius:6px; padding:5px 8px; font-size:11px; cursor:pointer;">Revoke</button>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ tab === 'documents' }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:22px 24px; margin-bottom:18px;">
+        <div style="font-size:15px; font-weight:800; margin-bottom:6px;">Publish a Document</div>
+        <p style="font-size:12.5px; color:#9A9FB5; margin:0 0 14px;">Only invited stakeholders can view published documents for this Tender.</p>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <input placeholder="Document title (e.g. Bespoke Terms v2)" value="{{ docForm.title }}" onChange="{{ docForm.onTitleChange }}" style="flex:1; min-width:220px; padding:10px 12px; border:1px solid #DDE0EA; border-radius:8px; font-size:13px; outline:none; font-family:inherit;">
+          <button onClick="{{ docForm.onUpload }}" disabled="{{ !docForm.valid }}" style="font-size:12.5px; font-weight:700; padding:10px 18px; border-radius:8px; border:none; background:{{ docForm.valid ? '#1E2233' : '#E9EBF2' }}; color:{{ docForm.valid ? '#fff' : '#9A9FB5' }}; cursor:pointer;">Upload &amp; Publish</button>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <sc-for list="{{ documents }}" as="d" hint-placeholder-count="3">
+          <div style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+            <div>
+              <div style="font-size:13.5px; font-weight:700;">{{ d.title }}</div>
+              <div style="font-size:11px; color:#9A9FB5;">{{ d.version }} · published {{ d.publishedAt }}</div>
+            </div>
+            <span style="font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; padding:5px 12px; border-radius:100px; background:{{ d.statusBg }}; color:{{ d.statusColor }};">{{ d.status }}</span>
+            <button onClick="{{ d.onToggle }}" style="font-size:11.5px; font-weight:700; padding:7px 14px; border-radius:8px; border:1px solid #DDE0EA; background:#fff; cursor:pointer;">{{ d.toggleLabel }}</button>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ tab === 'emd' }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:22px 24px; margin-bottom:18px;">
+        <div style="font-size:15px; font-weight:800; margin-bottom:6px;">Log a Manual EMD Transfer</div>
+        <p style="font-size:12.5px; color:#9A9FB5; margin:0 0 14px;">Tender EMD routes via manual offline bank transfer only — no payment gateway (BR-26). Log each transfer as it clears.</p>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <select value="{{ emdForm.stakeholder }}" onChange="{{ emdForm.onStakeholderChange }}" style="min-width:160px; padding:10px 12px; border:1px solid #DDE0EA; border-radius:8px; font-size:13px; outline:none; font-family:inherit; background:#fff;">
+            <option value="">Stakeholder…</option>
+            <sc-for list="{{ invitees }}" as="inv2" hint-placeholder-count="3">
+              <option value="{{ inv2.name }}">{{ inv2.name }}</option>
+            </sc-for>
+          </select>
+          <input placeholder="Amount (₹)" value="{{ emdForm.amount }}" onChange="{{ emdForm.onAmountChange }}" style="width:140px; padding:10px 12px; border:1px solid #DDE0EA; border-radius:8px; font-size:13px; outline:none; font-family:inherit;">
+          <input placeholder="Bank reference no." value="{{ emdForm.ref }}" onChange="{{ emdForm.onRefChange }}" style="width:180px; padding:10px 12px; border:1px solid #DDE0EA; border-radius:8px; font-size:13px; outline:none; font-family:inherit;">
+          <button onClick="{{ emdForm.onLog }}" disabled="{{ !emdForm.valid }}" style="font-size:12.5px; font-weight:700; padding:10px 18px; border-radius:8px; border:none; background:{{ emdForm.valid ? '#1E2233' : '#E9EBF2' }}; color:{{ emdForm.valid ? '#fff' : '#9A9FB5' }}; cursor:pointer;">Log Entry</button>
+        </div>
+      </div>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+        <div style="display:grid; grid-template-columns:1fr 110px 140px 110px 100px; padding:0 20px; font-size:10px; text-transform:uppercase; color:#9A9FB5; font-weight:700; letter-spacing:0.4px; border-bottom:1px solid #EEF0EA;">
+          <div style="padding:12px 0;">Stakeholder</div>
+          <div style="padding:12px 0;">Amount</div>
+          <div style="padding:12px 0;">Bank Ref</div>
+          <div style="padding:12px 0;">Logged</div>
+          <div style="padding:12px 0;">Status</div>
+        </div>
+        <sc-for list="{{ emdLog }}" as="e" hint-placeholder-count="3">
+          <div style="display:grid; grid-template-columns:1fr 110px 140px 110px 100px; padding:0 20px; border-bottom:1px solid #EEF0EA; align-items:center; font-size:12.5px; min-height:48px;">
+            <div style="font-weight:700;">{{ e.stakeholder }}</div>
+            <div>{{ e.amount }}</div>
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#9A9FB5;">{{ e.ref }}</div>
+            <div style="font-size:11px; color:#9A9FB5;">{{ e.at }}</div>
+            <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:{{ e.statusColor }};">{{ e.status }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ tab === 'closing' }}" hint-placeholder-val="{{ false }}">
+      <sc-if value="{{ !closed }}" hint-placeholder-val="{{ true }}">
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:22px 24px; margin-bottom:18px;">
+          <div style="font-size:15px; font-weight:800; margin-bottom:6px;">Close Bidding</div>
+          <p style="font-size:12.5px; color:#9A9FB5; margin:0 0 14px; max-width:600px; line-height:1.6;">Closing reveals every sealed offer to the Concierge. Award is Concierge judgment against the curated terms of this Tender — not automatic highest-price close.</p>
+          <button onClick="{{ onCloseBidding }}" style="font-size:12.5px; font-weight:700; padding:10px 20px; border-radius:8px; border:none; background:#1E2233; color:#fff; cursor:pointer;">Close Bidding &amp; Reveal Offers</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{ revealed }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden; margin-bottom:18px;">
+          <div style="display:grid; grid-template-columns:1fr 130px 100px; padding:0 20px; font-size:10px; text-transform:uppercase; color:#9A9FB5; font-weight:700; letter-spacing:0.4px; border-bottom:1px solid #EEF0EA;">
+            <div style="padding:12px 0;">Stakeholder</div>
+            <div style="padding:12px 0;">Sealed Offer</div>
+            <div style="padding:12px 0;">Award</div>
+          </div>
+          <sc-for list="{{ offers }}" as="o" hint-placeholder-count="3">
+            <div style="display:grid; grid-template-columns:1fr 130px 100px; padding:0 20px; border-bottom:1px solid #EEF0EA; align-items:center; font-size:12.5px; min-height:50px;">
+              <div style="font-weight:700;">{{ o.stakeholder }}</div>
+              <div style="font-family:'IBM Plex Mono',monospace;">{{ o.amount }}</div>
+              <div><button onClick="{{ o.onAward }}" disabled="{{ closed }}" style="font-size:11.5px; font-weight:700; padding:6px 12px; border-radius:8px; border:1px solid #DDE0EA; background:{{ closed && o.awarded ? '#38724A' : '#fff' }}; color:{{ closed && o.awarded ? '#fff' : '#1E2233' }}; cursor:pointer;">{{ closed && o.awarded ? 'Awarded' : 'Award' }}</button></div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ closed }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#E7F0E9; border:1px solid #CBE0D1; border-radius:16px; padding:22px 24px;">
+          <div style="font-size:14px; font-weight:800; color:#38724A; margin-bottom:6px;">Awarded to {{ awardedName }}</div>
+          <p style="font-size:12.5px; color:#38724A; margin:0 0 14px; line-height:1.6;">Decided {{ awardedAt }} by {{ concierge.name }} · {{ concierge.mobile }}. This Lot now proceeds to Settlement.</p>
+          <a href="Tender Auction Report.dc.html" style="font-size:13px; font-weight:700; padding:9px 18px; border-radius:8px; background:#38724A; color:#fff; display:inline-block;">View Full Auction Report →</a>
+        </div>
+      </sc-if>
+    </sc-if>
+  </main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    tab: 'eligibility', showInfo: false,
+    inviteName: '', inviteMobile: '',
+    invitees: [
+      { name: 'Ramesh Agarwal', mobile: '+91 98xxxxxx12', kyc: 'Verified', kycColor: '#38724A', status: 'Accepted', statusColor: '#38724A', link: 'ebidhub.com/t/tsn-3381/x7fq2' },
+      { name: 'Priyanka Suresh Holdings', mobile: '+91 97xxxxxx45', kyc: 'Verified', kycColor: '#38724A', status: 'Invited', statusColor: '#9C7430', link: 'ebidhub.com/t/tsn-3381/m9la0' },
+    ],
+    docTitle: '',
+    documents: [
+      { title: 'Bespoke Terms v1', version: 'v1', publishedAt: '2026-07-28', status: 'Published', statusBg: '#E7F0E9', statusColor: '#38724A', toggleLabel: 'Unpublish' },
+      { title: 'Asset Specification Sheet', version: 'v1', publishedAt: '2026-07-28', status: 'Published', statusBg: '#E7F0E9', statusColor: '#38724A', toggleLabel: 'Unpublish' },
+    ],
+    emdStakeholder: '', emdAmount: '', emdRef: '',
+    emdLog: [
+      { stakeholder: 'Ramesh Agarwal', amount: '₹1,85,000', ref: 'UTR2607311842', at: '2026-07-31 09:20', status: 'Cleared', statusColor: '#38724A' },
+    ],
+    closed: false, revealed: false, awardedName: '', awardedAt: '',
+  };
+
+  logAudit(entry) {
+    try {
+      const key = 'adwitix_audit_ledger';
+      const existing = JSON.parse(localStorage.getItem(key) || '[]');
+      existing.push({ at: new Date().toISOString().slice(0, 16).replace('T', ' '), ...entry });
+      localStorage.setItem(key, JSON.stringify(existing));
+    } catch (e) {}
+  }
+
+  renderVals() {
+    const s = this.state;
+    const lot = { id: 'TSN-2026-3381', title: 'Repossessed Excavator, CAT 320D', rv: '₹16,00,000' };
+    const concierge = { name: 'Vikram Chauhan', mobile: '+91 96xxxxxx73' };
+
+    const tabDefs = [
+      { key: 'eligibility', label: 'Eligibility & Invitations' },
+      { key: 'documents', label: 'Documents' },
+      { key: 'emd', label: 'EMD Log' },
+      { key: 'closing', label: 'Closing' },
+    ];
+    const tabs = tabDefs.map(t => ({
+      label: t.label, onClick: () => this.setState({ tab: t.key }),
+      bg: s.tab === t.key ? '#1E2233' : 'transparent', color: s.tab === t.key ? '#fff' : '#565B72',
+    }));
+
+    const invitees = s.invitees.map((inv, i) => ({
+      ...inv,
+      onCopyLink: () => { try { navigator.clipboard.writeText('https://' + inv.link); } catch (e) {} },
+      onRevoke: () => {
+        const next = s.invitees.slice(); next.splice(i, 1);
+        this.setState({ invitees: next });
+        this.logAudit({ actor: concierge.name, action: 'Revoked Tender eligibility', target: lot.id + ' · ' + inv.name, reason: '' });
+      },
+    }));
+
+    const documents = s.documents.map((d, i) => ({
+      ...d,
+      onToggle: () => {
+        const next = s.documents.slice();
+        const pub = next[i].status === 'Published';
+        next[i] = { ...next[i], status: pub ? 'Unpublished' : 'Published', statusBg: pub ? '#F1F2ED' : '#E7F0E9', statusColor: pub ? '#9A9FB5' : '#38724A', toggleLabel: pub ? 'Publish' : 'Unpublish' };
+        this.setState({ documents: next });
+      },
+    }));
+
+    const offers = [
+      { stakeholder: 'Ramesh Agarwal', amount: '₹17,20,000' },
+      { stakeholder: 'Priyanka Suresh Holdings', amount: '₹16,45,000' },
+    ].map(o => ({
+      ...o, awarded: s.awardedName === o.stakeholder,
+      onAward: () => {
+        this.setState({ closed: true, awardedName: o.stakeholder, awardedAt: new Date().toISOString().slice(0, 16).replace('T', ' ') });
+        this.logAudit({ actor: concierge.name, action: 'Awarded Tender to ' + o.stakeholder, target: lot.id, reason: 'Concierge selection against curated terms' });
+      },
+    }));
+
+    return {
+      lot, concierge, showInfo: s.showInfo, onToggleInfo: () => this.setState({ showInfo: !s.showInfo }),
+      tab: s.tab, tabs,
+      invite: {
+        name: s.inviteName, onNameChange: (e) => this.setState({ inviteName: e.target.value }),
+        mobile: s.inviteMobile, onMobileChange: (e) => this.setState({ inviteMobile: e.target.value }),
+        valid: !!(s.inviteName && s.inviteMobile.length >= 8),
+        onSend: () => {
+          if (!(s.inviteName && s.inviteMobile.length >= 8)) return;
+          const slug = Math.random().toString(36).slice(2, 7);
+          this.setState({
+            invitees: [...s.invitees, { name: s.inviteName, mobile: s.inviteMobile, kyc: 'Pending', kycColor: '#9C7430', status: 'Invited', statusColor: '#9C7430', link: 'ebidhub.com/t/tsn-3381/' + slug }],
+            inviteName: '', inviteMobile: '',
+          });
+          this.logAudit({ actor: concierge.name, action: 'Granted Tender eligibility', target: lot.id + ' · ' + s.inviteName, reason: '' });
+        },
+      },
+      invitees,
+      docForm: {
+        title: s.docTitle, onTitleChange: (e) => this.setState({ docTitle: e.target.value }), valid: !!s.docTitle,
+        onUpload: () => {
+          if (!s.docTitle) return;
+          this.setState({ documents: [...s.documents, { title: s.docTitle, version: 'v1', publishedAt: new Date().toISOString().slice(0, 10), status: 'Published', statusBg: '#E7F0E9', statusColor: '#38724A', toggleLabel: 'Unpublish' }], docTitle: '' });
+        },
+      },
+      documents,
+      emdForm: {
+        stakeholder: s.emdStakeholder, onStakeholderChange: (e) => this.setState({ emdStakeholder: e.target.value }),
+        amount: s.emdAmount, onAmountChange: (e) => this.setState({ emdAmount: e.target.value }),
+        ref: s.emdRef, onRefChange: (e) => this.setState({ emdRef: e.target.value }),
+        valid: !!(s.emdStakeholder && s.emdAmount && s.emdRef),
+        onLog: () => {
+          if (!(s.emdStakeholder && s.emdAmount && s.emdRef)) return;
+          this.setState({
+            emdLog: [...s.emdLog, { stakeholder: s.emdStakeholder, amount: '₹' + s.emdAmount, ref: s.emdRef, at: new Date().toISOString().slice(0, 16).replace('T', ' '), status: 'Cleared', statusColor: '#38724A' }],
+            emdStakeholder: '', emdAmount: '', emdRef: '',
+          });
+          this.logAudit({ actor: concierge.name, action: 'Logged manual EMD ₹' + s.emdAmount, target: lot.id + ' · ' + s.emdStakeholder, reason: 'Ref ' + s.emdRef });
+        },
+      },
+      emdLog: s.emdLog,
+      closed: s.closed, revealed: s.closed || s.revealed, offers,
+      onCloseBidding: () => this.setState({ revealed: true }),
+      awardedName: s.awardedName, awardedAt: s.awardedAt,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

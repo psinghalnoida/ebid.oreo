@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  a{text-decoration:none;}
+  a:link, a:visited{color:#C9974C;}
+  a:hover{color:#A87A38;}
+  @media (max-width:1100px){
+    .bd-ticker{display:none !important;}
+    .bd-main{margin-right:0 !important;}
+  }
+  @media (max-width:860px){
+    .bd-stats{grid-template-columns:repeat(2,1fr) !important;}
+    .bd-fav{grid-template-columns:repeat(2,1fr) !important;}
+    .bd-rec{grid-template-columns:repeat(2,1fr) !important;}
+    .bd-nav{display:none !important;}
+    .bd-quick{grid-template-columns:repeat(2,1fr) !important;}
+    .bd-purchase-table{grid-template-columns:90px 80px 100px 1fr 90px !important;}
+    .bd-purchase-table > div:nth-child(4){display:none;}
+  }
+  @media (max-width:600px){
+    .bd-stats{grid-template-columns:1fr 1fr !important;}
+    .bd-fav{grid-template-columns:1fr !important;}
+    .bd-rec{grid-template-columns:1fr !important;}
+    .bd-quick{grid-template-columns:1fr !important;}
+    .bd-purchase-table{grid-template-columns:56px 1fr 62px 78px !important;}
+    .bd-purchase-table > div:nth-child(2), .bd-purchase-table > div:nth-child(4){display:none;}
+    header > div{padding-left:20px !important; padding-right:20px !important; gap:12px !important;}
+  }
+  @media (max-width:480px){
+    .bd-header-cta-label{display:none;}
+  }
+  html, body{overflow-x:hidden;}
+</style>
+</helmet>
+
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;">
+
+  <header style="position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1400px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:36px; width:36px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:22px; letter-spacing:-0.5px; color:#1E2761;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <nav class="bd-nav" style="display:flex; gap:4px; background:#E9EBF2; padding:4px; border-radius:100px;">
+        <a href="Marketplace.dc.html" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#565B72;">Marketplace</a>
+        <a href="#" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#fff; background:#1E2233;">Dashboard</a>
+        <a href="Trust and Support.dc.html" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#565B72;">Trust &amp; Support</a>
+      </nav>
+      <div style="display:flex; gap:8px; align-items:center; flex:none;">
+        <a href="#" class="bd-header-cta-label" style="font-weight:700; font-size:12.5px; padding:9px 16px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233;">Profile</a>
+        <a href="#" class="bd-header-cta-label" style="font-weight:700; font-size:12.5px; padding:9px 16px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233;">Log Out</a>
+      </div>
+    </div>
+  </header>
+
+  <aside class="bd-ticker" style="position:fixed; right:0; top:65px; bottom:0; width:270px; background:#fff; border-left:1px solid #DDE0EA; overflow-y:auto; padding:20px;">
+    <p style="font-size:11px; color:#9A9FB5; text-transform:uppercase; letter-spacing:0.6px; font-weight:700; margin:0 0 4px;">Live Ticker</p>
+    <p style="font-size:10.5px; color:#9A9FB5; margin:0 0 14px;">Filtered by your <a href="Preferences.dc.html">CAT-LOC-VAL preferences</a></p>
+    <sc-for list="{{ tickerBids }}" as="t" hint-placeholder-count="2">
+      <a href="#" style="display:block; border-bottom:1px solid #EEF0EA; padding:10px 0;">
+        <div style="font-size:12.5px; color:#1E2233;">{{ t.category }} <span style="color:#9A9FB5; font-size:10px; font-family:'IBM Plex Mono',monospace;">{{ t.format }}</span></div>
+        <div style="display:flex; justify-content:space-between; margin-top:3px;">
+          <span style="font-size:13px; font-weight:700;">{{ t.amount }}</span>
+          <span style="font-size:10.5px; font-weight:700; text-transform:uppercase; color:{{ t.standingColor }};">{{ t.standing }}</span>
+        </div>
+      </a>
+    </sc-for>
+    <p style="font-size:11px; color:#9A9FB5; text-transform:uppercase; letter-spacing:0.6px; font-weight:700; margin:22px 0 14px;">Sales of Interest</p>
+    <sc-for list="{{ tickerInterest }}" as="m" hint-placeholder-count="2">
+      <a href="#" style="display:block; border-bottom:1px solid #EEF0EA; padding:10px 0;">
+        <div style="font-size:12.5px;">{{ m.category }}</div>
+        <div style="font-size:13px; font-weight:700; color:#C9974C; margin-top:3px;">{{ m.price }}</div>
+      </a>
+    </sc-for>
+    <a href="Preferences.dc.html" style="display:block; margin-top:16px; font-size:11.5px; font-weight:600;">Tune your preferences →</a>
+  </aside>
+
+  <main class="bd-main" style="max-width:1130px; margin:0 auto; padding:40px 32px 80px; margin-right:302px;">
+
+    <div style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:6px;">
+      <h1 style="font-family:Georgia,'Cambria',serif; font-size:30px; font-weight:800; letter-spacing:-0.6px; margin:0;">Welcome back, {{ buyerName }}</h1>
+      <span style="font-size:12px; font-weight:600; color:#3F7A4E; background:#E4EFE6; padding:6px 13px; border-radius:100px;">KYC Verified</span>
+    </div>
+    <p style="font-size:14px; color:#565B72; margin:0 0 28px;">Here's everything moving on your account right now.</p>
+
+    <div class="bd-stats" style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:44px;">
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:18px 20px;">
+        <b style="display:block; font-family:Georgia,serif; font-size:26px; font-weight:800;">{{ stats.activeBids }}</b>
+        <span style="font-size:12px; color:#9A9FB5; font-weight:600;">Active Bids</span>
+      </div>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:18px 20px;">
+        <b style="display:block; font-family:Georgia,serif; font-size:26px; font-weight:800;">{{ stats.activeOffers }}</b>
+        <span style="font-size:12px; color:#9A9FB5; font-weight:600;">Open Offers</span>
+      </div>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:18px 20px;">
+        <b style="display:block; font-family:Georgia,serif; font-size:26px; font-weight:800; color:#C9974C;">{{ stats.pendingRatings }}</b>
+        <span style="font-size:12px; color:#9A9FB5; font-weight:600;">Purchases to Rate</span>
+      </div>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:18px 20px;">
+        <b style="display:block; font-family:Georgia,serif; font-size:26px; font-weight:800;">{{ stats.favorites }}</b>
+        <span style="font-size:12px; color:#9A9FB5; font-weight:600;">Favorites</span>
+      </div>
+    </div>
+
+    <section id="bids" style="margin-bottom:44px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <h2 style="font-size:18px; font-weight:800; margin:0; font-family:Archivo,sans-serif;">My Bids</h2>
+        <div style="display:flex; gap:8px;">
+          <select style="padding:7px 10px; border:1px solid #DDE0EA; border-radius:8px; font-size:12px; color:#565B72;">
+            <option>All formats</option>
+          </select>
+          <select style="padding:7px 10px; border:1px solid #DDE0EA; border-radius:8px; font-size:12px; color:#565B72;">
+            <option>All standings</option>
+          </select>
+        </div>
+      </div>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+        <sc-for list="{{ bids }}" as="b" hint-placeholder-count="4">
+          <a href="#" style="display:flex; align-items:center; justify-content:space-between; padding:15px 20px; border-bottom:1px solid #EEF0EA;" style-hover="background:#FAFAF8;">
+            <span style="font-size:13.5px;">{{ b.category }} <span style="color:#9A9FB5; font-size:11px; font-family:'IBM Plex Mono',monospace; margin-left:6px;">{{ b.format }}</span></span>
+            <span style="display:flex; align-items:center; gap:16px;">
+              <span style="font-size:13.5px; font-weight:700;">{{ b.amount }}</span>
+              <span style="font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; color:{{ b.standingColor }}; background:{{ b.standingBg }}; padding:4px 10px; border-radius:100px;">{{ b.standing }}</span>
+            </span>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+
+    <section id="offers" style="margin-bottom:44px;">
+      <h2 style="font-size:18px; font-weight:800; margin:0 0 16px; font-family:Archivo,sans-serif;">My Offers</h2>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+        <sc-for list="{{ offers }}" as="o" hint-placeholder-count="3">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:15px 20px; border-bottom:1px solid #EEF0EA;">
+            <a href="#" style="font-size:13.5px; color:#1E2233;">{{ o.category }} — {{ o.amount }}</a>
+            <span style="display:flex; align-items:center; gap:14px;">
+              <span style="font-size:11px; font-weight:600; text-transform:uppercase; color:#9A9FB5;">{{ o.status }}</span>
+              <sc-if value="{{ o.canWithdraw }}" hint-placeholder-val="{{ true }}">
+                <a href="#" style="font-size:11.5px; font-weight:700; padding:6px 12px; border:1px solid #DDE0EA; border-radius:100px; color:#1E2233;">Withdraw</a>
+              </sc-if>
+            </span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section id="purchases" style="margin-bottom:44px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <h2 style="font-size:18px; font-weight:800; margin:0; font-family:Archivo,sans-serif;">My Purchases</h2>
+        <a href="#" style="font-size:12px; font-weight:700;">Export CSV →</a>
+      </div>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+        <div class="bd-purchase-table" style="display:grid; grid-template-columns:100px 90px 120px 1fr 110px 110px; gap:0; padding:0 20px; font-size:10px; text-transform:uppercase; color:#9A9FB5; font-weight:700; border-bottom:1px solid #DDE0EA;">
+          <div style="padding:12px 0;">Date</div>
+          <div style="padding:12px 0;">Format</div>
+          <div style="padding:12px 0;">Price</div>
+          <div style="padding:12px 0;">Market Maker</div>
+          <div style="padding:12px 0;">Status</div>
+          <div style="padding:12px 0;">Action</div>
+        </div>
+        <sc-for list="{{ purchases }}" as="p" hint-placeholder-count="3">
+          <div class="bd-purchase-table" style="display:grid; grid-template-columns:100px 90px 120px 1fr 110px 110px; gap:0; padding:0 20px; border-bottom:1px solid #EEF0EA; align-items:center; font-size:13px;">
+            <div style="padding:12px 0; color:#9A9FB5; font-size:12px;">{{ p.date }}</div>
+            <div style="padding:12px 0; font-size:12px;">{{ p.format }}</div>
+            <div style="padding:12px 0; font-weight:700; color:#C9974C;">{{ p.price }}</div>
+            <div style="padding:12px 0; font-size:12.5px;">{{ p.seller }}</div>
+            <div style="padding:12px 0; font-size:11px; font-weight:600; text-transform:uppercase; color:#565B72;">{{ p.status }}</div>
+            <div style="padding:12px 0;"><a href="{{ p.actionHref }}" style="font-size:12px; font-weight:700;">{{ p.actionLabel }}</a></div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section id="favorites" style="margin-bottom:44px;">
+      <h2 style="font-size:18px; font-weight:800; margin:0 0 16px; font-family:Archivo,sans-serif;">Favorites</h2>
+      <div class="bd-fav" style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px;">
+        <sc-for list="{{ favorites }}" as="f" hint-placeholder-count="4">
+          <a href="Marketplace.dc.html" style="display:block; background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+            <div style="height:110px; background:repeating-linear-gradient(135deg, #F1F1EE 0px, #F1F1EE 14px, #E7E7E1 14px, #E7E7E1 28px);"></div>
+            <div style="padding:14px;">
+              <p style="font-size:10px; color:#9A9FB5; font-weight:600; text-transform:uppercase; margin:0 0 4px;">{{ f.format }}</p>
+              <p style="font-size:13px; font-weight:700; margin:0 0 6px; color:#1E2233;">{{ f.category }}</p>
+              <p style="font-size:14px; font-weight:800; color:#C9974C; margin:0;">{{ f.price }}</p>
+            </div>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+
+    <section id="recommendations" style="margin-bottom:8px;">
+      <h2 style="font-size:18px; font-weight:800; margin:0 0 4px; font-family:Archivo,sans-serif;">Recommended for You</h2>
+      <p style="font-size:12px; color:#9A9FB5; margin:0 0 16px;">Ranked by your <a href="Preferences.dc.html">CAT-LOC-VAL preferences</a>.</p>
+      <div class="bd-rec" style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px;">
+        <sc-for list="{{ recommendations }}" as="r" hint-placeholder-count="4">
+          <a href="Marketplace.dc.html" style="display:block; background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:14px;">
+            <p style="font-size:10px; color:#9A9FB5; font-weight:600; text-transform:uppercase; margin:0 0 4px;">{{ r.format }} · {{ r.bidCount }} bids</p>
+            <p style="font-size:13px; font-weight:700; margin:0 0 6px;">{{ r.category }}</p>
+            <p style="font-size:13px; font-weight:800; color:#C9974C; margin:0 0 6px;">{{ r.price }}</p>
+            <sc-if value="{{ r.isMatch }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size:10px; font-weight:700; color:#3F7A4E; background:#E4EFE6; padding:2px 8px; border-radius:100px;">✓ Matches your preferences</span>
+            </sc-if>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="margin-top:36px; padding-top:28px; border-top:1px solid #DDE0EA;">
+      <h3 style="font-size:13px; font-weight:700; color:#9A9FB5; text-transform:uppercase; letter-spacing:0.5px; margin:0 0 14px;">Account</h3>
+      <div class="bd-quick" style="display:grid; grid-template-columns:repeat(5,1fr); gap:12px;">
+        <a href="#" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">Profile</a>
+        <a href="KYC.dc.html" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">KYC</a>
+        <a href="Preferences.dc.html" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">Preferences</a>
+        <a href="#" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">Invoices</a>
+        <a href="#" style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px; font-size:13px; font-weight:700; color:#1E2233;">Payout Bank</a>
+      </div>
+    </section>
+
+  </main>
+</div>
+</helmet>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const h1 = { standing: 'H1', standingColor: '#3F7A4E', standingBg: '#E4EFE6' };
+    const other = (label) => ({ standing: label, standingColor: '#9A9FB5', standingBg: '#F1F2ED' });
+    return {
+      buyerName: 'Ravi Kumar',
+      stats: { activeBids: 6, activeOffers: 2, pendingRatings: 1, favorites: 9 },
+      tickerBids: [
+        { category: 'CNC Lathe (Surplus)', format: 'EASY', amount: '₹3,42,000', ...h1 },
+        { category: 'Salvage — Sedan', format: 'EXPRESS', amount: '₹1,85,500', ...other('Outbid') }
+      ],
+      tickerInterest: [
+        { category: 'Repossessed Loader', price: '₹9,40,000' },
+        { category: 'Industrial Surplus Lot', price: '₹2,10,000' }
+      ],
+      bids: [
+        { category: 'CNC Lathe (Surplus)', format: 'EASY', amount: '₹3,42,000', ...h1 },
+        { category: 'Salvage — Sedan', format: 'EXPRESS', amount: '₹1,85,500', ...other('Outbid') },
+        { category: 'Warehouse Racking Lot', format: 'EASY', amount: '₹64,000', ...h1 },
+        { category: 'Repossessed Tractor', format: 'BUY_NOW', amount: '₹5,20,000', ...other('Defaulted') }
+      ],
+      offers: [
+        { category: 'Scrap Metal Bundle — 4T', amount: '₹88,000', status: 'Submitted', canWithdraw: true },
+        { category: 'Office Furniture Lot', amount: '₹22,500', status: 'Accepted', canWithdraw: false }
+      ],
+      purchases: [
+        { date: '2026-07-18', format: 'EASY', price: '₹3,10,000', seller: '98xxxxxx21', status: 'Completed', actionLabel: 'View Settlement', actionHref: 'Settlement.dc.html' },
+        { date: '2026-07-02', format: 'TENDER', price: '₹12,40,000', seller: '97xxxxxx08', status: 'Completed', actionLabel: 'View Chronicle', actionHref: 'AX Chronicle.dc.html' },
+        { date: '2026-06-25', format: 'EXPRESS', price: '₹1,15,000', seller: '99xxxxxx44', status: 'Stalled', actionLabel: 'View Dispute', actionHref: 'Dispute Center.dc.html' }
+      ],
+      favorites: [
+        { format: 'EASY', category: 'Diesel Generator Set', price: '₹1,80,000' },
+        { format: 'TENDER', category: 'Repossessed Excavator', price: '₹18,50,000' },
+        { format: 'EXPRESS', category: 'Steel Coil Surplus', price: '₹4,40,000' },
+        { format: 'BUY NOW', category: 'Office IT Assets Lot', price: '₹95,000' }
+      ],
+      recommendations: [
+        { format: 'EASY', bidCount: 14, category: 'Industrial Compressor', price: '₹2,60,000', isMatch: true },
+        { format: 'TENDER', bidCount: 6, category: 'Fleet — 3 Vans', price: '₹22,00,000', isMatch: false },
+        { format: 'EXPRESS', bidCount: 9, category: 'Copper Wire Scrap', price: '₹3,30,000', isMatch: false },
+        { format: 'EASY', bidCount: 21, category: 'CNC Milling Machine', price: '₹6,10,000', isMatch: true }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

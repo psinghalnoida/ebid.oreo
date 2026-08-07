@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} html,body{overflow-x:hidden;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#A87A38;}
+.la-row:hover{border-color:#C9974C !important;}
+.la-thumb{background:repeating-linear-gradient(135deg, #F1F1EE 0px, #F1F1EE 10px, #E7E7E1 10px, #E7E7E1 20px);}
+@media (max-width:640px){.la-nav{display:none !important;}}
+</style>
+</helmet>
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; min-height:100vh;">
+  <header style="position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1200px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#1E2761;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <nav class="la-nav" style="display:flex; gap:4px; background:#E9EBF2; padding:4px; border-radius:100px;">
+        <a href="Tenant Admin Dashboard.dc.html#pending" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#565B72;">Dashboard</a>
+        <a href="#" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#fff; background:#1E2233;">Lot Approval</a>
+      </nav>
+    </div>
+  </header>
+
+  <main style="max-width:920px; margin:0 auto; padding:40px 20px 90px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">TSX Master · {{ tenantName }}</div>
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:30px; font-weight:800; letter-spacing:-0.6px; margin:0 0 10px;">Lot &amp; Trading Session Approval</h1>
+    <p style="font-size:14px; color:#565B72; margin:0 0 6px; max-width:640px; line-height:1.6;">Review submitted Lots and requested Trading Sessions before they go live on this TradeSphereX.</p>
+    <p style="font-size:12px; color:#9A9FB5; margin:0 0 26px;">Reviewing as: {{ tsxMasterName }} · {{ tsxMasterMobile }}</p>
+
+    <div style="display:flex; gap:4px; background:#E9EBF2; padding:4px; border-radius:100px; margin-bottom:26px; width:fit-content;">
+      <button onClick="{{ onShowLots }}" style="font-size:12.5px; font-weight:700; padding:9px 18px; border-radius:100px; border:none; cursor:pointer; white-space:nowrap; background:{{ lotsTabBg }}; color:{{ lotsTabColor }};">Lots ({{ lotsCount }})</button>
+      <button onClick="{{ onShowSessions }}" style="font-size:12.5px; font-weight:700; padding:9px 18px; border-radius:100px; border:none; cursor:pointer; white-space:nowrap; background:{{ sessionsTabBg }}; color:{{ sessionsTabColor }};">Trading Sessions ({{ sessionsCount }})</button>
+    </div>
+
+    <sc-if value="{{ isQueueView }}" hint-placeholder-val="{{ true }}">
+      <sc-if value="{{ isLotsTab }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <sc-for list="{{ visibleLots }}" as="l" hint-placeholder-count="3">
+            <button onClick="{{ l.onOpen }}" class="la-row" style="text-align:left; background:#fff; border:2px solid #DDE0EA; border-radius:14px; padding:16px 18px; cursor:pointer; display:flex; align-items:center; gap:14px;">
+              <div class="la-thumb" style="width:56px; height:56px; border-radius:9px; flex-shrink:0;"></div>
+              <div style="flex:1;">
+                <p style="font-size:11px; color:#9A9FB5; margin:0 0 4px; font-weight:600;">{{ l.id }} · SUBMITTED {{ l.submittedAt }} · {{ l.marketMaker }} ({{ l.marketMakerMobile }})</p>
+                <p style="font-size:14.5px; font-weight:800; margin:0 0 4px;">{{ l.title }}</p>
+                <p style="font-size:12px; color:#565B72; margin:0;">{{ l.category }} · {{ l.condition }} · Pre-Check {{ l.preCheckScore }}/100</p>
+              </div>
+              <span style="font-size:10.5px; font-weight:700; text-transform:uppercase; color:#9C5B1F; background:#F8F1E7; padding:4px 10px; border-radius:100px; white-space:nowrap;">Pending</span>
+            </button>
+          </sc-for>
+        </div>
+        <sc-if value="{{ lotsEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:center; padding:60px 20px; color:#9A9FB5; font-size:14px;">No Lots awaiting approval.</div>
+        </sc-if>
+      </sc-if>
+      <sc-if value="{{ isSessionsTab }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <sc-for list="{{ visibleSessions }}" as="se" hint-placeholder-count="2">
+            <button onClick="{{ se.onOpen }}" class="la-row" style="text-align:left; background:#fff; border:2px solid #DDE0EA; border-radius:14px; padding:16px 18px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:14px;">
+              <div>
+                <p style="font-size:11px; color:#9A9FB5; margin:0 0 4px; font-weight:600;">{{ se.ern }} · REQUESTED {{ se.requestedAt }} · {{ se.marketMaker }} ({{ se.marketMakerMobile }})</p>
+                <p style="font-size:14.5px; font-weight:800; margin:0 0 4px;">{{ se.lotTitle }}</p>
+                <p style="font-size:12px; color:#565B72; margin:0;">{{ se.format }} · RV {{ se.reserveValue }} · Starts {{ se.startDate }}</p>
+              </div>
+              <span style="font-size:10.5px; font-weight:700; text-transform:uppercase; color:#9C5B1F; background:#F8F1E7; padding:4px 10px; border-radius:100px; white-space:nowrap;">Pending</span>
+            </button>
+          </sc-for>
+        </div>
+        <sc-if value="{{ sessionsEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:center; padding:60px 20px; color:#9A9FB5; font-size:14px;">No Trading Sessions awaiting approval.</div>
+        </sc-if>
+      </sc-if>
+    </sc-if>
+
+    <sc-if value="{{ isLotDetail }}" hint-placeholder-val="{{ false }}">
+      <button onClick="{{ onBackToQueue }}" style="font-size:12.5px; font-weight:700; color:#565B72; background:none; border:none; cursor:pointer; padding:0; margin-bottom:18px;">← Back to Queue</button>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:22px 24px; margin-bottom:18px;">
+        <p style="font-size:11px; color:#9A9FB5; margin:0 0 6px; font-weight:600;">{{ selectedLot.id }} · SUBMITTED {{ selectedLot.submittedAt }}</p>
+        <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:20px; margin:0 0 10px;">{{ selectedLot.title }}</h2>
+        <p style="font-size:12.5px; color:#565B72; margin:0 0 14px;">By {{ selectedLot.marketMaker }} · CALL BACK: {{ selectedLot.marketMakerMobile }}</p>
+        <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:14px;">
+          <sc-for list="{{ selectedLot.thumbs }}" as="t" hint-placeholder-count="5">
+            <div class="la-thumb" style="width:100%; aspect-ratio:1; border-radius:9px;"></div>
+          </sc-for>
+        </div>
+
+        <sc-if value="{{ isEditingLot }}" hint-placeholder-val="{{ false }}">
+          <label style="font-size:11px; font-weight:700; color:#565B72; display:block; margin-bottom:4px;">Title</label>
+          <input value="{{ editTitle }}" onChange="{{ onEditTitleChange }}" style="width:100%; padding:10px 12px; border:1px solid #DDE0EA; border-radius:8px; font-size:13px; outline:none; margin-bottom:10px;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+            <input value="{{ editCategory }}" onChange="{{ onEditCategoryChange }}" placeholder="Category" style="width:100%; padding:10px 12px; border:1px solid #DDE0EA; border-radius:8px; font-size:13px; outline:none;">
+            <input value="{{ editCondition }}" onChange="{{ onEditConditionChange }}" placeholder="Condition" style="width:100%; padding:10px 12px; border:1px solid #DDE0EA; border-radius:8px; font-size:13px; outline:none;">
+          </div>
+          <textarea value="{{ editDescription }}" onChange="{{ onEditDescriptionChange }}" rows="3" style="width:100%; padding:10px 12px; border:1px solid #DDE0EA; border-radius:8px; font-size:13px; outline:none; resize:vertical; font-family:inherit; margin-bottom:10px;"></textarea>
+          <div style="display:flex; gap:10px;">
+            <button onClick="{{ onSaveLotEdit }}" style="padding:9px 18px; border:none; border-radius:100px; background:#1E2233; color:#fff; font-weight:700; font-size:12.5px; cursor:pointer;">Save Edit</button>
+            <button onClick="{{ onCancelLotEdit }}" style="padding:9px 18px; border:1px solid #DDE0EA; border-radius:100px; background:#fff; color:#565B72; font-weight:700; font-size:12.5px; cursor:pointer;">Cancel</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ isNotEditingLot }}" hint-placeholder-val="{{ true }}">
+          <p style="font-size:13px; line-height:1.6; margin:0 0 12px;">{{ selectedLot.description }}</p>
+          <div style="display:flex; gap:20px; flex-wrap:wrap; font-size:12.5px; color:#565B72; margin-bottom:10px;">
+            <span><strong style="color:#1E2233;">Category:</strong> {{ selectedLot.category }}</span>
+            <span><strong style="color:#1E2233;">Condition:</strong> {{ selectedLot.condition }}</span>
+            <span><strong style="color:#1E2233;">AI Pre-Check:</strong> {{ selectedLot.preCheckScore }}/100</span>
+          </div>
+          <sc-if value="{{ selectedLot.wasEdited }}" hint-placeholder-val="{{ false }}">
+            <p style="font-size:11px; color:#9C5B1F; margin:0 0 10px;">Edited by {{ tsxMasterName }} ({{ tsxMasterMobile }}) · {{ selectedLot.editedAt }}</p>
+          </sc-if>
+          <sc-if value="{{ isLotPending }}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{ onStartLotEdit }}" style="padding:8px 16px; border:1px solid #1E2233; border-radius:100px; background:#fff; color:#1E2233; font-weight:700; font-size:12px; cursor:pointer; margin-bottom:4px;">✎ Edit Lot Directly</button>
+          </sc-if>
+        </sc-if>
+      </div>
+
+      <sc-if value="{{ isLotDecided }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#E4EFE6; border:1px solid #C8DFCC; border-radius:14px; padding:18px 20px;">
+          <p style="font-size:11px; color:#4C7A57; margin:0 0 4px; font-weight:700;">DECIDED {{ lotDecisionAt }} BY {{ tsxMasterName }} ({{ tsxMasterMobile }})</p>
+          <p style="font-size:13px; font-weight:800; color:#2F5E3B; margin:0 0 4px;">{{ lotDecisionLabel }}</p>
+          <sc-if value="{{ lotDecisionReason }}" hint-placeholder-val="{{ false }}">
+            <p style="font-size:13px; color:#1E2233; margin:0; line-height:1.5;">{{ lotDecisionReason }}</p>
+          </sc-if>
+        </div>
+      </sc-if>
+      <sc-if value="{{ isLotPending }}" hint-placeholder-val="{{ true }}">
+        <textarea placeholder="Reason (required if requesting changes or rejecting)" value="{{ lotReasonDraft }}" onChange="{{ onLotReasonChange }}" rows="3" style="width:100%; padding:12px 14px; border:1px solid #DDE0EA; border-radius:10px; font-size:13.5px; outline:none; resize:vertical; font-family:inherit; margin-bottom:8px;"></textarea>
+        <sc-if value="{{ lotError }}" hint-placeholder-val="{{ false }}">
+          <p style="font-size:12px; color:#B5482F; margin:0 0 12px;">{{ lotError }}</p>
+        </sc-if>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button onClick="{{ onApproveLot }}" style="padding:11px 20px; border:none; border-radius:100px; background:#1E2233; color:#fff; font-weight:700; font-size:13px; cursor:pointer;">Approve — Go Live</button>
+          <button onClick="{{ onRequestChangesLot }}" style="padding:11px 20px; border:2px solid #9C5B1F; border-radius:100px; background:#fff; color:#9C5B1F; font-weight:700; font-size:13px; cursor:pointer;">Send Back to Market Maker</button>
+          <button onClick="{{ onRejectLot }}" style="padding:11px 20px; border:2px solid #B5482F; border-radius:100px; background:#fff; color:#B5482F; font-weight:700; font-size:13px; cursor:pointer;">Reject</button>
+        </div>
+      </sc-if>
+    </sc-if>
+
+    <sc-if value="{{ isSessionDetail }}" hint-placeholder-val="{{ false }}">
+      <button onClick="{{ onBackToQueue }}" style="font-size:12.5px; font-weight:700; color:#565B72; background:none; border:none; cursor:pointer; padding:0; margin-bottom:18px;">← Back to Queue</button>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:22px 24px; margin-bottom:18px;">
+        <p style="font-size:11px; color:#9A9FB5; margin:0 0 6px; font-weight:600;">{{ selectedSession.ern }} · REQUESTED {{ selectedSession.requestedAt }}</p>
+        <h2 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:20px; margin:0 0 10px;">{{ selectedSession.lotTitle }}</h2>
+        <p style="font-size:12.5px; color:#565B72; margin:0 0 14px;">By {{ selectedSession.marketMaker }} · CALL BACK: {{ selectedSession.marketMakerMobile }}</p>
+        <div style="display:flex; gap:20px; flex-wrap:wrap; font-size:12.5px; color:#565B72;">
+          <span><strong style="color:#1E2233;">Format:</strong> {{ selectedSession.format }}</span>
+          <span><strong style="color:#1E2233;">Reserve Value:</strong> {{ selectedSession.reserveValue }}</span>
+          <span><strong style="color:#1E2233;">Proposed Start:</strong> {{ selectedSession.startDate }}</span>
+        </div>
+      </div>
+
+      <sc-if value="{{ isSessionDecided }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#E4EFE6; border:1px solid #C8DFCC; border-radius:14px; padding:18px 20px;">
+          <p style="font-size:11px; color:#4C7A57; margin:0 0 4px; font-weight:700;">DECIDED {{ sessionDecisionAt }} BY {{ tsxMasterName }} ({{ tsxMasterMobile }})</p>
+          <p style="font-size:13px; font-weight:800; color:#2F5E3B; margin:0 0 4px;">{{ sessionDecisionLabel }}</p>
+          <sc-if value="{{ sessionDecisionReason }}" hint-placeholder-val="{{ false }}">
+            <p style="font-size:13px; color:#1E2233; margin:0; line-height:1.5;">{{ sessionDecisionReason }}</p>
+          </sc-if>
+        </div>
+      </sc-if>
+      <sc-if value="{{ isSessionPending }}" hint-placeholder-val="{{ true }}">
+        <textarea placeholder="Reason (required if rejecting)" value="{{ sessionReasonDraft }}" onChange="{{ onSessionReasonChange }}" rows="3" style="width:100%; padding:12px 14px; border:1px solid #DDE0EA; border-radius:10px; font-size:13.5px; outline:none; resize:vertical; font-family:inherit; margin-bottom:8px;"></textarea>
+        <sc-if value="{{ sessionError }}" hint-placeholder-val="{{ false }}">
+          <p style="font-size:12px; color:#B5482F; margin:0 0 12px;">{{ sessionError }}</p>
+        </sc-if>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button onClick="{{ onApproveSession }}" style="padding:11px 20px; border:none; border-radius:100px; background:#1E2233; color:#fff; font-weight:700; font-size:13px; cursor:pointer;">Approve — Start Session</button>
+          <button onClick="{{ onRejectSession }}" style="padding:11px 20px; border:2px solid #B5482F; border-radius:100px; background:#fff; color:#B5482F; font-weight:700; font-size:13px; cursor:pointer;">Reject</button>
+        </div>
+      </sc-if>
+    </sc-if>
+  </main>
+
+  <footer style="border-top:1px solid #DDE0EA; padding:24px 20px; text-align:center;">
+    <p style="font-size:12.5px; color:#9A9FB5; margin:0;">Approved Lots and Trading Sessions go live immediately on this TradeSphereX. Every approval, rejection, and edit here is recorded in the <a href="Audit Ledger.dc.html">Audit Ledger</a>.</p>
+  </footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    tab: 'lots', view: 'queue', selectedId: null,
+    lotReasonDraft: '', lotError: '', sessionReasonDraft: '', sessionError: '',
+    editingLot: false, editTitle: '', editCategory: '', editCondition: '', editDescription: '',
+    lots: [
+      { id: 'LOT-48210', title: 'Repossessed Excavator, CAT 320D', category: 'Construction Equipment', condition: 'Working, Moderate Wear', submittedAt: '2026-07-31 10:20', marketMaker: 'Northline Salvage Co.', marketMakerMobile: '91xxxxxx02', preCheckScore: 84,
+        description: 'Hydraulic excavator, 2016 model, decommissioned from municipal fleet. Undercarriage shows moderate wear; engine serviced 3 months ago.', thumbs: [1,2,3,4,5],
+        decided: false, decision: null },
+      { id: 'LOT-48233', title: 'Warehouse Racking Lot (40 units)', category: 'Furniture & Fixtures', condition: 'Used, Good Condition', submittedAt: '2026-07-31 14:05', marketMaker: 'Coastal Fleet Disposals', marketMakerMobile: '90xxxxxx55', preCheckScore: 91,
+        description: 'Heavy-duty steel racking, dismantled from a closed distribution center. All units include mounting hardware.', thumbs: [1,2,3,4,5],
+        decided: false, decision: null },
+      { id: 'LOT-48250', title: 'Diesel Generator Set, 125kVA', category: 'Industrial Machinery', condition: 'Working, Minor Wear', submittedAt: '2026-08-01 09:12', marketMaker: 'Northline Salvage Co.', marketMakerMobile: '91xxxxxx02', preCheckScore: 76,
+        description: 'Standby generator, low running hours, minor surface rust on housing. Full service history available on request.', thumbs: [1,2,3,4,5],
+        decided: false, decision: null },
+    ],
+    sessions: [
+      { id: 's1', ern: 'ERN-20260731-042', lotTitle: 'Repossessed Excavator, CAT 320D', format: 'TENDER', reserveValue: '₹16,00,000', startDate: '2026-08-04', requestedAt: '2026-07-31 11:00', marketMaker: 'Northline Salvage Co.', marketMakerMobile: '91xxxxxx02', decided: false, decision: null },
+      { id: 's2', ern: 'ERN-20260730-039', lotTitle: 'CNC Lathe Machine, 2018', format: 'EASY', reserveValue: '₹3,10,000', startDate: '2026-08-03', requestedAt: '2026-07-30 17:20', marketMaker: 'Coastal Fleet Disposals', marketMakerMobile: '90xxxxxx55', decided: false, decision: null },
+    ],
+  };
+
+  logAudit(entry) {
+    try {
+      const key = 'adwitix_audit_ledger';
+      const existing = JSON.parse(localStorage.getItem(key) || '[]');
+      existing.push({ at: new Date().toISOString().slice(0, 16).replace('T', ' '), ...entry });
+      localStorage.setItem(key, JSON.stringify(existing.slice(-300)));
+    } catch (e) {}
+  }
+
+  renderVals() {
+    const s = this.state;
+    const selectedLot = s.lots.find(l => l.id === s.selectedId);
+    const selectedSession = s.sessions.find(se => se.id === s.selectedId);
+
+    return {
+      tenantName: 'Northline Industrial Auctions',
+      tsxMasterName: 'Rajesh Menon', tsxMasterMobile: '91xxxxxx10',
+      lotsCount: s.lots.filter(l => !l.decided).length,
+      sessionsCount: s.sessions.filter(se => !se.decided).length,
+      lotsTabBg: s.tab === 'lots' ? '#1E2233' : 'transparent', lotsTabColor: s.tab === 'lots' ? '#fff' : '#565B72',
+      sessionsTabBg: s.tab === 'sessions' ? '#1E2233' : 'transparent', sessionsTabColor: s.tab === 'sessions' ? '#fff' : '#565B72',
+      onShowLots: () => this.setState({ tab: 'lots', view: 'queue' }),
+      onShowSessions: () => this.setState({ tab: 'sessions', view: 'queue' }),
+
+      isQueueView: s.view === 'queue',
+      isLotsTab: s.tab === 'lots',
+      isSessionsTab: s.tab === 'sessions',
+      visibleLots: s.lots.filter(l => !l.decided).map(l => ({ ...l, onOpen: () => this.setState({ view: 'lotDetail', selectedId: l.id, lotReasonDraft: '', lotError: '' }) })),
+      lotsEmpty: s.lots.filter(l => !l.decided).length === 0,
+      visibleSessions: s.sessions.filter(se => !se.decided).map(se => ({ ...se, onOpen: () => this.setState({ view: 'sessionDetail', selectedId: se.id, sessionReasonDraft: '', sessionError: '' }) })),
+      sessionsEmpty: s.sessions.filter(se => !se.decided).length === 0,
+
+      onBackToQueue: () => this.setState({ view: 'queue' }),
+
+      isLotDetail: s.view === 'lotDetail' && !!selectedLot,
+      selectedLot: selectedLot || {},
+      isLotDecided: !!(selectedLot && selectedLot.decided),
+      isLotPending: !!(selectedLot && !selectedLot.decided),
+      isEditingLot: s.editingLot,
+      isNotEditingLot: !s.editingLot,
+      editTitle: s.editTitle, onEditTitleChange: (e) => this.setState({ editTitle: e.target.value }),
+      editCategory: s.editCategory, onEditCategoryChange: (e) => this.setState({ editCategory: e.target.value }),
+      editCondition: s.editCondition, onEditConditionChange: (e) => this.setState({ editCondition: e.target.value }),
+      editDescription: s.editDescription, onEditDescriptionChange: (e) => this.setState({ editDescription: e.target.value }),
+      onStartLotEdit: () => this.setState({
+        editingLot: true,
+        editTitle: selectedLot.title, editCategory: selectedLot.category,
+        editCondition: selectedLot.condition, editDescription: selectedLot.description,
+      }),
+      onCancelLotEdit: () => this.setState({ editingLot: false }),
+      onSaveLotEdit: () => {
+        const at = new Date().toISOString().slice(0, 16).replace('T', ' ');
+        this.logAudit({
+          actorRole: 'TSX Master', actorName: s.tsxMasterName || 'Rajesh Menon', actorMobile: s.tsxMasterMobile || '91xxxxxx10',
+          action: 'Edited Lot', target: selectedLot.id + ' — ' + selectedLot.title,
+          detail: 'Fields updated: title/category/condition/description.',
+        });
+        this.setState({
+          editingLot: false,
+          lots: this.state.lots.map(l => l.id === this.state.selectedId
+            ? { ...l, title: s.editTitle, category: s.editCategory, condition: s.editCondition, description: s.editDescription, wasEdited: true, editedAt: at }
+            : l),
+        });
+      },
+      lotDecisionLabel: selectedLot && selectedLot.decision ? selectedLot.decision.label : '',
+      lotDecisionReason: selectedLot && selectedLot.decision ? selectedLot.decision.reason : '',
+      lotDecisionAt: selectedLot && selectedLot.decision ? selectedLot.decision.at : '',
+      lotReasonDraft: s.lotReasonDraft,
+      onLotReasonChange: (e) => this.setState({ lotReasonDraft: e.target.value, lotError: '' }),
+      lotError: s.lotError,
+      onApproveLot: () => this.decideLot('Approved — Live on TradeSphereX', s.lotReasonDraft, selectedLot),
+      onRequestChangesLot: () => {
+        if (!s.lotReasonDraft.trim()) { this.setState({ lotError: 'State what needs to change.' }); return; }
+        this.decideLot('Sent Back to Market Maker', s.lotReasonDraft, selectedLot);
+      },
+      onRejectLot: () => {
+        if (!s.lotReasonDraft.trim()) { this.setState({ lotError: 'State a reason for rejection.' }); return; }
+        this.decideLot('Rejected', s.lotReasonDraft, selectedLot);
+      },
+
+      isSessionDetail: s.view === 'sessionDetail' && !!selectedSession,
+      selectedSession: selectedSession || {},
+      isSessionDecided: !!(selectedSession && selectedSession.decided),
+      isSessionPending: !!(selectedSession && !selectedSession.decided),
+      sessionDecisionLabel: selectedSession && selectedSession.decision ? selectedSession.decision.label : '',
+      sessionDecisionReason: selectedSession && selectedSession.decision ? selectedSession.decision.reason : '',
+      sessionDecisionAt: selectedSession && selectedSession.decision ? selectedSession.decision.at : '',
+      sessionReasonDraft: s.sessionReasonDraft,
+      onSessionReasonChange: (e) => this.setState({ sessionReasonDraft: e.target.value, sessionError: '' }),
+      sessionError: s.sessionError,
+      onApproveSession: () => this.decideSession('Approved — Trading Session Starting', s.sessionReasonDraft, selectedSession),
+      onRejectSession: () => {
+        if (!s.sessionReasonDraft.trim()) { this.setState({ sessionError: 'State a reason for rejection.' }); return; }
+        this.decideSession('Rejected', s.sessionReasonDraft, selectedSession);
+      },
+    };
+  }
+
+  decideLot(label, reason, lot) {
+    const at = new Date().toISOString().slice(0, 16).replace('T', ' ');
+    this.logAudit({
+      actorRole: 'TSX Master', actorName: 'Rajesh Menon', actorMobile: '91xxxxxx10',
+      action: label, target: (lot ? lot.id + ' — ' + lot.title : this.state.selectedId),
+      detail: reason || '(no reason provided)',
+    });
+    this.setState({
+      lots: this.state.lots.map(l => l.id === this.state.selectedId ? { ...l, decided: true, decision: { label, reason, at } } : l),
+    });
+  }
+  decideSession(label, reason, session) {
+    const at = new Date().toISOString().slice(0, 16).replace('T', ' ');
+    this.logAudit({
+      actorRole: 'TSX Master', actorName: 'Rajesh Menon', actorMobile: '91xxxxxx10',
+      action: label, target: (session ? session.ern + ' — ' + session.lotTitle : this.state.selectedId),
+      detail: reason || '(no reason provided)',
+    });
+    this.setState({
+      sessions: this.state.sessions.map(se => se.id === this.state.selectedId ? { ...se, decided: true, decision: { label, reason, at } } : se),
+    });
+  }
+}
+
+</script>
+</body>
+</html>

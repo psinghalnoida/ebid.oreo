@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} html,body{overflow-x:hidden;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#C9974C;}
+@media (max-width:640px){.al-nav{display:none !important;}}
+</style>
+</helmet>
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; min-height:100vh;">
+  <header style="position:sticky; top:0; z-index:60; background:#1E2233; border-bottom:1px solid #33374A;">
+    <div style="max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#fff;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <nav class="al-nav" style="display:flex; gap:4px; background:#2A2E40; padding:4px; border-radius:100px;">
+        <a href="Custodian Dashboard.dc.html" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#C7CADA;">Dashboard</a>
+        <a href="#" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#fff; background:#C9974C;">Rules &amp; Specifications</a>
+      </nav>
+    </div>
+  </header>
+
+  <main style="max-width:900px; margin:0 auto; padding:40px 20px 90px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">Custodian</div>
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+      <h1 style="font-family:Georgia,'Cambria',serif; font-size:30px; font-weight:800; letter-spacing:-0.6px; margin:0;">Rules &amp; Specifications</h1>
+      <button onClick="{{ onToggleInfo }}" title="Why this screen exists" style="width:22px; height:22px; border-radius:50%; border:1px solid #9A9FB5; background:#fff; color:#565B72; font-size:12px; font-weight:700; font-family:Georgia,serif; font-style:italic; cursor:pointer; flex-shrink:0;">i</button>
+    </div>
+    <p style="font-size:14px; color:#565B72; margin:0 0 12px; max-width:620px; line-height:1.6;">Platform-wide governing values — Trading Session formats, cooling-off periods, and rating point values. Changes apply platform-wide and are recorded to the Audit Ledger.</p>
+    <sc-if value="{{ showInfo }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#FBF8F0; border:1px solid #E9DCC0; border-radius:10px; padding:14px 16px; margin:0 0 20px; font-size:13px; color:#6B5D3F; line-height:1.6; max-width:620px;">
+        <strong>Why this screen exists:</strong> These are the platform's governing values — fee schedules, Trading Session formats, cooling-off periods, and rating point values. Changes here apply platform-wide and are recorded to the Audit Ledger.
+        <button onClick="{{ onToggleInfo }}" style="display:block; margin-top:8px; font-size:12px; font-weight:700; color:#9C874C; background:none; border:none; cursor:pointer; padding:0;">Close</button>
+      </div>
+    </sc-if>
+
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <sc-for list="{{ sections }}" as="sec" hint-placeholder-count="4">
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:18px 20px;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:10px;">
+            <div>
+              <div style="font-size:15px; font-weight:700;">{{ sec.title }}</div>
+              <div style="font-size:11.5px; color:#9A9FB5; margin-top:2px;">{{ sec.changeLog }}</div>
+            </div>
+            <sc-if value="{{ sec.notEditing }}" hint-placeholder-val="{{ true }}">
+              <button onClick="{{ sec.onEdit }}" style="padding:7px 14px; border-radius:8px; border:1px solid #DDE0EA; background:#fff; color:#1E2233; font-size:12px; font-weight:700; cursor:pointer; flex-shrink:0;">Edit</button>
+            </sc-if>
+          </div>
+          <sc-if value="{{ sec.notEditing }}" hint-placeholder-val="{{ true }}">
+            <div style="font-size:13px; color:#565B72; line-height:1.7; white-space:pre-line;">{{ sec.value }}</div>
+          </sc-if>
+          <sc-if value="{{ sec.editing }}" hint-placeholder-val="{{ false }}">
+            <textarea value="{{ sec.draft }}" onChange="{{ sec.onDraftChange }}" rows="5" style="width:100%; padding:10px 12px; border:1px solid #DDE0EA; border-radius:8px; font-size:13px; font-family:'IBM Plex Mono',monospace; outline:none; resize:vertical; margin-bottom:8px;"></textarea>
+            <div style="display:flex; gap:8px;">
+              <button onClick="{{ sec.onSave }}" style="padding:8px 16px; border-radius:8px; border:none; background:#1E2233; color:#fff; font-size:12.5px; font-weight:700; cursor:pointer;">Save Change</button>
+              <button onClick="{{ sec.onCancel }}" style="padding:8px 16px; border-radius:8px; border:1px solid #DDE0EA; background:#fff; color:#565B72; font-size:12.5px; font-weight:700; cursor:pointer;">Cancel</button>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { editingId: null, drafts: {}, overrides: this.loadOverrides(), showInfo: false };
+
+  loadOverrides() { try { return JSON.parse(localStorage.getItem('adwitix_rules_overrides') || '{}'); } catch (e) { return {}; } }
+  saveOverrides(o) { localStorage.setItem('adwitix_rules_overrides', JSON.stringify(o)); }
+
+  pushLedger(action, target, detail) {
+    try {
+      const key = 'adwitix_audit_ledger';
+      const cur = JSON.parse(localStorage.getItem(key) || '[]');
+      const at = new Date().toISOString().slice(0, 16).replace('T', ' ');
+      cur.push({ at, actorRole: 'Custodian', actorName: 'Custodian', actorMobile: '—', action, target, detail });
+      localStorage.setItem(key, JSON.stringify(cur));
+    } catch (e) {}
+  }
+
+  seedSections() {
+    return [
+      { id: 'fee', title: 'Success Fee Schedule', value: 'CoCo Starter: 2.00% (min ₹500+GST)\nTSX Launch: 1.50%\nTSX Growth: 1.00%\nTSX Enterprise: 0.50% (min ₹500+GST)', changeLog: 'Last changed 2026-05-12 by Custodian' },
+      { id: 'formats', title: 'Trading Session Formats', value: 'Buy-Now: fixed price, instant settlement\nEasy: open ascending bid, no reserve required\nExpress: sealed-bid, single round, 24hr window\nTender: multi-round sealed bid, RV/EV disclosed post-close', changeLog: 'Last changed 2026-03-02 by Custodian' },
+      { id: 'cooloff', title: 'Cooling-Off Periods', value: 'Payout bank account change: 24 hours\nDispute appeal window: 5 days from ruling\nKYC re-verification after Suspended: 48 hours', changeLog: 'Last changed 2026-06-20 by Custodian' },
+      { id: 'ratings', title: 'Star Rating Point Values', value: 'Small event (< ₹50,000): ±0.1 per rating\nMedium event (₹50,000–₹5,00,000): ±0.3 per rating\nLarge event (> ₹5,00,000): ±0.5 per rating\nRecovery: +0.05 per clean event after a drop, capped at prior high', changeLog: 'Last changed 2026-04-18 by Custodian' },
+    ];
+  }
+
+  renderVals() {
+    const s = this.state;
+    const base = this.seedSections();
+
+    return {
+      showInfo: s.showInfo, onToggleInfo: () => this.setState({ showInfo: !s.showInfo }),
+      sections: base.map(sec => {
+        const editing = s.editingId === sec.id;
+        const override = s.overrides[sec.id];
+        const value = override ? override.value : sec.value;
+        const changeLog = override ? 'Last changed ' + override.at + ' by Custodian' : sec.changeLog;
+        const draft = sec.id in s.drafts ? s.drafts[sec.id] : value;
+        return {
+          ...sec, value, changeLog,
+          editing, notEditing: !editing,
+          draft,
+          onDraftChange: (e) => this.setState({ drafts: { ...s.drafts, [sec.id]: e.target.value } }),
+          onEdit: () => this.setState({ editingId: sec.id, drafts: { ...s.drafts, [sec.id]: value } }),
+          onCancel: () => this.setState({ editingId: null }),
+          onSave: () => {
+            const at = new Date().toISOString().slice(0, 16).replace('T', ' ');
+            const next = { ...s.overrides, [sec.id]: { value: draft, at } };
+            this.saveOverrides(next);
+            this.pushLedger('Edited Rules & Specifications', sec.title, 'Updated ' + sec.title.toLowerCase());
+            this.setState({ overrides: next, editingId: null });
+          },
+        };
+      }),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

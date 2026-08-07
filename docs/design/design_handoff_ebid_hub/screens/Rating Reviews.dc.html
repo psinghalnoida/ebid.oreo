@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} html,body{overflow-x:hidden;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#C9974C;}
+@media (max-width:640px){.al-nav{display:none !important;}}
+</style>
+</helmet>
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; min-height:100vh;">
+  <header style="position:sticky; top:0; z-index:60; background:#1E2233; border-bottom:1px solid #33374A;">
+    <div style="max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#fff;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <nav class="al-nav" style="display:flex; gap:4px; background:#2A2E40; padding:4px; border-radius:100px;">
+        <a href="Custodian Dashboard.dc.html" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#C7CADA;">Dashboard</a>
+        <a href="#" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#fff; background:#C9974C;">Rating Reviews</a>
+      </nav>
+    </div>
+  </header>
+
+  <main style="max-width:900px; margin:0 auto; padding:40px 20px 90px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">Custodian</div>
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+      <h1 style="font-family:Georgia,'Cambria',serif; font-size:30px; font-weight:800; letter-spacing:-0.6px; margin:0;">Rating Reviews</h1>
+      <button onClick="{{ onToggleInfo }}" title="Why this screen exists" style="width:22px; height:22px; border-radius:50%; border:1px solid #9A9FB5; background:#fff; color:#565B72; font-size:12px; font-weight:700; font-family:Georgia,serif; font-style:italic; cursor:pointer; flex-shrink:0;">i</button>
+    </div>
+    <p style="font-size:14px; color:#565B72; margin:0 0 12px; max-width:620px; line-height:1.6;">Star ratings flagged as disputed by the party being rated. Uphold keeps the rating; Remove strikes it from the ledger. Either decision requires a stated reason.</p>
+    <sc-if value="{{ showInfo }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#FBF8F0; border:1px solid #E9DCC0; border-radius:10px; padding:14px 16px; margin:0 0 20px; font-size:13px; color:#6B5D3F; line-height:1.6; max-width:620px;">
+        <strong>Why this screen exists:</strong> A party may dispute a star rating they believe is inaccurate or retaliatory. The Custodian's decision to uphold or remove is final and requires a stated reason either way.
+        <button onClick="{{ onToggleInfo }}" style="display:block; margin-top:8px; font-size:12px; font-weight:700; color:#9C874C; background:none; border:none; cursor:pointer; padding:0;">Close</button>
+      </div>
+    </sc-if>
+
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <sc-for list="{{ visibleQueue }}" as="r" hint-placeholder-count="3">
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:16px 18px;">
+          <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:8px;">
+            <div>
+              <div style="font-size:14.5px; font-weight:700;">{{ r.rater }} rated {{ r.ratee }}</div>
+              <div style="font-size:12px; color:#9A9FB5; font-family:'IBM Plex Mono',monospace;">{{ r.eventType }} · {{ r.at }}</div>
+            </div>
+            <span style="font-size:16px; font-weight:800; color:#C9974C;">{{ r.stars }}★</span>
+          </div>
+          <div style="font-size:13px; color:#565B72; line-height:1.5; margin-bottom:6px;"><strong>Rating comment:</strong> "{{ r.comment }}"</div>
+          <div style="font-size:13px; color:#565B72; line-height:1.5; margin-bottom:12px;"><strong>Dispute grounds ({{ r.ratee }}):</strong> "{{ r.disputeReason }}"</div>
+          <sc-if value="{{ r.deciding }}" hint-placeholder-val="{{ false }}">
+            <textarea placeholder="Reason for decision (required)…" value="{{ r.decisionReason }}" onChange="{{ r.onDecisionReasonChange }}" rows="2" style="width:100%; padding:10px 12px; border:1px solid #DDE0EA; border-radius:8px; font-size:13px; font-family:inherit; outline:none; resize:vertical; margin-bottom:8px;"></textarea>
+            <div style="display:flex; gap:8px;">
+              <button onClick="{{ r.onConfirm }}" disabled="{{ r.confirmDisabled }}" style="padding:8px 16px; border-radius:8px; border:none; background:{{ r.deciding === 'remove' ? '#B5482F' : '#3F7A4E' }}; color:#fff; font-size:12.5px; font-weight:700; cursor:pointer; opacity:{{ r.confirmOpacity }};">{{ r.confirmLabel }}</button>
+              <button onClick="{{ r.onCancel }}" style="padding:8px 16px; border-radius:8px; border:1px solid #DDE0EA; background:#fff; color:#565B72; font-size:12.5px; font-weight:700; cursor:pointer;">Cancel</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{ r.notDeciding }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex; gap:8px;">
+              <button onClick="{{ r.onStartUphold }}" style="padding:8px 16px; border-radius:8px; border:1px solid #3F7A4E; background:#fff; color:#3F7A4E; font-size:12.5px; font-weight:700; cursor:pointer;">Uphold Rating…</button>
+              <button onClick="{{ r.onStartRemove }}" style="padding:8px 16px; border-radius:8px; border:1px solid #B5482F; background:#fff; color:#B5482F; font-size:12.5px; font-weight:700; cursor:pointer;">Remove Rating…</button>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+    <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="text-align:center; padding:60px 20px; color:#9A9FB5; font-size:14px;">No rating disputes pending review.</div>
+    </sc-if>
+
+    <sc-if value="{{ hasDecided }}" hint-placeholder-val="{{ false }}">
+      <h2 style="font-size:14px; font-weight:700; color:#9A9FB5; text-transform:uppercase; letter-spacing:0.5px; margin:28px 0 12px;">Decided</h2>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <sc-for list="{{ decidedList }}" as="d" hint-placeholder-count="1">
+          <div style="background:#fff; border:1px solid #DDE0EA; border-radius:10px; padding:12px 16px;">
+            <span style="font-size:13px; font-weight:700; color:{{ d.color }};">{{ d.status }}</span>
+            <span style="font-size:12.5px; color:#565B72;"> — {{ d.rater }}→{{ d.ratee }} · DECIDED {{ d.at }} BY Custodian</span>
+            <div style="font-size:12px; color:#9A9FB5; margin-top:2px;">{{ d.reason }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+  </main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { decidingId: null, decidingType: null, decisionReasons: {}, decisions: this.loadDecisions(), showInfo: false };
+
+  loadDecisions() { try { return JSON.parse(localStorage.getItem('adwitix_rating_decisions') || '{}'); } catch (e) { return {}; } }
+  saveDecisions(d) { localStorage.setItem('adwitix_rating_decisions', JSON.stringify(d)); }
+
+  pushLedger(action, target, detail) {
+    try {
+      const key = 'adwitix_audit_ledger';
+      const cur = JSON.parse(localStorage.getItem(key) || '[]');
+      const at = new Date().toISOString().slice(0, 16).replace('T', ' ');
+      cur.push({ at, actorRole: 'Custodian', actorName: 'Custodian', actorMobile: '—', action, target, detail });
+      localStorage.setItem(key, JSON.stringify(cur));
+    } catch (e) {}
+  }
+
+  seedQueue() {
+    return [
+      { id: 'rt1', rater: 'Priya Rao (Trader)', ratee: 'Northline Salvage Co.', eventType: 'EXPRESS Trading Session', stars: 1, at: '2026-07-30 16:15', comment: 'Item did not match listing description at all.', disputeReason: 'This is retaliatory — the Trader submitted a lowball offer we rejected two days prior.' },
+      { id: 'rt2', rater: 'Northline Salvage Co. (Market Maker)', ratee: 'Arjun Verma', eventType: 'Buy-Now', stars: 1, at: '2026-08-01 09:00', comment: 'Buyer failed to collect within window, cited no reason.', disputeReason: 'I collected within the window — Market Maker\'s yard was closed on the scheduled day.' },
+    ];
+  }
+
+  renderVals() {
+    const s = this.state;
+    const pending = this.seedQueue().filter(r => !s.decisions[r.id]);
+    const decided = Object.entries(s.decisions).map(([id, d]) => ({ id, ...d }));
+
+    return {
+      showInfo: s.showInfo, onToggleInfo: () => this.setState({ showInfo: !s.showInfo }),
+      isEmpty: pending.length === 0,
+      hasDecided: decided.length > 0,
+      decidedList: decided.map(d => ({ ...d, color: d.status === 'UPHELD' ? '#3F7A4E' : '#B5482F' })),
+      visibleQueue: pending.map(r => {
+        const deciding = s.decidingId === r.id ? s.decidingType : null;
+        const reason = s.decisionReasons[r.id] || '';
+        const isRemove = deciding === 'remove';
+        return {
+          ...r,
+          deciding, notDeciding: !deciding,
+          decisionReason: reason,
+          confirmLabel: isRemove ? 'Confirm Remove' : 'Confirm Uphold',
+          onDecisionReasonChange: (e) => this.setState({ decisionReasons: { ...s.decisionReasons, [r.id]: e.target.value } }),
+          onStartUphold: () => this.setState({ decidingId: r.id, decidingType: 'uphold' }),
+          onStartRemove: () => this.setState({ decidingId: r.id, decidingType: 'remove' }),
+          onCancel: () => this.setState({ decidingId: null, decidingType: null }),
+          confirmDisabled: reason.trim().length === 0,
+          confirmOpacity: reason.trim().length === 0 ? 0.5 : 1,
+          onConfirm: () => {
+            if (!reason.trim()) return;
+            const at = new Date().toISOString().slice(0, 16).replace('T', ' ');
+            const status = isRemove ? 'REMOVED' : 'UPHELD';
+            const next = { ...s.decisions, [r.id]: { status, rater: r.rater, ratee: r.ratee, at, reason } };
+            this.saveDecisions(next);
+            this.pushLedger(status === 'REMOVED' ? 'Removed Rating' : 'Upheld Rating', r.rater + ' → ' + r.ratee, reason);
+            this.setState({ decisions: next, decidingId: null, decidingType: null });
+          },
+        };
+      }),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  .amx-mermaid svg{max-width:none;}
+</style>
+</helmet>
+
+<div style="--paper:#EEF0EA; --card:#FFFFFF; --ink:#1C1F26; --ink-2:#5B5F56; --ink-3:#9DA099; --rust:#B85C2C; --rust-soft:#F3E3D6; --navy:#1B2A5B; --navy-soft:#E7E9F2; --gold:#C9A356; --gold-soft:#F6EFDF; --red:#B5482F; --green:#3F7A4E; --green-soft:#E4EFE6; --navy-soft2:#E7E9F2; --line:#D8DACE; --line-soft:#E5E7DF; --mono:ui-monospace,'SF Mono','Cascadia Code','Roboto Mono',Consolas,monospace; --sans:'Archivo','Avenir Next','Segoe UI',system-ui,sans-serif; background:var(--paper); color:var(--ink); font-family:'Inter','Segoe UI',system-ui,sans-serif; min-height:100vh; line-height:1.5;">
+  <main style="max-width:1040px; margin:0 auto; padding:56px 24px 80px;">
+
+    <div style="font-size:11px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--rust); margin-bottom:10px; font-family:var(--sans);">AdwitiX — Internal Audit</div>
+    <h1 style="font-family:var(--sans); font-weight:800; letter-spacing:-0.3px; font-size:32px; margin:0 0 8px;">Complete Screen Flow</h1>
+    <p style="font-size:15px; color:var(--ink-2); max-width:680px; margin-top:12px;">Every zone of the platform — public, account, trading (per sale format), settlement/disputes/reports, Platform Ops, and the TSX/Tenant Admin console — mapped to the routes that actually serve them, and the pages that actually link to those routes. Revised after a direct check against payments, invoicing, the live ticker, and the landing page: the first pass omitted the entire Platform Ops zone and three trading sub-flows.</p>
+
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:32px 0 8px;">
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px 20px;">
+        <b style="display:block; font-family:var(--sans); font-size:26px; font-variant-numeric:tabular-nums;">9</b><span style="font-size:12px; color:var(--ink-3); font-weight:600;">zones mapped</span>
+      </div>
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px 20px;">
+        <b style="display:block; font-family:var(--sans); font-size:26px; font-variant-numeric:tabular-nums;">194</b><span style="font-size:12px; color:var(--ink-3); font-weight:600;">routes traced in Routes.php</span>
+      </div>
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px 20px;">
+        <b style="display:block; font-family:var(--sans); font-size:26px; font-variant-numeric:tabular-nums; color:var(--navy);">5</b><span style="font-size:12px; color:var(--ink-3); font-weight:600;">navigation gaps found &amp; wired this session</span>
+      </div>
+    </div>
+
+    <nav style="display:flex; flex-wrap:wrap; gap:8px; margin-top:28px;">
+      <a href="#zonemap" style="font-size:12px; font-weight:700; color:var(--ink-2); background:var(--card); border:1px solid var(--line); padding:7px 12px; border-radius:100px; text-decoration:none;" style-hover="color:var(--rust); border-color:var(--rust);">Zone map</a>
+      <a href="#public" style="font-size:12px; font-weight:700; color:var(--ink-2); background:var(--card); border:1px solid var(--line); padding:7px 12px; border-radius:100px; text-decoration:none;" style-hover="color:var(--rust); border-color:var(--rust);">Public, Auth &amp; Legal</a>
+      <a href="#account" style="font-size:12px; font-weight:700; color:var(--ink-2); background:var(--card); border:1px solid var(--line); padding:7px 12px; border-radius:100px; text-decoration:none;" style-hover="color:var(--rust); border-color:var(--rust);">Account &amp; Profile</a>
+      <a href="#trading" style="font-size:12px; font-weight:700; color:var(--ink-2); background:var(--card); border:1px solid var(--line); padding:7px 12px; border-radius:100px; text-decoration:none;" style-hover="color:var(--rust); border-color:var(--rust);">Trading (all formats)</a>
+      <a href="#settlement" style="font-size:12px; font-weight:700; color:var(--ink-2); background:var(--card); border:1px solid var(--line); padding:7px 12px; border-radius:100px; text-decoration:none;" style-hover="color:var(--rust); border-color:var(--rust);">Settlement, Disputes &amp; Reports</a>
+      <a href="#tsx" style="font-size:12px; font-weight:700; color:var(--ink-2); background:var(--card); border:1px solid var(--line); padding:7px 12px; border-radius:100px; text-decoration:none;" style-hover="color:var(--rust); border-color:var(--rust);">TSX / Tenant Admin</a>
+      <a href="#platform-ops" style="font-size:12px; font-weight:700; color:var(--ink-2); background:var(--card); border:1px solid var(--line); padding:7px 12px; border-radius:100px; text-decoration:none;" style-hover="color:var(--rust); border-color:var(--rust);">Platform Ops (Super Admin)</a>
+      <a href="#findings" style="font-size:12px; font-weight:700; color:var(--ink-2); background:var(--card); border:1px solid var(--line); padding:7px 12px; border-radius:100px; text-decoration:none;" style-hover="color:var(--rust); border-color:var(--rust);">Findings</a>
+    </nav>
+
+    <section id="zonemap" style="margin-top:56px;">
+      <h2 style="font-family:var(--sans); font-weight:800; font-size:20px; margin:0 0 6px;">Zone map</h2>
+      <p style="font-size:13px; color:var(--ink-3); max-width:680px; margin-bottom:22px;">The nine zones the app is organized into, and how a user moves between them. Each is broken out in detail below. Platform Ops runs on a deliberately separate login (<span style="font-family:var(--mono); font-size:12.5px; background:var(--line-soft); padding:2px 7px; border-radius:5px;">/admin/login</span>, TOTP-based) — BR-15 keeps Super Admin out of the ordinary session entirely, so it never joins the rest of the graph.</p>
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:16px; padding:24px; overflow-x:auto;">
+        <pre class="amx-mermaid mermaid" style="margin:0;">
+flowchart LR
+  PUB["Public / Guest"]:::pub --> AUTHN["Auth"]:::pub
+  AUTHN --> ACCT["Account &amp; Profile"]:::acct
+  PUB --> LEGAL["Help &amp; Trust / Legal"]:::pub
+  ACCT --> TRADE["Trading\n(Listings · Auctions · Tender)"]:::trade
+  TRADE --> SETTLE["Settlement · Disputes · Reports"]:::settle
+  ACCT --> TSXZ["TSX / Tenant Admin"]:::tsx
+  TRADE --> TSXZ
+  SETTLE --> TSXZ
+  TSXZ -.mark-paid, waivers, payout review.-> OPS["Platform Ops\nSuper Admin — separate login"]:::ops
+  SETTLE -.appeals.-> OPS
+
+  classDef pub fill:#B85C2C,color:#fff,stroke:#B85C2C;
+  classDef acct fill:#1B2A5B,color:#fff,stroke:#1B2A5B;
+  classDef trade fill:#3F7A4E,color:#fff,stroke:#3F7A4E;
+  classDef settle fill:#B5482F,color:#fff,stroke:#B5482F;
+  classDef tsx fill:#C9A356,color:#1C1F26,stroke:#C9A356;
+  classDef ops fill:#5B5F56,color:#fff,stroke:#5B5F56;
+        </pre>
+      </div>
+      <p style="font-size:13px; color:var(--ink-3); max-width:680px; margin:16px 0 0;"><b style="color:var(--ink-2);">Live Ticker</b> — <span style="font-family:var(--mono); font-size:12.5px; background:var(--line-soft); padding:2px 7px; border-radius:5px;">/ticker-feed</span> is not a page; it's a JSON endpoint the shared header polls for any logged-in user, surfacing their own live bids/offers and interest matches. It runs on every zone above rather than living in one, which is why it doesn't get its own box.</p>
+    </section>
+
+    <section id="public" style="margin-top:56px;">
+      <h2 style="font-family:var(--sans); font-weight:800; font-size:20px; margin:0 0 6px;">Public, Auth &amp; Legal</h2>
+      <p style="font-size:13px; color:var(--ink-3); max-width:680px; margin-bottom:22px;">Reachable with no login at all. Trust &amp; Support is the hub for every legal and info page — none of these are on the main header nav directly, by design.</p>
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:16px; padding:24px; overflow-x:auto;">
+        <pre class="amx-mermaid mermaid" style="margin:0;">
+flowchart TB
+  subgraph PUBLIC["Public / Guest"]
+    HOME["/ — Marketplace Home"]
+    BROWSE["/browse, /listings — Search &amp; Filter"]
+    TENANTS["/tenants — Tenant Directory"]
+    TRUST["/trust-support — Help &amp; Trust Hub"]
+  end
+  subgraph AUTHZ["Auth"]
+    REGISTER["/register — Mobile → OTP → mPIN"]
+    LOGIN["/login"]
+  end
+  subgraph LEGAL["Legal (via Trust &amp; Support)"]
+    TERMS["/terms"]
+    PRIVACY["/privacy"]
+    COOKIE["/cookie-policy"]
+    GRIEV["/grievance-redressal"]
+    REFUND["/refund-cancellation"]
+    DISPUTERES["/dispute-resolution"]
+  end
+  subgraph INFO["Info (via Trust &amp; Support)"]
+    FAQ["/faq"]
+    DOS["/dos-and-donts"]
+    SEC["/security-trust"]
+    FEES["/fees, /pricing"]
+    TERM["/terminology"]
+  end
+
+  HOME --> BROWSE
+  HOME --> TENANTS
+  HOME --> TRUST
+  HOME --> LOGIN
+  LOGIN <--> REGISTER
+  TRUST --> LEGAL
+  TRUST --> INFO
+  BROWSE --> LISTING["/listings/{id}"]
+
+  classDef fixed fill:#1B2A5B,color:#fff,stroke:#1B2A5B,stroke-width:1px;
+  class COOKIE fixed;
+        </pre>
+      </div>
+      <div style="display:flex; gap:18px; flex-wrap:wrap; margin-top:16px; font-size:12px; color:var(--ink-2);">
+        <span style="display:inline-flex; align-items:center; gap:6px;"><i style="width:10px; height:10px; border-radius:3px; display:inline-block; background:var(--navy);"></i>Wired this session (previously zero entry point)</span>
+      </div>
+    </section>
+
+    <section id="account" style="margin-top:56px;">
+      <h2 style="font-family:var(--sans); font-weight:800; font-size:20px; margin:0 0 6px;">Account &amp; Profile</h2>
+      <p style="font-size:13px; color:var(--ink-3); max-width:680px; margin-bottom:22px;">Everything behind <span style="font-family:var(--mono); font-size:12.5px; background:var(--line-soft); padding:2px 7px; border-radius:5px;">/profile</span>, grouped exactly as the settings-list UI groups them (D-101).</p>
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:16px; padding:24px; overflow-x:auto;">
+        <pre class="amx-mermaid mermaid" style="margin:0;">
+flowchart TB
+  LOGIN["/login"] --> PROFILE["/profile — Account Hub"]
+
+  subgraph ACCOUNTGRP["Account group"]
+    EDIT["/account/edit"]
+    MPIN["/account/change-mpin"]
+    KYC["/kyc"]
+    INVOICES["/account/invoices"]
+    EARNINGS["/account/earnings"]
+    PAYOUTBANK["/payout-bank"]
+    DELETE["/account/delete"]
+  end
+
+  subgraph ACTIVITYGRP["Activity group"]
+    MYLISTINGS["/my-listings"]
+    MYBIDS["/my-bids"]
+    MYOFFERS["/my-offers"]
+    MYPURCHASES["/my-purchases"]
+    MYSALES["/my-sales"]
+  end
+
+  subgraph DISCOVERYGRP["Discovery group"]
+    FAVORITES["/my-favorites"]
+    SEARCHES["/my-searches"]
+    SEARCHHIST["/search-history"]
+    RECS["/recommendations"]
+  end
+
+  PROFILE --> ACCOUNTGRP
+  PROFILE --> ACTIVITYGRP
+  PROFILE --> DISCOVERYGRP
+  PROFILE --> PREFS["/preferences"]
+  PROFILE --> LOGOUT["/logout"]
+
+  classDef fixed fill:#1B2A5B,color:#fff,stroke:#1B2A5B,stroke-width:1px;
+  class INVOICES fixed;
+        </pre>
+      </div>
+      <div style="display:flex; gap:18px; flex-wrap:wrap; margin-top:16px; font-size:12px; color:var(--ink-2);">
+        <span style="display:inline-flex; align-items:center; gap:6px;"><i style="width:10px; height:10px; border-radius:3px; display:inline-block; background:var(--navy);"></i>Wired this session (previously zero entry point)</span>
+      </div>
+    </section>
+
+    <section id="trading" style="margin-top:56px;">
+      <h2 style="font-family:var(--sans); font-weight:800; font-size:20px; margin:0 0 6px;">Trading — listing lifecycle, all four sale formats</h2>
+      <p style="font-size:13px; color:var(--ink-3); max-width:680px; margin-bottom:22px;">A prospective seller applies per-tenant first. A listing then moves through approval once, and its sale event branches by format — each format gates on its own EMD consent step before a buyer can commit. Tender is the deepest branch: interest, eligibility, document publication, EMD logging, bidding, an observer-facing stakeholder link, and its own auction report.</p>
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:16px; padding:24px; overflow-x:auto;">
+        <pre class="amx-mermaid mermaid" style="margin:0;">
+flowchart TB
+  APPLY["/tenants/{id}/apply-to-sell"] --> SELLREVIEW{"TSX reviews\npending-sellers"}
+  SELLREVIEW -->|approve| CREATE
+  SELLREVIEW -->|reject| APPLY
+
+  CREATE["/listings/create"] --> SHOW["/listings/{id}"]
+  SHOW --> SUBMIT["Submit for approval"]
+  SUBMIT --> REVIEW{"TSX reviews"}
+  REVIEW -->|approve| SALEEVENT["Sale event created"]
+  REVIEW -->|reject| SHOW
+  SHOW -.disputed condition.-> FLAGCBS["Flag CBS violation"]
+
+  SALEEVENT --> DEFECT["Defect disclosure\nmandatory before Express approval"]
+  DEFECT --> FORMAT{"Sale format"}
+
+  FORMAT -->|"Easy / Buy-Now"| EMD1["EMD consent"] --> BID["Bid\n(grace period, H1/H2 standing)"]
+  FORMAT -->|Negotiate| OFFER["Offer\nsubmit / accept / withdraw"]
+  FORMAT -->|Express| EMD2["EMD consent"] --> PLEDGE["Pledge + Express bid\nno grace period"]
+  FORMAT -->|Tender| INTEREST["Register interest"]
+
+  INTEREST --> ELIG["Eligibility grant\nTSX"]
+  ELIG --> DOCS["Publish documents"]
+  DOCS --> TEMD["Log EMD"]
+  TEMD --> TBID["Tender bid"]
+  TBID --> STAKE["Stakeholder link\nobserver view"]
+  TBID --> CLOSE["Close bidding\nTSX"]
+  CLOSE --> TREPORT["Tender Auction Report"]
+
+  SALEEVENT -.live sale.-> ESTOP["⚠ Emergency Stop\nTSX, any format"]
+
+  BID --> WIN["Sale closes"]
+  OFFER --> WIN
+  PLEDGE --> WIN
+  TREPORT --> WIN
+  WIN --> SETTLE["Settlement →"]
+
+  classDef fixed fill:#1B2A5B,color:#fff,stroke:#1B2A5B,stroke-width:1px;
+  class ESTOP fixed;
+        </pre>
+      </div>
+      <div style="display:flex; gap:18px; flex-wrap:wrap; margin-top:16px; font-size:12px; color:var(--ink-2);">
+        <span style="display:inline-flex; align-items:center; gap:6px;"><i style="width:10px; height:10px; border-radius:3px; display:inline-block; background:var(--navy);"></i>Wired this session (previously zero entry point)</span>
+      </div>
+    </section>
+
+    <section id="settlement" style="margin-top:56px;">
+      <h2 style="font-family:var(--sans); font-weight:800; font-size:20px; margin:0 0 6px;">Settlement, Disputes &amp; Reports</h2>
+      <p style="font-size:13px; color:var(--ink-3); max-width:680px; margin-bottom:22px;">Every closed sale event lands here. Chronicle generation is automatic; disputes and force-resolution are the two ways a settlement can deviate from the happy path.</p>
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:16px; padding:24px; overflow-x:auto;">
+        <pre class="amx-mermaid mermaid" style="margin:0;">
+flowchart TB
+  WIN["Sale event closes"] --> SETTLE["/settlements/{id}"]
+  SETTLE --> NOC["Confirm Seller / Buyer NOC"]
+  SETTLE --> RATE["Rate as Buyer / Seller"]
+  SETTLE --> CHRONICLE["Trading Session Chronicle\nauto-generated"]
+  CHRONICLE --> CDOWNLOAD["/chronicles/{id}/download"]
+  CHRONICLE --> CVERIFY["/chronicle/verify/{token}\npublic QR verification"]
+
+  SETTLE --> DISPUTEFILE["File a Dispute\n/sale-events/{id}/dispute"]
+  DISPUTEFILE --> DISPUTESHOW["/disputes/{id}"]
+  DISPUTESHOW --> EVIDENCE["Submit evidence"]
+  DISPUTESHOW --> RULE["TSX rules"]
+  RULE --> APPEAL["Appeal"]
+  APPEAL --> RULEAPPEAL["Super Admin rules on appeal"]
+
+  SETTLE -.stalled.-> FORCERESOLVE["Force-resolve\nTSX"]
+
+  classDef fixed fill:#1B2A5B,color:#fff,stroke:#1B2A5B,stroke-width:1px;
+  class DISPUTEFILE fixed;
+        </pre>
+      </div>
+      <div style="display:flex; gap:18px; flex-wrap:wrap; margin-top:16px; font-size:12px; color:var(--ink-2);">
+        <span style="display:inline-flex; align-items:center; gap:6px;"><i style="width:10px; height:10px; border-radius:3px; display:inline-block; background:var(--navy);"></i>Wired this session (previously zero entry point)</span>
+      </div>
+    </section>
+
+    <section id="tsx" style="margin-top:56px;">
+      <h2 style="font-family:var(--sans); font-weight:800; font-size:20px; margin:0 0 6px;">TSX / Tenant Admin</h2>
+      <p style="font-size:13px; color:var(--ink-3); max-width:680px; margin-bottom:22px;">A separate console for whoever holds the active <span style="font-family:var(--mono); font-size:12.5px; background:var(--line-soft); padding:2px 7px; border-radius:5px;">tenant_admin</span> role on a tenant. Every sub-page below already linked back to the dashboard — the dashboard link itself was the missing piece.</p>
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:16px; padding:24px; overflow-x:auto;">
+        <pre class="amx-mermaid mermaid" style="margin:0;">
+flowchart TB
+  LOGIN["/login\npromoted party"] --> DASH["/tenants/{id}/dashboard"]
+  DASH --> VERIFY["Verification Console"]
+  DASH --> WAIVER["Media Waiver request"]
+  DASH --> SELLERS["Seller Management"]
+  DASH --> PENDING["Pending seller applications"]
+  DASH --> BILLING["Billing"]
+  DASH --> APIACCESS["API Access"]
+
+  classDef fixed fill:#1B2A5B,color:#fff,stroke:#1B2A5B,stroke-width:1px;
+  class DASH fixed;
+        </pre>
+      </div>
+      <div style="display:flex; gap:18px; flex-wrap:wrap; margin-top:16px; font-size:12px; color:var(--ink-2);">
+        <span style="display:inline-flex; align-items:center; gap:6px;"><i style="width:10px; height:10px; border-radius:3px; display:inline-block; background:var(--navy);"></i>Wired this session (previously zero entry point — the whole zone was unreachable after login)</span>
+      </div>
+    </section>
+
+    <section id="platform-ops" style="margin-top:56px;">
+      <h2 style="font-family:var(--sans); font-weight:800; font-size:20px; margin:0 0 6px;">Platform Ops (Super Admin)</h2>
+      <p style="font-size:13px; color:var(--ink-3); max-width:680px; margin-bottom:22px;">The SaaS-operator zone, reached only through its own credential flow at <span style="font-family:var(--mono); font-size:12.5px; background:var(--line-soft); padding:2px 7px; border-radius:5px;">/admin/login</span> — deliberately never linked from the ordinary logged-in header (BR-15: Super Admin doesn't participate in trading, so it has no reason to sit inside the buyer/seller session). Everything below is already linked from <span style="font-family:var(--mono); font-size:12.5px; background:var(--line-soft); padding:2px 7px; border-radius:5px;">/admin/dashboard</span> itself — this is where SaaS-level payments (tenant subscription invoices), payout review, and AML/consent oversight live.</p>
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:16px; padding:24px; overflow-x:auto;">
+        <pre class="amx-mermaid mermaid" style="margin:0;">
+flowchart TB
+  ADMINLOGIN["/admin/login\nTOTP, separate credential"] --> DASH["/admin — SaaS Dashboard"]
+
+  subgraph OVERSIGHT["Tenant &amp; user oversight"]
+    TENANTS["/admin/tenants"]
+    USERS["/admin/users"]
+    PROMOTE["Promote Tenant Admin"]
+    DELIST["Delist Seller\nconfirmed fraud"]
+    STANDING["Standing review"]
+  end
+
+  subgraph MONEY["Payments &amp; billing"]
+    TINVOICE["/admin/tenant-invoices\nSaaS subscription billing"]
+    MARKPAID["Mark invoice paid"]
+    PAYOUTREV["/admin/payout-reviews\nbuyer/seller bank-change review"]
+  end
+
+  subgraph COMPLIANCE["Compliance &amp; trust"]
+    KYCREV["/admin/kyc\nKYC review queue"]
+    AML["/admin/aml"]
+    CONSENT["/admin/consent-audit"]
+    RATING["/admin/rating-reviews"]
+    WAIVER["/admin/media-waivers\ndecide / revoke"]
+  end
+
+  subgraph GOVERNANCE["Governance"]
+    RULES["/admin/rules\nSovereign Rules &amp; Specifications"]
+    AUDITLOG["/admin/audit-log\n+ statutory export"]
+    ALERTS["/admin/alerts\nserver-time drift"]
+  end
+
+  DASH --> OVERSIGHT
+  DASH --> MONEY
+  DASH --> COMPLIANCE
+  DASH --> GOVERNANCE
+  TINVOICE --> MARKPAID
+        </pre>
+      </div>
+    </section>
+
+    <section id="findings" style="margin-top:56px;">
+      <h2 style="font-family:var(--sans); font-weight:800; font-size:20px; margin:0 0 6px;">Findings — cumulative, both passes</h2>
+      <p style="font-size:13px; color:var(--ink-3); max-width:680px; margin-bottom:22px;">Everything flagged across both audit passes this session, what was actually found, and how it was verified — not just re-asserted. Platform Ops, the seller-application flow, EMD consent, and defect disclosure were added to this document after a direct check against payments/invoices/ticker/landing-page coverage — all four were confirmed already fully wired in the live app (checked their controllers and the pages linking to them); they were simply missing from the diagram, not from the product.</p>
+      <div style="overflow-x:auto; border:1px solid var(--line); border-radius:16px; background:var(--card);">
+        <table style="width:100%; border-collapse:collapse; font-size:13.5px;">
+          <thead>
+            <tr>
+              <th style="text-align:left; font-family:var(--sans); font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-3); padding:14px 16px; border-bottom:1px solid var(--line); font-weight:700; white-space:nowrap;">Zone</th>
+              <th style="text-align:left; font-family:var(--sans); font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-3); padding:14px 16px; border-bottom:1px solid var(--line); font-weight:700; white-space:nowrap;">Item</th>
+              <th style="text-align:left; font-family:var(--sans); font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-3); padding:14px 16px; border-bottom:1px solid var(--line); font-weight:700; white-space:nowrap;">Route</th>
+              <th style="text-align:left; font-family:var(--sans); font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-3); padding:14px 16px; border-bottom:1px solid var(--line); font-weight:700; white-space:nowrap;">Result</th>
+              <th style="text-align:left; font-family:var(--sans); font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-3); padding:14px 16px; border-bottom:1px solid var(--line); font-weight:700; white-space:nowrap;">Evidence</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{ findings }}" as="row" hint-placeholder-count="10">
+              <tr>
+                <td style="padding:14px 16px; border-bottom:1px solid var(--line-soft); vertical-align:top; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; color:var(--ink-3);">{{ row.zone }}</td>
+                <td style="padding:14px 16px; border-bottom:1px solid var(--line-soft); vertical-align:top;">{{ row.item }}</td>
+                <td style="padding:14px 16px; border-bottom:1px solid var(--line-soft); vertical-align:top;"><span style="font-family:var(--mono); font-size:12.5px; background:var(--line-soft); padding:2px 7px; border-radius:5px; white-space:nowrap;">{{ row.route }}</span></td>
+                <td style="padding:14px 16px; border-bottom:1px solid var(--line-soft); vertical-align:top;">
+                  <span style="display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700; padding:4px 10px; border-radius:100px; white-space:nowrap; background:{{ row.pillBg }}; color:{{ row.pillColor }};">{{ row.pillLabel }}</span> {{ row.resultNote }}
+                </td>
+                <td style="padding:14px 16px; border-bottom:1px solid var(--line-soft); vertical-align:top;">{{ row.evidence }}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section style="margin-top:56px;">
+      <h2 style="font-family:var(--sans); font-weight:800; font-size:20px; margin:0 0 6px;">Method</h2>
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:16px; padding:22px 24px; font-size:13.5px; color:var(--ink-2);">
+        Three passes: a static-route sweep first (D-102), a deeper zone-by-zone sweep checking every dynamic-segment route's actual trigger inside its parent page's template rather than just static hrefs (D-103), then a coverage check of this document itself against payments, invoicing, the live ticker, and the landing page — which is what surfaced the missing Platform Ops zone and three trading sub-flows below.
+        <ol style="margin:10px 0 0; padding-left:20px;">
+          <li style="margin-bottom:6px;">Extracted all 194 routes from <code style="font-family:var(--mono);">Routes.php</code>, grouped by controller into the nine zones above.</li>
+          <li style="margin-bottom:6px;">Cross-referenced each against every <code style="font-family:var(--mono);">href</code>/<code style="font-family:var(--mono);">form action</code> in <code style="font-family:var(--mono);">app/Views/</code>.</li>
+          <li style="margin-bottom:6px;">Manually resolved every route with zero direct matches by reading its controller and the pages around it.</li>
+          <li style="margin-bottom:6px;">For each genuine gap, added the missing entry point, then re-verified with a real logged-in browser session and, where the action changes state (Emergency Stop, Dispute filing), a direct database check — not just an HTTP 200.</li>
+          <li style="margin-bottom:6px;">Re-ran the full regression suite against a rebuilt database after every change.</li>
+          <li style="margin-bottom:6px;">For the diagram-completeness check: confirmed <span style="font-family:var(--mono); font-size:12.5px; background:var(--line-soft); padding:2px 7px; border-radius:5px;">/admin/dashboard</span> already links all fourteen Platform Ops pages, and that apply-to-sell, EMD consent, and defect disclosure each already have a real <code style="font-family:var(--mono);">href</code> in a live view — grep-verified, not assumed.</li>
+        </ol>
+      </div>
+    </section>
+
+    <footer style="margin-top:64px; padding-top:20px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-3);">AdwitiX platform audit · D-102 + D-103 · full regression suite re-run clean against a rebuilt database after every change</footer>
+
+  </main>
+</div>
+</helmet>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const green = { bg: '#E4EFE6', color: '#3F7A4E' };
+    const navy = { bg: '#E7E9F2', color: '#1B2A5B' };
+    const mk = (zone, item, route, verified, note, evidence) => ({
+      zone, item, route,
+      pillLabel: verified ? 'Verified' : 'Fixed',
+      pillBg: verified ? green.bg : navy.bg,
+      pillColor: verified ? green.color : navy.color,
+      resultNote: note,
+      evidence
+    });
+    return {
+      findings: [
+        mk('Account', 'Log out', '/logout', true, 'already in header nav', 'HTTP 200, live click-through'),
+        mk('Account', 'My Listings', '/my-listings', true, 'already in header nav', 'HTTP 200, screenshot'),
+        mk('Account', 'Profile', '/profile', true, 'already in header nav', 'HTTP 200, live click-through'),
+        mk('Account', 'My Bids', '/my-bids', true, '— Profile → Activity group', 'Confirmed in profile.php'),
+        mk('Public', 'Browse, search & filter', '/browse', true, 'full UI already built', 'Read browse.php + Home::browse()'),
+        mk('Legal', 'Cookie Policy', '/cookie-policy', false, '— content existed, zero links anywhere', 'Card added to Trust & Support → Legal; HTTP 200'),
+        mk('Account', 'Invoice history', '/account/invoices', false, '— built with zero entry point', 'Link added to Profile → Account; HTTP 200'),
+        mk('Settlement', 'File a Dispute', '/sale-events/{id}/dispute', false, '— full flow built, no button anywhere', 'Link added on Settlement page; HTTP 200 on a real settlement'),
+        mk('Trading', 'Emergency Stop', '/sale-events/{id}/emergency-stop', false, '— service & tests existed, zero UI trigger', 'Real fixture, real login, real click; sale_event.status → cancelled in DB'),
+        mk('TSX', 'Tenant Admin dashboard entry point', '/tenants/{id}/dashboard', false, '— whole zone unreachable after login', "Header nav link added, gated on findAdministeredTenantIds(); real login, real click, real 200")
+      ]
+    };
+  }
+  componentDidMount() {
+    this.renderMermaid();
+  }
+  componentDidUpdate() {
+    this.renderMermaid();
+  }
+  renderMermaid() {
+    if (!window.mermaid || this._mermaidDone) return;
+    this._mermaidDone = true;
+    window.mermaid.initialize({ startOnLoad: false, theme: 'base', themeVariables: { fontFamily: 'Inter, sans-serif' } });
+    const nodes = this._el ? this._el.querySelectorAll('.amx-mermaid') : document.querySelectorAll('.amx-mermaid');
+    window.mermaid.run({ nodes: Array.from(nodes) });
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} html,body{overflow-x:hidden;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#A87A38;}
+</style>
+</helmet>
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;">
+  <header style="position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:480px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px;">
+      <a href="Profile.dc.html" style="display:flex; align-items:center; gap:12px;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#1E2761;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+    </div>
+  </header>
+
+  <main style="max-width:440px; margin:0 auto; padding:44px 24px 90px;">
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:24px; font-weight:800; letter-spacing:-0.5px; margin:0 0 16px;">Delete Account</h1>
+
+    <sc-if value="{{ !requested }}" hint-placeholder-val="{{ true }}">
+      <p style="font-size:13.5px; color:#565B72; margin:0 0 20px; line-height:1.6;">Requesting deletion gives you a 30-day grace period to change your mind. After 30 days, your account is archived and you can no longer log in.</p>
+      <textarea placeholder="Reason (optional)" value="{{ reason }}" onChange="{{ onReasonChange }}" rows="3" style="width:100%; padding:11px 13px; border:1px solid #DDE0EA; border-radius:8px; font-size:13px; font-family:inherit; outline:none; resize:vertical; margin-bottom:16px;"></textarea>
+      <button onClick="{{ onRequest }}" style="width:100%; font-size:14px; font-weight:700; padding:13px; border-radius:8px; border:1px solid #F2CFC6; cursor:pointer; background:#FBE9E5; color:#A93F2A;">Request Account Deletion</button>
+    </sc-if>
+
+    <sc-if value="{{ requested }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#FBF6EC; border:1px solid #E9DCC0; border-radius:14px; padding:20px; margin-bottom:16px;">
+        <p style="font-size:13px; color:#9C7430; margin:0; line-height:1.6;">Deletion requested on {{ requestedAt }} — your account will be archived 30 days from that date unless cancelled first.</p>
+      </div>
+      <button onClick="{{ onCancel }}" style="width:100%; font-size:14px; font-weight:700; padding:13px; border-radius:8px; border:none; cursor:pointer; background:#1E2233; color:#fff;">Cancel Deletion Request</button>
+    </sc-if>
+  </main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { requested: false, reason: '', requestedAt: '' };
+
+  renderVals() {
+    const s = this.state;
+    return {
+      requested: s.requested, reason: s.reason, requestedAt: s.requestedAt,
+      onReasonChange: (e) => this.setState({ reason: e.target.value }),
+      onRequest: () => this.setState({ requested: true, requestedAt: new Date().toISOString().slice(0, 10) }),
+      onCancel: () => this.setState({ requested: false, reason: '' }),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

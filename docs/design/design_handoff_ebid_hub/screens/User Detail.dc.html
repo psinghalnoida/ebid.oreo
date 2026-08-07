@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} html,body{overflow-x:hidden;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#C9974C;}
+@media (max-width:640px){.udet-nav{display:none !important;} .udet-stats{grid-template-columns:1fr !important;}}
+</style>
+</helmet>
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; min-height:100vh;">
+  <header style="position:sticky; top:0; z-index:60; background:#1E2233; border-bottom:1px solid #33374A;">
+    <div style="max-width:920px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#fff;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <nav class="udet-nav" style="display:flex; gap:4px; background:#2A2E40; padding:4px; border-radius:100px;">
+        <a href="User Directory.dc.html" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#C7CADA;">← Users</a>
+      </nav>
+    </div>
+  </header>
+
+  <main style="max-width:820px; margin:0 auto; padding:36px 20px 100px;">
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:24px; font-weight:800; letter-spacing:-0.5px; margin:0 0 6px;">{{ party.name }}</h1>
+    <p style="font-size:12.5px; color:#9A9FB5; margin:0 0 20px; font-family:'IBM Plex Mono',monospace;">{{ party.mobile }} · {{ party.entityType }} · KYC: {{ party.kyc }}</p>
+
+    <div class="udet-stats" style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:20px;">
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:16px 18px;">
+        <div style="font-family:Georgia,serif; font-size:22px; font-weight:800;">{{ party.buyerStars }}★</div>
+        <div style="font-size:11px; color:#9A9FB5;">Trader Rating · {{ party.buyerOffences }} offences</div>
+      </div>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:16px 18px;">
+        <div style="font-family:Georgia,serif; font-size:22px; font-weight:800;">{{ party.sellerStars }}★</div>
+        <div style="font-size:11px; color:#9A9FB5;">Market Maker Rating · {{ party.sellerOffences }} offences</div>
+      </div>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:16px 18px;">
+        <div style="font-family:Georgia,serif; font-size:22px; font-weight:800;">{{ party.complaints }}</div>
+        <div style="font-size:11px; color:#9A9FB5;">Standing Complaints · {{ party.cbsOffences }} CBS offenses</div>
+      </div>
+    </div>
+
+    <sc-if value="{{ party.delisted }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#FBE9E5; border:1px solid #F2CFC6; border-radius:10px; padding:12px 16px; margin-bottom:20px; font-size:13px; color:#A93F2A;">Delisted for confirmed fraud on {{ party.delistedAt }} — {{ party.delistedReason }}</div>
+    </sc-if>
+
+    <h3 style="font-family:Archivo,sans-serif; font-size:14px; font-weight:800; margin:0 0 10px;">Roles</h3>
+    <ul style="font-size:13px; color:#565B72; padding-left:18px; margin:0 0 22px;">
+      <sc-for list="{{ roles }}" as="r" hint-placeholder-count="2">
+        <li style="margin-bottom:4px;">{{ r.label }}</li>
+      </sc-for>
+    </ul>
+
+    <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:18px 20px; margin-bottom:24px;">
+      <div style="font-size:13.5px; font-weight:700; margin-bottom:4px;">Promote to Tenant Admin</div>
+      <p style="font-size:11.5px; color:#9A9FB5; margin:0 0 12px;">This auto-demotes whoever currently holds Tenant Admin for the selected TradeSphereX.</p>
+      <div style="display:flex; gap:8px;">
+        <select value="{{ promote.tenantId }}" onChange="{{ promote.onTenantChange }}" style="flex:1; padding:9px 12px; border:1px solid #DDE0EA; border-radius:8px; font-size:12.5px; outline:none; font-family:inherit; background:#fff;">
+          <option value="">Select a TradeSphereX…</option>
+          <sc-for list="{{ tenantOptions }}" as="t" hint-placeholder-count="3">
+            <option value="{{ t.id }}">{{ t.name }}</option>
+          </sc-for>
+        </select>
+        <button onClick="{{ promote.onGrant }}" disabled="{{ !promote.tenantId }}" style="font-size:12.5px; font-weight:700; padding:9px 16px; border-radius:8px; border:none; background:{{ promote.tenantId ? '#38724A' : '#E9EBF2' }}; color:{{ promote.tenantId ? '#fff' : '#9A9FB5' }}; cursor:pointer;">Grant</button>
+      </div>
+      <sc-if value="{{ promote.granted }}" hint-placeholder-val="{{ false }}">
+        <p style="font-size:12px; color:#38724A; margin:10px 0 0;">Granted Tenant Admin on {{ promote.grantedTenantName }}.</p>
+      </sc-if>
+    </div>
+
+    <h3 style="font-family:Archivo,sans-serif; font-size:14px; font-weight:800; margin:0 0 10px;">Recent Purchases (as Trader)</h3>
+    <div style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; overflow:hidden; margin-bottom:22px;">
+      <sc-for list="{{ purchases }}" as="p" hint-placeholder-count="2">
+        <div style="display:grid; grid-template-columns:1fr 100px 100px; padding:10px 18px; border-bottom:1px solid #EEF0EA; font-size:12.5px;">
+          <span>{{ p.amount }}</span><span style="color:#565B72;">{{ p.status }}</span><span style="color:#9A9FB5;">{{ p.date }}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <h3 style="font-family:Archivo,sans-serif; font-size:14px; font-weight:800; margin:0 0 10px;">Recent Sales (as Market Maker)</h3>
+    <div style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; overflow:hidden; margin-bottom:22px;">
+      <sc-for list="{{ sales }}" as="sl" hint-placeholder-count="2">
+        <div style="display:grid; grid-template-columns:1fr 100px 100px; padding:10px 18px; border-bottom:1px solid #EEF0EA; font-size:12.5px;">
+          <span>{{ sl.amount }}</span><span style="color:#565B72;">{{ sl.status }}</span><span style="color:#9A9FB5;">{{ sl.date }}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <h3 style="font-family:Archivo,sans-serif; font-size:14px; font-weight:800; margin:0 0 10px;">Disputes (filed or against)</h3>
+    <div style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; overflow:hidden;">
+      <sc-for list="{{ disputes }}" as="d" hint-placeholder-count="2">
+        <div style="display:grid; grid-template-columns:1fr 100px 100px 90px; padding:10px 18px; border-bottom:1px solid #EEF0EA; font-size:12.5px;">
+          <span>{{ d.category }}</span><span style="color:#565B72;">{{ d.status }}</span><span style="color:#9A9FB5;">{{ d.role }}</span><span style="color:#9A9FB5;">{{ d.date }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { promoteTenantId: '', granted: false };
+
+  renderVals() {
+    const s = this.state;
+    const party = {
+      name: 'Ramesh Agarwal', mobile: '+91 98xxxxxx12', entityType: 'Individual', kyc: 'Verified',
+      buyerStars: '4.2', buyerOffences: 0, sellerStars: '3.8', sellerOffences: 1, complaints: 0, cbsOffences: 0,
+      delisted: false, delistedAt: '', delistedReason: '',
+    };
+    const tenantOptions = [
+      { id: 't1', name: 'Northline Industrial Auctions' }, { id: 't2', name: 'Coastal Salvage Co-op' }, { id: 't3', name: 'Apex Fleet Disposals' },
+    ];
+    return {
+      party, roles: [{ label: 'Trader — platform-wide' }, { label: 'Market Maker — Northline Industrial Auctions' }],
+      tenantOptions,
+      promote: {
+        tenantId: s.promoteTenantId, onTenantChange: (e) => this.setState({ promoteTenantId: e.target.value, granted: false }),
+        onGrant: () => { if (s.promoteTenantId) this.setState({ granted: true }); },
+        granted: s.granted, grantedTenantName: (tenantOptions.find(t => t.id === s.promoteTenantId) || {}).name,
+      },
+      purchases: [{ amount: '₹3,10,000', status: 'Completed', date: '2026-07-18' }, { amount: '₹1,15,000', status: 'Stalled', date: '2026-06-25' }],
+      sales: [{ amount: '₹4,52,000', status: 'Completed', date: '2026-07-31' }],
+      disputes: [{ category: 'Condition/Delivery', status: 'Resolved', role: 'Filed by them', date: '2026-06-30' }],
+    };
+  }
+}
+
+</script>
+</body>
+</html>

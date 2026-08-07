@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} html,body{overflow-x:hidden;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#A87A38;}
+</style>
+</helmet>
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;">
+  <header style="position:sticky; top:0; z-index:60; background:#1E2233; border-bottom:1px solid #33374A;">
+    <div style="max-width:1000px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#fff;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <a href="Tender Concierge Console.dc.html" style="font-size:12.5px; font-weight:700; padding:9px 18px; border-radius:100px; border:1px solid #4A4E60; color:#C7CADA;">← Concierge Console</a>
+    </div>
+  </header>
+
+  <main style="max-width:960px; margin:0 auto; padding:40px 20px 100px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">Tender Auction Report</div>
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:28px; font-weight:800; margin:0 0 6px;">{{ lot.title }}</h1>
+    <p style="font-size:13px; color:#9A9FB5; margin:0 0 30px;">{{ lot.ern }} · Closed {{ lot.closedAt }} · Awarded to {{ lot.awardee }}</p>
+
+    <section style="margin-bottom:30px;">
+      <h2 style="font-size:14px; font-weight:800; text-transform:uppercase; letter-spacing:0.4px; color:#9A9FB5; margin:0 0 12px;">1 · Eligible Participants ({{ participants.length }})</h2>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; overflow:hidden;">
+        <sc-for list="{{ participants }}" as="p" hint-placeholder-count="3">
+          <div style="display:flex; justify-content:space-between; padding:12px 18px; border-bottom:1px solid #EEF0EA; font-size:13px;">
+            <span style="font-weight:600;">{{ p.name }}</span>
+            <span style="color:#9A9FB5; font-family:'IBM Plex Mono',monospace; font-size:12px;">{{ p.source }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="margin-bottom:30px;">
+      <h2 style="font-size:14px; font-weight:800; text-transform:uppercase; letter-spacing:0.4px; color:#9A9FB5; margin:0 0 12px;">2 · Bid History ({{ bids.length }})</h2>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; overflow:hidden;">
+        <div style="display:grid; grid-template-columns:1fr 140px 140px; padding:0 18px; font-size:10px; text-transform:uppercase; color:#9A9FB5; font-weight:700; border-bottom:1px solid #EEF0EA;">
+          <div style="padding:10px 0;">Bidder</div><div style="padding:10px 0;">Amount</div><div style="padding:10px 0;">Placed</div>
+        </div>
+        <sc-for list="{{ bids }}" as="b" hint-placeholder-count="4">
+          <div style="display:grid; grid-template-columns:1fr 140px 140px; padding:0 18px; border-bottom:1px solid #EEF0EA; align-items:center; min-height:44px; font-size:13px;">
+            <div style="font-weight:600;">{{ b.name }}</div>
+            <div style="font-family:'IBM Plex Mono',monospace; font-weight:700;">{{ b.amount }}</div>
+            <div style="color:#9A9FB5; font-size:12px;">{{ b.at }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="margin-bottom:30px;">
+      <h2 style="font-size:14px; font-weight:800; text-transform:uppercase; letter-spacing:0.4px; color:#9A9FB5; margin:0 0 12px;">3 · EMD Log ({{ emd.length }})</h2>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; overflow:hidden;">
+        <sc-for list="{{ emd }}" as="e" hint-placeholder-count="3">
+          <div style="display:flex; justify-content:space-between; padding:12px 18px; border-bottom:1px solid #EEF0EA; font-size:13px;">
+            <span style="font-weight:600;">{{ e.name }}</span>
+            <span style="font-family:'IBM Plex Mono',monospace; font-size:12px;">{{ e.amount }} · {{ e.ref }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section>
+      <h2 style="font-size:14px; font-weight:800; text-transform:uppercase; letter-spacing:0.4px; color:#9A9FB5; margin:0 0 12px;">4 · Review Rounds ({{ rounds.length }})</h2>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <sc-for list="{{ rounds }}" as="r" hint-placeholder-count="3">
+          <div style="background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:16px 18px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="font-size:13.5px; font-weight:800;">Round {{ r.n }} — {{ r.candidate }}</span>
+              <span style="font-size:10.5px; font-weight:700; text-transform:uppercase; padding:4px 10px; border-radius:100px; background:{{ r.outcomeBg }}; color:{{ r.outcomeColor }};">{{ r.outcome }}</span>
+            </div>
+            <p style="font-size:12.5px; color:#565B72; margin:0; line-height:1.5;">{{ r.note }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+  </main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      lot: { title: 'Repossessed Excavator, CAT 320D', ern: 'ERN-20260731-3381', closedAt: '2026-07-31', awardee: 'Priyanka Suresh Holdings' },
+      participants: [
+        { name: 'Ramesh Agarwal', source: 'Registered Interest' },
+        { name: 'Priyanka Suresh Holdings', source: 'Directly Added' },
+        { name: 'Suresh Auto Traders', source: 'Registered Interest' },
+      ],
+      bids: [
+        { name: 'Ramesh Agarwal', amount: '\u20b916,10,000', at: '2026-07-29 11:04' },
+        { name: 'Suresh Auto Traders', amount: '\u20b916,45,000', at: '2026-07-29 14:22' },
+        { name: 'Ramesh Agarwal', amount: '\u20b917,20,000', at: '2026-07-31 08:15' },
+        { name: 'Priyanka Suresh Holdings', amount: '\u20b916,45,000', at: '2026-07-30 09:47' },
+      ],
+      emd: [
+        { name: 'Ramesh Agarwal', amount: '\u20b91,85,000', ref: 'UTR2607290912' },
+        { name: 'Priyanka Suresh Holdings', amount: '\u20b91,64,500', ref: 'UTR2607291455' },
+      ],
+      rounds: [
+        { n: 1, candidate: 'Ramesh Agarwal (H1, \u20b917,20,000)', outcome: 'Rejected', outcomeBg: '#FBE9E5', outcomeColor: '#A93F2A', note: 'Failed to confirm within the review window — cascaded to H2 per BR-12.' },
+        { n: 2, candidate: 'Priyanka Suresh Holdings (H2, \u20b916,45,000)', outcome: 'Awarded', outcomeBg: '#E7F0E9', outcomeColor: '#38724A', note: 'Confirmed and awarded by Concierge Vikram Chauhan.' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

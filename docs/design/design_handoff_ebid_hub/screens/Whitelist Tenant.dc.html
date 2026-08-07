@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} html,body{overflow-x:hidden;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#C9974C;}
+@media (max-width:640px){.wt-nav{display:none !important;}}
+</style>
+</helmet>
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; min-height:100vh;">
+  <header style="position:sticky; top:0; z-index:60; background:#1E2233; border-bottom:1px solid #33374A;">
+    <div style="max-width:900px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#fff;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <nav class="wt-nav" style="display:flex; gap:4px; background:#2A2E40; padding:4px; border-radius:100px;">
+        <a href="Custodian Dashboard.dc.html" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#C7CADA;">Dashboard</a>
+        <a href="#" style="font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; color:#fff; background:#C9974C;">Whitelist Tenant</a>
+      </nav>
+    </div>
+  </header>
+
+  <main style="max-width:560px; margin:0 auto; padding:40px 20px 100px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">Custodian</div>
+
+    <sc-if value="{{ !submitted }}" hint-placeholder-val="{{ true }}">
+      <h1 style="font-family:Georgia,'Cambria',serif; font-size:26px; font-weight:800; letter-spacing:-0.6px; margin:0 0 8px;">Whitelist a TradeSphereX</h1>
+      <p style="font-size:13.5px; color:#565B72; margin:0 0 22px; line-height:1.6;">Creating a tenant here IS the whitelisting act — only the Custodian can bring a new TradeSphereX onto the platform.</p>
+
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:24px; display:flex; flex-direction:column; gap:14px;">
+        <div>
+          <label style="font-size:11.5px; font-weight:700; color:#9096AC; letter-spacing:0.3px; text-transform:uppercase;">TradeSphereX Name</label>
+          <input placeholder="e.g. Northline Industrial Auctions" value="{{ form.name }}" onChange="{{ form.onNameChange }}" style="width:100%; padding:11px 13px; border:1px solid #DDE0EA; border-radius:8px; font-size:13.5px; outline:none; font-family:inherit; margin-top:6px;">
+        </div>
+        <div>
+          <label style="font-size:11.5px; font-weight:700; color:#9096AC; letter-spacing:0.3px; text-transform:uppercase;">Subdomain</label>
+          <input placeholder="e.g. northline" value="{{ form.subdomain }}" onChange="{{ form.onSubdomainChange }}" style="width:100%; padding:11px 13px; border:1px solid #DDE0EA; border-radius:8px; font-size:13.5px; outline:none; font-family:'IBM Plex Mono',monospace; margin-top:6px;">
+        </div>
+        <div>
+          <label style="font-size:11.5px; font-weight:700; color:#9096AC; letter-spacing:0.3px; text-transform:uppercase;">Custom Domain (optional)</label>
+          <input placeholder="e.g. www.salvagemanagers.com" value="{{ form.customDomain }}" onChange="{{ form.onCustomDomainChange }}" style="width:100%; padding:11px 13px; border:1px solid #DDE0EA; border-radius:8px; font-size:13.5px; outline:none; font-family:'IBM Plex Mono',monospace; margin-top:6px;">
+        </div>
+        <div>
+          <label style="font-size:11.5px; font-weight:700; color:#9096AC; letter-spacing:0.3px; text-transform:uppercase;">TradeSphereX Class</label>
+          <select value="{{ form.tenantClass }}" onChange="{{ form.onTenantClassChange }}" style="width:100%; padding:11px 13px; border:1px solid #DDE0EA; border-radius:8px; font-size:13.5px; outline:none; font-family:inherit; margin-top:6px; background:#fff;">
+            <option value="general">General</option>
+            <option value="institutional">Institutional</option>
+            <option value="company_shop">Company Shop</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11.5px; font-weight:700; color:#9096AC; letter-spacing:0.3px; text-transform:uppercase;">Subscription Tier</label>
+          <p style="font-size:11.5px; color:#9A9FB5; margin:4px 0 6px;">The Success Fee itself is fixed platform-wide and not set here.</p>
+          <select value="{{ form.tier }}" onChange="{{ form.onTierChange }}" style="width:100%; padding:11px 13px; border:1px solid #DDE0EA; border-radius:8px; font-size:13.5px; outline:none; font-family:inherit; background:#fff;">
+            <option value="coco_starter">CoCo Starter (Buyer-Pays only)</option>
+            <option value="tsx_launch">TSX Launch</option>
+            <option value="tsx_growth">TSX Growth</option>
+            <option value="tsx_enterprise">TSX Enterprise</option>
+          </select>
+        </div>
+      </div>
+
+      <button onClick="{{ onSubmit }}" disabled="{{ !form.valid }}" style="margin-top:20px; width:100%; font-size:14px; font-weight:700; padding:13px; border-radius:8px; border:none; cursor:pointer; background:{{ form.valid ? '#1E2233' : '#E9EBF2' }}; color:{{ form.valid ? '#fff' : '#9A9FB5' }};">Whitelist TradeSphereX</button>
+    </sc-if>
+
+    <sc-if value="{{ submitted }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#E7F0E9; border:1px solid #CBE0D1; border-radius:16px; padding:32px; text-align:center;">
+        <div style="font-size:15px; font-weight:800; color:#38724A; margin-bottom:8px;">TradeSphereX Whitelisted</div>
+        <p style="font-size:13px; color:#38724A; margin:0 0 4px; line-height:1.6;"><strong>{{ form.name }}</strong> is live at <span style="font-family:'IBM Plex Mono',monospace;">{{ form.subdomain }}.ebidhub.com</span>.</p>
+        <p style="font-size:12.5px; color:#38724A; margin:0 0 18px;">Next: appoint a Tenant Admin for this TradeSphereX.</p>
+        <a href="Custodian Dashboard.dc.html" style="font-size:13px; font-weight:700; padding:10px 20px; border-radius:8px; background:#38724A; color:#fff; display:inline-block;">Back to Dashboard →</a>
+      </div>
+    </sc-if>
+  </main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { name: '', subdomain: '', customDomain: '', tenantClass: 'general', tier: 'coco_starter', submitted: false };
+
+  renderVals() {
+    const s = this.state;
+    const valid = !!(s.name && s.subdomain);
+    return {
+      form: {
+        name: s.name, onNameChange: (e) => this.setState({ name: e.target.value }),
+        subdomain: s.subdomain, onSubdomainChange: (e) => this.setState({ subdomain: e.target.value }),
+        customDomain: s.customDomain, onCustomDomainChange: (e) => this.setState({ customDomain: e.target.value }),
+        tenantClass: s.tenantClass, onTenantClassChange: (e) => this.setState({ tenantClass: e.target.value }),
+        tier: s.tier, onTierChange: (e) => this.setState({ tier: e.target.value }),
+        valid,
+      },
+      onSubmit: () => { if (valid) this.setState({ submitted: true }); },
+      submitted: s.submitted,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

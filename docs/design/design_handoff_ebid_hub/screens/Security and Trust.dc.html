@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#A87A38;}
+@media (max-width:640px){.sec-strip{gap:14px !important;}}
+</style>
+</helmet>
+<div style="min-height:100vh; background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif;">
+  <header style="position:sticky; top:0; z-index:60; background:rgba(243,244,248,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1200px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#1E2761;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <a href="Trust and Support.dc.html" style="font-weight:700; font-size:12.5px; padding:9px 18px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233; white-space:nowrap;">← Trust &amp; Support</a>
+    </div>
+  </header>
+
+  <main style="max-width:1020px; margin:0 auto; padding:40px 20px 90px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">Trust &amp; Support</div>
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:32px; font-weight:800; letter-spacing:-0.7px; margin:0 0 10px;">Security &amp; Trust</h1>
+    <p style="font-size:14.5px; color:#565B72; margin:0 0 24px; max-width:640px; line-height:1.6;">A plain explanation of how your money, your data, and your Trading Sessions are protected on ADWITIX — and how we hold ourselves accountable.</p>
+
+    <div class="sec-strip" style="display:flex; gap:22px; flex-wrap:wrap; padding:16px 0 28px; border-bottom:1px solid #DDE0EA; margin-bottom:28px;">
+      <sc-for list="{{ badges }}" as="b" hint-placeholder-count="6">
+        <span style="font-size:12.5px; color:#1E2233; font-weight:600;">🔒 {{ b }}</span>
+      </sc-for>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:18px;">
+      <sc-for list="{{ pillars }}" as="p" hint-placeholder-count="6">
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:24px 24px 22px; display:flex; flex-direction:column; gap:14px;">
+          <div style="display:flex; align-items:flex-start; gap:14px;">
+            <div style="width:44px; height:44px; border-radius:10px; background:#F3E3D6; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:19px;">{{ p.emoji }}</div>
+            <div>
+              <div style="font-size:11px; letter-spacing:0.6px; color:#9A9FB5; margin-bottom:4px;">{{ p.num }}</div>
+              <h3 style="font-family:Georgia,'Cambria',serif; font-weight:700; font-size:17px; color:#1E2233; margin:0;">{{ p.title }}</h3>
+            </div>
+          </div>
+          <p style="font-size:13.5px; line-height:1.6; color:#565B72; margin:0;">{{ p.intro }}</p>
+          <div style="display:flex; flex-direction:column; gap:9px;">
+            <sc-for list="{{ p.points }}" as="pt" hint-placeholder-count="4">
+              <div style="display:flex; gap:8px; align-items:flex-start;">
+                <span style="color:#1E2761; flex-shrink:0;">→</span>
+                <span style="font-size:13px; line-height:1.55; color:#1E2233;">{{ pt }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </main>
+
+  <footer style="border-top:1px solid #DDE0EA; padding:24px 20px; text-align:center;">
+    <p style="font-size:12.5px; color:#9A9FB5; margin:0 0 4px;">For the full legal detail behind these protections, see our <a href="Terms of Usage.dc.html">Terms of Usage</a> and <a href="Privacy Policy.dc.html">Privacy Policy</a>.</p>
+    <p style="font-size:12.5px; color:#9A9FB5; margin:0;">Have a specific concern? Reach out through <a href="Trust and Support.dc.html">Contact Us</a>.</p>
+  </footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  pillars() {
+    return [
+      { emoji: '🏦', title: 'Your Money Is Never Pooled', intro: 'Every deposit you pledge is held separately, tied to the specific bid it secures — never mixed into one shared pot with other Traders\' money.', points: [
+        'Each deposit is a distinct, ring-fenced holding, released or forfeited only based on that specific Trading Session\'s outcome.',
+        'Your deposit is refunded automatically as soon as it\'s no longer needed — outbid, not selected, or deal closed — with no fixed delay.',
+        'No interest is ever taken from money held on your behalf.',
+        'Deposits are held through a licensed, RBI-regulated payment partner, not an unlicensed wallet.'] },
+      { emoji: '🛡️', title: 'Your Data Is Protected', intro: 'Sensitive information is encrypted, minimised, and shared only with whoever genuinely needs it, only when they need it.', points: [
+        'Aadhaar and other sensitive ID data are stored in masked, tokenised form — never in plain text.',
+        'Banking details are encrypted and used solely to process refunds and settlements.',
+        'Your identity stays hidden from a counterparty until a real commitment is made on both sides — not shared upfront.',
+        'We never sell your data to anyone, for any reason.'] },
+      { emoji: '📷', title: 'What You See Is Real', intro: 'Lots are built from genuine, verifiable evidence — not stock photos or recycled images.', points: [
+        'Every photo is captured through the app itself, at the moment of listing — not uploaded from an old gallery.',
+        'Location and timestamp data is captured automatically alongside each photo, making it far harder to pass off a fake or unrelated image.',
+        'Stock photography and placeholder images are never allowed on a Lot.',
+        'Even on Express Auctions, Market Makers must disclose any known defects upfront — not just what the photos happen to show.'] },
+      { emoji: '⚖️', title: 'A Level Playing Field', intro: 'The bidding process is designed so no one — including us — gets an unfair edge.', points: [
+        'During a live Trading Session, nobody can see who else is bidding — not other Traders, not the Market Maker.',
+        'Even our Custodian has zero visibility into a Trading Session while it\'s actually happening — access opens only after it closes, same as everyone else.',
+        'No single bid can jump more than 150% above the current price, catching costly typos and blocking deliberate price manipulation.',
+        'Bidding activity is continuously monitored for patterns that suggest manipulation or bad-faith behaviour.'] },
+      { emoji: '📋', title: 'Every Action Is Accountable', intro: 'Decisions that affect you always come with a stated reason and a permanent record — never a silent, unexplained outcome.', points: [
+        'Every rejection, forfeiture, and dispute ruling is logged with the specific reason behind it.',
+        'Records in our system can\'t be secretly altered — not by outside parties, and not by our own staff.',
+        'Before you pledge a deposit, you\'re shown a clear, specific summary of what you\'re agreeing to for that exact bid.',
+        'A rating can only drop significantly after a human review — never an automatic, unchecked penalty — and you always have the right to appeal.'] },
+      { emoji: '✅', title: 'Independently Checked', intro: 'We don\'t just tell you the platform is secure — it\'s regularly verified by people outside our own team.', points: [
+        'The platform undergoes independent security audits by outside specialists, not just our own developers.',
+        'Our servers\' clocks are continuously synced and monitored, so Trading Session timing can\'t be secretly manipulated.',
+        'Unusual money-movement patterns are actively monitored to guard against misuse of the platform.',
+        'Our payment infrastructure runs through a licensed, RBI-authorised partner, not an in-house or unregulated system.'] },
+    ];
+  }
+  renderVals() {
+    return {
+      badges: ['Segregated deposits', 'Anonymous bidding', 'Encrypted identity data', 'Tamper-checked timing', '150% bid ceiling', 'Independent audits'],
+      pillars: this.pillars().map((p, i) => ({ ...p, num: String(i + 1).padStart(2, '0') })),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

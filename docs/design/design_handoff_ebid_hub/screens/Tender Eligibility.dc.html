@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} html,body{overflow-x:hidden;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#A87A38;}
+</style>
+</helmet>
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;">
+  <header style="position:sticky; top:0; z-index:60; background:#1E2233; border-bottom:1px solid #33374A;">
+    <div style="max-width:1000px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#fff;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <a href="Tender Concierge Console.dc.html" style="font-size:12.5px; font-weight:700; padding:9px 18px; border-radius:100px; border:1px solid #4A4E60; color:#C7CADA;">← Concierge Console</a>
+    </div>
+  </header>
+
+  <main style="max-width:1000px; margin:0 auto; padding:40px 20px 100px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">TSX Master · Tender</div>
+    <h1 style="font-family:Georgia,'Cambria',serif; font-size:28px; font-weight:800; margin:0 0 6px;">Manage Eligibility</h1>
+    <p style="font-size:13.5px; color:#565B72; margin:0 0 30px; max-width:640px; line-height:1.6;">{{ lot.title }} is invitation-only — nobody can bid without being granted eligibility here first.</p>
+
+    <section style="margin-bottom:30px;">
+      <h2 style="font-size:15px; font-weight:800; margin:0 0 12px;">Registered Interest, Not Yet Eligible</h2>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; overflow:hidden;">
+        <sc-for list="{{ interested }}" as="p" hint-placeholder-count="3">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid #EEF0EA;">
+            <div>
+              <div style="font-size:13.5px; font-weight:700;">{{ p.name }}</div>
+              <div style="font-size:11px; color:#9A9FB5; font-family:'IBM Plex Mono',monospace;">{{ p.mobile }} · registered {{ p.registeredAt }}</div>
+            </div>
+            <button onClick="{{ p.onApprove }}" style="font-size:12px; font-weight:700; padding:8px 16px; border-radius:8px; border:none; background:#1E2233; color:#fff; cursor:pointer;">Approve</button>
+          </div>
+        </sc-for>
+        <sc-if value="{{ interested.length === 0 }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:20px; text-align:center; color:#9A9FB5; font-size:13px;">No pending interest right now.</div>
+        </sc-if>
+      </div>
+    </section>
+
+    <section style="margin-bottom:30px;">
+      <h2 style="font-size:15px; font-weight:800; margin:0 0 12px;">Add a Trader Directly</h2>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:18px 20px; display:flex; gap:10px; flex-wrap:wrap;">
+        <input placeholder="Mobile number (+91)" value="{{ addForm.mobile }}" onChange="{{ addForm.onMobileChange }}" style="flex:1; min-width:180px; padding:11px 14px; border:1px solid #DDE0EA; border-radius:8px; font-size:13.5px; outline:none; font-family:inherit;">
+        <button onClick="{{ addForm.onGrant }}" disabled="{{ !addForm.valid }}" style="font-size:12.5px; font-weight:700; padding:11px 20px; border-radius:8px; border:none; background:{{ addForm.valid ? '#1E2233' : '#E9EBF2' }}; color:{{ addForm.valid ? '#fff' : '#9A9FB5' }}; cursor:pointer;">Grant Eligibility</button>
+      </div>
+      <p style="font-size:11.5px; color:#9A9FB5; margin:8px 0 0;">Grants access without requiring the Trader to have registered interest first — the eligible list below tracks the difference.</p>
+    </section>
+
+    <section>
+      <h2 style="font-size:15px; font-weight:800; margin:0 0 12px;">Currently Eligible ({{ eligible.length }})</h2>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; overflow:hidden;">
+        <div style="display:grid; grid-template-columns:1fr 160px 130px; padding:0 18px; font-size:10px; text-transform:uppercase; color:#9A9FB5; font-weight:700; border-bottom:1px solid #EEF0EA;">
+          <div style="padding:10px 0;">Trader</div>
+          <div style="padding:10px 0;">Provenance</div>
+          <div style="padding:10px 0;">Granted</div>
+        </div>
+        <sc-for list="{{ eligible }}" as="e" hint-placeholder-count="4">
+          <div style="display:grid; grid-template-columns:1fr 160px 130px; padding:0 18px; border-bottom:1px solid #EEF0EA; align-items:center; min-height:48px; font-size:13px;">
+            <div style="font-weight:600;">{{ e.name }}</div>
+            <div><span style="font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.3px; padding:4px 10px; border-radius:100px; background:{{ e.sourceBg }}; color:{{ e.sourceColor }};">{{ e.source }}</span></div>
+            <div style="font-size:12px; color:#9A9FB5;">{{ e.grantedAt }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+  </main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    interested: [
+      { name: 'Suresh Auto Traders', mobile: '+91 98xxxxxx31', registeredAt: '2026-08-02' },
+      { name: 'Kavita Reddy', mobile: '+91 97xxxxxx88', registeredAt: '2026-08-04' },
+    ],
+    eligible: [
+      { name: 'Ramesh Agarwal', source: 'Registered Interest', sourceBg: '#E9EBF2', sourceColor: '#565B72', grantedAt: '2026-07-30' },
+      { name: 'Priyanka Suresh Holdings', source: 'Directly Added', sourceBg: '#F1EDE4', sourceColor: '#9C7430', grantedAt: '2026-07-31' },
+    ],
+    addMobile: '',
+  };
+
+  renderVals() {
+    const s = this.state;
+    const lot = { title: 'Repossessed Excavator, CAT 320D · TSN-2026-3381' };
+    return {
+      lot,
+      interested: s.interested.map((p, i) => ({
+        ...p,
+        onApprove: () => {
+          const next = s.interested.slice(); next.splice(i, 1);
+          this.setState({ interested: next, eligible: [...s.eligible, { name: p.name, source: 'Registered Interest', sourceBg: '#E9EBF2', sourceColor: '#565B72', grantedAt: new Date().toISOString().slice(0,10) }] });
+        },
+      })),
+      eligible: s.eligible,
+      addForm: {
+        mobile: s.addMobile, onMobileChange: (e) => this.setState({ addMobile: e.target.value }),
+        valid: s.addMobile.length >= 10,
+        onGrant: () => {
+          if (s.addMobile.length < 10) return;
+          this.setState({ eligible: [...s.eligible, { name: s.addMobile, source: 'Directly Added', sourceBg: '#F1EDE4', sourceColor: '#9C7430', grantedAt: new Date().toISOString().slice(0,10) }], addMobile: '' });
+        },
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>

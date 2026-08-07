@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{margin:0;} html,body{overflow-x:hidden;} a{text-decoration:none;}
+a:link, a:visited{color:#C9974C;} a:hover{color:#A87A38;}
+.ld-thumb:hover{border-color:#C9974C !important;}
+.ld-rel:hover{border-color:#C9974C !important;}
+@media (max-width:900px){.ld-layout{grid-template-columns:1fr !important;}}
+@media (max-width:640px){.ld-nav{display:none !important;} .ld-rel-grid{grid-template-columns:1fr 1fr !important;}}
+</style>
+</helmet>
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;">
+  <header style="position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1400px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="eBid Hub Landing.dc.html" style="display:flex; align-items:center; gap:12px; flex-shrink:0;">
+        <img src="uploads/adwitix-icon.svg" alt="" style="height:34px; width:34px; display:block;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; color:#1E2761;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <nav class="ld-nav" style="display:flex; gap:4px; background:#E9EBF2; padding:4px; border-radius:100px;">
+        <a href="Marketplace.dc.html" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#565B72;">Marketplace</a>
+        <a href="Buyer Dashboard.dc.html" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#565B72;">Dashboard</a>
+      </nav>
+      <a href="Marketplace.dc.html" style="font-weight:700; font-size:12.5px; padding:9px 16px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233; white-space:nowrap; flex-shrink:0;">← Back to Marketplace</a>
+    </div>
+  </header>
+
+  <main style="max-width:1160px; margin:0 auto; padding:32px 20px 90px;">
+    <div style="font-size:12px; color:#9A9FB5; margin-bottom:14px;">{{ lot.category }} · {{ lot.tsx }} · <span style="font-family:'IBM Plex Mono',monospace;">{{ lot.id }}</span></div>
+
+    <div class="ld-layout" style="display:grid; grid-template-columns:1.3fr 1fr; gap:28px; align-items:start;">
+      <div>
+        <div style="height:360px; background:repeating-linear-gradient(135deg, #F1F1EE 0px, #F1F1EE 14px, #E7E7E1 14px, #E7E7E1 28px); border-radius:16px; margin-bottom:10px;"></div>
+        <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:8px;">
+          <sc-for list="{{ thumbs }}" as="t" hint-placeholder-count="5">
+            <div class="ld-thumb" style="height:64px; border-radius:8px; border:1px solid #DDE0EA; background:repeating-linear-gradient(135deg, #F1F1EE 0px, #F1F1EE 10px, #E7E7E1 10px, #E7E7E1 20px);"></div>
+          </sc-for>
+        </div>
+
+        <h1 style="font-family:Georgia,'Cambria',serif; font-size:26px; font-weight:800; letter-spacing:-0.5px; margin:24px 0 8px;">{{ lot.title }}</h1>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px;">
+          <span style="font-size:11px; font-weight:700; color:#565B72; background:#EEF0F4; padding:5px 11px; border-radius:100px;">{{ lot.condition }}</span>
+          <sc-if value="{{ lot.matches }}" hint-placeholder-val="{{ false }}">
+            <span style="font-size:11px; font-weight:700; color:#3F7A4E; background:#E4EFE6; padding:5px 11px; border-radius:100px;">✓ Matches your preferences</span>
+          </sc-if>
+        </div>
+
+        <h2 style="font-size:14px; font-weight:700; color:#9A9FB5; text-transform:uppercase; letter-spacing:0.4px; margin:0 0 10px;">Description</h2>
+        <p style="font-size:14px; color:#565B72; line-height:1.7; margin:0 0 24px;">{{ lot.description }}</p>
+
+        <h2 style="font-size:14px; font-weight:700; color:#9A9FB5; text-transform:uppercase; letter-spacing:0.4px; margin:0 0 10px;">Market Maker</h2>
+        <div style="display:flex; align-items:center; gap:12px; background:#fff; border:1px solid #DDE0EA; border-radius:12px; padding:14px 16px; margin-bottom:28px;">
+          <div style="width:40px; height:40px; border-radius:100px; background:#1E2233; color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; flex-shrink:0;">{{ lot.mmInitials }}</div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:13.5px; font-weight:700;">{{ lot.mmName }}</div>
+            <div style="font-size:11.5px; color:#9A9FB5;">MM★ {{ lot.mmRating }} · Selling on {{ lot.tsx }}</div>
+          </div>
+        </div>
+
+        <sc-if value="{{ hasRelated }}" hint-placeholder-val="{{ false }}">
+          <h2 style="font-size:14px; font-weight:700; color:#9A9FB5; text-transform:uppercase; letter-spacing:0.4px; margin:0 0 12px;">Related Lots</h2>
+          <div class="ld-rel-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
+            <sc-for list="{{ related }}" as="r" hint-placeholder-count="3">
+              <a href="{{ r.href }}" class="ld-rel" style="display:block; background:#fff; border:1px solid #DDE0EA; border-radius:12px; overflow:hidden; color:inherit;">
+                <div style="height:80px; background:repeating-linear-gradient(135deg, #F1F1EE 0px, #F1F1EE 12px, #E7E7E1 12px, #E7E7E1 24px);"></div>
+                <div style="padding:10px;">
+                  <div style="font-size:12px; font-weight:700; line-height:1.3; margin-bottom:4px;">{{ r.title }}</div>
+                  <div style="font-size:11px; color:#9A9FB5;">{{ r.price }}</div>
+                </div>
+              </a>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="position:sticky; top:88px; background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:22px;">
+        <span style="font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.3px; color:#fff; background:#1E2233; padding:4px 10px; border-radius:100px;">{{ lot.format }}</span>
+        <div style="margin:14px 0 4px; font-size:12px; color:#9A9FB5; font-weight:600;">{{ lot.priceLabel }}</div>
+        <div style="font-family:Georgia,serif; font-size:30px; font-weight:800; margin-bottom:6px;">{{ lot.priceValue }}</div>
+        <div style="font-size:12.5px; color:#565B72; margin-bottom:18px;">{{ lot.timeLeft }}</div>
+
+        <sc-if value="{{ lot.isEasy }}" hint-placeholder-val="{{ false }}">
+          <input placeholder="Enter your bid (₹)" style="width:100%; padding:11px 14px; border:1px solid #DDE0EA; border-radius:8px; font-size:14px; outline:none; margin-bottom:10px; font-family:inherit;">
+          <p style="font-size:11.5px; color:#9A9FB5; margin:0 0 14px;">Open ascending bid — no reserve. Highest bid wins at close.</p>
+        </sc-if>
+        <sc-if value="{{ lot.isExpress }}" hint-placeholder-val="{{ false }}">
+          <input placeholder="Enter your sealed bid (₹)" style="width:100%; padding:11px 14px; border:1px solid #DDE0EA; border-radius:8px; font-size:14px; outline:none; margin-bottom:10px; font-family:inherit;">
+          <p style="font-size:11.5px; color:#9A9FB5; margin:0 0 14px;">Sealed-bid, single round. Bids are hidden until the 24-hour window closes.</p>
+        </sc-if>
+        <sc-if value="{{ lot.isTender }}" hint-placeholder-val="{{ false }}">
+          <input placeholder="Enter your tender offer (₹)" style="width:100%; padding:11px 14px; border:1px solid #DDE0EA; border-radius:8px; font-size:14px; outline:none; margin-bottom:10px; font-family:inherit;">
+          <p style="font-size:11.5px; color:#9A9FB5; margin:0 0 14px;">Multi-round sealed bid. Reserve and Expected Value disclosed after close.</p>
+        </sc-if>
+        <sc-if value="{{ lot.isBuyNow }}" hint-placeholder-val="{{ false }}">
+          <p style="font-size:11.5px; color:#9A9FB5; margin:0 0 14px;">Fixed price — pay now to settle instantly, no bidding.</p>
+        </sc-if>
+
+        <sc-if value="{{ lot.isBuyNow }}" hint-placeholder-val="{{ false }}">
+          <button style="width:100%; padding:13px; border-radius:100px; border:none; background:#1E2233; color:#fff; font-size:13.5px; font-weight:700; cursor:pointer; margin-bottom:10px;">{{ lot.ctaLabel }}</button>
+        </sc-if>
+        <sc-if value="{{ lot.notBuyNow }}" hint-placeholder-val="{{ true }}">
+          <a href="{{ lot.roomHref }}" style="display:block; text-align:center; width:100%; padding:13px; border-radius:100px; border:none; background:#1E2233; color:#fff; font-size:13.5px; font-weight:700; margin-bottom:10px; box-sizing:border-box;">{{ lot.ctaLabel }}</a>
+        </sc-if>
+        <button style="width:100%; padding:11px; border-radius:100px; border:1px solid #DDE0EA; background:#fff; color:#1E2233; font-size:13px; font-weight:700; cursor:pointer;">☆ Add to Watchlist</button>
+
+        <div style="margin-top:18px; padding-top:16px; border-top:1px solid #EEF0EA; display:flex; flex-direction:column; gap:8px; font-size:12px; color:#565B72;">
+          <div style="display:flex; justify-content:space-between;"><span>Category Match</span><span style="font-weight:700; color:{{ lot.catMatchColor }};">{{ lot.catMatch }}</span></div>
+          <div style="display:flex; justify-content:space-between;"><span>Location Match</span><span style="font-weight:700; color:{{ lot.locMatchColor }};">{{ lot.locMatch }}</span></div>
+          <div style="display:flex; justify-content:space-between;"><span>Value Match</span><span style="font-weight:700; color:{{ lot.valMatchColor }};">{{ lot.valMatch }}</span></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { id: null };
+
+  componentDidMount() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+      if (id) this.setState({ id });
+    } catch (e) {}
+  }
+
+  seedLots() {
+    return [
+      { id: 'LOT-48210', title: 'Repossessed Excavator, CAT 320D', category: 'Heavy Equipment', tsx: 'Ironclad Metals TSX', format: 'TENDER', condition: 'Used — Good', description: 'Mid-life CAT 320D excavator repossessed from a construction fleet. Runs and operates; undercarriage shows expected wear for hours logged. Sold as-is, inspection window available before close.', mmName: 'Northline Salvage Co.', mmRating: '3.8', mmInitials: 'NS', priceLabel: 'Reserve Value', priceValue: '₹18,40,000', timeLeft: '2 days 4 hours left', matches: true, catMatch: 'Yes', locMatch: 'Yes', valMatch: 'Yes' },
+      { id: 'LOT-49012', title: 'Industrial Compressor Unit', category: 'Industrial Machinery', tsx: 'Ironclad Metals TSX', format: 'EASY', condition: 'Used — Fair', description: 'Screw-type industrial air compressor, decommissioned from a textile plant. Functional at time of listing; buyer to arrange collection and transport.', mmName: 'Northline Salvage Co.', mmRating: '3.8', mmInitials: 'NS', priceLabel: 'Current Highest Bid', priceValue: '₹3,20,000', timeLeft: '6 hours left', matches: true, catMatch: 'Yes', locMatch: 'Yes', valMatch: 'Yes' },
+      { id: 'LOT-49510', title: 'Fleet of 6 Delivery Vans (2019)', category: 'Vehicles', tsx: 'AutoYard TSX', format: 'BUY-NOW', condition: 'Used — Good', description: 'Fleet of 6 diesel delivery vans, 2019 model year, fleet-maintained with service records. Sold together as one Lot.', mmName: 'Ravindra Auto Traders', mmRating: '4.6', mmInitials: 'RA', priceLabel: 'Fixed Price', priceValue: '₹9,90,000', timeLeft: 'Open-ended — Buy-Now', matches: false, catMatch: 'No', locMatch: 'Yes', valMatch: 'No' },
+      { id: 'LOT-50120', title: 'Cotton Yarn Surplus, 40 Bales', category: 'Textiles', tsx: 'Heritage Textiles TSX', format: 'EXPRESS', condition: 'New — Surplus', description: 'Surplus cotton yarn stock, 40 bales, from a cancelled export order. Quality certificates available on request.', mmName: 'Heritage Textiles Ltd.', mmRating: '4.2', mmInitials: 'HT', priceLabel: 'Sealed Bid — Hidden Until Close', priceValue: '—', timeLeft: '18 hours left', matches: true, catMatch: 'Yes', locMatch: 'No', valMatch: 'Yes' },
+    ];
+  }
+
+  formatMeta(format) {
+    const map = {
+      'EASY': { ctaLabel: 'Place Bid', isEasy: true },
+      'EXPRESS': { ctaLabel: 'Submit Sealed Bid', isExpress: true },
+      'TENDER': { ctaLabel: 'Submit Tender Offer', isTender: true },
+      'BUY-NOW': { ctaLabel: 'Buy Now', isBuyNow: true },
+    };
+    return map[format] || map['EASY'];
+  }
+
+  renderVals() {
+    const s = this.state;
+    const all = this.seedLots();
+    const lot = all.find(l => l.id === s.id) || all[0];
+    const meta = this.formatMeta(lot.format);
+    const matchColor = (v) => v === 'Yes' ? '#3F7A4E' : '#9A9FB5';
+    const related = all.filter(l => l.id !== lot.id).slice(0, 3);
+
+    return {
+      lot: {
+        ...lot, ...meta,
+        notBuyNow: lot.format !== 'BUY-NOW',
+        roomHref: 'Bidding Room.dc.html?id=' + lot.id + '&format=' + lot.format,
+        catMatchColor: matchColor(lot.catMatch), locMatchColor: matchColor(lot.locMatch), valMatchColor: matchColor(lot.valMatch),
+      },
+      thumbs: [1, 2, 3, 4, 5],
+      hasRelated: related.length > 0,
+      related: related.map(r => ({ ...r, href: 'Lot Detail.dc.html?id=' + r.id, price: r.priceValue === '—' ? 'Sealed bid' : r.priceValue })),
+    };
+  }
+}
+
+</script>
+</body>
+</html>
