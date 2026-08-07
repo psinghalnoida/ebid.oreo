@@ -21,7 +21,7 @@
     </select>
     <select name="status" style="padding:10px; border:1px solid var(--line); border-radius:10px;">
       <option value="">All Statuses</option>
-      <?php foreach (['inventory', 'pending_approval', 'upcoming', 'active', 'archived'] as $s): ?>
+      <?php foreach (['inventory', 'pending_approval', 'upcoming', 'active', 'sold', 'cycle_ended_unsold', 'suspended'] as $s): ?>
         <option value="<?= $s ?>" <?= $status === $s ? 'selected' : '' ?>><?= esc(ucfirst(str_replace('_', ' ', $s))) ?></option>
       <?php endforeach; ?>
     </select>

@@ -19,7 +19,7 @@
     </select>
     <select name="status" style="padding:10px; border:1px solid var(--line); border-radius:10px;">
       <option value="">All Statuses</option>
-      <?php foreach (['pending_approval', 'grace_period', 'active', 'closed_sold', 'cancelled'] as $s): ?>
+      <?php foreach (['pending_approval', 'grace_period', 'active', 'closed_sold', 'cancelled', 'cycle_ended_unsold'] as $s): ?>
         <option value="<?= $s ?>" <?= $status === $s ? 'selected' : '' ?>><?= esc(ucfirst(str_replace('_', ' ', $s))) ?></option>
       <?php endforeach; ?>
     </select>
