@@ -6969,3 +6969,230 @@ CLAUDE_DESIGN_HANDOFF.md` updated: §2 (the "6 screens, no backend at
 all" list) is now empty — all 7 screens that were ever in that
 category (Lot Reach & Interest plus these 6) are consolidated into one
 "ready to design" section with the real field/route spec for each.
+
+### D-107: BR-65 formally amended — API is now versioned (`/api/v1/`)
+
+Not a repo-audit finding this time — a direct architectural policy
+directive from the project owner (Chief Architect role prompt), stating
+every API must be versioned, e.g. `/api/v1/`, and must never be exposed
+unversioned. Checked it against the actual codebase before touching
+anything, since a blind "yes, will comply" would have been dishonest:
+that directive is in **direct, literal conflict** with BR-65's own text
+in the governing document, `ADWITIX_Master.docx` — *"The API is not
+exposed to Tenants with a visible version number."* This isn't a team
+convention or an unbuilt spec; it was quoted verbatim, already
+identified once before (D-93 confirmed this exact wording and fixed
+D-89's build to match it by *removing* the `/v1/` segment).
+
+Surfaced the conflict and the two ways to resolve it without silently
+picking a side — real header/content-type versioning (keeps BR-65's
+literal text true) vs. formally amending BR-65 in the master document
+(reverses it). The project owner chose the latter: amend the governing
+document.
+
+**What changed:**
+1. `docs/source-documents/ADWITIX_Master.docx` — BR-65's Statement and
+   Logic/Rationale rewritten in place (direct XML edit via the docx
+   skill, `merge_runs`/`validate.py`-checked, paragraph count unchanged
+   at 1250 before/after). New Statement: the API **is** exposed with a
+   visible version number in the URL (`/api/v1/...`); additive changes
+   still ship within the current version with no prior notice; breaking
+   changes now get a new version segment (`/api/v2/`) running alongside
+   the old one for a notice period, instead of the old "parallel
+   shapes, no version marker" mechanism. New Rationale records this as
+   a Super-Admin-confirmed reversal, same style/precedent as BR-53's
+   TDS-rate confirmation (D-71) and BR-68's app-wide scope confirmation
+   (D-93) — a real decision recorded in the real governing document,
+   not just in this changelog.
+2. `app/Config/Routes.php` — all 6 Tenant API routes (`/api/oauth/token`,
+   `/api/listings*`, `/api/sale-events/*`) renamed to `/api/v1/...`.
+   Checked first for any other code referencing the literal old path
+   strings (`ApiAuthFilter`, `ApiCredentialService`, views, the
+   `test:tenantapi` suite, `Config/Filters.php`'s CSRF exclusion) — none
+   found; the CSRF `except: ['api/*']` glob and `ApiAuthFilter` (which
+   authenticates purely off the `Authorization: Bearer` header, never
+   the URL) both needed zero changes. This was a genuinely contained,
+   one-file code change once the document decision was made.
+
+**Verified for real, not assumed**: `test:tenantapi` still 25/25 (it
+calls controller methods directly, so it's insensitive to route-path
+changes by design — confirms the reversal touched only routing, not
+business logic). Then real HTTP, not just the suite: `POST
+/api/oauth/token` (the old path) → **404**, confirming a genuine clean
+cutover, not an alias left behind; `POST /api/v1/oauth/token` → real
+`400 unsupported_grant_type` (the actual controller logic, not a stub);
+`GET /api/v1/listings/{id}` unauthenticated → real `401` from
+`ApiAuthFilter`, proving the filter is still correctly attached to the
+new path. Full 36-suite regression on an independently rebuilt
+database: clean, only the pre-existing, already-diagnosed
+`test:auditlog` DB-naming gap.
+
+**Explicitly out of scope for this decision**: the Chief Architect
+directive's other items (WebSocket layer, Redis caching, the 17
+controllers with direct DB access, bounded-context module structure,
+and the net-new domain concepts — Wallet, Reverse Auctions,
+Procurement, Warehouses, RVSFs, Financial Institutions, Service
+Providers) were sized and sequenced but explicitly not started pending
+their own individual decisions — BR-65 was the one item the project
+owner asked to start with.
+
+### D-108: WebSocket layer — corrected my own earlier audit, then extended real-time coverage to Buy-Now offers
+
+Two distinct pieces. First, a correction to my own prior claim: when
+sizing the Chief Architect directive's retrofit items, I reported "no
+WebSocket layer exists at all." That was **wrong**. A real, working
+sidecar (`realtime/server.js`, Node.js + the `ws` package) already
+existed, built and documented in D-42/D-52 — I missed it because I only
+searched `app/`, `composer.json`, and `public/`; the sidecar is a
+deliberately separate process living in its own top-level `realtime/`
+directory, and I never checked there. Caught it myself before building
+anything, by re-verifying the audit rather than proceeding on the
+earlier claim — same standard this project has held throughout.
+
+Re-verified the existing sidecar genuinely still works, not just
+trusted the historical record: `npm install` clean, started the
+sidecar, connected a real WebSocket client to a `sale_event:<id>` room
+and a `buyer:<id>` room, sent real broadcasts to both, confirmed
+correct receipt on both, then cleaned up. Confirmed coverage as it
+actually stands: `bid_placed`/`ticker_bid_update`/`dynamic_time_update`
+are wired across all three bidding formats (Easy/Express/Tender).
+**Buy-Now had zero broadcast coverage** — `OfferService` never called
+`RealtimeBroadcastService` at all, the one sale format left out.
+Settlement, Dispute, Rating, EMD cascade, and Admin actions are also
+still unwired — flagged, not silently assumed covered, and left for
+their own future decision.
+
+**Found and deliberately avoided worsening a real, pre-existing privacy
+gap while designing this**: `ListingController::show()` renders every
+submitted Buy-Now offer's real amount and status to **any visitor** of
+the listing page — not gated to the seller (`$offers` is populated
+whenever `sale_format === 'buy_now'`, with no `$isOwner` check
+anywhere around it). This predates D-108 and wasn't fixed here — fixing
+an existing page's access control is a distinct, more invasive change
+than what was asked for. What D-108 does guarantee: the new WebSocket
+broadcasts never make this worse. The `sale_event:<id>` room (watched
+by any visitor, same audience as that leaky page) only ever receives
+an amount-free `offer_submitted` signal (`{offerCount}`); the real
+offer amount is broadcast only to `broadcastToBuyer($sellerPartyId,
+'offer_received', ...)` — the seller's own private party channel.
+
+**Reused existing infrastructure instead of building parallel
+machinery**: `RealtimeBroadcastService::broadcastToBuyer()` already
+targets an arbitrary party ID, not literally only buyer-role parties —
+every logged-in party already holds this exact connection open via
+`layouts/main.php`'s global Live Ticker script (`?buyerId=<their own
+party ID>`), buyer or seller alike. Rather than opening a second
+sidecar connection or adding a `seller:<id>` room type, `OfferService`
+calls the same method as-is; `layouts/main.php`'s existing socket
+handler gained one new branch that relays `offer_received` as a
+`window.dispatchEvent(new CustomEvent('ebidhub:offer_received', ...))`
+for whichever page cares — `listing/show.php` listens for it only when
+`$isOwner` is true, no second connection, no new sidecar code at all.
+
+**Events added**:
+- `OfferService::submitOffer()` — `offer_submitted` (amount-free) to
+  the sale_event room; `offer_received` (real amount) to the seller's
+  party channel.
+- `OfferService::acceptOffer()` — `offer_accepted` (amount included) to
+  the sale_event room, matching the existing `bid_placed` precedent
+  that a closed sale's winning amount is public; `ticker_bid_update`
+  (the existing, already-handled event type) to the winning buyer's
+  party channel, so their Live Ticker refreshes without a manual poll.
+
+**Verified with a real, complete end-to-end test, not a mocked one** —
+same discipline D-42 itself set: started the sidecar and the PHP app
+together, created a real Buy-Now sale event and EMD hold through the
+real `OfferService`, connected three genuine WebSocket clients (a
+separate Node.js process, not the server) — one on the `sale_event`
+room, one on the seller's party room, one on the buyer's party room —
+then called `submitOffer()` and `acceptOffer()` for real. Confirmed
+exactly the right client received exactly the right payload each time:
+the sale_event room got `offer_submitted {offerCount:1}` then
+`offer_accepted {amount:92000}`; the seller's room alone got
+`offer_received` with the real amount; the buyer's room got
+`ticker_bid_update`. The sale_event room never once received the raw
+amount before acceptance — the privacy boundary held under a real
+test, not just by code inspection. All throwaway test files (a Node
+WS client, a two-mode spark command) deleted after use.
+
+Full regression: 36 real suites clean on an independently rebuilt
+database (only the pre-existing `test:auditlog` DB-naming gap);
+`test:buynow` specifically still 16/16 — the new broadcast calls sit
+outside the transactional logic path entirely and, like every other
+`RealtimeBroadcastService` call site, fail silently by design if the
+sidecar is unreachable.
+
+**Still explicitly open, not silently assumed covered**: Settlement,
+Dispute, Rating, EMD cascade defaults, and Admin actions (Emergency
+Stop, delisting) still have zero broadcast coverage; the pre-existing
+offer-amount page-leak in `ListingController::show()` is unfixed and
+was deliberately left alone, flagged for its own decision.
+
+### D-109: WebSocket coverage extended to Settlement (dual-NOC, ratings, completion)
+
+Continuing the WebSocket retrofit item (D-108 did Buy-Now offers) onto
+the next explicitly-flagged gap: Settlement. A settlement's four-step
+gate (`SettlementService::confirmSellerNoc`, `confirmBuyerNoc`,
+`submitRating` ×2, plus the administrative `forceResolveStalled`) all
+funnel through one private method, `checkCompletion()` — every one of
+those five call sites was a silent full-page-reload wait before this,
+even though the counterpart's action can matter within seconds (a
+buyer confirming receipt of goods, unblocking the seller's own NOC
+step and eventual EMD release).
+
+**Design**: unlike Buy-Now's listing page, a settlement is a private,
+two-party document — no "any visitor" audience exists for it the way
+the sale_event room serves a public listing page. So this doesn't
+touch the sale_event room at all. `checkCompletion()` broadcasts one
+`settlement_updated` event, unconditionally, at the end of every call
+(every call already represents a just-applied change made by its
+caller) — sent via `RealtimeBroadcastService::broadcastToBuyer()` to
+both the buyer's own party channel and the seller's own party channel,
+each already open for their Live Ticker (buyer:<partyId> — reused,
+not a new room type, same reuse precedent as D-108). The payload
+carries the settlement's full current gate state (status + all four
+booleans), not just a delta, so either party's client always has a
+complete picture regardless of which action triggered it.
+
+**Client side**: `layouts/main.php`'s existing WS handler gained one
+more relay branch — `settlement_updated` → `CustomEvent
+ebidhub:settlement_updated` — exactly the D-108 offer_received relay
+pattern, no new WebSocket connection. `settlement/show.php` listens
+for that event, and only if it matches the settlement currently being
+viewed, does a full page reload after a short (1.2s) delay with a
+small "Updated by the other party — refreshing…" banner first. A full
+reload rather than a DOM patch was the deliberate choice here: this
+page has several server-rendered blocks that only appear once
+specific conditions are met (invoices, TDS line, Trading Session
+Chronicle, the stalled-state force-resolve panel) — re-deriving that
+in JS would duplicate business/rendering logic the architecture
+directive explicitly warns against (D-109 follows the same "controllers
+orchestrate, don't push business logic into the client" reasoning
+already applied throughout this project). The reload guarantees the
+next render is exactly what `SettlementService` just decided, with zero
+duplicated logic.
+
+**Verified with a real end-to-end test**, same discipline as D-108: a
+throwaway spark command drove a real Buy-Now sale through
+`OfferService` to a real pending settlement, then called
+`confirmSellerNoc`, `confirmBuyerNoc`, `submitRating` (buyer),
+`submitRating` (seller) in sequence against the real
+`SettlementService`. Two genuine WebSocket clients (separate Node.js
+processes) — one on the buyer's party channel, one on the seller's —
+both received all four `settlement_updated` broadcasts, each with the
+correct incrementally-updated payload, the final one showing
+`status: "completed"`. Both throwaway files (a Node WS test client, a
+spark command) deleted after use, confirmed gone via `ls`.
+
+Full regression: 36/37 real suites clean on an independently rebuilt
+database (`test:settlement` itself 23/23); the one non-pass is the
+same pre-existing `test:auditlog` DB-naming gap (`ebidhub` vs.
+`ebidhub_ci4`) flagged as a known non-issue since earlier in this
+session, not a regression from this change.
+
+**Still explicitly open, not silently assumed covered**: Dispute,
+Rating (outside the settlement flow itself), EMD cascade defaults, and
+Admin actions (Emergency Stop, delisting) still have zero broadcast
+coverage; the pre-existing offer-amount page-leak in
+`ListingController::show()` remains unfixed and flagged, unchanged by
+this work.

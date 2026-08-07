@@ -585,6 +585,120 @@ confirmed for every screen). Full detail in `docs/DECISIONS.md` D-106.
 `docs/design/CLAUDE_DESIGN_HANDOFF.md` §2 updated: the "no backend at
 all" list is now empty.
 
+## Update — D-107: BR-65 formally amended, API now versioned (`/api/v1/`)
+
+Not a repo-audit finding — a direct architecture-policy directive from
+the project owner, checked against the codebase before acting on it
+rather than assumed compliant. It directly conflicted with BR-65's own
+text in `ADWITIX_Master.docx` (*"The API is not exposed to Tenants
+with a visible version number"*) — the same wording D-93 already once
+confirmed and built to. Surfaced the conflict and the two ways to
+resolve it (header-based versioning vs. formally reversing BR-65); the
+project owner chose to reverse it. `ADWITIX_Master.docx`'s BR-65 text
+rewritten in place (Super-Admin-confirmed reversal, same precedent as
+BR-53's TDS rate and BR-68's app-wide scope), all 6 Tenant API routes
+renamed to `/api/v1/...`. Verified real, not assumed: `test:tenantapi`
+25/25 (route-path-insensitive by design, confirms business logic
+untouched), plus real HTTP — old path `/api/oauth/token` → clean 404
+(no alias left behind), new `/api/v1/oauth/token` → real controller
+response, `/api/v1/listings/{id}` unauthenticated → real 401 from
+`ApiAuthFilter`, proving the filter reattached correctly. Full 36-suite
+regression clean. Full detail in `docs/DECISIONS.md` D-107.
+
+## Update — D-108: corrected a wrong claim about the WebSocket layer, then extended it to Buy-Now
+
+Self-correction, not a new finding by someone else: sizing the Chief
+Architect directive's retrofit items, I reported "no WebSocket layer
+exists." That was wrong — a real sidecar (`realtime/server.js`, D-42,
+extended D-52 for the Live Ticker) already existed; I'd only searched
+`app/`, `composer.json`, and `public/`, missing the separate top-level
+`realtime/` directory. Caught and corrected it myself before building
+anything on the wrong premise, and re-verified the existing sidecar
+genuinely still works with a real WebSocket client, not just trusted
+the historical record.
+
+Confirmed real coverage gaps once the audit was accurate: bids across
+all three formats are broadcast, but **Buy-Now offers had zero
+WebSocket coverage** — `OfferService` never called
+`RealtimeBroadcastService`. Closed that gap: `offer_submitted`
+(amount-free, to anyone watching the listing page) and `offer_received`
+(the real amount, private, to the seller's own channel) on submit;
+`offer_accepted` (public, matching the existing precedent that a
+closed sale's winning amount is public) and `ticker_bid_update` (to the
+winning buyer) on acceptance. Reused the existing per-party channel
+every logged-in user already holds open (no new sidecar code, no
+second connection). Found a real, pre-existing, unrelated privacy gap
+while designing this — `ListingController::show()` renders every
+Buy-Now offer's real amount to any visitor, not just the seller — left
+unfixed (out of scope for this task) but confirmed the new broadcasts
+don't add to it. Verified with a real three-client WebSocket test
+against real `OfferService` calls, not mocked; full 36-suite regression
+clean; `test:buynow` still 16/16. Full detail in `docs/DECISIONS.md`
+D-108.
+
+### Bottom line (superseded by D-109 — kept for history)
+
+**Still four items with no path forward without the project owner
+supplying something external — all four are genuinely build-complete,
+this is a credentials gap, not a build-effort gap**:
+
+1. BR-46 — AI Listing Pre-Audit, fully built, genuinely inert pending a Gemini API key
+2. BR-52 — Chargeback Mitigation, fully built, blocked on real SabPaisa API credentials
+3. A real payment gateway — EMD funding is simulated across every sale format; connects post-deployment
+4. A real SMS provider — OTP is generated/rate-limited correctly but only ever shown on-screen, never sent
+
+**No screens remain blocked on missing backend or product scoping.**
+Every screen tracked in `docs/design/CLAUDE_DESIGN_HANDOFF.md` — the
+original 53-screen design package plus the 6 no-mockup screens closed
+out by D-106 — now has a real, tested backend. What's left everywhere
+else is purely visual design work, not build work.
+
+**Real-time (WebSocket) coverage, tracked precisely as of D-108, not
+assumed complete**: bids (Easy/Express/Tender) and now Buy-Now offers
+are covered. Settlement, Dispute, Rating, EMD cascade defaults, and
+Admin actions still have zero broadcast coverage — each is real,
+unbuilt scope, not an oversight to silently assume is fine.
+
+**One real, pre-existing gap surfaced but deliberately not fixed**:
+`ListingController::show()` renders every submitted Buy-Now offer's
+real amount and status to any visitor of the listing page, not just
+the seller — found while designing D-108's broadcasts, confirmed not
+made worse by them, but the underlying page-level access control issue
+itself is still open and needs its own decision.
+
+## Update — D-109: WebSocket coverage extended to Settlement
+
+Next item in the WebSocket retrofit after D-108's Buy-Now offers, per
+explicit direction. `SettlementService::checkCompletion()` — the one
+private method every settlement action (`confirmSellerNoc`,
+`confirmBuyerNoc`, `submitRating` for both roles, and
+`forceResolveStalled`) funnels through — now broadcasts a
+`settlement_updated` event (full current gate state, not just a delta)
+to both the buyer's and the seller's own party channel every time it
+runs. Unlike Buy-Now's public listing page, a settlement has no "any
+visitor" audience, so this deliberately never touches a sale_event
+room — only the two parties' own private channels, reusing the same
+per-party channel every logged-in user already holds open (no new
+sidecar code, no second connection — same reuse precedent as D-108).
+
+Client side reuses D-108's CustomEvent relay pattern in
+`layouts/main.php`; `settlement/show.php` triggers a brief banner then
+a full page reload rather than a DOM patch — deliberate, since this
+page has several server-rendered blocks (invoices, TDS, Trading
+Session Chronicle, the stalled-state panel) that only appear under
+specific conditions, and re-deriving that logic in JS would duplicate
+business/rendering logic the architecture directive explicitly warns
+against.
+
+Verified with a real two-client WebSocket test against a real
+`SettlementService` driven through all four steps (not mocked): both
+the buyer's and seller's channels received all four
+`settlement_updated` broadcasts with correctly incrementing state,
+ending at `status: completed`. Full regression: 36/37 real suites
+clean (`test:settlement` 23/23); the sole non-pass is the same
+pre-existing `test:auditlog` DB-naming gap, not a regression. Full
+detail in `docs/DECISIONS.md` D-109.
+
 ### Bottom line (current)
 
 **Still four items with no path forward without the project owner
@@ -601,4 +715,18 @@ Every screen tracked in `docs/design/CLAUDE_DESIGN_HANDOFF.md` — the
 original 53-screen design package plus the 6 no-mockup screens closed
 out by D-106 — now has a real, tested backend. What's left everywhere
 else is purely visual design work, not build work.
+
+**Real-time (WebSocket) coverage, tracked precisely as of D-109, not
+assumed complete**: bids (Easy/Express/Tender), Buy-Now offers, and now
+Settlement (dual-NOC + ratings + completion) are covered. Dispute,
+Rating (outside the settlement flow), EMD cascade defaults, and Admin
+actions still have zero broadcast coverage — each is real, unbuilt
+scope, not an oversight to silently assume is fine.
+
+**One real, pre-existing gap surfaced but deliberately not fixed**:
+`ListingController::show()` renders every submitted Buy-Now offer's
+real amount and status to any visitor of the listing page, not just
+the seller — found while designing D-108's broadcasts, confirmed not
+made worse by D-108 or D-109, but the underlying page-level access
+control issue itself is still open and needs its own decision.
 

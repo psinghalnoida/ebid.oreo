@@ -276,12 +276,13 @@ $routes->post('/tenants/(:segment)/api-access/webhook-url', 'TenantApiSettingsCo
 
 // Tenant API Access (BR-62-66/PR-37) — the actual API surface, OAuth2
 // client-credentials-authenticated (apiAuth filter), not session-based.
-// BR-65: no visible version number in the URL — additive changes ship
-// without notice, breaking changes run old/new shapes in parallel
-// instead of bumping a path segment.
-$routes->post('/api/oauth/token', 'TenantApiController::issueToken');
-$routes->post('/api/listings/pre-audit', 'TenantApiController::preAuditListing', ['filter' => 'apiAuth']);
-$routes->post('/api/listings', 'TenantApiController::pushListing', ['filter' => 'apiAuth']);
-$routes->get('/api/listings/(:segment)', 'TenantApiController::getListing/$1', ['filter' => 'apiAuth']);
-$routes->post('/api/listings/(:segment)/sale-events', 'TenantApiController::pushSaleEvent/$1', ['filter' => 'apiAuth']);
-$routes->get('/api/sale-events/(:segment)', 'TenantApiController::getSaleEvent/$1', ['filter' => 'apiAuth']);
+// D-107: BR-65 amended (reversed) — the API is now versioned with a
+// visible /v1/ segment. A breaking change ships as a new /v2/ etc.
+// alongside /v1/, never as a silent mutation of the existing shape;
+// additive changes still ship within the current version, no bump.
+$routes->post('/api/v1/oauth/token', 'TenantApiController::issueToken');
+$routes->post('/api/v1/listings/pre-audit', 'TenantApiController::preAuditListing', ['filter' => 'apiAuth']);
+$routes->post('/api/v1/listings', 'TenantApiController::pushListing', ['filter' => 'apiAuth']);
+$routes->get('/api/v1/listings/(:segment)', 'TenantApiController::getListing/$1', ['filter' => 'apiAuth']);
+$routes->post('/api/v1/listings/(:segment)/sale-events', 'TenantApiController::pushSaleEvent/$1', ['filter' => 'apiAuth']);
+$routes->get('/api/v1/sale-events/(:segment)', 'TenantApiController::getSaleEvent/$1', ['filter' => 'apiAuth']);

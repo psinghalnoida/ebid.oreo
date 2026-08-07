@@ -143,5 +143,27 @@
       </p>
     <?php endforeach; ?>
   <?php endif; ?>
+
+  <div id="settlement-live-banner" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink-1, #1a1a1a); color:#fff; padding:10px 18px; border-radius:100px; font-size:12px; z-index:100;">
+    Updated by the other party — refreshing…
+  </div>
 </main>
+<?php if ($callerId): ?>
+<script>
+  // D-109: the settlement page is a private, formally-sequenced
+  // document (four gated steps, plus invoices/TDS/Chronicle blocks
+  // that only render once complete) — re-deriving all of that in JS
+  // would duplicate server-side rendering logic the architecture
+  // directive explicitly warns against. A live nudge + full reload is
+  // the simplest correct option: the next full render is guaranteed
+  // consistent with whatever SettlementService just decided.
+  window.addEventListener('ebidhub:settlement_updated', function (e) {
+    if (e.detail && e.detail.settlementId === <?= json_encode($settlement['id']) ?>) {
+      var banner = document.getElementById('settlement-live-banner');
+      if (banner) banner.style.display = 'block';
+      setTimeout(function () { window.location.reload(); }, 1200);
+    }
+  });
+</script>
+<?php endif; ?>
 <?= $this->endSection() ?>

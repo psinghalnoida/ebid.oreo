@@ -5,18 +5,21 @@ namespace App\Libraries;
 use App\Models\OfferModel;
 use App\Models\SaleEventModel;
 use App\Models\EmdHoldModel;
+use App\Models\ListingModel;
 
 class OfferService
 {
     private OfferModel $offerModel;
     private SaleEventModel $saleEventModel;
     private EmdHoldModel $emdHoldModel;
+    private ListingModel $listingModel;
 
     public function __construct()
     {
         $this->offerModel = new OfferModel();
         $this->saleEventModel = new SaleEventModel();
         $this->emdHoldModel = new EmdHoldModel();
+        $this->listingModel = new ListingModel();
     }
 
     // BR-27: EMD gate — 10% of Expected Value, checked live on every offer.
@@ -58,7 +61,29 @@ class OfferService
             );
         }
 
-        return $this->offerModel->createOffer($saleEventId, $buyerPartyId, $amount);
+        $offer = $this->offerModel->createOffer($saleEventId, $buyerPartyId, $amount);
+
+        // D-108: real-time coverage for Buy-Now, the one sale format the
+        // existing WebSocket sidecar (D-42/D-52) never reached. Two
+        // deliberately different payloads, not one broadcast reused
+        // twice — the sale_event room is watched by ANY visitor on the
+        // listing page (including other buyers), so it only ever gets
+        // an amount-free signal; the actual offer amount goes only to
+        // the seller's own party channel (the same buyer:<partyId> room
+        // every logged-in party already holds open via the global
+        // layout for their Live Ticker — reused as-is, not duplicated).
+        $broadcaster = new RealtimeBroadcastService();
+        $broadcaster->broadcast($saleEventId, 'offer_submitted', [
+            'offerCount' => $this->offerModel->where('sale_event_id', $saleEventId)->where('status', 'submitted')->countAllResults(),
+        ]);
+        $listing = $this->listingModel->find($saleEvent['listing_id']);
+        if ($listing) {
+            $broadcaster->broadcastToBuyer($listing['seller_party_id'], 'offer_received', [
+                'saleEventId' => $saleEventId, 'offerId' => $offer['id'], 'amount' => $amount,
+            ]);
+        }
+
+        return $offer;
     }
 
     // BR: withdrawal before acceptance requires a stated reason (a lapse
@@ -147,6 +172,17 @@ class OfferService
         (new \App\Libraries\SettlementService())->createForSaleEvent(
             $saleEventId, $offer['buyer_party_id'], (float) $offer['amount']
         );
+
+        // D-108: acceptance is the terminal, public-outcome event for a
+        // Buy-Now sale — same precedent as bid_placed already revealing
+        // the winning amount to the sale_event room once an auction
+        // closes. The winning buyer also gets a direct ticker_bid_update
+        // (the existing event type their own connection already
+        // handles) so their Live Ticker reflects the win without a
+        // manual refresh.
+        $broadcaster = new RealtimeBroadcastService();
+        $broadcaster->broadcast($saleEventId, 'offer_accepted', ['amount' => (float) $offer['amount']]);
+        $broadcaster->broadcastToBuyer($offer['buyer_party_id'], 'ticker_bid_update', ['saleEventId' => $saleEventId]);
 
         return $accepted;
     }

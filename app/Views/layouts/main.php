@@ -276,6 +276,26 @@
           renderInterestMatches(data.interestMatches);
         });
       }
+
+      // D-108: this same per-party channel also carries a seller's
+      // own incoming Buy-Now offers (RealtimeBroadcastService::
+      // broadcastToBuyer() targets any party, not literally only
+      // buyers — reused as-is rather than opening a second
+      // connection). This layout has no listing-page-specific DOM to
+      // update, so it relays the event for whichever page cares
+      // (listing/show.php listens for this when the viewer owns that
+      // specific listing).
+      if (msg.event === 'offer_received') {
+        window.dispatchEvent(new CustomEvent('ebidhub:offer_received', { detail: msg.data }));
+      }
+
+      // D-109: settlement progress (NOC confirmations, ratings,
+      // completion) — same per-party channel, same relay pattern.
+      // Delivered to both the buyer and seller on that settlement, so
+      // whichever one is on the page catches it via the CustomEvent.
+      if (msg.event === 'settlement_updated') {
+        window.dispatchEvent(new CustomEvent('ebidhub:settlement_updated', { detail: msg.data }));
+      }
     };
     socket.onerror = function () { /* sidecar unreachable — ticker just doesn't update live, page still works */ };
   })();
