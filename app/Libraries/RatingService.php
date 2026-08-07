@@ -478,6 +478,16 @@ class RatingService
             'delistedPartyId' => $partyId, 'reason' => $confirmedFraudReason, 'listingsSuspended' => count($activeListings),
         ]);
 
+        // D-114: private — a platform-wide delisting is severe enough
+        // that the delisted seller needs to know immediately, on their
+        // own already-open party channel, same reuse as every prior
+        // decision in this retrofit. Not broadcast anywhere public:
+        // there's no existing page that surfaces a seller's delisted
+        // status to visitors, so this doesn't introduce one.
+        (new RealtimeBroadcastService())->broadcastToBuyer($partyId, 'seller_delisted', [
+            'reason' => $confirmedFraudReason, 'listingsSuspended' => count($activeListings),
+        ]);
+
         // PR-16: a confirmed-fraud finding is a compliance-flag
         // revocation in substance -- cascades an automatic global
         // lockout to every other role this Party holds (a delisted

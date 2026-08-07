@@ -7508,3 +7508,82 @@ Still explicitly open, unrelated to this decision: Admin actions
 pre-existing offer-amount page-leak in `ListingController::show()`
 remains unfixed and flagged; the role-broadcast gap for admin queues
 (dispute rulings, rating approvals) remains open.
+
+### D-114: WebSocket coverage extended to Admin actions (Emergency Stop, seller delisting) — closes the original real-time-coverage sweep
+
+Last item on the real-time coverage list first identified during the
+Chief Architect directive's retrofit sizing (D-108 Buy-Now, D-109
+Settlement, D-110 Dispute, D-111 Rating, D-112/D-113 EMD cascade, now
+Admin actions). Two distinct actions, two different audience shapes.
+
+**`ListingLifecycleService::emergencyStop()` (BR-14)**: the private
+`releaseAllHoldsForSaleEvent()` helper now returns the released holds'
+own party IDs instead of just a count, so `emergencyStop()` can notify
+each one individually. Two broadcasts: a public, amount/reason-free
+`sale_event_emergency_stopped` to the sale_event room (the reason
+isn't shown anywhere in the UI today even to a logged-in visitor, so
+it isn't broadcast either — consistent with never exposing more than
+the synchronous page itself reveals), and a private `emd_released` to
+each affected bidder's own party channel.
+
+**`RatingService::delistSellerForFraud()` (BR-38)**: a private
+`seller_delisted` broadcast to the delisted seller's own channel —
+severe enough that they need to know immediately. No public broadcast:
+there's no existing page that surfaces a seller's delisted status to
+visitors, so this doesn't introduce one.
+
+**Client side, a new pattern this decision needed**: unlike every
+prior private event (offer_received, settlement_updated,
+dispute_updated, rating_updated, cascade_your_turn), `emd_released`
+and `seller_delisted` are genuine account-level notices with no
+specific page to relay a CustomEvent to — the affected party could be
+anywhere on the site when either fires. `layouts/main.php` now renders
+them directly into a new global banner (`#global-account-banner`,
+fixed-position, visible on any logged-in page) via a small
+`showGlobalBanner()` helper, rather than dispatching an event nobody
+would catch. `listing/show.php` gained one more amount/reason-free
+branch for the public `sale_event_emergency_stopped` signal, same
+in-place status-text pattern as every other public sale_event event.
+
+**A gap noted, not fixed, adjacent to delisting**: `delistSellerForFraud()`
+suspends every active `listing` a fraud-confirmed seller has, but
+never touches the `sale_event` table — an active sale_event tied to
+one of those listings is left dangling at `status = 'active'` with a
+now-suspended listing, rather than being emergency-stopped itself.
+Whether a confirmed-fraud delisting should automatically cascade into
+emergency-stopping every one of that seller's live auctions is a real
+business-rule question (BR-38's own text doesn't say), not a
+WebSocket-plumbing one — flagged for its own decision, not decided
+here.
+
+**Verified with a real end-to-end test**: a throwaway spark command
+drove a real Easy Auction with two live bidders through
+`ListingLifecycleService::emergencyStop()` via the actual service;
+three genuine WebSocket clients — one on the public sale_event room,
+one on each bidder's own party channel — confirmed the public room
+got exactly `sale_event_emergency_stopped` and each bidder got exactly
+their own `emd_released`, nothing more, nothing less. A second run
+drove a real Super Admin through `RatingService::delistSellerForFraud()`
+against a real seller party; the seller's own channel received both
+`rating_updated` (the confirmed-fraud reset-to-1★ downgrade, D-111)
+and `seller_delisted` in sequence — a useful incidental confirmation
+that D-111's and D-114's broadcasts compose correctly on the same real
+action, not just individually. Throwaway files (a Node WS client, a
+spark command) deleted after use, confirmed gone via `ls`.
+
+Full regression: 36/37 real suites clean on an independently rebuilt
+database (`test:lifecycle` 22/22 covering Emergency Stop,
+`test:br35` 27/27 covering the delisting/fraud path); the sole
+non-pass is the same pre-existing `test:auditlog` DB-naming gap, not a
+regression.
+
+**The original real-time-coverage sweep identified during retrofit
+sizing is now complete**: bids (Easy/Express/Tender, pre-existing
+D-42/D-52), Buy-Now offers (D-108), Settlement (D-109), Dispute
+(D-110), Rating (D-111), EMD cascade (D-112, wired live D-113), and
+now Admin actions (D-114) are all covered. Still explicitly open, not
+part of this sweep: the role-broadcast gap (no live nudge to admins
+staffing the dispute-ruling or rating-approval queues, D-110/D-111);
+the pre-existing offer-amount page-leak in `ListingController::show()`
+(D-108); and this decision's own new finding — whether fraud delisting
+should cascade into emergency-stopping active auctions.

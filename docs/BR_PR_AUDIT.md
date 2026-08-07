@@ -1000,7 +1000,7 @@ regression: 36/37 real suites clean (`test:cascade` 22/22,
 the pre-existing `test:auditlog` DB-naming gap. Full detail in
 `docs/DECISIONS.md` D-113.
 
-### Bottom line (current)
+### Bottom line (superseded by D-114 — kept for history)
 
 **Still four items with no path forward without the project owner
 supplying something external — all four are genuinely build-complete,
@@ -1033,6 +1033,85 @@ D-110/D-111, not built.
 real amount and status to any visitor of the listing page, not just
 the seller — found while designing D-108's broadcasts, confirmed not
 made worse by any of D-108 through D-113, but the underlying
+page-level access control issue itself is still open and needs its
+own decision.
+
+## Update — D-114: WebSocket coverage extended to Admin actions — original real-time-coverage sweep now complete
+
+Last item on the real-time coverage list from the retrofit sizing.
+`ListingLifecycleService::emergencyStop()` (BR-14) now broadcasts a
+public, amount/reason-free `sale_event_emergency_stopped` to the
+sale_event room and a private `emd_released` to each bidder whose EMD
+was actually released (the private `releaseAllHoldsForSaleEvent()`
+helper now returns party IDs, not just a count).
+`RatingService::delistSellerForFraud()` (BR-38) broadcasts a private
+`seller_delisted` to the delisted seller's own channel — no public
+broadcast, since no page today surfaces a seller's delisted status to
+visitors.
+
+New client pattern this decision needed: `emd_released` and
+`seller_delisted` are account-level notices with no specific page to
+relay a `CustomEvent` to. `layouts/main.php` now renders them directly
+into a new global banner (visible on any logged-in page), rather than
+dispatching an event nobody would catch — every prior private event
+had a specific page to relay to; these two don't.
+
+A gap noted, not fixed: `delistSellerForFraud()` suspends a
+fraud-confirmed seller's listings but never touches their `sale_event`
+rows — an active auction is left dangling rather than
+emergency-stopped. Whether a confirmed-fraud finding should cascade
+into auto-stopping live auctions is a real business-rule question
+(BR-38's text doesn't say), not decided here.
+
+Verified with two real end-to-end WebSocket tests: a real
+`emergencyStop()` call against a real 2-bidder Easy Auction confirmed
+the public room got exactly one event and each bidder got exactly
+their own private notice; a real `delistSellerForFraud()` call
+confirmed the seller's channel received both `rating_updated` (D-111's
+confirmed-fraud downgrade) and `seller_delisted` in sequence — useful
+incidental proof that two separate decisions' broadcasts compose
+correctly on the same real action. Full regression: 36/37 real suites
+clean (`test:lifecycle` 22/22, `test:br35` 27/27); the sole non-pass is
+the pre-existing `test:auditlog` DB-naming gap. Full detail in
+`docs/DECISIONS.md` D-114.
+
+**The original real-time-coverage sweep is now complete**: bids,
+Buy-Now offers, Settlement, Dispute, Rating, EMD cascade, and Admin
+actions are all covered.
+
+### Bottom line (current)
+
+**Still four items with no path forward without the project owner
+supplying something external — all four are genuinely build-complete,
+this is a credentials gap, not a build-effort gap**:
+
+1. BR-46 — AI Listing Pre-Audit, fully built, genuinely inert pending a Gemini API key
+2. BR-52 — Chargeback Mitigation, fully built, blocked on real SabPaisa API credentials
+3. A real payment gateway — EMD funding is simulated across every sale format; connects post-deployment
+4. A real SMS provider — OTP is generated/rate-limited correctly but only ever shown on-screen, never sent
+
+**No screens remain blocked on missing backend or product scoping.**
+Every screen tracked in `docs/design/CLAUDE_DESIGN_HANDOFF.md` — the
+original 53-screen design package plus the 6 no-mockup screens closed
+out by D-106 — now has a real, tested backend. What's left everywhere
+else is purely visual design work, not build work.
+
+**Real-time (WebSocket) coverage — the original sweep is complete as
+of D-114**: bids (Easy/Express/Tender), Buy-Now offers, Settlement,
+Dispute, Rating, EMD cascade defaults/top-ups, and Admin actions
+(Emergency Stop, delisting) are all covered and genuinely live in
+production. What remains open is narrower and more specific: no live
+nudge to admins with pending work in either the dispute-ruling or the
+rating-approval queue (D-110/D-111's shared missing sidecar room
+type), and whether a confirmed-fraud delisting should cascade into
+emergency-stopping that seller's active auctions (D-114's own new
+finding, a business-rule question).
+
+**One real, pre-existing gap surfaced but deliberately not fixed**:
+`ListingController::show()` renders every submitted Buy-Now offer's
+real amount and status to any visitor of the listing page, not just
+the seller — found while designing D-108's broadcasts, confirmed not
+made worse by any of D-108 through D-114, but the underlying
 page-level access control issue itself is still open and needs its
 own decision.
 

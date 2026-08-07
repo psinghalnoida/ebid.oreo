@@ -505,6 +505,14 @@
           priceEl.textContent = '₹' + Number(msg.data.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 });
           if (statusEl) statusEl.textContent = 'Live — the top-up was paid and the sale just closed.';
         }
+
+        // D-114: BR-14 Emergency Stop — public, amount/reason-free (the
+        // reason isn't shown anywhere on this page even to a logged-in
+        // visitor, so it isn't broadcast either). Last item in the
+        // original real-time-coverage sweep.
+        if (msg.event === 'sale_event_emergency_stopped' && statusEl) {
+          statusEl.textContent = 'Live — this Trading Session was just cancelled by an Emergency Stop. Refresh for details.';
+        }
       };
 
       socket.onerror = function () {
