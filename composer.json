@@ -1,10 +1,10 @@
 {
     "name": "ebidhub/platform",
-    "description": "eBid Hub — multi-tenant B2B/B2C salvage and surplus auction platform",
+    "description": "eBid Hub \u2014 multi-tenant B2B/B2C salvage and surplus auction platform",
     "license": "proprietary",
     "type": "project",
     "require": {
-        "php": "^8.2",
+        "php": "^8.4",
         "codeigniter4/framework": "^4.7",
         "dompdf/dompdf": "^3.1",
         "endroid/qr-code": "^6.1"
