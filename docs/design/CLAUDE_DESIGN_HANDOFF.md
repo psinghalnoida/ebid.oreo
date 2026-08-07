@@ -39,6 +39,55 @@ What's missing is purely the visual design: today each one renders as
 a plain, undesigned page (inline styles, no card system, no type
 scale) — functionally correct, visually unstyled.
 
+## Pending screens — full itemized list (66)
+
+Every screen below has a real, tested backend (nothing here is
+blocked on missing functionality) and a design-reference `.dc.html`
+file already exists for it in `docs/design/design_handoff_ebid_hub/screens/`.
+What's pending is the review/lock-in pass against this doc's real
+field specs and the Landing-page decisions above — not new mockup
+creation. Only **Landing** (not listed below) is fully reviewed and
+locked in.
+
+**Entry & dashboards (6)** — Onboarding *(decision in progress — see
+above)*, KYC, Custodian Dashboard, Tenant Admin Dashboard, Buyer
+Dashboard, Seller Dashboard
+
+**Core trading (3)** — Marketplace, Lot Detail, Bidding Room
+
+**Ledgers & Chronicle (5)** — AX Chronicle, Lot Chronicle, Audit
+Ledger, Audit Chain Verify, Chronicle Verify
+
+**Governance & compliance (11)** — Alerts, Delist Market Maker,
+Statutory Export, Media Waivers, AML Monitoring, Payout Reviews,
+Invoices, Rating Reviews, Consent Audit, Rules and Specifications, KYC
+Queue
+
+**Disputes (4)** — Dispute Center, Custodian Dispute Review, TSX
+Master Dispute Review, Dispute Resolution Process
+
+**Account management (9)** — Profile, Preferences, Payout Bank,
+Rating History, Star Ratings, Change mPIN, Delete Account, Saved
+Searches, Activity Log
+
+**Seller/admin operational (9)** — Create Lot, Lot Approval, Lot
+Directory, Lot Reach & Interest, Trading Session Directory, User
+Directory, User Detail, Apply to Sell, Tenant Directory
+
+**Tender-specific (4)** — Tender Concierge Console, Tender
+Eligibility, Tender Stakeholder View, Tender Auction Report
+
+**Settlement / transaction steps (3)** — Settlement, EMD Consent,
+Defect Disclosure
+
+**Custodian/tenant onboarding (2)** — Custodian Credential Setup,
+Whitelist Tenant
+
+**Policy / legal (12)** — Privacy Policy, Cookie Policy, Terms of
+Usage, Terms and Privacy, Refund and Cancellation Policy, Grievance
+Redressal Policy, Security and Trust, Trust and Support, Dos and
+Donts, FAQ, Terminology, Pricing
+
 ## Decisions already locked in (screen 1 of the 53, Landing)
 
 Apply these to all 6 screens below for consistency — don't re-derive:
