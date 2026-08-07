@@ -337,10 +337,27 @@ class ListingController extends BaseController
         $isTenantAdminForListing = $viewerId
             ? ($authz->isTenantAdminForListing($viewerId, $listingId) || $authz->isSuperAdmin($viewerId))
             : false;
+
+        // D-113: BR-28 cascade — the viewer's own open top-up window on
+        // this sale event, if any, drives the "pay your top-up" prompt.
+        // Only Easy/Express use the cascade at all (Buy-Now/Tender
+        // never populate topup_required_by).
+        $myOpenTopup = null;
+        $myOpenTopupOwed = null;
+        if ($saleEvent && $viewerId && in_array($saleEvent['sale_format'], ['easy', 'express'], true)) {
+            $myOpenTopup = (new \App\Models\BidModel())->findOpenTopupForBidder($saleEvent['id'], $viewerId);
+            if ($myOpenTopup) {
+                $hold = (new \App\Models\EmdHoldModel())->findBySaleEventAndParty($saleEvent['id'], $viewerId);
+                $myOpenTopupOwed = \App\Libraries\EmdService::calculateCascadeTopupOwed(
+                    $hold ? (float) $hold['amount'] : 0.0, (float) $myOpenTopup['amount']
+                );
+            }
+        }
+
         return view('listing/show', [
             'title' => 'Listing — AdwitiX', 'listing' => $listing, 'saleEvent' => $saleEvent, 'tenant' => $tenant,
             'offers' => $offers, 'expressState' => $expressState, 'tenderState' => $tenderState, 'media' => $media,
-            'queuedMediaJobs' => $queuedMediaJobs,
+            'queuedMediaJobs' => $queuedMediaJobs, 'myOpenTopup' => $myOpenTopup, 'myOpenTopupOwed' => $myOpenTopupOwed,
             'isOwner' => $viewerId === $listing['seller_party_id'],
             'canFlagCbsViolation' => $isTenantAdminForListing,
             'isTenantAdminForListing' => $isTenantAdminForListing,

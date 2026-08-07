@@ -7422,3 +7422,89 @@ decision's own new finding — the missing scheduler/controller wiring
 for cascade default/top-up-paid — is a real, separate, larger gap in
 BR-28 itself, not a WebSocket-coverage item, surfaced for the project
 owner to prioritize.
+
+### D-113: BR-28 cascade wiring gap closed — real scheduler trigger + real bidder route, plus a second gap found and fixed
+
+Direct follow-up to D-112's own finding: `CascadeService::processDefault()`
+and `::processTopupPaid()` were fully correct but had zero real call
+sites anywhere in the running application. Closed both halves.
+
+**Scheduler side**: `BidModel::findExpiredUnpaidTopups()` — a real
+query (`topup_required_by` past, `topup_paid_at` still null,
+`defaulted_at` still null), naturally idempotent since a processed bid
+stops matching on the next sweep. `SchedulerService::processExpiredCascadeTopups()`
+polls it and calls `CascadeService::processDefault()` for each match,
+skipping (not crashing the whole run) on a per-item `RuntimeException` —
+same defensive shape as every other scheduler method. Wired into
+`runAll()` right alongside `processExpiredExpressBidding()`/
+`processExpiredEasyAuctions()` — the two methods that *open* a
+cascade; this is what actually *closes* the loop they start. `run:scheduler`
+(the real cron entry point, per `RunScheduler.php`) now reports a
+`Cascade top-ups defaulted:` count.
+
+**Controller/route side**: `BidController::devPayTopup()` — a
+DEV-ONLY simulated top-up payment, same convention as the existing
+`devFundEmd` (the real flow routes through the same not-yet-integrated
+payment gateway). Resolves the caller's own open top-up window via
+`BidModel::findOpenTopupForBidder()` — never trusts a bid ID from
+client input — and rejects a window that's already expired (BR-28)
+rather than silently succeeding if the scheduler hasn't swept it yet.
+Routed at `POST /sale-events/(:segment)/dev-pay-topup`.
+`ListingController::show()` now resolves the viewer's own open top-up
+(if any) and the real amount owed (via `EmdService::calculateCascadeTopupOwed`
+against their actual held EMD, not just their bid amount) and passes
+both to the view; `listing/show.php` renders a "You're on the clock"
+panel with a real Pay Top-Up button when applicable.
+
+**A second real, pre-existing gap found and fixed while finally
+exercising `processTopupPaid()` for the first time through a real
+flow**: it never updated `sale_event.current_price`/
+`current_high_bidder_party_id` on a cascade close — both stayed stuck
+at whatever the last live bid happened to be (the since-defaulted
+H1's), not the actual winning bidder's price. Confirmed with a real
+page load: before the fix, the listing page showed ₹140,000 (H1's
+stale bid) even though the real settlement was correctly ₹130,000
+(H2's actual winning price); after adding the same
+`updateCurrentPrice()` call `OfferService::acceptOffer()` already
+makes for Buy-Now, the page correctly showed ₹130,000. This was a
+real, user-visible pricing bug, not a WebSocket-coverage item —
+found only because this was the first time `processTopupPaid()` had
+ever actually run end-to-end in this codebase's history.
+
+**Verified with a genuinely real, not mocked, end-to-end flow** — the
+most rigorous verification in the WebSocket-retrofit sequence so far:
+a real party account created through the actual HTTP registration
+flow (mobile → OTP shown in dev mode → mPIN → session), not a
+model-created fixture; a fixture built around that real party ID for
+the supporting actors (tenant, seller, other bidders — unrelated to
+what's under test); the real `php spark run:scheduler` CLI entry
+point (not `SchedulerService::processExpiredCascadeTopups()` called
+directly) confirmed the default via `Cascade top-ups defaulted: 1`;
+the real HTTP page showed the "Pay Top-Up (₹3,000.00 owed on your
+₹130,000.00 bid)" panel with the correct owed amount; a real POST
+(genuine session cookie, genuine rotated CSRF token) to
+`/sale-events/{id}/dev-pay-topup` returned a 303 redirect with no
+error; the DB and a subsequent real page load both confirmed
+`topup_paid_at` set, `status = closed_sold`, `current_price = 130000`,
+a real settlement row. Re-ran the whole sequence a third time with a
+real WebSocket client on the public sale_event room attached
+throughout: `cascade_defaulted` → `cascade_topup_window_opened` →
+`cascade_topup_paid` (amount 130000) all arrived in order, sourced
+from the real scheduler run and the real HTTP payment, not direct
+service calls. All throwaway files (a spark fixture-setup command, a
+Node WS client) deleted after use, confirmed gone via `ls`.
+
+Full regression: 36/37 real suites clean on an independently rebuilt
+database (`test:cascade` 22/22, `test:express` 16/16, `test:scheduler`
+14/14 — the last one specifically exercising `runAll()`'s full key
+set, confirming the new method didn't disturb it); the sole non-pass
+is the same pre-existing `test:auditlog` DB-naming gap, not a
+regression.
+
+**BR-28's cascade default/top-up-paid coverage is now genuinely live in
+production**, not merely correct-but-unreachable as D-112 left it.
+Still explicitly open, unrelated to this decision: Admin actions
+(Emergency Stop, delisting) still have zero broadcast coverage; the
+pre-existing offer-amount page-leak in `ListingController::show()`
+remains unfixed and flagged; the role-broadcast gap for admin queues
+(dispute rulings, rating approvals) remains open.

@@ -916,7 +916,7 @@ held under a real test. Full regression: 36/37 real suites clean
 same pre-existing `test:auditlog` DB-naming gap. Full detail in
 `docs/DECISIONS.md` D-112.
 
-### Bottom line (current)
+### Bottom line (superseded by D-113 — kept for history)
 
 **Still four items with no path forward without the project owner
 supplying something external — all four are genuinely build-complete,
@@ -959,6 +959,80 @@ tenant Y), flagged across D-110/D-111, not built.
 real amount and status to any visitor of the listing page, not just
 the seller — found while designing D-108's broadcasts, confirmed not
 made worse by any of D-108 through D-112, but the underlying
+page-level access control issue itself is still open and needs its
+own decision.
+
+## Update — D-113: BR-28 cascade wiring gap closed (item 5 above resolved)
+
+Closes the build gap D-112 surfaced (item 5 in the prior bottom line).
+`SchedulerService::processExpiredCascadeTopups()` polls
+`BidModel::findExpiredUnpaidTopups()` and calls
+`CascadeService::processDefault()` for each match, wired into
+`runAll()` — the real `run:scheduler` cron entry point now genuinely
+defaults an expired top-up. `BidController::devPayTopup()` (DEV-ONLY,
+same convention as the existing `devFundEmd`) gives a bidder a real
+route to call `CascadeService::processTopupPaid()`, gated to only the
+bidder holding the specific open window; `listing/show.php` gained a
+real "Pay Top-Up" panel showing the actual amount owed.
+
+A second real, pre-existing bug was found and fixed in the same pass:
+`processTopupPaid()` never updated `sale_event.current_price`/
+`current_high_bidder_party_id` on close, leaving the page showing the
+since-defaulted H1's stale bid amount instead of the real winning
+price — confirmed with a real page load before/after the fix (₹140,000
+stale → ₹130,000 correct). Fixed with the same `updateCurrentPrice()`
+call `OfferService::acceptOffer()` already makes for Buy-Now.
+
+Verified with the most rigorous end-to-end test in the WebSocket
+retrofit sequence: a real party account created through the actual
+HTTP registration flow (mobile → dev-mode OTP → mPIN → session, not a
+model-created fixture), the real `php spark run:scheduler` CLI entry
+point (not the service method called directly) confirmed via its own
+"Cascade top-ups defaulted: 1" output, a real POST with a genuine
+session and rotated CSRF token to the new route, and the resulting
+page load and DB state both confirmed correct. Re-run a third time
+with a real WebSocket client attached, confirming
+`cascade_defaulted` → `cascade_topup_window_opened` →
+`cascade_topup_paid` all fire correctly when triggered through the
+real scheduler and real HTTP paths, not direct service calls. Full
+regression: 36/37 real suites clean (`test:cascade` 22/22,
+`test:express` 16/16, `test:scheduler` 14/14); the sole non-pass is
+the pre-existing `test:auditlog` DB-naming gap. Full detail in
+`docs/DECISIONS.md` D-113.
+
+### Bottom line (current)
+
+**Still four items with no path forward without the project owner
+supplying something external — all four are genuinely build-complete,
+this is a credentials gap, not a build-effort gap**:
+
+1. BR-46 — AI Listing Pre-Audit, fully built, genuinely inert pending a Gemini API key
+2. BR-52 — Chargeback Mitigation, fully built, blocked on real SabPaisa API credentials
+3. A real payment gateway — EMD funding is simulated across every sale format; connects post-deployment
+4. A real SMS provider — OTP is generated/rate-limited correctly but only ever shown on-screen, never sent
+
+**No screens remain blocked on missing backend or product scoping.**
+Every screen tracked in `docs/design/CLAUDE_DESIGN_HANDOFF.md` — the
+original 53-screen design package plus the 6 no-mockup screens closed
+out by D-106 — now has a real, tested backend. What's left everywhere
+else is purely visual design work, not build work.
+
+**Real-time (WebSocket) coverage, tracked precisely as of D-113**: bids
+(Easy/Express/Tender), Buy-Now offers, Settlement, Dispute, Rating, and
+EMD cascade defaults/top-ups are covered — and as of D-113 the cascade
+default/top-up-paid broadcasts are genuinely live in production, not
+merely correct-but-unreachable. Admin actions (Emergency Stop,
+delisting) still have zero broadcast coverage. There remains no live
+nudge to admins with pending work in either the dispute-ruling or the
+rating-approval queue — both share the same missing sidecar room type
+(broadcast to every party holding role X for tenant Y), flagged across
+D-110/D-111, not built.
+
+**One real, pre-existing gap surfaced but deliberately not fixed**:
+`ListingController::show()` renders every submitted Buy-Now offer's
+real amount and status to any visitor of the listing page, not just
+the seller — found while designing D-108's broadcasts, confirmed not
+made worse by any of D-108 through D-113, but the underlying
 page-level access control issue itself is still open and needs its
 own decision.
 

@@ -76,6 +76,17 @@ class CascadeService
         // Easy/Express auctions had no way to reach formal closure at
         // all. Fixed as part of building the settlement flow (D-25).
         $this->saleEventModel->markClosed($paidBid['sale_event_id'], 'closed_sold');
+        // D-113: a second real, pre-existing gap found while finally
+        // exercising this method through the real scheduler/route for
+        // the first time — current_price/current_high_bidder_party_id
+        // were never updated on a cascade close via top-up, leaving
+        // them stuck at whatever the last live bid happened to be
+        // (H1's, before they defaulted) instead of the actual winning
+        // bidder's price. Same call OfferService::acceptOffer already
+        // makes for Buy-Now (D-25/D-87).
+        $this->saleEventModel->updateCurrentPrice(
+            $paidBid['sale_event_id'], (float) $paidBid['amount'], $paidBid['bidder_party_id']
+        );
         (new \App\Libraries\SettlementService())->createForSaleEvent(
             $paidBid['sale_event_id'], $paidBid['bidder_party_id'], (float) $paidBid['amount']
         );

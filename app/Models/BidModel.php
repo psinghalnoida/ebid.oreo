@@ -72,6 +72,35 @@ class BidModel extends Model
         return $this->find($bidId);
     }
 
+    // D-113: the specific bidder's own currently-open, unpaid,
+    // undefaulted top-up window on this sale event — used both to
+    // gate BidController::devPayTopup() (only the bidder actually
+    // holding it may pay it) and to decide whether to show the "pay
+    // your top-up" UI at all.
+    public function findOpenTopupForBidder(string $saleEventId, string $bidderPartyId): ?array
+    {
+        return $this->where('sale_event_id', $saleEventId)
+            ->where('bidder_party_id', $bidderPartyId)
+            ->where('topup_required_by IS NOT NULL')
+            ->where('topup_paid_at IS NULL')
+            ->where('defaulted_at IS NULL')
+            ->first();
+    }
+
+    // BR-28/D-113: every bid whose top-up window has genuinely expired
+    // without payment or an already-recorded default — the real trigger
+    // SchedulerService::processExpiredCascadeTopups() polls for.
+    // Naturally idempotent: once CascadeService::processDefault() sets
+    // defaulted_at, the same bid stops matching on the next sweep.
+    public function findExpiredUnpaidTopups(string $asOf): array
+    {
+        return $this->where('topup_required_by IS NOT NULL')
+            ->where('topup_required_by <', $asOf)
+            ->where('topup_paid_at IS NULL')
+            ->where('defaulted_at IS NULL')
+            ->findAll();
+    }
+
     public function resetOutbidStandings(string $saleEventId, array $exceptBidIds = []): void
     {
         $builder = $this->where('sale_event_id', $saleEventId)
