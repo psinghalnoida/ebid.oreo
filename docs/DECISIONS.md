@@ -7960,3 +7960,40 @@ gateway error, not misconduct), not an edge case to omit.
 Not a defect in the design work — both are cases of the design
 assuming a slightly more built-out backend (a real payment gateway)
 than exists today. No code changed; docs-only.
+
+### D-122: confirmed Batch 8 — both Chargeback Handling gaps fixed correctly
+
+The design side picked up D-121's two flagged mismatches and returned
+"Batch 8" (`Field_Notes_AI_design_analysis_2.zip`). Checked directly
+against the file, not the delivery's own changelog:
+
+1. The fake `assembled` → "Submit for Representment" → `submitted`
+   step is gone. Cases now seed straight into `represented`, and the
+   copy changed to match ("...reaches representment in one step") —
+   correctly matches `ChargebackService::fileChargeback()`'s real
+   atomic behavior.
+2. The single "Log Account-Integrity Event" button is now two real,
+   distinct actions — "Apply Penalty & Log" and "Decline Penalty (log
+   only)" — each recording its own outcome label. Correctly matches
+   `reviewIntegrityFlag()`'s real apply-or-decline third argument.
+
+Diffed the full delivered package against Batch 7's: only
+`Chargeback Handling.dc.html` and the coverage checklist changed,
+nothing else regressed. No further gaps found — this closes the
+design review loop opened by D-120/D-121. Docs-only, no code changed.
+
+**This closes the Screen Completeness Audit end-to-end**: the audit
+(read-only cross-reference) → Tier 1 build (D-117–D-119) → design
+consolidation/new-screen handoff (D-120) → design review and fix
+loop (D-121/D-122). Every screen the audit could check against a real
+backend now has one, and the one design mockup with a real
+backend/design mismatch (Chargeback Handling) is now correct.
+
+**What's still genuinely open, unrelated to this audit and not blocking
+handoff to design further**: Tier 2's two business-decision items
+(§6.2 CoCo Concierge engagement management, §4.11 Independent Security
+Audit tracking) still need the project owner's call before any build;
+and the four external-dependency gaps accepted earlier this project
+(payment gateway, SMS provider, Gemini API key, SabPaisa credentials)
+remain exactly as they were — genuine third-party integrations no
+amount of further design or backend work here can close.
