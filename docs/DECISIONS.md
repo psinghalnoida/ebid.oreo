@@ -7930,3 +7930,33 @@ new Chargeback Handling screen (not yet in the 53-screen package) and
 the Lot Approval consolidation's new real route, so the design side's
 own tracking stays accurate against what actually shipped in D-117–
 D-119.
+
+### D-121: reviewed Claude Design's Batch 7 response, relayed two real gaps
+
+The design side picked up D-120's handoff and delivered "Batch 7"
+(uploaded as `Field_Notes_AI_design_analysis.zip`): the Dispute
+screens genuinely consolidated to one role-conditional
+`Dispute Center.dc.html` (visibility logic re-derived from
+`DisputeService`'s real authorization split, not just relabeled), a
+new `Chargeback Handling.dc.html`, `Settlement.dc.html`'s link
+relabeled "View Chronicle," and `Lot Approval.dc.html` correctly left
+unchanged after confirming it already matches the consolidated route.
+Checked all four against the real backend rather than trusting the
+delivery's own coverage-checklist summary.
+
+Two real mismatches found in `Chargeback Handling.dc.html` and relayed
+back into `docs/design/CLAUDE_DESIGN_HANDOFF.md` (new "Review of the
+Batch 7 delivery" subsection): (1) the design has an `assembled` →
+manual-"Submit for Representment" → `submitted` two-step flow, but
+`ChargebackService::fileChargeback()` reaches `represented` in one
+atomic call — there's no real payment-gateway integration to submit
+to yet, so nothing corresponds to that manual step today; (2) the
+design's "Log Account-Integrity Event" action always applies the
+rating penalty, but `ChargebackService::reviewIntegrityFlag()`'s real
+third argument is a genuine, supported "apply the penalty or not"
+choice — declining it is a real recorded outcome (e.g. a genuine
+gateway error, not misconduct), not an edge case to omit.
+
+Not a defect in the design work — both are cases of the design
+assuming a slightly more built-out backend (a real payment gateway)
+than exists today. No code changed; docs-only.

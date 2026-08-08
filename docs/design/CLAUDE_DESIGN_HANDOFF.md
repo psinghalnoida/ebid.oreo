@@ -130,6 +130,35 @@ pending Lots and pending Trading Session approvals on one page,
 retitled "Lot & Trading Session Approval" to match) rather than the
 split dashboard-tiles/inline-buttons pattern it replaced.
 
+### Review of the Batch 7 delivery (Dispute consolidation, Chargeback Handling, Settlement link)
+
+Checked against the real backend. The Dispute consolidation, the
+Settlement link relabel, and leaving Lot Approval unchanged are all
+correct — genuinely re-derived from `DisputeService`'s real
+authorization logic, not just relabeled. Two things in
+`Chargeback Handling.dc.html` don't match the real backend as it
+exists today, worth fixing before this one gets built for real:
+
+1. **No manual "Submit for Representment" step exists.** The design
+   has cases sit in an `assembled` state with an admin action to move
+   them to `submitted`. The real `ChargebackService::fileChargeback()`
+   assembles evidence *and* reaches `represented` in one atomic call —
+   there's no real payment-gateway integration to submit to yet (same
+   accepted external-dependency gap as everywhere else EMD/payments
+   touch this app), so there's nothing for a "Submit" button to
+   trigger. Either remove that intermediate state/button, or keep it
+   as a deliberately-designed-ahead affordance for once a real gateway
+   exists — but if kept, label it as such so it isn't mistaken for
+   something already wired.
+2. **No way to decline the rating penalty.** The integrity-flagged
+   path's "Log Account-Integrity Event" button always logs with the
+   penalty applied. The real `ChargebackService::reviewIntegrityFlag()`
+   takes a real, supported "apply the rating consequence or not"
+   choice — a SaaS Admin declining the penalty (e.g., a genuine
+   gateway error, no real misconduct) is a real, recorded outcome, not
+   an edge case to omit. Add the choice (e.g. a checkbox or two
+   distinct buttons) before this one gets built for real.
+
 ## Decisions already locked in (screen 1 of the 53, Landing)
 
 Apply these to all 6 screens below for consistency — don't re-derive:
