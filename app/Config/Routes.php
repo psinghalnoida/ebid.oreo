@@ -196,6 +196,7 @@ $routes->get('/account/invoices/(:segment)/pdf', 'InvoiceController::pdf/$1');
 // verify()/verifyPdf() are deliberately token-only, no session filter --
 // that's the whole point of a QR code reachable by anyone with the exact
 // unguessable token, per Section 7.8's stated exception.
+$routes->get('/chronicles/(:segment)', 'ChronicleController::view/$1');
 $routes->get('/chronicles/(:segment)/download', 'ChronicleController::download/$1');
 $routes->get('/chronicle/verify/(:segment)', 'ChronicleController::verify/$1');
 $routes->get('/chronicle/verify/(:segment)/pdf', 'ChronicleController::verifyPdf/$1');

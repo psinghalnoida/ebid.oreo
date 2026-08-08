@@ -1245,9 +1245,15 @@ approvals, retitled "Lot & Trading Session Approval" to match the
 design package's own naming for this one screen. No new backend
 needed; the existing approve route was already correct.
 
-Still open from the audit's Tier 1 backlog: the AX Chronicle
-in-browser viewer. Still open, needing a business decision before any
-build (not a dev-scoping call): §6.2 CoCo Concierge engagement
+**The AX Chronicle in-browser viewer is built as of D-119** — the
+Seller/Tenant Admin owner can now read their Chronicle at
+`/chronicles/{id}` in HTML (same authorization gate as the PDF
+download, same underlying data as the public verify page), not just
+force-download a PDF.
+
+**This closes the Screen Completeness Audit's entire Tier 1 backlog**
+(D-117/D-118/D-119). Still open, needing a business decision before
+any build (not a dev-scoping call): §6.2 CoCo Concierge engagement
 management (the doc itself calls the fee "proposed, pending
 confirmation"), and whether §4.11's security-audit tracking belongs
 in-app at all.

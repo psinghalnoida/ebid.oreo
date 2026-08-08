@@ -7872,3 +7872,47 @@ throwaway fixture command after use, confirmed gone via `ls`.
 
 Still open from the audit's Tier 1: the AX Chronicle in-browser
 viewer.
+
+### D-119: AX Chronicle in-browser viewer
+
+Third and last item from the Screen Completeness Audit's Tier 1
+backlog. The audit's finding: `ChronicleController::download()` only
+ever forced a PDF download for the Seller/Tenant Admin owner — there
+was no HTML rendering of the same data for them, even though the
+public, token-only `verify()` path (BR-52's QR-code destination) had
+already proven exactly that rendering works, correctly masked and all.
+
+**Fix**: `ChronicleController::view()` — same `authorizedChronicle()`
+gate as `download()` (own-Chronicle-only for the Seller, or the
+Tenant Admin who owns the settlement), reusing `verify()`'s own
+media-assembly query rather than duplicating it. New view
+`chronicle/view.php`, adapted from `chronicle/verify.php` (drops the
+"no login required"/hash-verification framing that only makes sense
+on the public path, links back to the authenticated download route)
+at the new `GET /chronicles/{id}` route. `settlement/show.php` gained
+a "View Chronicle" button alongside the existing "Download Certified
+PDF" and "Public Verification Page" links.
+
+**Verified for real, not assumed**: a full real Buy-Now settlement
+driven through the actual service layer (two offers, acceptance, both
+NOCs, both ratings — the same sequence `test:chronicle` itself uses)
+generates a real Chronicle automatically; the seller, logged in via
+real HTTP (`/login` with a real mpin, not a fixture session), fetches
+`/chronicles/{id}` and gets the real reference number/ERN/evidence
+list back in HTML; `/chronicles/{id}/download` still returns a real,
+correctly-sized (100KB) PDF; a second, unrelated real party is
+confirmed `403`-blocked from the same `/chronicles/{id}` URL by the
+existing authorization gate — unchanged, not weakened, by this
+addition. `settlement/show.php`'s new "View Chronicle" link confirmed
+present and pointing at the real Chronicle ID. `test:chronicle`
+re-run clean (22/22, unaffected — this change added a read path, not
+touched `generate()`/`renderPdf()`). Full regression: 39 suites clean
+on an independently rebuilt database except the pre-existing
+`test:auditlog` gap. Deleted the throwaway fixture command after use,
+confirmed gone via `ls`.
+
+This closes the Screen Completeness Audit's entire Tier 1 backlog
+(D-117/D-118/D-119). Still open, needing a business decision before
+any build (not a dev-scoping call): §6.2 CoCo Concierge engagement
+management, and whether §4.11's Independent Security Audit tracking
+belongs in-app at all.

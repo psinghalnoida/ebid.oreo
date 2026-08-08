@@ -55,6 +55,38 @@ class ChronicleController extends BaseController
         return $this->renderPdf($chronicle);
     }
 
+    // D-119 (Screen Completeness Audit Tier 1): the seller/Tenant Admin
+    // owner's own in-browser reading of the Chronicle -- previously
+    // this controller only ever forced a PDF download for the owner,
+    // even though the token-based public verify() page below already
+    // proved an HTML rendering of the same report_data works. Same
+    // authorization boundary as download(), same underlying data;
+    // reuses verify()'s media/timeline assembly rather than duplicating
+    // it.
+    public function view(string $chronicleId)
+    {
+        $partyId = $this->requireLogin();
+        if (!$partyId) return redirect()->to('/login');
+
+        $chronicle = $this->authorizedChronicle($chronicleId, $partyId);
+        if (!$chronicle) {
+            return service('response')->setStatusCode(403)->setBody('You are not authorized to view this Chronicle.');
+        }
+
+        $reportData = json_decode($chronicle['report_data'], true);
+        $db = \Config\Database::connect();
+        $media = $db->table('listing_media')
+            ->join('sale_event', 'sale_event.listing_id = listing_media.listing_id')
+            ->where('sale_event.id', $chronicle['sale_event_id'])
+            ->select('listing_media.file_path, listing_media.original_filename, listing_media.is_primary')
+            ->get()->getResultArray();
+
+        return view('chronicle/view', [
+            'title' => 'Chronicle — ' . $chronicle['reference_number'],
+            'chronicle' => $chronicle, 'reportData' => $reportData, 'media' => $media,
+        ]);
+    }
+
     public function verify(string $token)
     {
         $chronicle = $this->chronicles->getByToken($token);
