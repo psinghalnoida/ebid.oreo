@@ -262,6 +262,18 @@
         </div>
       <?php endif; ?>
 
+      <?php if (!empty($myEmdHold) && in_array($myEmdHold['status'], ['held', 'forfeited'], true)): ?>
+        <div style="border:1px solid var(--line); padding:12px 14px; border-radius:10px; margin-top:14px;">
+          <p style="font-size:12px; font-weight:700; margin:0 0 4px;">Your EMD deposit: ₹<?= number_format((float) $myEmdHold['amount'], 2) ?> (<?= esc($myEmdHold['status']) ?>)</p>
+          <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/dev-file-chargeback"><?= csrf_field() ?>
+            <p style="font-size:11px; color:var(--ink-3); margin:0 0 6px;">⚠️ Dev-only: simulates a chargeback notice (no payment gateway connected yet)</p>
+            <input type="text" name="reason" placeholder="Reason for disputing this charge"
+              style="display:block; width:100%; padding:6px 8px; margin-bottom:6px; border:1px solid var(--line); border-radius:8px; font-size:12px;">
+            <button type="submit" class="btn btn-ghost" style="font-size:12px;">Dispute This Charge (File Chargeback)</button>
+          </form>
+        </div>
+      <?php endif; ?>
+
       <?php if ($saleEvent['status'] === 'pending_approval' && !empty($isTenantAdminForListing)): ?>
         <form method="post" action="/sale-events/<?= esc($saleEvent['id']) ?>/approve" style="margin-top:14px;"><?= csrf_field() ?>
           <p style="font-size:12px; color:var(--ink-3);"><?= tsx_term('Tenant Admin') ?> action</p>

@@ -1221,3 +1221,26 @@ should cascade into emergency-stopping that seller's active auctions
 (D-114's own finding, a business-rule question); Event-Driven Design
 remains a first slice, not the full catalog (D-115).
 
+**A formal Screen Completeness Audit** ran after D-116
+(`docs/SCREEN_COMPLETENESS_AUDIT.md`), cross-referencing all 68
+Business Rules/37 Process Workflows/the design team's own Screen Flow
+document against the live `Routes.php`/Controllers/Views. Of 68
+design-tracked screens: 58 Complete, 7 Partial, 2 genuinely Missing
+(BR-52/PR-30 Chargeback Handling — now closed by D-117 below; §4.11
+Independent Security Audit tracking — still open, likely an external
+process rather than an in-app screen), 1 design-side duplicate group
+(3 Dispute mockups → 1 real role-conditional screen), 2 orphans
+(Lot Chronicle is explicitly Phase 2; Terms and Privacy has no BR
+citation of its own).
+
+**BR-52/PR-30 Chargeback Handling & Representment is built as of
+D-117** — real evidence assembly, a representment-outcome track, and
+an integrity-review track that finally wires the previously-dormant
+`chargeback_against_approved_forfeiture` rating penalty to a real
+caller. Still open from the audit's Tier 1 backlog: Lot Approval
+consolidation, the AX Chronicle in-browser viewer. Still open,
+needing a business decision before any build (not a dev-scoping call):
+§6.2 CoCo Concierge engagement management (the doc itself calls the
+fee "proposed, pending confirmation"), and whether §4.11's security-
+audit tracking belongs in-app at all.
+

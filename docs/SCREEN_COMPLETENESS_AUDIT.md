@@ -7,6 +7,13 @@ identify every required screen; compare against the implemented
 Views/routes/controllers. No code was changed to produce this — it is
 a read-only cross-reference.
 
+> **Update — D-117**: the project owner asked to build "Tier 1" of the
+> backlog this audit implied. BR-52/PR-30 Chargeback Handling &
+> Representment (listed as **Missing** below) is now built — see
+> `docs/DECISIONS.md`'s D-117 entry. The findings below are left
+> exactly as originally recorded, as the point-in-time audit result;
+> `docs/BR_PR_AUDIT.md`'s bottom line carries the current status.
+
 ## Sources used
 
 1. **`docs/design/design_handoff_ebid_hub/reference/ADWITIX_Master_Business_Rules.txt`**

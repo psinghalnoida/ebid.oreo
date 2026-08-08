@@ -34,6 +34,12 @@ $routes->post('/sale-events/(:segment)/bid', 'BidController::placeBid/$1');
 // processTopupPaid() had no real route to reach.
 $routes->post('/sale-events/(:segment)/dev-pay-topup', 'BidController::devPayTopup/$1');
 
+// D-117: BR-52/PR-30 Chargeback Handling & Representment.
+$routes->post('/sale-events/(:segment)/dev-file-chargeback', 'ChargebackController::devFile/$1');
+$routes->get('/admin/chargebacks', 'ChargebackController::index', ['filter' => 'superAdmin']);
+$routes->post('/admin/chargebacks/(:segment)/decide', 'ChargebackController::decide/$1', ['filter' => 'superAdmin']);
+$routes->post('/admin/chargebacks/(:segment)/review-integrity', 'ChargebackController::reviewIntegrity/$1', ['filter' => 'superAdmin']);
+
 // Buy-Now offers (BR-27/BR-42/BR-29)
 $routes->post('/sale-events/(:segment)/dev-fund-emd-offer', 'OfferController::devFundEmd/$1');
 $routes->post('/sale-events/(:segment)/offers', 'OfferController::submit/$1');

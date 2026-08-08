@@ -7744,3 +7744,89 @@ fix: the role-broadcast gap for admin queues (D-110/D-111); whether
 fraud delisting should cascade into emergency-stopping active auctions
 (D-114); Event-Driven Design remains a first slice, not the full
 catalog (D-115, on its own unmerged branch).
+
+### D-117: BR-52/PR-30 Chargeback Handling & Representment
+
+The project owner asked for a formal Screen Completeness Audit
+(`docs/SCREEN_COMPLETENESS_AUDIT.md`), then asked to build "Tier 1" of
+its resulting scoped backlog. This is the first, largest item: BR-52/
+PR-30 had zero backend of any kind — the only prior trace was a
+rating-penalty *category*
+(`RatingService::NAMED_EVENTS['star_rating']['chargeback_against_approved_forfeiture']`)
+that had never had a real caller, a gap the audit itself surfaced.
+
+**Built**: a new `chargeback_case` table and `ChargebackCaseModel`/
+`ChargebackService`/`ChargebackController`, following the same
+migration→service→admin-queue-controller→view shape already
+established for AML Monitoring (`AmlFlagModel`/`AmlMonitoringService`)
+— reused deliberately rather than inventing a new pattern. Each case
+tracks two genuinely independent tracks, per PR-30 step 193's explicit
+"independent of the representment outcome" framing:
+
+1. **Representment**: filing (`ChargebackService::fileChargeback()`)
+   auto-assembles a real evidence package in the same call — the
+   actual, previously-recorded EMD-pledge consent record (BR-51), the
+   real bid/offer transaction history for that party on that sale
+   event, and (when relevant) the real forfeiture allocation split —
+   then moves straight to `represented`. A SaaS Admin later records
+   the payment gateway's eventual decision
+   (`recordRepresentmentOutcome()`) — this is the same honest,
+   accepted-external-dependency treatment already used everywhere else
+   a real Payment Gateway integration would sit (PR-30 step 190's
+   authorization-hold-vs-capture timing and step 192's actual card-
+   network submission both require it; filing itself is exposed
+   through a dev-only route, `ChargebackController::devFile()`,
+   mirroring `BidController::devFundEmd`/`devPayTopup`, standing in
+   for the gateway webhook a real integration would deliver).
+2. **Integrity review**: when a chargeback targets an already-
+   forfeited hold (`against_approved_forfeiture`), a distinct audit
+   event fires immediately (`chargeback.against_approved_forfeiture`)
+   and the case joins a SaaS-Admin-only review queue
+   (`findPendingIntegrityReview()`). Reviewing it
+   (`reviewIntegrityFlag()`) is where the previously-dormant
+   `chargeback_against_approved_forfeiture` rating penalty (-2.0
+   `star_rating`) finally gets a real caller — self-approved at both
+   BR-36 approval tiers, the same pattern already established in
+   `RatingService::delistSellerForFraud()`, since a SaaS Admin finding
+   here is the ultimate authority that approval gate exists to
+   require. Declining to apply the penalty is a real, recorded,
+   supported outcome (a genuine discretionary "no consequence"
+   finding), not forced.
+
+New UI: a "Dispute This Charge" dev-only panel on `listing/show.php`
+wherever the current viewer holds an EMD deposit (held or forfeited)
+on that sale event, and a new `/admin/chargebacks` queue (linked from
+the Super Admin dashboard) covering both tracks plus resolved history.
+
+**Real bug found and fixed while building this**: Postgres returns
+`BOOLEAN` columns as literal `'t'`/`'f'` strings through this app's
+driver — PHP treats the non-empty string `"f"` as truthy, so
+`against_approved_forfeiture`/`integrity_rating_consequence_applied`
+silently evaluated true regardless of actual value until normalized on
+every read path in `ChargebackCaseModel`. The exact same fix already
+existed for `ListingMediaModel::is_primary` (with its own explanatory
+comment) — reused verbatim rather than re-deriving; caught by the new
+`test:chargeback` suite failing 5/29 before the fix, not assumed away.
+
+**Verified for real, not assumed**: new suite `test:chargeback`,
+29/29 assertions (evidence assembly against real consent/bid data,
+both independent tracks, the rating penalty's before/after values, the
+self-approval mechanics, and the discretionary no-consequence path).
+Then a full real-HTTP pass: a buyer registered through the actual
+mobile→OTP→mPIN flow files a real chargeback via the dev route on a
+real listing page (confirmed the new panel renders, confirmed the
+flash message, confirmed the real DB row); a second party promoted to
+Super Admin through `grant:super-admin` + the real isolated
+`/admin/setup-totp`/`/admin/login` TOTP flow (codes generated with the
+same `totp.php` helper used earlier this session, not hardcoded)
+reaches `/admin/chargebacks`, sees the real filed case, and records a
+representment outcome that's confirmed written to the DB — and,
+separately, confirmed the ordinary buyer session is correctly
+redirected away from `/admin/chargebacks` by the existing `superAdmin`
+filter. Full regression: 39 suites, all clean on an independently
+rebuilt database except the same pre-existing `test:auditlog`
+DB-naming gap (unrelated, not a regression). Deleted the throwaway
+fixture command after use, confirmed gone via `ls`.
+
+Still open from the audit's Tier 1: Lot Approval consolidation and the
+AX Chronicle in-browser viewer.

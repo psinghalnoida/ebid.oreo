@@ -364,10 +364,18 @@ class ListingController extends BaseController
             }
         }
 
+        // BR-52/PR-30: the viewer's own EMD hold on this sale event, if
+        // any (held or forfeited) — drives the "dispute this charge" dev
+        // entry point into Chargeback Handling.
+        $myEmdHold = ($saleEvent && $viewerId)
+            ? (new \App\Models\EmdHoldModel())->findBySaleEventAndParty($saleEvent['id'], $viewerId)
+            : null;
+
         return view('listing/show', [
             'title' => 'Listing — AdwitiX', 'listing' => $listing, 'saleEvent' => $saleEvent, 'tenant' => $tenant,
             'offers' => $offers, 'expressState' => $expressState, 'tenderState' => $tenderState, 'media' => $media,
             'queuedMediaJobs' => $queuedMediaJobs, 'myOpenTopup' => $myOpenTopup, 'myOpenTopupOwed' => $myOpenTopupOwed,
+            'myEmdHold' => $myEmdHold,
             'isOwner' => $viewerId === $listing['seller_party_id'],
             'canFlagCbsViolation' => $isTenantAdminForListing,
             'isTenantAdminForListing' => $isTenantAdminForListing,
