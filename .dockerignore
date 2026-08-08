@@ -1,0 +1,38 @@
+# Never bake real secrets or dev artifacts into the image — production
+# config comes from Cloud Run env vars/Secret Manager, not a committed
+# or locally-edited .env.
+.env
+.git
+.github
+
+vendor/
+node_modules/
+realtime/node_modules/
+
+# writable/ subdirectories are recreated at container start (empty,
+# chown'd www-data:www-data in the Dockerfile) — never ship dev-session
+# logs, cached views, or uploaded test media into the image.
+writable/cache/*
+writable/debugbar/*
+writable/logs/*
+writable/session/*
+writable/uploads/*
+!writable/cache/index.html
+!writable/debugbar/index.html
+!writable/logs/index.html
+!writable/session/index.html
+!writable/uploads/index.html
+
+tests/
+docs/
+*.md
+.phpunit.cache/
+
+# Real/dev listing-photo and tenant-logo uploads never belong in the
+# image (same reasoning as .gitignore's own rule for these paths) --
+# production media on Cloud Run is served from the GCS volume mount
+# documented in docs/DEPLOYMENT.md, not baked into the container.
+public/uploads/listings/*
+public/uploads/tenants/*
+!public/uploads/.gitkeep
+

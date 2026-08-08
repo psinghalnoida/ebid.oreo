@@ -1,0 +1,188 @@
+name: Deploy to Cloud Run
+
+# Gated on the regression suite (tests.yml, "Regression suite") having
+# already passed for this exact commit on main — not duplicated here.
+# See docs/DEPLOYMENT.md for the one-time GCP setup this workflow
+# depends on (Artifact Registry repo, Cloud SQL instance, Secret
+# Manager secrets, the service account + Workload Identity Federation
+# provider, and the required repo secrets/variables listed below).
+on:
+  workflow_run:
+    workflows: ["Regression suite"]
+    types: [completed]
+    branches: [main]
+
+# Only one deploy in flight at a time — a second push while one is
+# still rolling out waits, rather than racing it.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      id-token: write # required for keyless Workload Identity Federation auth below
+
+    env:
+      PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      REGION: ${{ vars.GCP_REGION }}
+      AR_REPO: ${{ vars.GCP_ARTIFACT_REPO }}
+      IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+
+      - name: Build and push app image
+        run: |
+          docker build -t "${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/app:${IMAGE_TAG}" \
+                        -t "${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/app:latest" \
+                        -f Dockerfile .
+          docker push "${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/app:${IMAGE_TAG}"
+          docker push "${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/app:latest"
+
+      - name: Build and push realtime image
+        run: |
+          docker build -t "${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/realtime:${IMAGE_TAG}" \
+                        -t "${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/realtime:latest" \
+                        realtime/
+          docker push "${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/realtime:${IMAGE_TAG}"
+          docker push "${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/realtime:latest"
+
+      # Realtime deployed first so its real URL is known before the app
+      # service is (re)deployed with EBIDHUB_WS_INTERNAL_URL pointed at
+      # it. session-affinity + min-instances=1: WebSocket connections
+      # don't tolerate cold starts or losing their instance mid-session
+      # — the app degrades gracefully without it (RealtimeBroadcastService
+      # fails silently, per D-42/D-108), but live updates would drop
+      # constantly without this.
+      - name: Deploy realtime service
+        run: |
+          gcloud run deploy ebidhub-realtime \
+            --image "${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/realtime:${IMAGE_TAG}" \
+            --region "${REGION}" --platform managed \
+            --port 8080 \
+            --session-affinity \
+            --min-instances 1 --max-instances 3 \
+            --allow-unauthenticated \
+            --set-env-vars "EBIDHUB_WS_PORT=8080" \
+            --set-secrets "EBIDHUB_BROADCAST_SECRET=ebidhub-broadcast-secret:latest"
+
+      - name: Resolve realtime service URL
+        id: realtime_url
+        run: |
+          URL=$(gcloud run services describe ebidhub-realtime --region "${REGION}" --format='value(status.url)')
+          echo "url=${URL}" >> "$GITHUB_OUTPUT"
+
+      # execution-environment=gen2 + the GCS volume mount: MediaService
+      # writes uploaded listing photos/documents to a path it treats as
+      # local disk (WRITEPATH . '../public/uploads/listings/') — on
+      # Cloud Run's stateless, ephemeral, multi-instance filesystem that
+      # would only be visible from whichever instance received the
+      # upload and would vanish on the next deploy/scale event. Gen2's
+      # native Cloud Storage FUSE volume mount makes that same path
+      # durable and shared across instances with zero application code
+      # changes — see docs/DEPLOYMENT.md for the one-time bucket setup.
+      - name: Deploy app service
+        run: |
+          gcloud run deploy ebidhub-app \
+            --image "${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/app:${IMAGE_TAG}" \
+            --region "${REGION}" --platform managed \
+            --port 8080 \
+            --execution-environment gen2 \
+            --add-volume name=uploads,type=cloud-storage,bucket="${{ vars.GCP_UPLOADS_BUCKET }}" \
+            --add-volume-mount volume=uploads,mount-path=/var/www/html/public/uploads \
+            --add-cloudsql-instances "${{ vars.GCP_CLOUDSQL_CONNECTION_NAME }}" \
+            --min-instances 0 --max-instances 10 \
+            --allow-unauthenticated \
+            --set-env-vars "CI_ENVIRONMENT=production" \
+            --set-env-vars "app.baseURL=${{ vars.APP_BASE_URL }}" \
+            --set-env-vars "database.default.hostname=/cloudsql/${{ vars.GCP_CLOUDSQL_CONNECTION_NAME }}" \
+            --set-env-vars "database.default.database=ebidhub" \
+            --set-env-vars "database.default.username=ebidhub_app" \
+            --set-env-vars "database.default.DBDriver=Postgre" \
+            --set-env-vars "database.default.charset=utf8" \
+            --set-env-vars "EBIDHUB_WS_INTERNAL_URL=${{ steps.realtime_url.outputs.url }}/broadcast" \
+            --set-secrets "database.default.password=ebidhub-db-password:latest" \
+            --set-secrets "EBIDHUB_BROADCAST_SECRET=ebidhub-broadcast-secret:latest" \
+            --set-secrets "EBIDHUB_API_TOKEN_SECRET=ebidhub-api-token-secret:latest" \
+            --set-secrets "GEMINI_API_KEY=ebidhub-gemini-api-key:latest"
+
+      # Migrations run as a one-off execution of the same image against
+      # the same Cloud SQL instance, not inside the request path of the
+      # service that was just deployed.
+      - name: Run database migrations
+        run: |
+          gcloud run jobs deploy ebidhub-migrate \
+            --image "${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/app:${IMAGE_TAG}" \
+            --region "${REGION}" \
+            --command php --args spark,migrate,--all \
+            --add-cloudsql-instances "${{ vars.GCP_CLOUDSQL_CONNECTION_NAME }}" \
+            --set-env-vars "CI_ENVIRONMENT=production" \
+            --set-env-vars "database.default.hostname=/cloudsql/${{ vars.GCP_CLOUDSQL_CONNECTION_NAME }}" \
+            --set-env-vars "database.default.database=ebidhub" \
+            --set-env-vars "database.default.username=ebidhub_app" \
+            --set-env-vars "database.default.DBDriver=Postgre" \
+            --set-env-vars "database.default.charset=utf8" \
+            --set-secrets "database.default.password=ebidhub-db-password:latest" \
+            --max-retries 0
+          gcloud run jobs execute ebidhub-migrate --region "${REGION}" --wait
+
+      # BR-14/28/39's timers (grace windows, Express's countdown,
+      # Buy-Now offer lapse, settlement stall-flagging) depend on
+      # `php spark run:scheduler` genuinely running every minute — see
+      # SETUP.md's cron entry, which this Cloud Run Job + Cloud
+      # Scheduler pair replaces for the serverless deployment.
+      # RunScheduler is a one-shot command by design (its own class doc
+      # says so), the same shape a Cloud Run Job execution expects.
+      - name: Deploy scheduler Cloud Run Job
+        run: |
+          gcloud run jobs deploy ebidhub-scheduler \
+            --image "${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/app:${IMAGE_TAG}" \
+            --region "${REGION}" \
+            --command php --args spark,run:scheduler \
+            --add-cloudsql-instances "${{ vars.GCP_CLOUDSQL_CONNECTION_NAME }}" \
+            --set-env-vars "CI_ENVIRONMENT=production" \
+            --set-env-vars "database.default.hostname=/cloudsql/${{ vars.GCP_CLOUDSQL_CONNECTION_NAME }}" \
+            --set-env-vars "database.default.database=ebidhub" \
+            --set-env-vars "database.default.username=ebidhub_app" \
+            --set-env-vars "database.default.DBDriver=Postgre" \
+            --set-env-vars "database.default.charset=utf8" \
+            --set-env-vars "EBIDHUB_WS_INTERNAL_URL=${{ steps.realtime_url.outputs.url }}/broadcast" \
+            --set-secrets "database.default.password=ebidhub-db-password:latest" \
+            --set-secrets "EBIDHUB_BROADCAST_SECRET=ebidhub-broadcast-secret:latest" \
+            --max-retries 0 --task-timeout 120s
+
+      # Idempotent: creates the Cloud Scheduler entry on first deploy,
+      # updates its target image reference on every deploy after —
+      # gcloud has no single "create or update" verb for this, so this
+      # tries update first and falls back to create only if it doesn't
+      # exist yet.
+      - name: Ensure Cloud Scheduler job exists
+        run: |
+          gcloud scheduler jobs describe ebidhub-scheduler-trigger --location "${REGION}" >/dev/null 2>&1 && EXISTS=1 || EXISTS=0
+          if [ "$EXISTS" = "1" ]; then
+            echo "Cloud Scheduler job already exists, nothing to change (it targets the job by name, not by image)."
+          else
+            gcloud scheduler jobs create http ebidhub-scheduler-trigger \
+              --location "${REGION}" \
+              --schedule "* * * * *" \
+              --uri "https://${REGION}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${PROJECT_ID}/jobs/ebidhub-scheduler:run" \
+              --http-method POST \
+              --oauth-service-account-email "${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}"
+          fi
