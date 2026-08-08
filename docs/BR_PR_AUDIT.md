@@ -1237,10 +1237,18 @@ citation of its own).
 D-117** — real evidence assembly, a representment-outcome track, and
 an integrity-review track that finally wires the previously-dormant
 `chargeback_against_approved_forfeiture` rating penalty to a real
-caller. Still open from the audit's Tier 1 backlog: Lot Approval
-consolidation, the AX Chronicle in-browser viewer. Still open,
-needing a business decision before any build (not a dev-scoping call):
-§6.2 CoCo Concierge engagement management (the doc itself calls the
-fee "proposed, pending confirmation"), and whether §4.11's security-
-audit tracking belongs in-app at all.
+caller.
+
+**The Lot Approval consolidated queue is built as of D-118** — the
+existing Verification Console now also carries pending Sale Event
+approvals, retitled "Lot & Trading Session Approval" to match the
+design package's own naming for this one screen. No new backend
+needed; the existing approve route was already correct.
+
+Still open from the audit's Tier 1 backlog: the AX Chronicle
+in-browser viewer. Still open, needing a business decision before any
+build (not a dev-scoping call): §6.2 CoCo Concierge engagement
+management (the doc itself calls the fee "proposed, pending
+confirmation"), and whether §4.11's security-audit tracking belongs
+in-app at all.
 

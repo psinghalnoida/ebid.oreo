@@ -7830,3 +7830,45 @@ fixture command after use, confirmed gone via `ls`.
 
 Still open from the audit's Tier 1: Lot Approval consolidation and the
 AX Chronicle in-browser viewer.
+
+### D-118: Lot Approval consolidated queue screen
+
+Second item from the Screen Completeness Audit's Tier 1 backlog. The
+audit's finding: the design package's `Lot Approval.dc.html` mockup
+shows one dedicated "Lot & Trading Session Approval" queue, but the
+real app split the same information across the Tenant Admin
+dashboard's bare-count tiles and the inline approve/reject buttons on
+each individual listing/sale-event page — no single consolidated
+screen existed.
+
+**Fix, not a rebuild**: `TenantAdminController::verification()` (the
+existing "Verification Console" — already the richer of the two
+pending-listings views, with real thumbnails and media counts) now
+also loads pending Sale Event approvals for the tenant (`ern`,
+`sale_format`, `reserve_value`/`expected_value`, joined to the
+listing's `category`/`subcategory`), and `tenant_admin/verification.php`
+gained a second section, "Pending Trading Session Approvals," each row
+with a real inline Approve form posting to the existing
+`/sale-events/{id}/approve` route — no new backend logic, since
+`SaleEventController::approve()`/`ListingLifecycleService::approveSaleEvent()`
+already existed and needed no change. Retitled the page and its
+dashboard link to "Lot & Trading Session Approval," matching the
+design package's own naming, so this is now the one screen that
+answers "what's this design mockup" rather than a same-behavior page
+under an unrelated name.
+
+**Verified for real, not assumed**: real HTTP pass — a tenant admin
+promoted via `grant:tenant-admin` (registered through the real
+mobile→OTP→mPIN flow first) views the consolidated page and sees both
+a pending Lot and a pending Trading Session, each with real data (ERN,
+category, reserve value); clicking Approve on the Trading Session
+posts to the existing route and is confirmed, by direct DB check, to
+flip `sale_event.status` from `pending_approval` to `grace_period`
+(the real approve outcome); re-fetching the page confirms the item is
+gone from the queue, a live query, not a static snapshot. Full
+regression: 39 suites clean on an independently rebuilt database
+except the same pre-existing `test:auditlog` gap. Deleted the
+throwaway fixture command after use, confirmed gone via `ls`.
+
+Still open from the audit's Tier 1: the AX Chronicle in-browser
+viewer.

@@ -66,6 +66,13 @@ class TenantAdminController extends BaseController
     // still happens on the existing listing detail page (already fully
     // built, including the closed-list reject reason) — this is the
     // entry point with real visual context, not a duplicate workflow.
+    //
+    // D-118 (Screen Completeness Audit Tier 1): also carries pending
+    // Sale Event approvals now, so this is the one consolidated "Lot &
+    // Trading Session Approval" queue the design package's Lot Approval
+    // mockup depicts — previously the same information was split
+    // between the Tenant Admin dashboard's bare-count tiles and the
+    // inline approve/reject buttons on each individual listing page.
     public function verification(string $tenantId)
     {
         $tenantModel = new TenantModel();
@@ -93,9 +100,16 @@ class TenantAdminController extends BaseController
         }
         unset($listing);
 
+        $pendingSaleEvents = $db->table('sale_event se')
+            ->select('se.id, se.ern, se.sale_format, se.reserve_value, se.expected_value, se.listing_id, l.category, l.subcategory')
+            ->join('listing l', 'l.id = se.listing_id')
+            ->where('se.tenant_id', $tenantId)->where('se.status', 'pending_approval')
+            ->orderBy('se.created_at', 'ASC')
+            ->get()->getResultArray();
+
         return view('tenant_admin/verification', [
             'title' => 'Verification Console — ' . $tenant['name'],
-            'tenant' => $tenant, 'pending' => $pending,
+            'tenant' => $tenant, 'pending' => $pending, 'pendingSaleEvents' => $pendingSaleEvents,
         ]);
     }
 }

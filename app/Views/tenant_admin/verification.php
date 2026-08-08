@@ -1,7 +1,10 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 <main style="max-width:820px; padding:40px 24px;">
-  <h1 style="font-size:22px;">Verification Console — <?= esc($tenant['name']) ?></h1>
+  <h1 style="font-size:22px;">Lot &amp; Trading Session Approval — <?= esc($tenant['name']) ?></h1>
+  <p style="font-size:12px; color:var(--ink-3);">Review submitted Lots and requested Trading Sessions before they go live on this TradeSphereX — one consolidated queue.</p>
+
+  <h2 style="font-size:16px; margin-top:8px;">Pending Lots</h2>
   <p style="font-size:12px; color:var(--ink-3);">Authentic media catalog + thumbnail for every listing awaiting approval.</p>
 
   <div style="display:flex; flex-direction:column; gap:12px; margin-top:16px;">
@@ -26,6 +29,24 @@
     <?php endforeach; ?>
   </div>
   <?php if (empty($pending)): ?><p style="font-size:12px; color:var(--ink-3); margin-top:16px;">Nothing awaiting review.</p><?php endif; ?>
+
+  <h2 style="font-size:16px; margin-top:32px;">Pending Trading Session Approvals</h2>
+  <p style="font-size:12px; color:var(--ink-3);">A listing's requested Sale Event, ready to go live once approved.</p>
+  <div style="display:flex; flex-direction:column; gap:12px; margin-top:16px;">
+    <?php foreach ($pendingSaleEvents as $se): ?>
+      <div style="border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <a href="/listings/<?= esc($se['listing_id']) ?>" style="text-decoration:none; color:inherit; flex:1;">
+          <p style="font-size:14px; font-weight:700; margin:0 0 4px;"><?= esc($se['category']) ?><?= $se['subcategory'] ? ' / ' . esc($se['subcategory']) : '' ?></p>
+          <p style="font-size:12px; color:var(--ink-3); margin:0;">ERN <?= esc($se['ern']) ?> · <?= esc(ucfirst($se['sale_format'])) ?> · Reserve ₹<?= number_format((float) ($se['reserve_value'] ?? $se['expected_value'] ?? 0), 2) ?></p>
+        </a>
+        <form method="post" action="/sale-events/<?= esc($se['id']) ?>/approve">
+          <?= csrf_field() ?>
+          <button type="submit" class="btn btn-emerald" style="font-size:12px;">Approve</button>
+        </form>
+      </div>
+    <?php endforeach; ?>
+  </div>
+  <?php if (empty($pendingSaleEvents)): ?><p style="font-size:12px; color:var(--ink-3); margin-top:16px;">Nothing awaiting review.</p><?php endif; ?>
 
   <p style="margin-top:24px;"><a href="/tenants/<?= esc($tenant['id']) ?>/dashboard" style="color:var(--ink-3); font-size:12px;">&larr; Back to Dashboard</a></p>
 </main>
