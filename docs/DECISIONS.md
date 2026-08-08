@@ -7916,3 +7916,17 @@ This closes the Screen Completeness Audit's entire Tier 1 backlog
 any build (not a dev-scoping call): §6.2 CoCo Concierge engagement
 management, and whether §4.11's Independent Security Audit tracking
 belongs in-app at all.
+
+### D-120: relayed the dispute-screen-triplication finding to the design handoff doc
+
+Docs-only, no code. The fourth Tier 1 item was never a dev task — it
+was a note to pass back to the design side: `docs/design/CLAUDE_DESIGN_HANDOFF.md`
+now has a new "Update — Screen Completeness Audit (D-117–D-120)"
+section explaining that Dispute Center/Custodian Dispute Review/TSX
+Master Dispute Review are one real, role-conditional screen
+(`dispute/show.php`) rather than three, so design effort isn't spent
+maintaining three mockups for what ships as one page; also notes the
+new Chargeback Handling screen (not yet in the 53-screen package) and
+the Lot Approval consolidation's new real route, so the design side's
+own tracking stays accurate against what actually shipped in D-117–
+D-119.

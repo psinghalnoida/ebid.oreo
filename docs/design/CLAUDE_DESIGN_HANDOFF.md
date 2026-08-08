@@ -88,6 +88,48 @@ Usage, Terms and Privacy, Refund and Cancellation Policy, Grievance
 Redressal Policy, Security and Trust, Trust and Support, Dos and
 Donts, FAQ, Terminology, Pricing
 
+## Update — Screen Completeness Audit (D-117–D-120)
+
+A formal Screen Completeness Audit ran against the live app
+(`docs/SCREEN_COMPLETENESS_AUDIT.md`), cross-referencing every
+Business Rule/Process Workflow/the Screen Flow document against
+`Routes.php`/Controllers/Views. Two findings worth relaying here
+before more design time goes into the affected screens:
+
+- **Dispute Center / Custodian Dispute Review / TSX Master Dispute
+  Review are one real screen, not three.** The live app implements all
+  three of these as a single template (`app/Views/dispute/show.php`,
+  served by `DisputeController::show` at `/disputes/{id}`) with
+  role-conditional rendering — the filing/respondent party sees their
+  own view, a Tenant Admin ruling on the original dispute sees the
+  ruling form, and a Super Admin ruling on an appeal sees the appeal
+  form, all from the same route and the same underlying data. This is
+  a deliberate architectural choice (single source of truth, no
+  duplicated markup), not an oversight. Recommend designing this as
+  **one screen with role-conditional states** rather than three
+  separate mockups, so effort isn't spent maintaining three designs
+  for what ships as one page. (`dispute/file.php`, the filing form at
+  `/sale-events/{id}/dispute`, is a genuinely separate fourth screen —
+  unaffected by this note.)
+- **Three §1 screens below have moved since this doc's last version**:
+  Settlement now has a real "View Chronicle" in-browser link alongside
+  its PDF download (D-119); Tender Eligibility, Tender Stakeholder
+  View, and Tender Auction Report are unchanged. Worth a quick
+  cross-check against the live app before finalizing pixel details,
+  same as always — this doc describes the field/route spec, not a
+  frozen wireframe.
+
+Also fixed since the audit: BR-52/PR-30 Chargeback Handling now has a
+real screen (`/admin/chargebacks`, plus a "Dispute This Charge" dev
+entry point on the listing page) — not yet in the 53-screen design
+package or the pending-list above; treat it as a new addition on the
+same footing as the §1/§2 screens below when scoping design work next.
+Lot Approval (the design package's existing mockup) is now backed by
+one real consolidated queue at `/tenants/{id}/verification` (both
+pending Lots and pending Trading Session approvals on one page,
+retitled "Lot & Trading Session Approval" to match) rather than the
+split dashboard-tiles/inline-buttons pattern it replaced.
+
 ## Decisions already locked in (screen 1 of the 53, Landing)
 
 Apply these to all 6 screens below for consistency — don't re-derive:
