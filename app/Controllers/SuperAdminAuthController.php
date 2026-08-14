@@ -3,14 +3,27 @@
 namespace App\Controllers;
 
 use App\Libraries\SuperAdminAuthService;
+use App\Libraries\AuthService;
+use App\Libraries\AuthorizationService;
+use App\Libraries\EmailNotificationService;
+use App\Libraries\AuditLogService;
+use App\Models\PartyModel;
 
 class SuperAdminAuthController extends BaseController
 {
     private SuperAdminAuthService $auth;
+    private AuthService $accountAuth;
+    private AuthorizationService $authz;
+    private EmailNotificationService $emailer;
+    private PartyModel $partyModel;
 
     public function __construct()
     {
         $this->auth = new SuperAdminAuthService();
+        $this->accountAuth = new AuthService();
+        $this->authz = new AuthorizationService();
+        $this->emailer = new EmailNotificationService();
+        $this->partyModel = new PartyModel();
     }
 
     private function requireLogin()
@@ -67,7 +80,10 @@ class SuperAdminAuthController extends BaseController
 
     public function loginForm()
     {
-        return view('admin/login', ['title' => 'Super Admin Login — AdwitiX']);
+        return view('admin/login', [
+            'title' => 'Super Admin Login — AdwitiX',
+            'message' => session()->getFlashdata('message'),
+        ]);
     }
 
     public function loginSubmit()
@@ -95,5 +111,126 @@ class SuperAdminAuthController extends BaseController
     {
         session()->remove(['super_admin_totp_verified_at', 'super_admin_party_id']);
         return redirect()->to('/admin/login');
+    }
+
+    // ── Forgot mPIN — dual-channel recovery, unauthenticated ──────
+    //
+    // Deliberately separate from AuthController's own mPIN-reset path
+    // (which only triggers after BR-02's 3-strike lockout): a Custodian
+    // who genuinely forgot their mPIN shouldn't have to deliberately
+    // fail their own login 3 times first to reach a reset flow. Reuses
+    // the exact same AuthService OTP primitives (requestOtp/
+    // requestEmailOtp/verifyOtp/verifyEmailOtp/setMpin) the regular
+    // flow already uses — no parallel OTP logic to keep in sync.
+    //
+    // Gated on the account actually holding super_admin before ANY code
+    // is sent, and always returns the same generic response either way
+    // — this form is reachable without being logged in, so it must not
+    // become a way to fire OTPs at an arbitrary mobile number or leak
+    // which numbers are Custodian accounts.
+
+    public function forgotMpinForm()
+    {
+        return view('admin/forgot_mpin', ['title' => 'Forgot mPIN — AdwitiX']);
+    }
+
+    public function forgotMpinSubmit()
+    {
+        $mobile = trim($this->request->getPost('mobile_number'));
+        $genericMessage = 'If that number belongs to a registered Custodian account, a reset code has just been sent to it (and to the recovery email on file, if one is set).';
+
+        $party = $this->partyModel->findByMobile($mobile);
+        if (!$party || !$this->authz->isSuperAdmin($party['id'])) {
+            // Same response whether the number doesn't exist, isn't a
+            // Custodian account, or genuinely is one — no OTP sent in
+            // the first two cases, but the caller can't tell which.
+            return view('admin/forgot_mpin', ['title' => 'Forgot mPIN — AdwitiX', 'info' => $genericMessage]);
+        }
+
+        $mobileOtp = $this->accountAuth->requestOtp($mobile, 'mpin_reset');
+        session()->set('admin_mpin_reset_party_id', $party['id']);
+        session()->set('admin_mpin_reset_mobile', $mobile);
+
+        $emailOtp = null;
+        $emailSent = false;
+        if (!empty($party['recovery_email'])) {
+            $emailOtp = $this->accountAuth->requestEmailOtp($party['recovery_email']);
+            $emailSent = $this->emailer->sendOtp($party['recovery_email'], $emailOtp, 'mpin_reset_email');
+            session()->set('admin_mpin_reset_email', $party['recovery_email']);
+        }
+
+        (new AuditLogService())->log('admin.mpin_reset_requested', $party['id'], [
+            'mobile' => $mobile, 'hasRecoveryEmail' => !empty($party['recovery_email']), 'emailDeliveredForReal' => $emailSent,
+        ], $this->request->getIPAddress(), (string) $this->request->getUserAgent());
+
+        return view('admin/forgot_mpin_verify', [
+            'title' => 'Verify Reset Code — AdwitiX',
+            'mobile' => $mobile,
+            'email' => $party['recovery_email'] ?? null,
+            // Dev-mode on-screen fallback — same honest convention as
+            // AuthController's devOtp/devEmailOtp: no real SMTP is
+            // configured in this environment (see
+            // EmailNotificationService's own doc comment), so without
+            // this the flow would be untestable here. $emailSent is
+            // still surfaced so it's visible whether a real send was
+            // even attempted, not just assumed.
+            'devOtp' => $mobileOtp,
+            'devEmailOtp' => $emailOtp,
+            'emailSent' => $emailSent,
+        ]);
+    }
+
+    public function forgotMpinVerifySubmit()
+    {
+        $partyId = session()->get('admin_mpin_reset_party_id');
+        $mobile = session()->get('admin_mpin_reset_mobile');
+        $email = session()->get('admin_mpin_reset_email');
+
+        if (!$partyId || !$mobile) {
+            return redirect()->to('/admin/forgot-mpin');
+        }
+
+        $otp = trim($this->request->getPost('otp'));
+        if (!$this->accountAuth->verifyOtp($mobile, 'mpin_reset', $otp)) {
+            return view('admin/forgot_mpin_verify', [
+                'title' => 'Verify Reset Code — AdwitiX', 'mobile' => $mobile, 'email' => $email,
+                'error' => 'Incorrect or expired mobile code. Please try again.',
+            ]);
+        }
+
+        if ($email) {
+            $emailOtp = trim($this->request->getPost('email_otp'));
+            if (!$this->accountAuth->verifyEmailOtp($email, $emailOtp)) {
+                return view('admin/forgot_mpin_verify', [
+                    'title' => 'Verify Reset Code — AdwitiX', 'mobile' => $mobile, 'email' => $email,
+                    'error' => 'Mobile code correct, but the email code was incorrect or expired. Both are required together.',
+                ]);
+            }
+        }
+
+        session()->set('admin_mpin_reset_verified_party_id', $partyId);
+        session()->remove(['admin_mpin_reset_party_id', 'admin_mpin_reset_mobile', 'admin_mpin_reset_email']);
+
+        return view('admin/forgot_mpin_set_mpin', ['title' => 'Set a New mPIN — AdwitiX']);
+    }
+
+    public function forgotMpinSetMpinSubmit()
+    {
+        $partyId = session()->get('admin_mpin_reset_verified_party_id');
+        if (!$partyId) {
+            return redirect()->to('/admin/forgot-mpin');
+        }
+
+        $mpin = trim($this->request->getPost('mpin'));
+        try {
+            $this->accountAuth->setMpin($partyId, $mpin);
+        } catch (\RuntimeException $e) {
+            return view('admin/forgot_mpin_set_mpin', ['title' => 'Set a New mPIN — AdwitiX', 'error' => $e->getMessage()]);
+        }
+
+        (new AuditLogService())->log('admin.mpin_reset_completed', $partyId, [], $this->request->getIPAddress(), (string) $this->request->getUserAgent());
+        session()->remove('admin_mpin_reset_verified_party_id');
+
+        return redirect()->to('/admin/login')->with('message', 'mPIN reset. Log in with your new mPIN and authenticator code.');
     }
 }

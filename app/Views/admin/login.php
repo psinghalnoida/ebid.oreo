@@ -3,6 +3,9 @@
 <main style="max-width:420px; padding:60px 24px;">
   <h1 style="font-size:24px;"><?= tsx_term('Super Admin') ?> Login</h1>
   <p style="color:var(--ink-3); font-size:13px;">BR-04: separate from regular user login — requires mPIN plus a verified TOTP code.</p>
+  <?php if (!empty($message)): ?>
+    <p style="color:#1E7A4C; font-size:13px; background:#E4F5EC; padding:10px; border-radius:8px;"><?= esc($message) ?></p>
+  <?php endif; ?>
   <?php if (!empty($error)): ?>
     <p style="color:#B5482F; font-size:13px; background:#FBE8E4; padding:10px; border-radius:8px;"><?= esc($error) ?></p>
   <?php endif; ?>
@@ -18,5 +21,6 @@
       style="display:block; width:100%; padding:12px; margin:6px 0 20px; border:1px solid var(--line); border-radius:10px;">
     <button type="submit" class="btn btn-emerald" style="width:100%;">Log In</button>
   </form>
+  <p style="margin-top:16px;"><a href="/admin/forgot-mpin" style="font-size:13px; color:var(--ink-3);">Forgot mPIN?</a></p>
 </main>
 <?= $this->endSection() ?>
