@@ -19,18 +19,21 @@ repeat any of that, only what's different, additional, or changed.
 | Screens with real backend but **no design at all** (§1 below) | 6 |
 | Screens with **neither a design nor a consolidated backend** | **0** — all 6 built (D-106, §2 below) |
 | **Total distinct screens tracked** | **65** |
-| **Actually built into the live app's real views so far** | **0** *(design-wise — see note)* |
+| **Actually built into the live app's real views so far** | **1** (Pricing, D-126) |
 
-Note on "0 built": that's 0 screens carrying the *new* design system's
-actual visual treatment. Two rounds of backend gap-closing happened
-since the last version of this doc — **Lot Reach &amp; Interest** (D-105)
-and, this round, the **6 screens that had neither a design nor a
-consolidated backend at all** (D-106: Buyer Dashboard, Seller
-Dashboard, Rating History, Star Ratings, Lot Directory, Trading
-Session Directory). All 7 now have real, tested backends and are
-unblocked for design — §2 gives the real field/route spec for each.
-None of the 65 tracked screens are blocked on missing functionality
-anymore; everything left is purely visual design work.
+Note on "1 built": that's 1 screen carrying the *new* design system's
+actual visual treatment — Pricing, wired directly at the project
+owner's explicit request (D-126), ahead of the review queue below (it
+hadn't gone through the "reviewed & decided" gate that Landing did).
+Two rounds of backend gap-closing happened since the last version of
+this doc — **Lot Reach &amp; Interest** (D-105) and, this round, the
+**6 screens that had neither a design nor a consolidated backend at
+all** (D-106: Buyer Dashboard, Seller Dashboard, Rating History, Star
+Ratings, Lot Directory, Trading Session Directory). All 7 now have
+real, tested backends and are unblocked for design — §2 gives the real
+field/route spec for each. None of the 65 tracked screens are blocked
+on missing functionality anymore; everything left is purely visual
+design work.
 
 Every screen in §1 below is **fully functional, tested, production
 logic** — real controllers, real services, real database tables,
@@ -39,15 +42,16 @@ What's missing is purely the visual design: today each one renders as
 a plain, undesigned page (inline styles, no card system, no type
 scale) — functionally correct, visually unstyled.
 
-## Pending screens — full itemized list (66)
+## Pending screens — full itemized list (65)
 
 Every screen below has a real, tested backend (nothing here is
 blocked on missing functionality) and a design-reference `.dc.html`
 file already exists for it in `docs/design/design_handoff_ebid_hub/screens/`.
 What's pending is the review/lock-in pass against this doc's real
 field specs and the Landing-page decisions above — not new mockup
-creation. Only **Landing** (not listed below) is fully reviewed and
-locked in.
+creation. Only **Landing** and **Pricing** (D-126, not listed below;
+wired out of queue order at the project owner's direct request) are
+built.
 
 **Entry & dashboards (6)** — Onboarding *(decision in progress — see
 above)*, KYC, Custodian Dashboard, Tenant Admin Dashboard, Buyer
@@ -83,10 +87,10 @@ Defect Disclosure
 **Custodian/tenant onboarding (2)** — Custodian Credential Setup,
 Whitelist Tenant
 
-**Policy / legal (12)** — Privacy Policy, Cookie Policy, Terms of
+**Policy / legal (11)** — Privacy Policy, Cookie Policy, Terms of
 Usage, Terms and Privacy, Refund and Cancellation Policy, Grievance
 Redressal Policy, Security and Trust, Trust and Support, Dos and
-Donts, FAQ, Terminology, Pricing
+Donts, FAQ, Terminology
 
 ## Update — Screen Completeness Audit (D-117–D-120)
 

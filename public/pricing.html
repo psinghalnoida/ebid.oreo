@@ -3,689 +3,455 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TradeSphereX — The Marketplace Operating System</title>
+<title>Pricing — AdwitiX</title>
+<link rel="icon" type="image/jpeg" href="/images/brand/adwitix-shield.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --ink:#1C1F26;
-    --ink-soft:#5B5F56;
-    --paper:#EEF0EA;
-    --card:#FFFFFF;
-    --line:#D8DACE;
-    --rust:#B85C2C;      /* Trader */
-    --rust-soft:#F3E3D6;
-    --teal:#2F5A5F;      /* Market Maker */
-    --teal-soft:#DCE7E6;
-    --amber:#E3A93C;     /* Trading Session / match */
+  /* D-126: wired from docs/design/design_handoff_ebid_hub/screens/Pricing.dc.html
+     verbatim per that package's "high-fidelity, recreate pixel-close, do
+     not restyle to taste" instruction — colors/type/spacing/copy kept
+     exactly as designed (Georgia serif headings, gold #C9974C accent,
+     navy #1E2761), not remapped onto this project's own BR-68 tokens.
+     Replaces the D-86 interim pricing document at this same file path —
+     that document's own copy is preserved for provenance at
+     docs/source-documents/eBid_Hub_Pricing_TradeSphereX.html, nothing
+     lost, and its numbers (Success Fee bracket ladder, subscription
+     tier names/prices) were verified against the live
+     EmdService::successFeeRate() bracket and the real
+     tenant.subscription_tier enum before reuse here — both matched
+     exactly, so this is a design refresh, not a content change. */
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  html, body{overflow-x:hidden;}
+  a{text-decoration:none;}
+  a:link, a:visited{color:#C9974C;}
+  a:hover{color:#A87A38;}
+  @media (max-width:1000px){
+    .pr-nav{display:none !important;}
+    .pr-tiers{grid-template-columns:repeat(2,1fr) !important;}
   }
-  *{box-sizing:border-box; margin:0; padding:0;}
-  html{scroll-behavior:smooth;}
-  body{
-    font-family:'Inter',system-ui,-apple-system,sans-serif;
-    background:var(--paper);
-    color:var(--ink);
-    line-height:1.55;
-    -webkit-font-smoothing:antialiased;
-  }
-  h1,h2,h3{font-family:'Archivo',sans-serif; font-weight:700; letter-spacing:-0.01em; color:var(--ink);}
-  .mono{font-family:'IBM Plex Mono',ui-monospace,monospace;}
-  a{color:inherit;}
-  .wrap{max-width:1120px; margin:0 auto; padding:0 32px;}
-
-  /* ============ HERO ============ */
-  .hero{ background:var(--ink); color:var(--paper); }
-  .hero-top{padding:28px 32px 0; display:flex; justify-content:space-between; align-items:center;}
-  .wordmark{font-family:'Archivo',sans-serif; font-weight:800; font-size:20px; letter-spacing:0.01em;}
-  .wordmark .x{color:var(--rust);}
-  .hero-tag{font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:rgba(238,240,234,0.55);}
-
-  .hero-main{max-width:1120px; margin:0 auto; padding:96px 32px 72px;}
-  .eyebrow{
-    font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:0.16em; text-transform:uppercase;
-    color:var(--amber); margin-bottom:22px; display:flex; align-items:center; gap:10px;
-  }
-  .eyebrow::before{content:''; width:7px; height:7px; border-radius:50%; background:var(--amber); box-shadow:0 0 0 3px rgba(227,169,60,0.25);}
-  .hero h1{font-size:clamp(38px,6vw,62px); line-height:1.08; max-width:15ch; font-weight:800;}
-  .hero h1 em{font-style:normal; color:var(--rust);}
-  .hero p.lede{
-    font-size:19px; max-width:46ch; margin-top:26px; color:rgba(238,240,234,0.78); font-weight:400;
-  }
-  .hero-cta{margin-top:38px; display:flex; gap:16px; flex-wrap:wrap;}
-  .btn{
-    font-family:'Inter',sans-serif; font-weight:600; font-size:15px; padding:13px 26px; border-radius:3px;
-    border:1px solid transparent; cursor:pointer; letter-spacing:0.01em;
-  }
-  .btn-primary{background:var(--rust); color:#FFFFFF;}
-  .btn-ghost{background:transparent; color:var(--paper); border-color:rgba(238,240,234,0.3);}
-
-  /* ============ TICKER ============ */
-  .ticker-band{
-    border-top:1px solid rgba(238,240,234,0.12); border-bottom:1px solid rgba(238,240,234,0.12);
-    background:#242833; overflow:hidden; white-space:nowrap; position:relative;
-  }
-  .ticker-track{
-    display:inline-flex; align-items:center; padding:14px 0;
-    animation: scroll-left 42s linear infinite;
-  }
-  .ticker-track span{
-    font-family:'IBM Plex Mono',monospace; font-size:13px; color:rgba(238,240,234,0.85);
-    padding:0 28px; border-right:1px solid rgba(238,240,234,0.12); display:inline-flex; align-items:center; gap:10px;
-  }
-  .ticker-track span b{color:var(--amber); font-weight:600;}
-  .ticker-track span::before{content:'●'; font-size:6px; color:var(--teal); margin-right:2px;}
-  @keyframes scroll-left{ from{transform:translateX(0);} to{transform:translateX(-50%);} }
-  @media (prefers-reduced-motion: reduce){ .ticker-track{animation:none;} }
-
-  /* ============ SECTION HEADERS ============ */
-  section{padding:88px 0;}
-  .section-head{margin-bottom:48px; max-width:640px;}
-  .section-num{font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--rust); letter-spacing:0.14em; text-transform:uppercase; margin-bottom:14px;}
-  .section-head h2{font-size:clamp(26px,4vw,36px);}
-  .section-head p{margin-top:14px; font-size:16px; color:var(--ink-soft); max-width:56ch;}
-
-  /* ============ GLOSSARY / QUOTE BOARD ============ */
-  .board{background:var(--card); border-radius:6px; overflow:hidden; border:1px solid var(--line);}
-  .board-row{
-    display:grid; grid-template-columns:90px 200px 1fr; gap:24px; padding:22px 28px;
-    border-bottom:1px solid var(--line); align-items:center;
-  }
-  .board-row:last-child{border-bottom:none;}
-  .board-row.head{
-    background:var(--paper); padding:14px 28px;
-    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-soft);
-  }
-  .sym{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:16px; padding:4px 10px; border-radius:4px; display:inline-block;}
-  .sym.rust{color:var(--rust); background:var(--rust-soft);}
-  .sym.teal{color:var(--teal); background:var(--teal-soft);}
-  .sym.amber{color:#8a6416; background:#FBF0DA;}
-  .sym.neutral{color:var(--ink); background:var(--paper);}
-  .role-name{font-family:'Archivo',sans-serif; font-size:18px; color:var(--ink); font-weight:700;}
-  .role-desc{font-size:14.5px; color:var(--ink-soft);}
-  .role-desc .flag{color:var(--rust); font-size:12px; font-family:'IBM Plex Mono',monospace; display:inline-block; margin-top:4px;}
-
-  /* ============ PRICING ============ */
-  .tiers{display:grid; grid-template-columns:repeat(4,1fr); gap:0; border:1px solid var(--line); border-radius:6px; overflow:hidden;}
-  .tier{
-    background:var(--card); padding:34px 26px; border-right:1px solid var(--line); position:relative;
-    display:flex; flex-direction:column;
-  }
-  .tier:last-child{border-right:none;}
-  .tier.featured{background:var(--ink); color:var(--paper);}
-  .tier-badge{
-    position:absolute; top:0; right:0; background:var(--rust); color:#FFFFFF;
-    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.1em; padding:5px 12px; text-transform:uppercase;
-  }
-  .tier-name{font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:var(--teal); margin-bottom:6px;}
-  .tier.featured .tier-name{color:var(--amber);}
-  .tier-title{font-family:'Archivo',sans-serif; font-size:22px; font-weight:700; margin-bottom:18px;}
-  .tier-price{font-family:'IBM Plex Mono',monospace; font-size:28px; font-weight:700; margin-bottom:2px;}
-  .tier-price .unit{font-size:13px; font-weight:400; opacity:0.6;}
-  .tier-sub{font-size:12.5px; opacity:0.65; margin-bottom:22px;}
-  .tier-list{list-style:none; font-size:13.5px; flex-grow:1;}
-  .tier-list li{padding:7px 0; border-top:1px solid var(--line); opacity:0.9;}
-  .tier.featured .tier-list li{border-top:1px solid rgba(238,240,234,0.15);}
-  .tier-list li:first-child{border-top:none;}
-
-  /* ============ FEE LADDER ============ */
-  .fee-wrap{display:grid; grid-template-columns:1.1fr 0.9fr; gap:56px; align-items:start;}
-  .ladder{display:flex; flex-direction:column; gap:2px;}
-  .rung{
-    display:grid; grid-template-columns:1fr auto; align-items:center; padding:16px 20px;
-    background:var(--card); position:relative; overflow:hidden; border:1px solid var(--line); border-radius:4px;
-  }
-  .rung .fill{position:absolute; left:0; top:0; bottom:0; background:linear-gradient(90deg, var(--rust-soft), transparent); z-index:0;}
-  .rung .band{font-size:14px; z-index:1; font-family:'Inter',sans-serif; color:var(--ink);}
-  .rung .pct{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:18px; z-index:1; color:var(--rust);}
-  .fee-note{background:var(--teal); color:var(--paper); padding:28px; border-radius:6px;}
-  .fee-note h3{font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:var(--amber); margin-bottom:14px; font-weight:600;}
-  .fee-note p{font-size:14.5px; line-height:1.65; color:rgba(238,240,234,0.9);}
-  .fee-note .stat{font-family:'IBM Plex Mono',monospace; font-size:26px; color:#FFFFFF; margin:16px 0 6px; font-weight:700;}
-  .fee-note .stat-label{font-size:12px; color:rgba(238,240,234,0.6); text-transform:uppercase; letter-spacing:0.08em;}
-
-  /* ============ FOOTER ============ */
-  footer{background:var(--ink); color:var(--paper); padding:64px 0 40px;}
-  .footer-grid{display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:32px;}
-  footer h2{font-size:clamp(24px,3.5vw,32px); max-width:16ch;}
-  .footer-fine{margin-top:36px; padding-top:24px; border-top:1px solid rgba(238,240,234,0.15); font-size:12.5px; color:rgba(238,240,234,0.45); font-family:'IBM Plex Mono',monospace;}
-
   @media (max-width:860px){
-    .board-row{grid-template-columns:60px 1fr; grid-template-areas:"sym name" "sym desc";}
-    .board-row .role-desc{grid-column:1/-1; grid-row:2;}
-    .board-row.head{display:none;}
-    .tiers{grid-template-columns:1fr; }
-    .tier{border-right:none; border-bottom:1px solid var(--line);}
-    .fee-wrap{grid-template-columns:1fr;}
+    .pr-discount-label{display:none;}
+    .pr-storage{overflow-x:auto;}
+    .pr-storage-inner{min-width:640px;}
+    .pr-services{grid-template-columns:1fr !important;}
+    .pr-fee-payer{grid-template-columns:1fr !important;}
+    .pr-ladder{gap:5px !important;}
   }
-  :focus-visible{outline:2px solid var(--rust); outline-offset:2px;}
+  @media (max-width:640px){
+    .pr-discount-head{display:none !important;}
+    .pr-discount{grid-template-columns:1fr !important; row-gap:6px; padding-top:14px !important; padding-bottom:14px !important;}
+    .pr-discount-label{display:inline; font-size:10px; text-transform:uppercase; font-weight:700; color:#9A9FB5; margin-right:4px;}
+  }
+  @media (max-width:600px){
+    .pr-ladder > div span, .pr-ladder > div{font-size:9px !important;}
+  }
+  @media (max-width:600px){
+    .pr-tiers{grid-template-columns:1fr !important;}
+    .pr-hero-h1{font-size:32px !important;}
+  }
+  @media (max-width:480px){
+    .pr-header-cta-label{display:none;}
+  }
 </style>
 </head>
 <body>
 
-<div class="hero">
-  <div class="hero-top">
-    <div class="wordmark">TradeSphere<span class="x">X</span></div>
-    <div class="hero-tag">Marketplace Operating System</div>
-  </div>
-  <div class="hero-main">
-    <div class="eyebrow">Exchange open · Governance by design</div>
-    <h1>The exchange floor,<br><em>rebuilt</em> for regulated asset trade.</h1>
-    <p class="lede">TradeSphereX lets banks, insurers, NBFCs and enterprises run their own branded marketplace — every Lot, Trading Session, and settlement governed from a single, auditable core.</p>
-    <div class="hero-cta">
-      <button class="btn btn-primary">Talk to us</button>
-      <button class="btn btn-ghost">See pricing ↓</button>
+<div style="background:#F3F4F8; color:#1E2233; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;">
+
+  <header style="position:sticky; top:0; z-index:60; background:rgba(238,240,234,0.92); backdrop-filter:blur(10px); border-bottom:1px solid #DDE0EA;">
+    <div style="max-width:1400px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:12px; min-width:0;">
+      <a href="/" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; overflow:hidden;">
+        <img src="/images/brand/adwitix-shield.jpg" alt="" style="height:36px; width:36px; border-radius:6px; display:block; flex-shrink:0;">
+        <span style="font-family:Georgia,'Cambria',serif; font-weight:800; font-size:22px; letter-spacing:-0.5px; color:#1E2761; flex-shrink:0;">Adwiti<span style="color:#C9974C;">X</span></span>
+      </a>
+      <nav class="pr-nav" style="display:flex; gap:4px; background:#E9EBF2; padding:4px; border-radius:100px;">
+        <a href="/" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#565B72;">Marketplace</a>
+        <a href="/browse" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#565B72;">Browse</a>
+        <a href="/pricing" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#fff; background:#1E2233;">Pricing</a>
+        <a href="/trust-support" style="font-size:13px; font-weight:600; padding:8px 18px; border-radius:100px; color:#565B72;">Trust &amp; Support</a>
+      </nav>
+      <div style="display:flex; gap:8px; align-items:center; flex:none;">
+        <a href="/login" class="pr-header-cta-label" style="font-weight:700; font-size:12.5px; padding:9px 16px; border-radius:100px; border:1px solid #DDE0EA; color:#1E2233; white-space:nowrap;">Log In</a>
+        <a href="/register" style="font-weight:700; font-size:12.5px; padding:9px 18px; border-radius:100px; background:#C9974C; color:#fff; white-space:nowrap;">Get Started</a>
+      </div>
     </div>
-  </div>
-  <div class="ticker-band">
-    <div class="ticker-track">
-      <span><b>TSX</b> TradeSphereX — your branded marketplace</span>
-      <span><b>MM</b> Market Maker — lists and trades assets</span>
-      <span><b>TSXM</b> TSX Master — approves and governs</span>
-      <span><b>TRD</b> Trader — bids, buys, and settles</span>
-      <span><b>CUS</b> Custodian — keeps the exchange fair, never trades</span>
-      <span><b>TSX</b> TradeSphereX — your branded marketplace</span>
-      <span><b>MM</b> Market Maker — lists and trades assets</span>
-      <span><b>TSXM</b> TSX Master — approves and governs</span>
-      <span><b>TRD</b> Trader — bids, buys, and settles</span>
-      <span><b>CUS</b> Custodian — keeps the exchange fair, never trades</span>
+  </header>
+
+  <main style="max-width:1130px; margin:0 auto; padding:56px 32px 90px;">
+
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#C9974C; margin:0 0 10px;">Pricing</div>
+    <h1 class="pr-hero-h1" style="font-family:Georgia,'Cambria',serif; font-size:42px; font-weight:800; letter-spacing:-1px; margin:0 0 14px; max-width:680px;">Marketplace growth should never be taxed.</h1>
+    <p style="font-size:15.5px; color:#565B72; max-width:600px; line-height:1.65; margin:0 0 48px;">Every plan gets unlimited Lots, Trading Sessions, Market Makers and Traders — no cap on growth. ADWITIX earns only when a sale actually completes. All prices exclude GST unless stated.</p>
+
+    <section style="margin-bottom:56px;">
+      <div class="pr-tiers" id="prTiers" style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px;"></div>
+      <p style="font-size:12.5px; color:#9A9FB5; margin:18px 0 0;">Tender Auctions run through CoCo Concierge — a fully managed path exclusive to the platform's own Company Shop, billed per engagement plus the standard Success Fee.</p>
+    </section>
+
+    <section style="margin-bottom:56px;">
+      <h2 style="font-family:Georgia,'Cambria',serif; font-size:26px; font-weight:800; margin:0 0 10px; letter-spacing:-0.6px;">Success Fee</h2>
+      <p style="font-size:14px; color:#565B72; max-width:620px; line-height:1.65; margin:0 0 24px;">One schedule, the same for every TradeSphereX regardless of tier — it declines as the sale value goes up. Minimum ₹500 + GST.</p>
+
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:28px 24px 20px; margin-bottom:32px;">
+        <div class="pr-ladder" id="prLadderBars" style="display:flex; align-items:flex-end; gap:14px; height:160px;"></div>
+        <div class="pr-ladder" id="prLadderLabels" style="display:flex; gap:14px; margin-top:12px;"></div>
+      </div>
+
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; padding:28px 24px; margin-bottom:32px;">
+        <h3 style="font-size:16px; font-weight:800; margin:0 0 4px; font-family:Archivo,sans-serif;">Success Fee Calculator</h3>
+        <p style="font-size:12.5px; color:#9A9FB5; margin:0 0 20px;">Drag the slider or pick a value to see what a sale actually costs.</p>
+
+        <div id="prSaleValueDisplay" style="font-size:28px; font-weight:800; font-family:Georgia,serif; color:#1E2761; margin-bottom:6px;">₹8,50,000</div>
+        <input type="range" id="prSlider" min="10000" max="20000000" step="10000" value="850000" style="width:100%; accent-color:#C9974C; display:block;">
+        <div style="display:flex; justify-content:space-between; margin:6px 0 18px;">
+          <span style="font-size:11px; color:#9A9FB5;">₹10,000</span>
+          <span style="font-size:11px; color:#9A9FB5;">₹2,00,00,000+</span>
+        </div>
+
+        <div id="prPresets" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px;"></div>
+
+        <div class="pr-fee-payer" style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+          <div style="background:#F6EEDF; border-radius:14px; padding:20px;">
+            <p style="font-size:11px; font-weight:700; text-transform:uppercase; color:#8A6425; margin:0 0 8px;">Applicable Rate</p>
+            <p id="prRateApplied" style="font-size:26px; font-weight:800; color:#1E2761; margin:0; font-family:Georgia,serif;">2.00%</p>
+          </div>
+          <div style="background:#F6EEDF; border-radius:14px; padding:20px;">
+            <p style="font-size:11px; font-weight:700; text-transform:uppercase; color:#8A6425; margin:0 0 8px;">Success Fee + GST</p>
+            <p style="font-size:26px; font-weight:800; color:#1E2761; margin:0; font-family:Georgia,serif;"><span id="prFeeAmount">₹17,000</span><span style="font-size:13px; font-weight:600; color:#9A9FB5;"> + <span id="prGstAmount">₹3,060</span> GST</span></p>
+          </div>
+        </div>
+
+        <div class="pr-fee-payer" style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div style="border:1px solid #DDE0EA; border-radius:14px; padding:18px;">
+            <p style="font-size:11px; font-weight:700; text-transform:uppercase; color:#3F7A4E; margin:0 0 6px;">If Buyer-Pays</p>
+            <p style="font-size:12.5px; color:#565B72; margin:0; line-height:1.5;">Trader pays <strong id="prBuyerPaysTotal" style="color:#1E2233;">₹8,70,060</strong> total. Market Maker receives the full <span id="prBuyerPaysSaleValue">₹8,50,000</span>.</p>
+          </div>
+          <div style="border:1px solid #DDE0EA; border-radius:14px; padding:18px;">
+            <p style="font-size:11px; font-weight:700; text-transform:uppercase; color:#9C5B1F; margin:0 0 6px;">If Seller-Pays</p>
+            <p style="font-size:12.5px; color:#565B72; margin:0; line-height:1.5;">Trader pays only <strong id="prSellerPaysSaleValue" style="color:#1E2233;">₹8,50,000</strong>. <span id="prFeeBilledToTsx">₹20,060</span> is billed to the TSX monthly instead.</p>
+          </div>
+        </div>
+        <p style="font-size:11.5px; color:#9A9FB5; margin:16px 0 0;">Illustrative only — the minimum Success Fee of ₹500 + GST always applies regardless of sale value.</p>
+      </div>
+
+      <h3 style="font-size:16px; font-weight:800; margin:0 0 14px; font-family:Archivo,sans-serif;">Fee Payer Election</h3>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;" class="pr-fee-payer">
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:20px;">
+          <span style="font-size:11px; font-weight:700; text-transform:uppercase; color:#3F7A4E; background:#E4EFE6; padding:4px 10px; border-radius:100px; white-space:nowrap;">Default — every tier</span>
+          <p style="font-size:14px; font-weight:700; margin:12px 0 6px;">Buyer-Pays</p>
+          <p style="font-size:12.5px; color:#565B72; line-height:1.55; margin:0;">The Trader's total = Trade Value + Success Fee + GST. Listing and selling stay free for the Market Maker.</p>
+        </div>
+        <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; padding:20px;">
+          <span style="font-size:11px; font-weight:700; text-transform:uppercase; color:#9C5B1F; background:#FBF2E2; padding:4px 10px; border-radius:100px; white-space:nowrap;">Paid tiers only</span>
+          <p style="font-size:14px; font-weight:700; margin:12px 0 6px;">Seller-Pays</p>
+          <p style="font-size:12.5px; color:#565B72; line-height:1.55; margin:0;">A 0%-visible-premium option — the Trader pays only the Trade Value. Set per Trading Session, locked once bidding opens.</p>
+        </div>
+      </div>
+    </section>
+
+    <section style="margin-bottom:56px;">
+      <h2 style="font-family:Georgia,'Cambria',serif; font-size:26px; font-weight:800; margin:0 0 10px; letter-spacing:-0.6px;">Prepay and save</h2>
+      <p style="font-size:14px; color:#565B72; max-width:620px; line-height:1.65; margin:0 0 24px;">The same discount ladder applies across all three paid tiers.</p>
+      <div style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+        <div class="pr-discount-head" style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr 1fr; padding:0 22px; font-size:10px; text-transform:uppercase; color:#9A9FB5; font-weight:700; border-bottom:1px solid #DDE0EA;">
+          <div style="padding:12px 0;">Commitment</div>
+          <div style="padding:12px 0;">Discount</div>
+          <div style="padding:12px 0;">TSX Launch</div>
+          <div style="padding:12px 0;">TSX Growth</div>
+          <div style="padding:12px 0;">TSX Enterprise</div>
+        </div>
+        <div class="pr-discount" style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr 1fr; padding:0 22px; border-bottom:1px solid #EEF0EA; align-items:center; font-size:13px;">
+          <div style="padding:12px 0; font-weight:600;">Monthly (no lock-in)</div>
+          <div style="padding:12px 0; color:#C9974C; font-weight:700;"><span class="pr-discount-label">Discount </span>0%</div>
+          <div style="padding:12px 0;"><span class="pr-discount-label">TSX Launch: </span>1,20,000</div>
+          <div style="padding:12px 0;"><span class="pr-discount-label">TSX Growth: </span>3,00,000</div>
+          <div style="padding:12px 0;"><span class="pr-discount-label">TSX Enterprise: </span>7,20,000</div>
+        </div>
+        <div class="pr-discount" style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr 1fr; padding:0 22px; border-bottom:1px solid #EEF0EA; align-items:center; font-size:13px;">
+          <div style="padding:12px 0; font-weight:600;">1-year prepaid</div>
+          <div style="padding:12px 0; color:#C9974C; font-weight:700;"><span class="pr-discount-label">Discount </span>20%</div>
+          <div style="padding:12px 0;"><span class="pr-discount-label">TSX Launch: </span>96,000</div>
+          <div style="padding:12px 0;"><span class="pr-discount-label">TSX Growth: </span>2,40,000</div>
+          <div style="padding:12px 0;"><span class="pr-discount-label">TSX Enterprise: </span>5,76,000</div>
+        </div>
+        <div class="pr-discount" style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr 1fr; padding:0 22px; border-bottom:1px solid #EEF0EA; align-items:center; font-size:13px;">
+          <div style="padding:12px 0; font-weight:600;">2-year prepaid</div>
+          <div style="padding:12px 0; color:#C9974C; font-weight:700;"><span class="pr-discount-label">Discount </span>30%</div>
+          <div style="padding:12px 0;"><span class="pr-discount-label">TSX Launch: </span>84,000</div>
+          <div style="padding:12px 0;"><span class="pr-discount-label">TSX Growth: </span>2,10,000</div>
+          <div style="padding:12px 0;"><span class="pr-discount-label">TSX Enterprise: </span>5,04,000</div>
+        </div>
+        <div class="pr-discount" style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr 1fr; padding:0 22px; border-bottom:1px solid #EEF0EA; align-items:center; font-size:13px;">
+          <div style="padding:12px 0; font-weight:600;">3-year prepaid</div>
+          <div style="padding:12px 0; color:#C9974C; font-weight:700;"><span class="pr-discount-label">Discount </span>40%</div>
+          <div style="padding:12px 0;"><span class="pr-discount-label">TSX Launch: </span>72,000</div>
+          <div style="padding:12px 0;"><span class="pr-discount-label">TSX Growth: </span>1,80,000</div>
+          <div style="padding:12px 0;"><span class="pr-discount-label">TSX Enterprise: </span>4,32,000</div>
+        </div>
+        <div class="pr-discount" style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr 1fr; padding:0 22px; align-items:center; font-size:13px;">
+          <div style="padding:12px 0; font-weight:600;">5-year prepaid</div>
+          <div style="padding:12px 0; color:#C9974C; font-weight:700;"><span class="pr-discount-label">Discount </span>50%</div>
+          <div style="padding:12px 0;"><span class="pr-discount-label">TSX Launch: </span>60,000</div>
+          <div style="padding:12px 0;"><span class="pr-discount-label">TSX Growth: </span>1,50,000</div>
+          <div style="padding:12px 0;"><span class="pr-discount-label">TSX Enterprise: </span>3,60,000</div>
+        </div>
+      </div>
+      <p style="font-size:12.5px; color:#9A9FB5; margin:14px 0 0;">Prices per year, ₹. Sales teams may quote below the ladder for negotiated deals, down to a 50% floor.</p>
+    </section>
+
+    <section style="margin-bottom:56px;">
+      <h2 style="font-family:Georgia,'Cambria',serif; font-size:26px; font-weight:800; margin:0 0 10px; letter-spacing:-0.6px;">Storage &amp; data retention</h2>
+      <div class="pr-storage">
+        <div class="pr-storage-inner" style="background:#fff; border:1px solid #DDE0EA; border-radius:16px; overflow:hidden;">
+          <div style="display:grid; grid-template-columns:1.3fr repeat(4,1fr); padding:0 22px; font-size:10px; text-transform:uppercase; color:#9A9FB5; font-weight:700; border-bottom:1px solid #DDE0EA;">
+            <div style="padding:12px 0;">Feature</div>
+            <div style="padding:12px 0;">CoCo Starter</div>
+            <div style="padding:12px 0;">TSX Launch</div>
+            <div style="padding:12px 0;">TSX Growth</div>
+            <div style="padding:12px 0;">TSX Enterprise</div>
+          </div>
+          <div style="display:grid; grid-template-columns:1.3fr repeat(4,1fr); padding:0 22px; border-bottom:1px solid #EEF0EA; align-items:center; font-size:12.5px;">
+            <div style="padding:11px 0; font-weight:600;">Included storage</div>
+            <div style="padding:11px 0; color:#565B72;">5 GB</div>
+            <div style="padding:11px 0; color:#565B72;">100 GB</div>
+            <div style="padding:11px 0; color:#565B72;">400 GB</div>
+            <div style="padding:11px 0; color:#565B72;">1 TB</div>
+          </div>
+          <div style="display:grid; grid-template-columns:1.3fr repeat(4,1fr); padding:0 22px; border-bottom:1px solid #EEF0EA; align-items:center; font-size:12.5px;">
+            <div style="padding:11px 0; font-weight:600;">Max file size</div>
+            <div style="padding:11px 0; color:#565B72;">25 MB</div>
+            <div style="padding:11px 0; color:#565B72;">100 MB</div>
+            <div style="padding:11px 0; color:#565B72;">250 MB</div>
+            <div style="padding:11px 0; color:#565B72;">500 MB</div>
+          </div>
+          <div style="display:grid; grid-template-columns:1.3fr repeat(4,1fr); padding:0 22px; border-bottom:1px solid #EEF0EA; align-items:center; font-size:12.5px;">
+            <div style="padding:11px 0; font-weight:600;">Images per Lot</div>
+            <div style="padding:11px 0; color:#565B72;">20</div>
+            <div style="padding:11px 0; color:#565B72;">100</div>
+            <div style="padding:11px 0; color:#565B72;">300</div>
+            <div style="padding:11px 0; color:#565B72;">Unlimited</div>
+          </div>
+          <div style="display:grid; grid-template-columns:1.3fr repeat(4,1fr); padding:0 22px; border-bottom:1px solid #EEF0EA; align-items:center; font-size:12.5px;">
+            <div style="padding:11px 0; font-weight:600;">Videos per Lot</div>
+            <div style="padding:11px 0; color:#565B72;">1</div>
+            <div style="padding:11px 0; color:#565B72;">5</div>
+            <div style="padding:11px 0; color:#565B72;">10</div>
+            <div style="padding:11px 0; color:#565B72;">Unlimited</div>
+          </div>
+          <div style="display:grid; grid-template-columns:1.3fr repeat(4,1fr); padding:0 22px; border-bottom:1px solid #EEF0EA; align-items:center; font-size:12.5px;">
+            <div style="padding:11px 0; font-weight:600;">Data retention</div>
+            <div style="padding:11px 0; color:#565B72;">1 Year</div>
+            <div style="padding:11px 0; color:#565B72;">5 Years</div>
+            <div style="padding:11px 0; color:#565B72;">7 Years</div>
+            <div style="padding:11px 0; color:#565B72;">10 Yrs / Unlimited</div>
+          </div>
+          <div style="display:grid; grid-template-columns:1.3fr repeat(4,1fr); padding:0 22px; align-items:center; font-size:12.5px;">
+            <div style="padding:11px 0; font-weight:600;">Deleted-data recovery</div>
+            <div style="padding:11px 0; color:#565B72;">7 Days</div>
+            <div style="padding:11px 0; color:#565B72;">30 Days</div>
+            <div style="padding:11px 0; color:#565B72;">90 Days</div>
+            <div style="padding:11px 0; color:#565B72;">180 Days</div>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:12.5px; color:#9A9FB5; margin:14px 0 0;">Additional storage beyond the included allowance: ₹2,000 per 100 GB/year + GST, the same rate across every tier.</p>
+    </section>
+
+    <section style="margin-bottom:20px;">
+      <div class="pr-services" style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+        <div>
+          <h3 style="font-size:16px; font-weight:800; margin:0 0 14px; font-family:Archivo,sans-serif;">Optional Marketplace Services</h3>
+          <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; overflow:hidden;">
+            <div style="display:flex; justify-content:space-between; padding:13px 18px; border-bottom:1px solid #EEF0EA; font-size:12.5px;">
+              <span>Marketplace Setup &amp; Branding</span><span style="font-weight:700; color:#1E2233; text-align:right;">₹50,000+</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:13px 18px; border-bottom:1px solid #EEF0EA; font-size:12.5px;">
+              <span>Data Migration</span><span style="font-weight:700; color:#1E2233; text-align:right;">₹25,000+</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:13px 18px; border-bottom:1px solid #EEF0EA; font-size:12.5px;">
+              <span>API Integration Setup (one-time)</span><span style="font-weight:700; color:#1E2233; text-align:right;">₹1,00,000+</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:13px 18px; border-bottom:1px solid #EEF0EA; font-size:12.5px;">
+              <span>Online Training</span><span style="font-weight:700; color:#1E2233; text-align:right;">₹10,000/day</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:13px 18px; font-size:12.5px;">
+              <span>Custom Development</span><span style="font-weight:700; color:#1E2233; text-align:right;">₹2,500/hr</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h3 style="font-size:16px; font-weight:800; margin:0 0 14px; font-family:Archivo,sans-serif;">Enterprise Add-ons</h3>
+          <div style="background:#fff; border:1px solid #DDE0EA; border-radius:14px; overflow:hidden;">
+            <div style="display:flex; justify-content:space-between; padding:13px 18px; border-bottom:1px solid #EEF0EA; font-size:12.5px;">
+              <span>Additional Administrator</span><span style="font-weight:700; color:#1E2233; text-align:right;">₹25,000/yr</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:13px 18px; border-bottom:1px solid #EEF0EA; font-size:12.5px;">
+              <span>Additional Business Unit</span><span style="font-weight:700; color:#1E2233; text-align:right;">₹50,000/yr</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:13px 18px; border-bottom:1px solid #EEF0EA; font-size:12.5px;">
+              <span>Dedicated Account Manager</span><span style="font-weight:700; color:#1E2233; text-align:right;">₹1,00,000/yr</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:13px 18px; border-bottom:1px solid #EEF0EA; font-size:12.5px;">
+              <span>Premium SLA</span><span style="font-weight:700; color:#1E2233; text-align:right;">₹2,00,000/yr</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:13px 18px; font-size:12.5px;">
+              <span>Private Cloud / On-Premise</span><span style="font-weight:700; color:#1E2233; text-align:right;">On Quotation</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <section style="background:#1E2761; padding:44px 32px;">
+    <div style="max-width:1130px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:20px;">
+      <div>
+        <h3 style="margin:0 0 6px; font-size:22px; font-weight:800; letter-spacing:-0.4px; font-family:Georgia,'Cambria',serif; color:#fff;">Start free on CoCo Starter.</h3>
+        <p style="margin:0; color:#CADCFC; font-size:13.5px;">Upgrade whenever Seller-Pays or API access matters to you.</p>
+      </div>
+      <a href="/register" style="background:#C9974C; color:#1E2761; font-weight:700; font-size:13.5px; padding:12px 24px; border-radius:100px;">Get Started</a>
     </div>
-  </div>
+  </section>
+
+  <footer style="background:#1E2233; padding:28px 32px;">
+    <div style="max-width:1130px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; font-size:12px; color:rgba(255,255,255,0.55);">
+      <span>&copy; AdwitiX</span>
+      <div style="display:flex; gap:20px; flex-wrap:wrap;">
+        <a href="/trust-support" style="color:rgba(255,255,255,0.75);">Trust &amp; Support</a>
+        <a href="/fees" style="color:rgba(255,255,255,0.75);">Fee &amp; Charges Schedule</a>
+        <a href="/terms" style="color:rgba(255,255,255,0.75);">Terms</a>
+        <a href="/privacy" style="color:rgba(255,255,255,0.75);">Privacy</a>
+      </div>
+    </div>
+  </footer>
 </div>
 
-<section id="glossary">
-  <div class="wrap">
-    <div class="section-head">
-      <div class="section-num">01 — Who's on the floor</div>
-      <h2>Five roles. One ledger.</h2>
-      <p>Every action on TradeSphereX is tied to a role, and every role has exactly the authority it needs — no more.</p>
-    </div>
-    <div class="board">
-      <div class="board-row head">
-        <div>Symbol</div><div>Role</div><div>What they do</div>
-      </div>
-      <div class="board-row">
-        <div class="sym neutral">TSX</div>
-        <div class="role-name">TradeSphereX</div>
-        <div class="role-desc">A tenant's own branded marketplace — a bank, insurer, NBFC, PSU, or firm's dedicated storefront on the platform.</div>
-      </div>
-      <div class="board-row">
-        <div class="sym amber">TSXM</div>
-        <div class="role-name">TSX Master</div>
-        <div class="role-desc">The tenant's administrator. Approves Market Makers, reviews every Lot, and sets local pricing within platform limits.</div>
-      </div>
-      <div class="board-row">
-        <div class="sym teal">MM</div>
-        <div class="role-name">Market Maker</div>
-        <div class="role-desc">An approved seller. Pushes Lots and Trading Sessions to market — solo, or through the API.</div>
-      </div>
-      <div class="board-row">
-        <div class="sym rust">TRD</div>
-        <div class="role-name">Trader</div>
-        <div class="role-desc">A verified buyer. Bids, offers, and settles trades across every TradeSphereX on the network.</div>
-      </div>
-      <div class="board-row">
-        <div class="sym neutral">CUS</div>
-        <div class="role-name">Custodian</div>
-        <div class="role-desc">The platform's sovereign governance role. Whitelists TSX operators and audits the ledger — never trades, never lists. Fair to every party, answerable to none of them.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="pricing" style="background:var(--card); border-top:1px solid var(--line); border-bottom:1px solid var(--line);">
-  <div class="wrap">
-    <div class="section-head">
-      <div class="section-num">02 — List your exchange</div>
-      <h2>Four ways onto the floor.</h2>
-      <p>Growth should never be taxed — every tier carries unlimited Market Makers, Traders, Lots, and Trading Sessions. Plans differ only in governance and control.</p>
-    </div>
-
-    <!-- SWAPPABLE OFFER BANNER — update campaign name/copy each rotation (New Year / FY-End / Independence Day / Festive). Remove entirely outside an active window if preferred. -->
-    <div style="background:var(--rust-soft); border:1px solid var(--rust); border-radius:6px; padding:16px 22px; margin-bottom:32px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
-      <span class="mono" style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; background:var(--rust); color:#fff; padding:4px 10px; border-radius:3px;">Current Offer</span>
-      <span style="font-size:14.5px; color:var(--ink);"><strong>Financial Year-End Offer</strong> — multi-year commitments unlock preferential pricing. Ask your account team for current terms.</span>
-    </div>
-
-    <div class="tiers">
-      <div class="tier">
-        <div class="tier-name">Solo</div>
-        <div class="tier-title">CoCo Starter</div>
-        <div class="tier-price">Free</div>
-        <div class="tier-sub">Success fee applies per trade</div>
-        <ul class="tier-list">
-          <li>Unlimited Lots &amp; Trading Sessions</li>
-          <li>Standard auction engine</li>
-          <li>For individuals &amp; one-time sellers</li>
-        </ul>
-      </div>
-      <div class="tier">
-        <div class="tier-name">Branded</div>
-        <div class="tier-title">TSX Launch</div>
-        <div class="tier-price">₹10,000<span class="unit">/mo</span></div>
-        <div class="tier-sub">List price + GST · multi-year terms available</div>
-        <ul class="tier-list">
-          <li>Branded marketplace</li>
-          <li>One TSX Master</li>
-          <li>Marketplace governance</li>
-        </ul>
-      </div>
-      <div class="tier featured">
-        <div class="tier-badge">New</div>
-        <div class="tier-name">Scaling</div>
-        <div class="tier-title">TSX Growth</div>
-        <div class="tier-price">₹25,000<span class="unit">/mo</span></div>
-        <div class="tier-sub">List price + GST · multi-year terms available</div>
-        <ul class="tier-list">
-          <li>One TSX Master (+ add-on)</li>
-          <li>Basic role-based access</li>
-          <li>API read access (reporting)</li>
-        </ul>
-      </div>
-      <div class="tier">
-        <div class="tier-name">Institutional</div>
-        <div class="tier-title">TSX Enterprise</div>
-        <div class="tier-price">₹60,000<span class="unit">/mo</span></div>
-        <div class="tier-sub">List price + GST · multi-year terms available</div>
-        <ul class="tier-list">
-          <li>Full API — push &amp; pull</li>
-          <li>SSO &amp; advanced security</li>
-          <li>Audit logs, workflow control</li>
-        </ul>
-      </div>
-    </div>
-    <p style="margin-top:20px; font-size:13px; color:var(--ink-soft);">Prices shown are monthly, no-commitment list rates. Annual and multi-year commitments reduce the effective rate — talk to us for current terms.</p>
-
-    <h3 style="font-family:'Archivo',sans-serif; font-size:20px; margin-top:64px; margin-bottom:8px;">Compare tiers in full</h3>
-    <p style="font-size:13px; color:var(--ink-soft); margin-bottom:20px;"><sup class="interp">†</sup> = TSX Growth value interpolated between Launch and Enterprise, pending your confirmation. Everything else reflects confirmed figures.</p>
-    <div class="compare-scroll">
-    <table class="compare-table">
-      <thead>
-        <tr>
-          <th class="compare-feature">Feature</th>
-          <th>CoCo Starter</th>
-          <th>TSX Launch</th>
-          <th class="compare-featured">TSX Growth</th>
-          <th>TSX Enterprise</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr class="compare-divider-row">
-          <td colspan="5" class="compare-divider">Included with every TSX — no exceptions</td>
-        </tr>
-        <tr>
-          <td class="compare-feature">All three automated Sale Systems (Buy Now, Express, Easy Auction)</td>
-          <td class="yes">✓</td><td class="yes">✓</td><td class="compare-featured yes">✓</td><td class="yes">✓</td>
-        </tr>
-        <tr><td class="compare-feature">Sellers</td><td>Unlimited</td><td>Unlimited</td><td class="compare-featured">Unlimited</td><td>Unlimited</td></tr>
-        <tr><td class="compare-feature">Buyers</td><td>Unlimited</td><td>Unlimited</td><td class="compare-featured">Unlimited</td><td>Unlimited</td></tr>
-        <tr><td class="compare-feature">Listings (Lots)</td><td>Unlimited</td><td>Unlimited</td><td class="compare-featured">Unlimited</td><td>Unlimited</td></tr>
-        <tr><td class="compare-feature">Auctions / Events (Trading Sessions)</td><td>Unlimited</td><td>Unlimited</td><td class="compare-featured">Unlimited</td><td>Unlimited</td></tr>
-        <tr><td class="compare-feature">Bids</td><td>Unlimited</td><td>Unlimited</td><td class="compare-featured">Unlimited</td><td>Unlimited</td></tr>
-        <tr>
-          <td class="compare-feature">GST-compliant invoicing on every transaction</td>
-          <td class="yes">✓</td><td class="yes">✓</td><td class="compare-featured yes">✓</td><td class="yes">✓</td>
-        </tr>
-        <tr>
-          <td class="compare-feature">No Sale = No Success Fee</td>
-          <td class="yes">✓</td><td class="yes">✓</td><td class="compare-featured yes">✓</td><td class="yes">✓</td>
-        </tr>
-        <tr>
-          <td class="compare-feature">Fee Payer Election (Trader or Market Maker)</td>
-          <td class="yes">✓</td><td class="yes">✓</td><td class="compare-featured yes">✓</td><td class="yes">✓</td>
-        </tr>
-        <tr>
-          <td class="compare-feature">Workflow Configuration</td>
-          <td>Coming Soon</td><td>Coming Soon</td><td class="compare-featured">Coming Soon</td><td>Coming Soon</td>
-        </tr>
-
-        <tr class="compare-divider-row"><td colspan="5" class="compare-divider">Success Fee &amp; Settlement</td></tr>
-        <tr><td class="compare-feature">Success Fee rate</td><td>2.00%→0.50%</td><td>2.00%→0.50%</td><td class="compare-featured">2.00%→0.50%</td><td>2.00%→0.50%</td></tr>
-        <tr><td class="compare-feature">Minimum Success Fee</td><td>₹500 + GST</td><td>₹500 + GST</td><td class="compare-featured">₹500 + GST</td><td>₹500 + GST</td></tr>
-        <tr><td class="compare-feature">Fee Payer election lock</td><td>Before session opens</td><td>Before session opens</td><td class="compare-featured">Before session opens</td><td>Before session opens</td></tr>
-        <tr>
-          <td class="compare-feature">Tender Auction access</td>
-          <td class="no">— <span class="compare-note">(CoCo Concierge only)</span></td><td class="no">—</td><td class="compare-featured no">—</td><td class="no">—</td>
-        </tr>
-
-        <tr class="compare-divider-row"><td colspan="5" class="compare-divider">Scales with your tier</td></tr>
-        <tr><td class="compare-feature">List price</td><td>Free</td><td>₹10,000/mo</td><td class="compare-featured">₹25,000/mo</td><td>₹60,000/mo</td></tr>
-        <tr><td class="compare-feature">Intended user</td><td>Individual Seller</td><td>Marketplace Operator</td><td class="compare-featured">Scaling Marketplace Operator<sup class="interp">†</sup></td><td>Large Enterprise</td></tr>
-        <tr><td class="compare-feature">Marketplace type</td><td>Shared ADWITIX</td><td>Dedicated</td><td class="compare-featured">Dedicated</td><td>Dedicated Enterprise</td></tr>
-        <tr><td class="compare-feature">Branding</td><td>ADWITIX</td><td>Own Branding</td><td class="compare-featured">Own Branding</td><td>Own Branding</td></tr>
-        <tr><td class="compare-feature">Custom domain</td><td class="no">—</td><td class="yes">✓</td><td class="compare-featured yes">✓<sup class="interp">†</sup></td><td class="yes">✓</td></tr>
-        <tr><td class="compare-feature">White label</td><td class="no">—</td><td class="yes">✓</td><td class="compare-featured yes">✓<sup class="interp">†</sup></td><td class="yes">✓</td></tr>
-        <tr><td class="compare-feature">Marketplace URL</td><td>Shared</td><td>Dedicated</td><td class="compare-featured">Dedicated</td><td>Dedicated</td></tr>
-        <tr>
-          <td class="compare-feature">TSX Masters (admins)</td>
-          <td class="no">—</td><td>1 <span class="compare-note">(+ add-on)</span></td><td class="compare-featured">1 <span class="compare-note">(+ add-on)</span></td><td>1 <span class="compare-note">(+ add-on)</span></td>
-        </tr>
-        <tr><td class="compare-feature">Role-based access control</td><td class="no">—</td><td>Limited</td><td class="compare-featured">Basic (view / approve)</td><td>Full RBAC</td></tr>
-        <tr><td class="compare-feature">API access</td><td class="no">—</td><td>Limited (read-only)</td><td class="compare-featured">Read + push listings</td><td>Full API — push &amp; pull</td></tr>
-        <tr><td class="compare-feature">Webhooks</td><td class="no">—</td><td class="yes">✓</td><td class="compare-featured yes">✓<sup class="interp">†</sup></td><td class="yes">✓</td></tr>
-        <tr><td class="compare-feature">ERP Integration</td><td class="no">—</td><td>Optional</td><td class="compare-featured">Optional<sup class="interp">†</sup></td><td>Included</td></tr>
-        <tr><td class="compare-feature">SSO support</td><td class="no">—</td><td class="no">—</td><td class="compare-featured no">—</td><td class="yes">✓</td></tr>
-        <tr><td class="compare-feature">Dashboard</td><td>Basic</td><td>Advanced</td><td class="compare-featured">Advanced<sup class="interp">†</sup></td><td>Enterprise BI</td></tr>
-        <tr><td class="compare-feature">Reports</td><td>Standard</td><td>Standard</td><td class="compare-featured">Standard</td><td>Advanced + Custom</td></tr>
-        <tr><td class="compare-feature">Export formats</td><td>PDF</td><td>PDF, Excel</td><td class="compare-featured">PDF, Excel<sup class="interp">†</sup></td><td>PDF, Excel, CSV, API</td></tr>
-        <tr><td class="compare-feature">Notifications</td><td>Standard</td><td>Advanced</td><td class="compare-featured">Advanced<sup class="interp">†</sup></td><td>Advanced</td></tr>
-        <tr><td class="compare-feature">Email / SMS templates</td><td>Standard</td><td>Custom</td><td class="compare-featured">Custom<sup class="interp">†</sup></td><td>Enterprise</td></tr>
-        <tr><td class="compare-feature">Support channel</td><td>Email</td><td>Business Hours</td><td class="compare-featured">Business Hours<sup class="interp">†</sup></td><td>24×7 Priority</td></tr>
-        <tr><td class="compare-feature">Uptime commitment</td><td>None</td><td>99.5%</td><td class="compare-featured">99.5%<sup class="interp">†</sup></td><td>99.9%</td></tr>
-        <tr><td class="compare-feature">Data ownership &amp; marketplace governance</td><td>Shared</td><td>Customer</td><td class="compare-featured">Customer</td><td>Customer</td></tr>
-        <tr><td class="compare-feature">Best suited for</td><td>Individuals, one-time sellers</td><td>SMEs, survey firms, exporters</td><td class="compare-featured">Growing NBFCs, multi-branch firms</td><td>Banks, insurers, PSUs, large enterprise</td></tr>
-
-        <tr class="compare-divider-row"><td colspan="5" class="compare-divider">Storage &amp; Media</td></tr>
-        <tr><td class="compare-feature">Included storage</td><td>5 GB</td><td>100 GB</td><td class="compare-featured">400 GB<sup class="interp">†</sup></td><td>1 TB</td></tr>
-        <tr><td class="compare-feature">Maximum file size</td><td>25 MB</td><td>100 MB</td><td class="compare-featured">250 MB<sup class="interp">†</sup></td><td>500 MB</td></tr>
-        <tr><td class="compare-feature">Images per Lot</td><td>20</td><td>100</td><td class="compare-featured">300<sup class="interp">†</sup></td><td>Unlimited</td></tr>
-        <tr><td class="compare-feature">Videos per Lot</td><td>1</td><td>5</td><td class="compare-featured">10<sup class="interp">†</sup></td><td>Unlimited</td></tr>
-        <tr><td class="compare-feature">Documents per Lot</td><td>10</td><td>50</td><td class="compare-featured">150<sup class="interp">†</sup></td><td>Unlimited</td></tr>
-
-        <tr class="compare-divider-row"><td colspan="5" class="compare-divider">Data Retention &amp; Recovery</td></tr>
-        <tr><td class="compare-feature">Data retention</td><td>1 Year</td><td>5 Years</td><td class="compare-featured">7 Years<sup class="interp">†</sup></td><td>10 Years / Unlimited</td></tr>
-        <tr><td class="compare-feature">Draft retention</td><td>30 Days</td><td>180 Days</td><td class="compare-featured">1 Year<sup class="interp">†</sup></td><td>Unlimited</td></tr>
-        <tr><td class="compare-feature">Deleted-data recovery window</td><td>7 Days</td><td>30 Days</td><td class="compare-featured">90 Days<sup class="interp">†</sup></td><td>180 Days</td></tr>
-        <tr><td class="compare-feature">Archive access</td><td class="no">—</td><td class="yes">✓</td><td class="compare-featured yes">✓<sup class="interp">†</sup></td><td class="yes">✓</td></tr>
-        <tr><td class="compare-feature">Purge policy</td><td>Automatic</td><td>Configurable</td><td class="compare-featured">Configurable<sup class="interp">†</sup></td><td>Customer Defined</td></tr>
-        <tr><td class="compare-feature">Backup frequency</td><td>Daily</td><td>Daily</td><td class="compare-featured">Daily<sup class="interp">†</sup></td><td>Real-time + Daily</td></tr>
-        <tr><td class="compare-feature">Restore requests</td><td>Chargeable</td><td>Included</td><td class="compare-featured">Included<sup class="interp">†</sup></td><td>Priority</td></tr>
-        <tr><td class="compare-feature">Audit trail retention</td><td>90 Days</td><td>2 Years</td><td class="compare-featured">5 Years<sup class="interp">†</sup></td><td>Unlimited</td></tr>
-        <tr><td class="compare-feature">Activity history</td><td>1 Year</td><td>5 Years</td><td class="compare-featured">7 Years<sup class="interp">†</sup></td><td>Unlimited</td></tr>
-
-        <tr class="compare-divider-row"><td colspan="5" class="compare-divider">Add-ons available (Section 5)</td></tr>
-        <tr><td class="compare-feature">Additional Administrator</td><td class="no">—</td><td>₹25,000/yr</td><td class="compare-featured">₹25,000/yr</td><td>₹25,000/yr</td></tr>
-        <tr><td class="compare-feature">Additional Business Unit</td><td class="no">—</td><td>₹50,000/yr</td><td class="compare-featured">₹50,000/yr</td><td>₹50,000/yr</td></tr>
-        <tr><td class="compare-feature">Dedicated Account Manager</td><td class="no">—</td><td>Optional add-on</td><td class="compare-featured">Optional add-on</td><td>Optional add-on <span class="compare-note">(planned: included)</span></td></tr>
-        <tr><td class="compare-feature">Premium SLA</td><td class="no">—</td><td>Optional add-on</td><td class="compare-featured">Optional add-on</td><td>Optional add-on <span class="compare-note">(planned: included)</span></td></tr>
-        <tr><td class="compare-feature">Private Cloud / On-Premise</td><td class="no">—</td><td class="no">—</td><td class="compare-featured no">—</td><td>Optional</td></tr>
-        <tr><td class="compare-feature">Custom Development</td><td class="no">—</td><td>Optional</td><td class="compare-featured">Optional<sup class="interp">†</sup></td><td class="yes">✓</td></tr>
-
-        <tr class="compare-divider-row"><td colspan="5" class="compare-divider">Professional Services (Section 4)</td></tr>
-        <tr><td class="compare-feature">API Integration Setup (one-time)</td><td class="no">—</td><td>₹1,00,000 onwards</td><td class="compare-featured">₹1,00,000 onwards</td><td>₹1,00,000 onwards</td></tr>
-        <tr><td class="compare-feature">Data Migration</td><td class="no">—</td><td>₹25,000 onwards</td><td class="compare-featured">₹25,000 onwards</td><td>₹25,000 onwards</td></tr>
-        <tr><td class="compare-feature">Marketplace Setup &amp; Branding</td><td class="no">—</td><td>₹50,000 onwards</td><td class="compare-featured">₹50,000 onwards</td><td>₹50,000 onwards</td></tr>
-        <tr><td class="compare-feature">Training (online / onsite)</td><td class="no">—</td><td>₹10,000–25,000/day</td><td class="compare-featured">₹10,000–25,000/day</td><td>₹10,000–25,000/day</td></tr>
-
-        <tr class="compare-divider-row"><td colspan="5" class="compare-divider">Future Roadmap — not yet available on any tier</td></tr>
-        <tr><td class="compare-feature">AI Services</td><td>Optional</td><td>Optional</td><td class="compare-featured">Optional</td><td>Optional <span class="compare-note">(planned: included)</span></td></tr>
-        <tr><td class="compare-feature">Marketplace Intelligence</td><td class="no">—</td><td>Optional</td><td class="compare-featured">Optional<sup class="interp">†</sup></td><td>Optional <span class="compare-note">(planned: included)</span></td></tr>
-        <tr><td class="compare-feature">Escrow Services</td><td>Future</td><td>Future</td><td class="compare-featured">Future</td><td>Future</td></tr>
-        <tr><td class="compare-feature">Marketplace Finance</td><td>Future</td><td>Future</td><td class="compare-featured">Future</td><td>Future</td></tr>
-      </tbody>
-    </table>
-    </div>
-
-    <div class="concierge-card">
-      <div class="concierge-badge">Salvage Managers TSX — exclusive</div>
-      <div class="concierge-head">
-        <h3 class="concierge-title">CoCo Concierge</h3>
-        <span class="concierge-sub mono">Tender Auction only</span>
-      </div>
-      <p class="concierge-desc">Not a growth tier — a separate, managed path that exists for exactly one reason: <strong>Tender Auctions are never self-service.</strong> They're structurally reserved for Company Shop management, so this is the only place on the entire network where a Tender Auction can be listed at all.</p>
-      <div class="concierge-grid">
-        <div>
-          <div class="concierge-label">Only Sale System</div>
-          <div class="concierge-value">Tender Auction</div>
-          <div class="concierge-note">No Buy Now, Express, or Easy Auction here — use CoCo Starter or a branded TSX for those.</div>
-        </div>
-        <div>
-          <div class="concierge-label">What's managed for you</div>
-          <div class="concierge-value">Documentation, sealed bids, compliance</div>
-          <div class="concierge-note">Handled end-to-end by the Salvage Managers team — not self-service.</div>
-        </div>
-        <div>
-          <div class="concierge-label">Where to find it</div>
-          <div class="concierge-value">Salvage Managers TSX only</div>
-          <div class="concierge-note">Not configurable on any other Tenant's TSX. Not available via the API. No exceptions.</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="fees">
-  <div class="wrap">
-    <div class="section-head">
-      <div class="section-num">03 — Settlement</div>
-      <h2>What will this trade cost you?</h2>
-      <p>ADWITIX earns only on a completed trade. Enter a trade value and see the exact Success Fee — no ladder to decode.</p>
-    </div>
-
-    <div class="calc-wrap">
-      <div class="calc-inputs">
-        <label class="calc-label" for="tradeValue">Trade / Lot value (₹)</label>
-        <div class="calc-input-row">
-          <span class="calc-currency">₹</span>
-          <input type="text" inputmode="numeric" id="tradeValue" class="calc-input mono" value="500000" autocomplete="off">
-        </div>
-        <input type="range" id="tradeSlider" class="calc-slider" min="10000" max="150000000" step="10000" value="500000">
-        <div class="calc-quickset">
-          <button type="button" class="qs" data-v="200000">₹2L</button>
-          <button type="button" class="qs" data-v="1000000">₹10L</button>
-          <button type="button" class="qs" data-v="10000000">₹1Cr</button>
-          <button type="button" class="qs" data-v="50000000">₹5Cr</button>
-          <button type="button" class="qs" data-v="120000000">₹12Cr</button>
-        </div>
-
-        <div class="calc-payer">
-          <span class="calc-label" style="margin-bottom:0;">Who pays the Success Fee?</span>
-          <div class="payer-toggle">
-            <button type="button" id="payerBuyer" class="payer-btn active">Trader (Buyer-Pays)</button>
-            <button type="button" id="payerSeller" class="payer-btn">Market Maker (Seller-Pays)</button>
-          </div>
-          <p class="calc-payer-note">Same rate either way — this only changes who it's charged to. Election is locked before the Trading Session opens.</p>
-        </div>
-      </div>
-
-      <div class="calc-result">
-        <div class="calc-result-row">
-          <span>Applicable band</span>
-          <span id="outBand" class="mono">—</span>
-        </div>
-        <div class="calc-result-row">
-          <span>Success Fee rate</span>
-          <span id="outPct" class="mono">—</span>
-        </div>
-        <div class="calc-result-row calc-fee">
-          <span>Success Fee (+ 18% GST)</span>
-          <span id="outFee" class="mono">—</span>
-        </div>
-        <div class="calc-result-row calc-total">
-          <span id="outPayerLabel">Trader pays</span>
-          <span id="outTotal" class="mono">—</span>
-        </div>
-        <div class="calc-result-row" style="opacity:0.7;">
-          <span id="outOtherLabel">Market Maker receives</span>
-          <span id="outOther" class="mono">—</span>
-        </div>
-        <div id="outNote" class="calc-note"></div>
-      </div>
-    </div>
-
-    <div class="ladder" style="margin-top:32px;">
-      <div class="rung" data-min="0" data-max="1000000"><div class="fill" style="right:0%"></div><span class="band">Up to ₹10 lakh</span><span class="pct">2.00%</span></div>
-      <div class="rung" data-min="1000000" data-max="5000000"><div class="fill" style="right:20%"></div><span class="band">₹10 lakh – ₹50 lakh</span><span class="pct">1.50%</span></div>
-      <div class="rung" data-min="5000000" data-max="20000000"><div class="fill" style="right:45%"></div><span class="band">₹50 lakh – ₹2 crore</span><span class="pct">1.00%</span></div>
-      <div class="rung" data-min="20000000" data-max="100000000"><div class="fill" style="right:65%"></div><span class="band">₹2 crore – ₹10 crore</span><span class="pct">0.75%</span></div>
-      <div class="rung" data-min="100000000" data-max="999999999999"><div class="fill" style="right:80%"></div><span class="band">Above ₹10 crore</span><span class="pct">0.50%*</span></div>
-    </div>
-    <p style="margin-top:14px; font-size:12.5px; color:var(--ink-soft);">*Above ₹10 crore is negotiable. Minimum Success Fee ₹500 + GST. This rate applies uniformly to every Tenant and tier — Fee Payer Election (above) changes only who it's charged to, never the rate itself.</p>
-  </div>
-</section>
-
-<style>
-  .calc-wrap{display:grid; grid-template-columns:1.15fr 0.85fr; gap:0; border:1px solid var(--line); border-radius:6px; overflow:hidden;}
-  .calc-inputs{background:var(--card); padding:34px;}
-  .calc-label{display:block; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:10px;}
-  .calc-input-row{display:flex; align-items:center; border:1px solid var(--line); border-radius:4px; overflow:hidden; margin-bottom:14px;}
-  .calc-currency{background:var(--paper); padding:14px 16px; font-family:'IBM Plex Mono',monospace; font-weight:600; color:var(--ink-soft); border-right:1px solid var(--line);}
-  .calc-input{border:none; outline:none; padding:14px 16px; font-size:24px; font-weight:600; width:100%; color:var(--ink); background:transparent;}
-  .calc-slider{width:100%; accent-color:var(--rust); margin-bottom:8px;}
-  .calc-quickset{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:28px;}
-  .qs{font-family:'IBM Plex Mono',monospace; font-size:12px; padding:6px 12px; border:1px solid var(--line); background:var(--paper); border-radius:20px; cursor:pointer; color:var(--ink);}
-  .qs:hover{border-color:var(--rust); color:var(--rust);}
-  .calc-toggle{display:flex; align-items:flex-start; gap:12px; cursor:pointer; padding-top:20px; border-top:1px solid var(--line);}
-  .calc-toggle input{position:absolute; opacity:0;}
-  .calc-toggle-box{width:38px; height:22px; border-radius:12px; background:var(--line); position:relative; flex-shrink:0; margin-top:2px; transition:background 0.15s;}
-  .calc-toggle-box::after{content:''; position:absolute; width:16px; height:16px; border-radius:50%; background:#fff; top:3px; left:3px; transition:left 0.15s;}
-  .calc-toggle input:checked + .calc-toggle-box{background:var(--teal);}
-  .calc-toggle input:checked + .calc-toggle-box::after{left:19px;}
-  .calc-toggle-text{font-size:14px; color:var(--ink-soft); line-height:1.5;}
-  .calc-payer{padding-top:20px; border-top:1px solid var(--line);}
-  .payer-toggle{display:flex; gap:8px; margin-top:10px; margin-bottom:10px;}
-  .payer-btn{flex:1; font-family:'Inter',sans-serif; font-size:13.5px; font-weight:600; padding:12px 10px; border:1px solid var(--line); background:var(--paper); border-radius:4px; cursor:pointer; color:var(--ink-soft); transition:all 0.12s;}
-  .payer-btn.active{background:var(--ink); border-color:var(--ink); color:var(--paper);}
-  .payer-btn.active#payerSeller{background:var(--teal); border-color:var(--teal);}
-  .calc-payer-note{font-size:12.5px; color:var(--ink-soft); line-height:1.5;}
-  .calc-result{background:var(--ink); color:var(--paper); padding:34px; display:flex; flex-direction:column; justify-content:center; gap:14px;}
-  .calc-result-row{display:flex; justify-content:space-between; align-items:baseline; font-size:14px; color:rgba(238,240,234,0.75);}
-  .calc-result-row span:last-child{font-size:16px; color:var(--paper);}
-  .calc-fee{border-top:1px solid rgba(238,240,234,0.15); padding-top:14px;}
-  .calc-fee span:last-child{color:var(--amber); font-size:22px; font-weight:700;}
-  .calc-total{border-top:1px solid rgba(238,240,234,0.15); padding-top:14px; margin-top:4px;}
-  .calc-total span:first-child{color:var(--paper); font-weight:600;}
-  .calc-total span:last-child{color:#fff; font-size:26px; font-weight:700;}
-  .calc-note{font-size:12px; color:rgba(238,240,234,0.5); margin-top:6px;}
-  .rung.active{border-color:var(--rust); background:var(--rust-soft);}
-  .rung.active .pct{color:var(--rust);}
-
-  /* ============ COMPARISON TABLE ============ */
-  .compare-scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px;}
-  .compare-table{width:100%; min-width:720px; border-collapse:collapse; background:var(--card); font-size:14px;}
-  .compare-table thead th{
-    font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:0.06em; text-transform:uppercase;
-    background:var(--ink); color:var(--paper); padding:16px 18px; text-align:left; font-weight:600;
-  }
-  .compare-table thead th:not(.compare-feature){text-align:center;}
-  .compare-table th.compare-featured{background:var(--teal); color:#fff;}
-  .compare-table td{padding:14px 18px; border-bottom:1px solid var(--line); text-align:center; color:var(--ink);}
-  .compare-table td.compare-feature{text-align:left; font-weight:600; color:var(--ink); background:var(--paper);}
-  .compare-table td.compare-featured{background:var(--teal-soft);}
-  .compare-table tbody tr:last-child td{border-bottom:none;}
-  .compare-table td.yes{color:var(--teal); font-weight:700; font-size:16px;}
-  .compare-table td.no{color:var(--line); font-size:16px;}
-  .compare-note{display:block; font-size:11px; color:var(--ink-soft); font-weight:400; margin-top:2px;}
-  .interp{color:var(--amber); font-weight:700; margin-left:1px;}
-  .compare-divider{
-    background:var(--paper-2); color:var(--rust); font-family:'IBM Plex Mono',monospace; font-size:11px;
-    letter-spacing:0.1em; text-transform:uppercase; text-align:left !important; padding:10px 18px !important;
-    font-weight:700; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
-  }
-  @media (max-width:860px){
-    .compare-table{font-size:13px;}
-    .compare-table td, .compare-table th{padding:12px 12px;}
-  }
-
-  /* ============ CONCIERGE CARD ============ */
-  .concierge-card{
-    margin-top:32px; background:var(--ink); border-radius:6px; padding:36px;
-    border:1px solid var(--amber); position:relative; overflow:hidden;
-  }
-  .concierge-card::before{
-    content:''; position:absolute; top:0; left:0; right:0; height:3px;
-    background:linear-gradient(90deg, var(--amber), var(--rust));
-  }
-  .concierge-badge{
-    display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.1em; text-transform:uppercase;
-    background:var(--amber); color:#3a2a05; padding:6px 14px; border-radius:20px; font-weight:700; margin-bottom:18px;
-  }
-  .concierge-head{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:14px;}
-  .concierge-title{color:var(--paper); font-size:26px; margin:0;}
-  .concierge-sub{color:var(--amber); font-size:13px; letter-spacing:0.04em;}
-  .concierge-desc{color:rgba(238,240,234,0.8); font-size:15px; line-height:1.6; max-width:70ch; margin-bottom:28px;}
-  .concierge-desc strong{color:var(--paper);}
-  .concierge-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:24px;}
-  .concierge-label{font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--amber); margin-bottom:8px;}
-  .concierge-value{font-family:'Archivo',sans-serif; font-weight:700; font-size:17px; color:var(--paper); margin-bottom:8px;}
-  .concierge-note{font-size:13px; color:rgba(238,240,234,0.6); line-height:1.5;}
-  @media (max-width:860px){ .concierge-grid{grid-template-columns:1fr;} }
-  @media (max-width:860px){ .calc-wrap{grid-template-columns:1fr;} }
-</style>
-
 <script>
-(function(){
-  const fmt = n => '₹' + Math.round(n).toLocaleString('en-IN');
-  const valueInput = document.getElementById('tradeValue');
-  const slider = document.getElementById('tradeSlider');
-  const btnBuyer = document.getElementById('payerBuyer');
-  const btnSeller = document.getElementById('payerSeller');
-  const rungs = Array.from(document.querySelectorAll('.rung'));
-  let payer = 'buyer';
+(function () {
+  // Real reimplementation of the mockup's Component logic (fmt/bracketFor/
+  // renderVals from Pricing.dc.html) as plain DOM-driven JS — no template
+  // framework in this codebase, matching the pattern already used by
+  // other interactive pages in this app (e.g. listing/show.php).
+  //
+  // Success Fee bracket kept in exact lockstep with the real, live
+  // EmdService::successFeeRate() (app/Libraries/EmdService.php) — same
+  // 5 thresholds, same rates, same ₹500 minimum floor.
+  function fmt(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
 
-  function standardRate(v){
-    if(v<=1000000) return {pct:0.02, label:'Up to ₹10 lakh'};
-    if(v<=5000000) return {pct:0.015, label:'₹10 lakh – ₹50 lakh'};
-    if(v<=20000000) return {pct:0.01, label:'₹50 lakh – ₹2 crore'};
-    if(v<=100000000) return {pct:0.0075, label:'₹2 crore – ₹10 crore'};
-    return {pct:0.005, label:'Above ₹10 crore (negotiable)'};
+  function bracketFor(v) {
+    if (v <= 1000000) return { rate: 2.00 };
+    if (v <= 5000000) return { rate: 1.50 };
+    if (v <= 20000000) return { rate: 1.00 };
+    if (v <= 100000000) return { rate: 0.75 };
+    return { rate: 0.50 };
   }
 
-  function compute(){
-    let v = parseFloat((valueInput.value||'0').replace(/[^0-9.]/g,'')) || 0;
-    if(v < 0) v = 0;
-    const r = standardRate(v);
-    let fee = v * r.pct;
-    let floorApplied = false;
-    if(fee < 500 && v > 0){ fee = 500; floorApplied = true; }
-    const gst = fee * 0.18;
-    const feeWithGst = fee + gst;
+  var tiers = [
+    { name: 'CoCo Starter', price: 'Free', period: '', annualNote: 'For individual & one-time Market Makers', highlight: '#DDE0EA', badge: '', ctaLabel: 'Start Free', ctaBg: 'transparent', ctaColor: '#1E2233', ctaBorder: '1px solid #DDE0EA',
+      features: ['Unlimited Lots & Trading Sessions', 'Standard auction engine', 'Buy-Now, Express, Easy Auction', 'Buyer-Pays only', 'No API access'] },
+    { name: 'TSX Launch', price: '₹10,000', period: '/month', annualNote: '₹1,20,000/yr list', highlight: '#DDE0EA', badge: '', ctaLabel: 'Choose Launch', ctaBg: 'transparent', ctaColor: '#1E2233', ctaBorder: '1px solid #DDE0EA',
+      features: ['Everything in CoCo Starter', 'Branded marketplace', 'One TSX Master (+ add-on)', 'Seller-Pays available', 'Read-only API access'] },
+    { name: 'TSX Growth', price: '₹25,000', period: '/month', annualNote: '₹3,00,000/yr list', highlight: '#C9974C', badge: 'Most Popular', ctaLabel: 'Choose Growth', ctaBg: '#C9974C', ctaColor: '#fff', ctaBorder: 'none',
+      features: ['Everything in TSX Launch', 'Basic RBAC (view/approve)', 'API read + push Lots', '400 GB storage', '7-year data retention'] },
+    { name: 'TSX Enterprise', price: '₹60,000', period: '/month', annualNote: '₹7,20,000/yr list', highlight: '#DDE0EA', badge: '', ctaLabel: 'Talk to Sales', ctaBg: 'transparent', ctaColor: '#1E2233', ctaBorder: '1px solid #DDE0EA',
+      features: ['Everything in TSX Growth', 'Full RBAC & workflow config', 'Full push/pull API, SSO', 'Audit logs', '1 TB storage, unlimited retention'] }
+  ];
 
-    document.getElementById('outBand').textContent = v > 0 ? r.label : '—';
-    document.getElementById('outPct').textContent = v > 0 ? (r.pct*100).toFixed(2) + '%' : '—';
-    document.getElementById('outFee').textContent = v > 0 ? fmt(feeWithGst) : '—';
+  var tiersEl = document.getElementById('prTiers');
+  tiers.forEach(function (t) {
+    var card = document.createElement('div');
+    card.style.cssText = 'background:#fff; border:2px solid ' + t.highlight + '; border-radius:18px; padding:24px 22px; display:flex; flex-direction:column; position:relative;';
+    var badgeHtml = t.badge
+      ? '<span style="position:absolute; top:-12px; left:22px; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; background:#C9974C; color:#fff; padding:5px 12px; border-radius:100px;">' + t.badge + '</span>'
+      : '';
+    var featuresHtml = t.features.map(function (f) {
+      return '<li style="font-size:12.5px; color:#1E2233; line-height:1.5; padding-left:16px; position:relative;"><span style="position:absolute; left:0; color:#C9974C; font-weight:700;">·</span>' + f + '</li>';
+    }).join('');
+    card.innerHTML = badgeHtml +
+      '<h3 style="font-size:16px; font-weight:800; margin:6px 0 4px; font-family:Archivo,sans-serif;">' + t.name + '</h3>' +
+      '<div style="margin:6px 0 4px;"><span style="font-size:26px; font-weight:800; font-family:Georgia,serif;">' + t.price + '</span><span style="font-size:12px; color:#9A9FB5;">' + t.period + '</span></div>' +
+      '<p style="font-size:12px; color:#9A9FB5; margin:0 0 16px;">' + t.annualNote + '</p>' +
+      '<ul style="margin:0 0 20px; padding:0; list-style:none; display:flex; flex-direction:column; gap:9px; flex:1;">' + featuresHtml + '</ul>' +
+      '<a href="/register" style="text-align:center; font-weight:700; font-size:13px; padding:11px; border-radius:100px; background:' + t.ctaBg + '; color:' + t.ctaColor + '; border:' + t.ctaBorder + ';">' + t.ctaLabel + '</a>';
+    tiersEl.appendChild(card);
+  });
 
-    if(payer === 'buyer'){
-      document.getElementById('outPayerLabel').textContent = 'Trader pays';
-      document.getElementById('outTotal').textContent = v > 0 ? fmt(v + feeWithGst) : '—';
-      document.getElementById('outOtherLabel').textContent = 'Market Maker receives';
-      document.getElementById('outOther').textContent = v > 0 ? fmt(v) : '—';
-    } else {
-      document.getElementById('outPayerLabel').textContent = 'Trader pays';
-      document.getElementById('outTotal').textContent = v > 0 ? fmt(v) : '—';
-      document.getElementById('outOtherLabel').textContent = 'Market Maker receives';
-      document.getElementById('outOther').textContent = v > 0 ? fmt(v - feeWithGst) : '—';
-    }
+  var brackets = [
+    { label: 'Up to ₹10L', rate: 2.00, max: 1000000 },
+    { label: '₹10L – ₹50L', rate: 1.50, max: 5000000 },
+    { label: '₹50L – ₹2Cr', rate: 1.00, max: 20000000 },
+    { label: '₹2Cr – ₹10Cr', rate: 0.75, max: 100000000 },
+    { label: 'Above ₹10Cr', rate: 0.50, max: Infinity }
+  ];
 
-    document.getElementById('outNote').textContent = floorApplied
-      ? 'Minimum Success Fee of ₹500 applied — calculated fee was below the floor.'
-      : (payer === 'seller' ? 'Seller-Pays: Trader sees a 0% visible premium — full fee is absorbed by the Market Maker.' : '');
+  var barsEl = document.getElementById('prLadderBars');
+  var labelsEl = document.getElementById('prLadderLabels');
 
-    rungs.forEach(rg=>{
-      const min = parseFloat(rg.dataset.min), max = parseFloat(rg.dataset.max);
-      rg.classList.toggle('active', v > min && v <= max);
+  function renderLadder(v) {
+    var activeIndex = brackets.findIndex(function (b) { return v <= b.max; });
+    barsEl.innerHTML = '';
+    labelsEl.innerHTML = '';
+    brackets.forEach(function (b, i) {
+      var isActive = i === activeIndex;
+      var height = Math.round(b.rate * 45) + 24;
+      var barWrap = document.createElement('div');
+      barWrap.style.cssText = 'flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;';
+      barWrap.innerHTML =
+        '<span style="font-size:' + (isActive ? '17px' : '12px') + '; font-weight:800; color:' + (isActive ? '#fff' : '#9A9FB5') + '; margin-bottom:8px;">' + b.rate.toFixed(2) + '%</span>' +
+        '<div style="width:100%; background:' + (isActive ? '#C9974C' : '#EEF0F5') + '; border:' + (isActive ? '2px solid #A87A38' : '1px solid #DDE0EA') + '; box-shadow:' + (isActive ? '0 4px 14px rgba(201,151,76,0.35)' : 'none') + '; border-radius:8px 8px 0 0; height:' + height + 'px; transition:height 0.2s, background 0.2s;"></div>';
+      barsEl.appendChild(barWrap);
+
+      var labelWrap = document.createElement('div');
+      labelWrap.style.cssText = 'flex:1; text-align:center;';
+      labelWrap.innerHTML = '<span style="font-size:10.5px; color:' + (isActive ? '#fff' : '#9A9FB5') + '; font-weight:' + (isActive ? '800' : '500') + '; line-height:1.3; padding:3px 8px; border-radius:100px; background:' + (isActive ? '#C9974C' : 'transparent') + ';">' + b.label + '</span>';
+      labelsEl.appendChild(labelWrap);
     });
-
-    if(slider.value != v) slider.value = Math.min(v, 150000000);
   }
 
-  valueInput.addEventListener('input', e=>{
-    let raw = e.target.value.replace(/[^0-9]/g,'');
-    e.target.value = raw;
-    compute();
-  });
-  slider.addEventListener('input', e=>{ valueInput.value = e.target.value; compute(); });
-  btnBuyer.addEventListener('click', ()=>{ payer='buyer'; btnBuyer.classList.add('active'); btnSeller.classList.remove('active'); compute(); });
-  btnSeller.addEventListener('click', ()=>{ payer='seller'; btnSeller.classList.add('active'); btnBuyer.classList.remove('active'); compute(); });
-  document.querySelectorAll('.qs').forEach(btn=>{
-    btn.addEventListener('click', ()=>{ valueInput.value = btn.dataset.v; slider.value = btn.dataset.v; compute(); });
+  var presetValues = [100000, 1000000, 5000000, 20000000, 150000000];
+  var presetLabels = ['₹1L', '₹10L', '₹50L', '₹2Cr', '₹15Cr'];
+  var presetsEl = document.getElementById('prPresets');
+  var slider = document.getElementById('prSlider');
+
+  presetValues.forEach(function (val, i) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = presetLabels[i];
+    btn.style.cssText = 'font-size:12px; font-weight:700; padding:7px 14px; border-radius:100px; border:1px solid #DDE0EA; background:#fff; color:#1E2233; cursor:pointer;';
+    btn.addEventListener('click', function () {
+      slider.value = val;
+      render(val);
+    });
+    presetsEl.appendChild(btn);
   });
 
-  compute();
+  function render(v) {
+    var rate = bracketFor(v).rate;
+    var fee = Math.max(v * rate / 100, 500);
+    var gst = fee * 0.18;
+    var buyerTotal = v + fee + gst;
+
+    document.getElementById('prSaleValueDisplay').textContent = fmt(v);
+    document.getElementById('prRateApplied').textContent = rate.toFixed(2) + '%';
+    document.getElementById('prFeeAmount').textContent = fmt(fee);
+    document.getElementById('prGstAmount').textContent = fmt(gst);
+    document.getElementById('prBuyerPaysTotal').textContent = fmt(buyerTotal);
+    document.getElementById('prBuyerPaysSaleValue').textContent = fmt(v);
+    document.getElementById('prSellerPaysSaleValue').textContent = fmt(v);
+    document.getElementById('prFeeBilledToTsx').textContent = fmt(fee + gst);
+
+    renderLadder(v);
+  }
+
+  slider.addEventListener('input', function () { render(Number(slider.value)); });
+  slider.addEventListener('change', function () { render(Number(slider.value)); });
+
+  render(Number(slider.value));
 })();
 </script>
-
-<footer>
-  <div class="wrap">
-    <div class="footer-grid">
-      <h2>Ready to open your own floor?</h2>
-      <button class="btn btn-primary">Talk to us</button>
-    </div>
-    <div class="footer-fine">
-      TRADESPHEREX — A MARKETPLACE OPERATING SYSTEM BY ADWITIX · ALL PRICES ARE MONTHLY LIST RATES, EXCLUDE GST · MINIMUM SUCCESS FEE ₹500 · v1.3 WORKING DRAFT
-    </div>
-  </div>
-</footer>
-
 </body>
 </html>

@@ -8457,3 +8457,69 @@ pre-audit API, and payment gateways) — until real mail credentials are
 set, `EmailNotificationService::sendOtp()` will keep failing closed and
 the dev-mode on-screen code remains the only way to complete a
 Custodian mPIN reset in this environment.
+
+### D-126: wired the Pricing screen from the Claude Design handoff package
+
+The project owner uploaded `docs/design/design_handoff_ebid_hub/screens/
+Pricing.dc.html` and asked whether it had been wired already, and to
+build it now if not.
+
+**It hadn't.** `/pricing` already existed and was live — but serving a
+different, earlier document (D-86's `eBid_Hub_Pricing_TradeSphereX.html`,
+a full standalone marketing page with its own hero/ticker/comparison
+table). This specific screen — the one design tracked as part of the
+53-screen `.dc.html` handoff package, listed under "Policy / legal" in
+`docs/design/CLAUDE_DESIGN_HANDOFF.md`'s pending queue — had never
+actually been built into the live app. Per that doc's own audit, this
+was true of all 65 tracked design screens (only Landing had reached
+"reviewed & decided"); Pricing is now the first one wired, done ahead
+of that review queue at the owner's direct request rather than waiting
+for the same lock-in pass the rest are queued behind.
+
+**Content cross-checked against the real backend before reuse, not
+assumed correct because the design says so**: the mockup's Success Fee
+bracket ladder (2.00% / 1.50% / 1.00% / 0.75% / 0.50%, thresholds at
+₹10L/₹50L/₹2Cr/₹10Cr, ₹500 minimum) matches
+`EmdService::successFeeRate()` exactly, and its 4 subscription tier
+names (CoCo Starter / TSX Launch / TSX Growth / TSX Enterprise) match
+`tenant.subscription_tier`'s real enum values verbatim — so this was a
+visual-design wiring, not a content change requiring product
+sign-off.
+
+**Built**: `public/pricing.html` replaced in place (same route, same
+`PricingController`, no code changes needed there) with a faithful
+recreation of the mockup — per the design handoff README's explicit
+"high-fidelity... recreate pixel-close... do not restyle to taste"
+instruction, its own colors/type were kept (Georgia serif headings,
+`#C9974C` gold accent, `#1E2761` navy, `#F3F4F8` background) rather
+than remapped onto this project's own BR-68 tokens. The mockup's
+`sc-for`/`sc-if`/`{{ }}` templating (a design-tool-only syntax) and its
+`DCLogic` component class were converted to plain static HTML for the
+fixed data (tiers, discount ladder, storage/retention table, optional
+services, enterprise add-ons) plus vanilla JS for the one genuinely
+interactive piece — the Success Fee calculator (slider + presets +
+live bracket highlight) — reusing the mockup's own `fmt()`/`bracketFor()`
+logic verbatim, not reimplemented from scratch. Placeholder `#` nav/CTA
+links replaced with real routes (`/`, `/browse`, `/trust-support`,
+`/login`, `/register`); the placeholder logo asset swapped for this
+project's real `/images/brand/adwitix-shield.jpg`. D-86's prior document
+isn't lost — its durable provenance copy already lived separately at
+`docs/source-documents/eBid_Hub_Pricing_TradeSphereX.html` and is
+untouched.
+
+**Verified for real**: the embedded calculator script passed
+`node --check` (no syntax errors); its actual logic was executed
+through a minimal DOM shim (not just read) at 5 sale values spanning
+every bracket, and its output matched a from-scratch reimplementation
+of `EmdService::successFeeRate()` exactly at each one (₹8.5L→2.00%/
+₹17,000+₹3,060 GST; ₹30L→1.50%; ₹1.5Cr→1.00%; ₹8Cr→0.75%; ₹15Cr→
+0.50%). `GET /pricing` against a live local server returned a real
+200 with the correct `<title>Pricing — AdwitiX</title>` and full page
+content — not just a lint pass.
+
+**Real gap, not fixed here (unrelated, out of scope)**: `docs/design/
+CLAUDE_DESIGN_HANDOFF.md`'s review-queue process (Landing reviewed and
+decided first, everything else waits its turn) was explicitly bypassed
+for this one screen because the owner asked for it directly — worth
+noting so the next screen picked from that queue doesn't get the same
+treatment without being asked.
