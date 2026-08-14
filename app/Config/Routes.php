@@ -79,6 +79,10 @@ $routes->post('/admin/setup-totp', 'SuperAdminAuthController::setupTotpSubmit');
 $routes->get('/admin/login', 'SuperAdminAuthController::loginForm');
 $routes->post('/admin/login', 'SuperAdminAuthController::loginSubmit');
 $routes->get('/admin/logout', 'SuperAdminAuthController::logout');
+$routes->get('/admin/forgot-mpin', 'SuperAdminAuthController::forgotMpinForm');
+$routes->post('/admin/forgot-mpin', 'SuperAdminAuthController::forgotMpinSubmit');
+$routes->post('/admin/forgot-mpin/verify', 'SuperAdminAuthController::forgotMpinVerifySubmit');
+$routes->post('/admin/forgot-mpin/set-mpin', 'SuperAdminAuthController::forgotMpinSetMpinSubmit');
 
 $routes->get('/admin', 'AdminController::dashboard', ['filter' => 'superAdmin']);
 $routes->get('/admin/alerts', 'AdminController::alerts', ['filter' => 'superAdmin']);

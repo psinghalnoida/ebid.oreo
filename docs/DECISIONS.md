@@ -8366,3 +8366,94 @@ re-attempted for a real local build and hit the exact same
 (not a new, MySQL-specific problem) — base images still pull cleanly;
 the first real end-to-end build happens in GitHub Actions on the next
 push, same as before.
+
+### D-125: bootstrapped a known Custodian account + built its own forgot-mPIN recovery flow
+
+The project owner asked (on a **separate, unmerged branch**, unlike this
+project's usual direct-to-`main` pattern): "we are talking about saas
+admin or super admin. Hardcode for mobile number: 9811047785, mPin:
+4148, in case the password recovery is required send email to
+psinghalnoida@gmail.com with a TOTP and then reset the new mPIN."
+"Custodian" is BR-67's branded display name for Super Admin (see the
+`tsx_term()` mapping) — this is about the real BR-04 Super Admin login
+(mobile + mPIN + TOTP), not `listing.custodian_party_id` (an unrelated
+per-listing "Physical Custodian" concept).
+
+**"Hardcode" was interpreted as seed a real account, not bypass the
+login check.** Writing a literal `if ($mobile === '9811047785' &&
+$mpin === '4148')` comparison into `SuperAdminAuthService::login()`
+would be a genuine authentication backdoor — indistinguishable in kind
+from a hardcoded master password, and a standing vulnerability for as
+long as it stayed in the code. Instead, `app/Commands/
+BootstrapCustodianAccount.php` (`php spark bootstrap:custodian
+[mobile] [mpin] [recovery_email]`, defaulting to `+919811047785` /
+`4148` / `psinghalnoida@gmail.com`) creates (or, run again, resets) an
+ordinary `party` row through the exact same primitives every other
+account uses — `AuthService::setMpin()` for a real bcrypt hash, a
+granted `super_admin` role via the existing `PartyRoleModel`, and an
+`AuditLogService` entry (`admin.custodian_bootstrapped`) — so the
+account is authenticated by the same code path as any other Custodian,
+with no special-cased literal anywhere in the login logic. TOTP setup
+still has to happen once through the existing real `/admin/setup-totp`
+flow (a bootstrapped mPIN alone doesn't satisfy BR-04's 3-factor
+requirement) — this is intentional, not a gap: a seeded credential is
+not a substitute for the second factor.
+
+**Forgot-mPIN recovery, built new, dual-channel and admin-specific.**
+`AuthController`'s existing mobile+email OTP reset pattern only
+triggers after BR-02's 3-consecutive-failure lockout — appropriate for
+a bidder's mPIN, wrong for a Custodian who genuinely forgot theirs and
+shouldn't have to deliberately fail login 3 times first. Added instead,
+unauthenticated and independent of any lockout state, to
+`SuperAdminAuthController`: `GET/POST /admin/forgot-mpin` (mobile
+number in) → `POST /admin/forgot-mpin/verify` (both the mobile OTP and
+—when `party.recovery_email` is set — the email OTP required together,
+reusing `AuthService::requestOtp()`/`verifyOtp()` rather than
+duplicating OTP logic) → `POST /admin/forgot-mpin/set-mpin` (new mPIN,
+via the same `AuthService::setMpin()` every other reset path uses). The
+new `app/Libraries/EmailNotificationService::sendOtp()` makes a real
+`\Config\Services::email()` send attempt and fails closed (returns
+`false`, logs, and the view says so explicitly) rather than either
+faking success or refusing to build the flow — the same honest-gap
+pattern already established for SMS/Gemini/payment-gateway integrations
+project-wide; no real SMTP credentials exist in this sandbox, so actual
+delivery to psinghalnoida@gmail.com does not happen yet, but the code
+path is real and will work the moment `app/Config/Email.php` is pointed
+at a real mail transport. **Enumeration-safe by construction**: `POST
+/admin/forgot-mpin` returns the identical generic message ("If that
+number belongs to a registered Custodian account...") whether the
+mobile number doesn't exist, belongs to a non-admin party, or is
+genuinely a Custodian — and no OTP is ever generated in the first two
+cases, verified for real below.
+
+**Verified for real, end to end, against a fresh MySQL database**:
+`bootstrap:custodian` (no args) created party
+`220a7d6f-f311-4d24-844b-a5cb29703057` for `+919811047785` with mPIN
+`4148`; real `/admin/setup-totp` generated a genuine random Base32
+secret and the confirmation POST (real 6-digit code computed via RFC
+6238 HMAC-SHA1) succeeded, landing on the real backup-codes page; real
+`POST /admin/login` with mobile + `4148` + a freshly-generated TOTP
+code returned a 303 to `/admin` (the actual Super Admin dashboard, not
+a mock); the full forgot-mPIN cycle — `GET/POST /admin/forgot-mpin` →
+dev-mode mobile+email codes shown (with the "real email delivery not
+configured" notice correctly present) → `POST .../verify` with both
+codes → `POST .../set-mpin` with a new mPIN (`7799`) → redirect to
+`/admin/login` with a genuine flash success message — completed for
+real, after which the **new** mPIN logged in successfully and the
+**old** `4148` was genuinely rejected ("Incorrect mPIN."); the negative
+case (`POST /admin/forgot-mpin` with an unregistered mobile number)
+returned the identical generic message with no OTP issued. The
+complete 39-suite `test:*` regression was re-run from a fresh MySQL
+database afterward and confirmed genuinely green — 39/39, zero
+failures, no regressions from this change.
+
+**Branch**: pushed to `updates-by-piyush`, per the explicit request for
+a separate branch — deliberately **not** merged to `main`.
+
+**Real gap, not fixed here (out of scope)**: `app/Config/Email.php` has
+no real SMTP transport configured anywhere in this project (same class
+of external dependency already documented for SMS OTP, the Gemini
+pre-audit API, and payment gateways) — until real mail credentials are
+set, `EmailNotificationService::sendOtp()` will keep failing closed and
+the dev-mode on-screen code remains the only way to complete a
+Custodian mPIN reset in this environment.
