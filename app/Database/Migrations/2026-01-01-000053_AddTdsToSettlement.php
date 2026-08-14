@@ -2,6 +2,7 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 // BR-53: Tax Deduction at Source, Section 194-O. The BR text explicitly
@@ -13,9 +14,11 @@ use CodeIgniter\Database\Migration;
 // the BR-56 GST invoice, which covers commission only, not TDS.
 class AddTdsToSettlement extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
-        $this->db->query(<<<SQL
+        $this->execMulti(<<<SQL
             ALTER TABLE settlement
                 ADD COLUMN tds_rate_percent NUMERIC(5,2),
                 ADD COLUMN tds_amount        NUMERIC(14,2);
@@ -24,10 +27,10 @@ class AddTdsToSettlement extends Migration
 
     public function down()
     {
-        $this->db->query(<<<SQL
+        $this->execMulti(<<<SQL
             ALTER TABLE settlement
-                DROP COLUMN IF EXISTS tds_rate_percent,
-                DROP COLUMN IF EXISTS tds_amount;
+                DROP COLUMN tds_rate_percent,
+                DROP COLUMN tds_amount;
         SQL);
     }
 }

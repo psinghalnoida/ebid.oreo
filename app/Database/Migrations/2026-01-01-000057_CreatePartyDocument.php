@@ -2,6 +2,7 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 // BR-17/PR-15: "Patron uploads required documents to the secure document
@@ -12,22 +13,31 @@ use CodeIgniter\Database\Migration;
 // photos, a KYC document must never be reachable by a guessed URL.
 class CreatePartyDocument extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
-        $this->db->query(<<<SQL
-            CREATE TYPE party_document_type AS ENUM (
+        $this->execMulti(<<<SQL
+            CREATE TABLE party_document (
+
+                id                  CHAR(36) PRIMARY KEY,
+
+                party_id CHAR(36) NOT NULL,
+
+                document_type       ENUM(
                 'pan_card', 'gst_certificate', 'aadhaar_card', 'certificate_of_incorporation',
                 'board_resolution', 'power_of_attorney', 'cancelled_cheque', 'msme_certificate'
-            );
+            ) NOT NULL,
 
-            CREATE TABLE party_document (
-                id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                party_id            UUID NOT NULL REFERENCES party(id),
-                document_type       party_document_type NOT NULL,
                 encrypted_path      TEXT NOT NULL,
+
                 original_filename   TEXT NOT NULL,
+
                 mime_type           TEXT NOT NULL,
-                uploaded_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+
+                uploaded_at         DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+
+                CONSTRAINT fk_party_document_party_id FOREIGN KEY (party_id) REFERENCES party(id)
             );
 
             CREATE INDEX idx_party_document_party ON party_document (party_id);
@@ -37,6 +47,5 @@ class CreatePartyDocument extends Migration
     public function down()
     {
         $this->db->query('DROP TABLE IF EXISTS party_document CASCADE;');
-        $this->db->query('DROP TYPE IF EXISTS party_document_type;');
     }
 }

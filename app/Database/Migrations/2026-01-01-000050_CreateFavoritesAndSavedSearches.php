@@ -2,6 +2,7 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 // Phase 3C+: favorites/watchlist, saved searches, and search history —
@@ -11,32 +12,56 @@ use CodeIgniter\Database\Migration;
 // as the SMS provider itself.
 class CreateFavoritesAndSavedSearches extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
-        $this->db->query(<<<SQL
+        $this->execMulti(<<<SQL
             CREATE TABLE listing_favorite (
-                id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                party_id    UUID NOT NULL REFERENCES party(id),
-                listing_id  UUID NOT NULL REFERENCES listing(id),
-                created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-                UNIQUE(party_id, listing_id)
+
+                id          CHAR(36) PRIMARY KEY,
+
+                party_id CHAR(36) NOT NULL,
+
+                listing_id CHAR(36) NOT NULL,
+
+                created_at  DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+
+                UNIQUE(party_id, listing_id),
+
+                CONSTRAINT fk_listing_favorite_party_id FOREIGN KEY (party_id) REFERENCES party(id),
+
+                CONSTRAINT fk_listing_favorite_listing_id FOREIGN KEY (listing_id) REFERENCES listing(id)
             );
             CREATE INDEX idx_listing_favorite_party ON listing_favorite (party_id);
 
             CREATE TABLE saved_search (
-                id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                party_id    UUID NOT NULL REFERENCES party(id),
+
+                id          CHAR(36) PRIMARY KEY,
+
+                party_id CHAR(36) NOT NULL,
+
                 label       TEXT NOT NULL,
+
                 filters     TEXT NOT NULL,
-                created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+
+                created_at  DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+
+                CONSTRAINT fk_saved_search_party_id FOREIGN KEY (party_id) REFERENCES party(id)
             );
             CREATE INDEX idx_saved_search_party ON saved_search (party_id);
 
             CREATE TABLE search_history (
-                id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                party_id    UUID NOT NULL REFERENCES party(id),
+
+                id          CHAR(36) PRIMARY KEY,
+
+                party_id CHAR(36) NOT NULL,
+
                 filters     TEXT NOT NULL,
-                created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+
+                created_at  DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+
+                CONSTRAINT fk_search_history_party_id FOREIGN KEY (party_id) REFERENCES party(id)
             );
             CREATE INDEX idx_search_history_party ON search_history (party_id, created_at DESC);
         SQL);

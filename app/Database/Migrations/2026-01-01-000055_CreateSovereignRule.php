@@ -2,6 +2,7 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 // PR-04/BR-01/BR-04: Sovereign Rule Revision — the Super Admin's own
@@ -14,19 +15,30 @@ use CodeIgniter\Database\Migration;
 // scope for this pass.
 class CreateSovereignRule extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
-        $this->db->query(<<<SQL
+        $this->execMulti(<<<SQL
             CREATE TABLE sovereign_rule (
-                id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+                id                      CHAR(36) PRIMARY KEY,
+
                 rule_key                VARCHAR(120) UNIQUE,
+
                 title                   TEXT NOT NULL,
+
                 statement               TEXT NOT NULL,
+
                 logic                   TEXT NOT NULL,
+
                 numeric_value           NUMERIC(18,4),
+
                 version                 INTEGER NOT NULL DEFAULT 1,
-                created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
-                updated_at              TIMESTAMPTZ NOT NULL DEFAULT now()
+
+                created_at              DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+
+                updated_at              DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
             );
 
             -- PR-04 step 5: "System versions the change, commits it" — a
@@ -35,16 +47,30 @@ class CreateSovereignRule extends Migration
             -- PR-04 asks for versioning as its own explicit capability
             -- (e.g. viewing prior wording of a rule), not just a log line.
             CREATE TABLE sovereign_rule_revision (
-                id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                rule_id                 UUID NOT NULL REFERENCES sovereign_rule(id),
+
+                id                      CHAR(36) PRIMARY KEY,
+
+                rule_id CHAR(36) NOT NULL,
+
                 version                 INTEGER NOT NULL,
+
                 title                   TEXT NOT NULL,
+
                 statement               TEXT NOT NULL,
+
                 logic                   TEXT NOT NULL,
+
                 numeric_value           NUMERIC(18,4),
+
                 reason_for_modification TEXT NOT NULL,
-                changed_by_party_id     UUID REFERENCES party(id),
-                created_at              TIMESTAMPTZ NOT NULL DEFAULT now()
+
+                changed_by_party_id CHAR(36),
+
+                created_at              DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+
+                CONSTRAINT fk_sovereign_rule_revision_rule_id FOREIGN KEY (rule_id) REFERENCES sovereign_rule(id),
+
+                CONSTRAINT fk_sovereign_rule_revision_changed_by_party_id FOREIGN KEY (changed_by_party_id) REFERENCES party(id)
             );
 
             CREATE INDEX idx_sovereign_rule_revision_rule ON sovereign_rule_revision (rule_id, version DESC);

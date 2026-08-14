@@ -2,6 +2,7 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 // BR-35: the full graduated rating event table. `event_key` makes a
@@ -15,10 +16,12 @@ use CodeIgniter\Database\Migration;
 // status.
 class AddBR35RatingInfrastructure extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
-        $this->db->query(<<<SQL
-            ALTER TABLE rating_event ADD COLUMN event_key TEXT;
+        $this->execMulti(<<<SQL
+            ALTER TABLE rating_event ADD COLUMN event_key VARCHAR(255);
             CREATE INDEX idx_rating_event_key ON rating_event (party_id, rating_role, event_key, created_at);
 
             ALTER TABLE party
@@ -29,12 +32,12 @@ class AddBR35RatingInfrastructure extends Migration
 
     public function down()
     {
-        $this->db->query(<<<SQL
+        $this->execMulti(<<<SQL
             ALTER TABLE party
-                DROP COLUMN IF EXISTS clean_transaction_streak_buyer,
-                DROP COLUMN IF EXISTS clean_transaction_streak_seller;
-            DROP INDEX IF EXISTS idx_rating_event_key;
-            ALTER TABLE rating_event DROP COLUMN IF EXISTS event_key;
+                DROP COLUMN clean_transaction_streak_buyer,
+                DROP COLUMN clean_transaction_streak_seller;
+            DROP INDEX IF EXISTS idx_rating_event_key ON rating_event;
+            ALTER TABLE rating_event DROP COLUMN event_key;
         SQL);
     }
 }

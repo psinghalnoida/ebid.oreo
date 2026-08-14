@@ -2,31 +2,49 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 class CreateEmdHold extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
-        $this->db->query(<<<SQL
-            CREATE TYPE emd_channel AS ENUM ('van', 'credit_card', 'manual_offline');
-            CREATE TYPE emd_status AS ENUM ('held', 'released', 'forfeited', 'refunded');
-
+        $this->execMulti(<<<SQL
             CREATE TABLE emd_hold (
-                id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                sale_event_id        UUID NOT NULL REFERENCES sale_event(id),
-                party_id             UUID NOT NULL REFERENCES party(id),
-                channel               emd_channel NOT NULL,
+
+                id                  CHAR(36) PRIMARY KEY,
+
+                sale_event_id CHAR(36) NOT NULL,
+
+                party_id CHAR(36) NOT NULL,
+
+                channel               ENUM('van', 'credit_card', 'manual_offline') NOT NULL,
+
                 amount                 NUMERIC(14,2) NOT NULL,
-                status                  emd_status NOT NULL DEFAULT 'held',
+
+                status                  ENUM('held', 'released', 'forfeited', 'refunded') NOT NULL DEFAULT 'held',
+
                 recalculated_amount     NUMERIC(14,2),
+
                 forfeited_to_tenant_amount   NUMERIC(14,2),
+
                 forfeited_to_saas_amount      NUMERIC(14,2),
+
                 forfeited_to_seller_amount    NUMERIC(14,2),
+
                 gateway_reference       TEXT,
-                held_at                  TIMESTAMPTZ NOT NULL DEFAULT now(),
-                released_at               TIMESTAMPTZ,
-                forfeited_at                TIMESTAMPTZ
+
+                held_at                  DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+
+                released_at               DATETIME(6),
+
+                forfeited_at                DATETIME(6),
+
+                CONSTRAINT fk_emd_hold_sale_event_id FOREIGN KEY (sale_event_id) REFERENCES sale_event(id),
+
+                CONSTRAINT fk_emd_hold_party_id FOREIGN KEY (party_id) REFERENCES party(id)
             );
 
             CREATE INDEX idx_emd_sale_event ON emd_hold (sale_event_id);
@@ -37,7 +55,5 @@ class CreateEmdHold extends Migration
     public function down()
     {
         $this->db->query('DROP TABLE IF EXISTS emd_hold CASCADE;');
-        $this->db->query('DROP TYPE IF EXISTS emd_status;');
-        $this->db->query('DROP TYPE IF EXISTS emd_channel;');
     }
 }

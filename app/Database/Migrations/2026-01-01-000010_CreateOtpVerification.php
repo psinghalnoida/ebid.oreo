@@ -2,24 +2,25 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 class CreateOtpVerification extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
-        $this->db->query(<<<SQL
-            CREATE TYPE otp_purpose AS ENUM ('registration', 'mpin_reset');
-
+        $this->execMulti(<<<SQL
             CREATE TABLE otp_verification (
-                id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                id                  CHAR(36) PRIMARY KEY,
                 mobile_number       VARCHAR(13) NOT NULL,
                 otp_hash            TEXT NOT NULL,
-                purpose             otp_purpose NOT NULL,
+                purpose             ENUM('registration', 'mpin_reset') NOT NULL,
                 attempts            INTEGER NOT NULL DEFAULT 0,
-                expires_at          TIMESTAMPTZ NOT NULL,
-                verified_at         TIMESTAMPTZ,
-                created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+                expires_at          DATETIME(6) NOT NULL,
+                verified_at         DATETIME(6),
+                created_at          DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
             );
 
             CREATE INDEX idx_otp_mobile_purpose ON otp_verification (mobile_number, purpose, created_at DESC);
@@ -29,6 +30,5 @@ class CreateOtpVerification extends Migration
     public function down()
     {
         $this->db->query('DROP TABLE IF EXISTS otp_verification CASCADE;');
-        $this->db->query('DROP TYPE IF EXISTS otp_purpose;');
     }
 }

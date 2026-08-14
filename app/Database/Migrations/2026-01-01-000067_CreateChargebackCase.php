@@ -2,6 +2,7 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 // BR-52/PR-30: Chargeback Handling & Representment. Two independent
@@ -19,30 +20,58 @@ use CodeIgniter\Database\Migration;
 //      chargeback targets an already-approved, legitimate forfeiture.
 class CreateChargebackCase extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
-        $this->db->query(<<<SQL
-            CREATE TYPE chargeback_status AS ENUM ('filed', 'represented', 'resolved_won', 'resolved_lost');
-
+        $this->execMulti(<<<SQL
             CREATE TABLE chargeback_case (
-                id                                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                emd_hold_id                           UUID NOT NULL REFERENCES emd_hold(id),
-                sale_event_id                         UUID NOT NULL REFERENCES sale_event(id),
-                party_id                              UUID NOT NULL REFERENCES party(id),
+
+                id                                    CHAR(36) PRIMARY KEY,
+
+                emd_hold_id CHAR(36) NOT NULL,
+
+                sale_event_id CHAR(36) NOT NULL,
+
+                party_id CHAR(36) NOT NULL,
+
                 amount                                NUMERIC(14,2) NOT NULL,
+
                 filed_reason                          TEXT NOT NULL,
+
                 against_approved_forfeiture           BOOLEAN NOT NULL DEFAULT false,
-                evidence_package                      JSONB NOT NULL,
-                status                                chargeback_status NOT NULL DEFAULT 'filed',
-                filed_at                              TIMESTAMPTZ NOT NULL DEFAULT now(),
-                evidence_assembled_at                 TIMESTAMPTZ,
-                representment_outcome_by_party_id     UUID REFERENCES party(id),
+
+                evidence_package                      JSON NOT NULL,
+
+                status                                ENUM('filed', 'represented', 'resolved_won', 'resolved_lost') NOT NULL DEFAULT 'filed',
+
+                filed_at                              DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+
+                evidence_assembled_at                 DATETIME(6),
+
+                representment_outcome_by_party_id CHAR(36),
+
                 representment_notes                   TEXT,
-                representment_resolved_at             TIMESTAMPTZ,
-                integrity_reviewed_by_party_id        UUID REFERENCES party(id),
+
+                representment_resolved_at             DATETIME(6),
+
+                integrity_reviewed_by_party_id CHAR(36),
+
                 integrity_review_notes                TEXT,
+
                 integrity_rating_consequence_applied  BOOLEAN,
-                integrity_reviewed_at                 TIMESTAMPTZ
+
+                integrity_reviewed_at                 DATETIME(6),
+
+                CONSTRAINT fk_chargeback_case_emd_hold_id FOREIGN KEY (emd_hold_id) REFERENCES emd_hold(id),
+
+                CONSTRAINT fk_chargeback_case_sale_event_id FOREIGN KEY (sale_event_id) REFERENCES sale_event(id),
+
+                CONSTRAINT fk_chargeback_case_party_id FOREIGN KEY (party_id) REFERENCES party(id),
+
+                CONSTRAINT fk_chargeback_case_representment_outcome_by_party_id FOREIGN KEY (representment_outcome_by_party_id) REFERENCES party(id),
+
+                CONSTRAINT fk_chargeback_case_integrity_reviewed_by_party_id FOREIGN KEY (integrity_reviewed_by_party_id) REFERENCES party(id)
             );
 
             CREATE INDEX idx_chargeback_case_party ON chargeback_case (party_id);
@@ -54,6 +83,5 @@ class CreateChargebackCase extends Migration
     public function down()
     {
         $this->db->query('DROP TABLE IF EXISTS chargeback_case CASCADE;');
-        $this->db->query('DROP TYPE IF EXISTS chargeback_status;');
     }
 }

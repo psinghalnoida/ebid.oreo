@@ -69,19 +69,28 @@ gcloud artifacts repositories create ebidhub \
 
 `GCP_ARTIFACT_REPO` (a GitHub repo **variable**, set in step 8) = `ebidhub`.
 
-## 3. Cloud SQL — PostgreSQL 16
+## 3. Cloud SQL — MySQL 8
 
 Matches `SETUP.md`'s real schema requirements exactly (same
 `ebidhub`/`ebidhub_app` names used throughout local dev and CI).
+Originally PostgreSQL 16 in this pipeline's first version; migrated to
+MySQL (see `docs/DECISIONS.md`'s MySQL migration entry for the full,
+empirically-verified conversion — 67 migration files converted, every
+Postgres-specific construct (`gen_random_uuid()`, `CREATE TYPE ... AS
+ENUM`, partial unique indexes, `pg_advisory_lock`, etc.) replaced with
+its real MySQL equivalent, all 39 `test:*` regression suites re-run
+green against a real local MySQL 8 server).
 
 ```bash
 gcloud sql instances create ebidhub-prod \
-  --database-version=POSTGRES_16 \
+  --database-version=MYSQL_8_0 \
   --tier=db-custom-2-8192 \
   --region="$REGION" \
-  --storage-auto-increase
+  --storage-auto-increase \
+  --database-flags=character_set_server=utf8mb4,collation_server=utf8mb4_unicode_ci
 
-gcloud sql databases create ebidhub --instance=ebidhub-prod
+gcloud sql databases create ebidhub --instance=ebidhub-prod \
+  --charset=utf8mb4 --collation=utf8mb4_unicode_ci
 
 # Pick a real password — this becomes the ebidhub-db-password secret
 # in step 5, never committed anywhere.
@@ -89,6 +98,24 @@ gcloud sql users create ebidhub_app \
   --instance=ebidhub-prod \
   --password="$(openssl rand -base64 24)"
 ```
+
+**Known, accepted MySQL-vs-Postgres gap**: the original Postgres
+migrations locked `audit_log`/`consent_event`/`invoice` down with
+`REVOKE UPDATE, DELETE, TRUNCATE ... GRANT INSERT, SELECT` so the
+app's own DB connection could never modify or destroy a row after
+writing it — real privilege-level tamper *prevention*, on top of
+`audit_log`'s SHA-256 hash chain (tamper *evidence*). That REVOKE/GRANT
+scheme is confirmed **not achievable on Cloud SQL for MySQL either**:
+MySQL's `partial_revokes` mechanism only carves a *database*-level
+restriction out of a *global* (`*.*`) grant, never a *table*-level
+restriction out of the *database*-level grant `ebidhub_app` needs for
+ordinary migrations to run. Reproducing it would mean never granting
+`ebidhub_app` database-wide and instead enumerating UPDATE/DELETE per
+table by hand — rejected as fragile (any future table whose migration
+forgets the grant silently loses app write access). `ebidhub_app`
+therefore retains full DML on these three tables in production too;
+the hash chain (`AuditLogService::verifyChainIntegrity()`) remains the
+real, working tamper-evidence guarantee, unaffected by this gap.
 
 Get the instance connection name (used everywhere below as
 `GCP_CLOUDSQL_CONNECTION_NAME`):
@@ -292,3 +319,16 @@ right.
   app actually ships in) was found and fixed by that partial build
   attempt. The first real end-to-end build happens in GitHub Actions
   on the first push past this doc — watch that run.
+- **Re-attempted after the MySQL migration (D-124+), same result**:
+  `Dockerfile`'s apt-get step now installs `default-libmysqlclient-dev`
+  and `docker-php-ext-install pdo_mysql mysqli` instead of the Postgres
+  equivalents — a real local build was re-attempted to verify this, and
+  it hit the exact same `deb.debian.org` sandbox network block as
+  before (base images still pull cleanly via `mirror.gcr.io`; only the
+  apt-get layer is blocked). `pdo_mysql`/`mysqli` are core, always-
+  bundled PHP extensions and `default-libmysqlclient-dev` is the
+  standard Debian package for their build headers — a far more common,
+  well-trodden combination than `pdo_pgsql`/`pgsql` was — but this
+  specific layer still hasn't completed a real build in this sandbox.
+  Watch the first GitHub Actions run after this change lands, same as
+  before.

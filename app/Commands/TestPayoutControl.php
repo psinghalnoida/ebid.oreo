@@ -34,8 +34,8 @@ class TestPayoutControl extends BaseCommand
 
         CLI::write('=== Setup ===', 'yellow');
         $tenant = $tenantModel->createTenant(['name' => 'Payout Test Tenant', 'tenant_class' => 'general', 'subdomain' => 'payouttest']);
-        $seller = $partyModel->createParty('+919555402001');
-        $buyer = $partyModel->createParty('+919555402002');
+        $seller = $partyModel->createParty('+919555402101');
+        $buyer = $partyModel->createParty('+919555402102');
 
         $makeSaleEvent = function (string $ern) use ($listingModel, $saleEventModel, $tenant, $seller) {
             $listing = $listingModel->createListing([
@@ -112,14 +112,14 @@ class TestPayoutControl extends BaseCommand
         $this->assert($released === true, 'Beyond the 30-day review window, a high-value release proceeds normally — the gate genuinely expires rather than protecting forever');
 
         CLI::write("\n=== Step 7: a party who never changed their bank details is never gated, however large the payout ===", 'yellow');
-        $neverChangedParty = $partyModel->createParty('+919555402003');
+        $neverChangedParty = $partyModel->createParty('+919555402103');
         $se4 = $makeSaleEvent('TEST-PAYOUT-004');
         $neverChangedHold = $emdHoldModel->createHold($se4['id'], $neverChangedParty['id'], 'van', 5000000);
         $released = $payout->guardedRelease($neverChangedHold['id']);
         $this->assert($released === true, 'No bank change on record at all — nothing to protect against, so the payout proceeds');
 
         CLI::write("\n=== Step 8 (BR-50): Tenant/SaaS Admin review decision genuinely executes the deferred release ===", 'yellow');
-        $tenantAdmin = $partyModel->createParty('+919555402004');
+        $tenantAdmin = $partyModel->createParty('+919555402104');
         $decided = $payout->decideReview($review['id'], $tenantAdmin['id'], true, 'Confirmed with the buyer by phone — genuine account change.');
         $this->assert($decided['status'] === 'approved', 'The review genuinely transitions to approved');
         $this->assert($emdHoldModel->find($highHold['id'])['status'] === 'released', 'Approving the review genuinely releases the hold that was withheld');

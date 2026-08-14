@@ -2,6 +2,7 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 // Section 7.10 (ADWITIX_Master.docx): the Trading Session Chronicle --
@@ -14,21 +15,42 @@ use CodeIgniter\Database\Migration;
 // principle BR-13 already applies to Listings.
 class CreateTradingSessionChronicle extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
-        $this->db->query(<<<SQL
+        $this->execMulti(<<<SQL
             CREATE TABLE trading_session_chronicle (
-                id                          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                sale_event_id               UUID NOT NULL REFERENCES sale_event(id),
-                settlement_id               UUID NOT NULL REFERENCES settlement(id),
-                tenant_id                   UUID NOT NULL REFERENCES tenant(id),
-                reference_number            TEXT NOT NULL UNIQUE,
-                verification_token          TEXT NOT NULL UNIQUE,
+
+                id                          CHAR(36) PRIMARY KEY,
+
+                sale_event_id CHAR(36) NOT NULL,
+
+                settlement_id CHAR(36) NOT NULL,
+
+                tenant_id CHAR(36) NOT NULL,
+
+                reference_number            VARCHAR(255) NOT NULL UNIQUE,
+
+                verification_token          VARCHAR(255) NOT NULL UNIQUE,
+
                 version                     INTEGER NOT NULL DEFAULT 1,
-                superseded_by_chronicle_id  UUID REFERENCES trading_session_chronicle(id),
+
+                superseded_by_chronicle_id CHAR(36),
+
                 content_hash                TEXT NOT NULL,
+
                 report_data                 TEXT NOT NULL,
-                generated_at                TIMESTAMPTZ NOT NULL DEFAULT now()
+
+                generated_at                DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+
+                CONSTRAINT fk_trading_session_chronicle_sale_event_id FOREIGN KEY (sale_event_id) REFERENCES sale_event(id),
+
+                CONSTRAINT fk_trading_session_chronicle_settlement_id FOREIGN KEY (settlement_id) REFERENCES settlement(id),
+
+                CONSTRAINT fk_trading_session_chronicle_tenant_id FOREIGN KEY (tenant_id) REFERENCES tenant(id),
+
+                CONSTRAINT fk_trading_session_chronicle_superseded_by_chronicle_id FOREIGN KEY (superseded_by_chronicle_id) REFERENCES trading_session_chronicle(id)
             );
 
             CREATE INDEX idx_chronicle_sale_event ON trading_session_chronicle (sale_event_id);
@@ -38,7 +60,7 @@ class CreateTradingSessionChronicle extends Migration
 
     public function down()
     {
-        $this->db->query(<<<SQL
+        $this->execMulti(<<<SQL
             DROP TABLE IF EXISTS trading_session_chronicle;
         SQL);
     }

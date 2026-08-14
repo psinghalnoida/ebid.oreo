@@ -2,6 +2,7 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 // BR-54/PR-31: Anti-Money Laundering Transaction Monitoring — the three
@@ -10,23 +11,36 @@ use CodeIgniter\Database\Migration;
 // docs/DECISIONS.md).
 class CreateAmlFlag extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
-        $this->db->query(<<<SQL
-            CREATE TYPE aml_flag_type AS ENUM ('deposit_refund_cycle', 'kyc_inconsistent_deposit', 'shared_funding_source');
-            CREATE TYPE aml_flag_status AS ENUM ('open', 'reviewed_no_action', 'reviewed_str_filed');
-
+        $this->execMulti(<<<SQL
             CREATE TABLE aml_flag (
-                id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                flag_type               aml_flag_type NOT NULL,
-                party_id                UUID NOT NULL REFERENCES party(id),
+
+                id                      CHAR(36) PRIMARY KEY,
+
+                flag_type               ENUM('deposit_refund_cycle', 'kyc_inconsistent_deposit', 'shared_funding_source') NOT NULL,
+
+                party_id CHAR(36) NOT NULL,
+
                 detail                  TEXT NOT NULL,
-                status                  aml_flag_status NOT NULL DEFAULT 'open',
-                reviewed_by_party_id    UUID REFERENCES party(id),
+
+                status                  ENUM('open', 'reviewed_no_action', 'reviewed_str_filed') NOT NULL DEFAULT 'open',
+
+                reviewed_by_party_id CHAR(36),
+
                 review_notes            TEXT,
+
                 str_reference           TEXT,
-                created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
-                reviewed_at             TIMESTAMPTZ
+
+                created_at              DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+
+                reviewed_at             DATETIME(6),
+
+                CONSTRAINT fk_aml_flag_party_id FOREIGN KEY (party_id) REFERENCES party(id),
+
+                CONSTRAINT fk_aml_flag_reviewed_by_party_id FOREIGN KEY (reviewed_by_party_id) REFERENCES party(id)
             );
 
             CREATE INDEX idx_aml_flag_party ON aml_flag (party_id);
@@ -37,7 +51,5 @@ class CreateAmlFlag extends Migration
     public function down()
     {
         $this->db->query('DROP TABLE IF EXISTS aml_flag CASCADE;');
-        $this->db->query('DROP TYPE IF EXISTS aml_flag_status;');
-        $this->db->query('DROP TYPE IF EXISTS aml_flag_type;');
     }
 }

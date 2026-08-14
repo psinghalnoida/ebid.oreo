@@ -13,6 +13,6 @@ class AddOccurredAtCanonicalToAuditLog extends Migration
 
     public function down()
     {
-        $this->db->query('ALTER TABLE audit_log DROP COLUMN IF EXISTS occurred_at_canonical;');
+        $this->db->query('ALTER TABLE audit_log DROP COLUMN occurred_at_canonical;');
     }
 }

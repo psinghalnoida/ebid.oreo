@@ -88,8 +88,11 @@ This section stays deliberately concise — for full detail, see
 ## Important convention for any NEW model you add
 
 CodeIgniter's Model `insert()` cannot reliably retrieve a UUID primary key
-that Postgres generates via its own `DEFAULT gen_random_uuid()` — this
-caused real failures during testing. Every model's create method instead:
+generated at the database level (originally Postgres's own `DEFAULT
+gen_random_uuid()`; no DB-side default exists at all since the MySQL
+migration, see `docs/DECISIONS.md` — this convention already made that
+migration trivial for every table's primary key) — this caused real
+failures during testing. Every model's create method instead:
 1. Generates the UUID in PHP: `$id = \App\Libraries\Uuid::v4();`
 2. Includes `'id' => $id` in the insert data
 3. Includes `'id'` in the model's `$allowedFields` array

@@ -8,12 +8,14 @@ class AddSuperAdminRole extends Migration
 {
     public function up()
     {
-        // Postgres requires ALTER TYPE ... ADD VALUE to run outside an
-        // explicit transaction block in older versions; CI4's migration
-        // runner wraps this in a transaction, which works fine on modern
-        // Postgres (16, used throughout this project's testing) but is
-        // flagged here in case it needs adjustment on a different version.
-        $this->db->query("ALTER TYPE party_role_type ADD VALUE IF NOT EXISTS 'super_admin';");
+        // MySQL has no separate enum type -- the enum is inlined directly
+        // on the column (see CreatePartyRole.php), so "adding a value" is a
+        // MODIFY COLUMN restating the complete expanded value list.
+        $this->db->query("ALTER TABLE party_role MODIFY COLUMN role ENUM(
+            'buyer', 'seller', 'bidder', 'vendor', 'customer',
+            'auctioneer', 'service_provider', 'surveyor', 'financier',
+            'tenant_admin', 'super_admin'
+        ) NOT NULL;");
     }
 
     public function down()

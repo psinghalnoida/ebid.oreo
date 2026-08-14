@@ -2,23 +2,41 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 class CreateHighValueDisposalRecord extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
-        $this->db->query(<<<SQL
+        $this->execMulti(<<<SQL
             CREATE TABLE high_value_disposal_record (
-                id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                settlement_id       UUID NOT NULL UNIQUE REFERENCES settlement(id),
-                sale_event_id       UUID NOT NULL REFERENCES sale_event(id),
-                tenant_id           UUID NOT NULL REFERENCES tenant(id),
+
+                id                  CHAR(36) PRIMARY KEY,
+
+                settlement_id CHAR(36) NOT NULL UNIQUE,
+
+                sale_event_id CHAR(36) NOT NULL,
+
+                tenant_id CHAR(36) NOT NULL,
+
                 sale_format         TEXT NOT NULL,
+
                 reserve_value       NUMERIC(14,2),
+
                 final_sale_value    NUMERIC(14,2) NOT NULL,
+
                 variance            NUMERIC(14,2) NOT NULL,
-                created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+
+                created_at          DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+
+                CONSTRAINT fk_high_value_disposal_record_settlement_id FOREIGN KEY (settlement_id) REFERENCES settlement(id),
+
+                CONSTRAINT fk_high_value_disposal_record_sale_event_id FOREIGN KEY (sale_event_id) REFERENCES sale_event(id),
+
+                CONSTRAINT fk_high_value_disposal_record_tenant_id FOREIGN KEY (tenant_id) REFERENCES tenant(id)
             );
 
             CREATE INDEX idx_hvdr_tenant ON high_value_disposal_record (tenant_id);

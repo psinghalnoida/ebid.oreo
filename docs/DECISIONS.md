@@ -8096,3 +8096,273 @@ Docker/GCP CLI verification performed with the sandbox unlocked
 taken with it beyond local image builds/runs, all cleaned up
 (`docker rmi`, temporary sandbox-only Dockerfile variants and CA-trust
 files deleted) before this commit.
+
+### D-124: migrated the live application from PostgreSQL to MySQL
+
+The project owner asked to "Create mysql database of complete
+project"; clarified via `AskUserQuestion` that this meant actually
+migrating the live application to MySQL, not exporting a schema dump
+alongside the existing Postgres backend. This is a full, real cutover
+— all 67 migration files, `AuditLogService`'s advisory lock, `.env`,
+and the D-123 deploy pipeline — verified by actually installing a
+local MySQL 8 server, running every migration against it, and re-
+running the entire 39-suite `test:*` regression green, not by
+inspection alone.
+
+**Scope narrowed by a real grep first**: `ON CONFLICT`, `RETURNING`,
+`GENERATED ALWAYS` (pre-existing, unrelated), Postgres array types, and
+`ILIKE` are not used anywhere in the app — ruled out before starting,
+not discovered as gaps later.
+
+**Mechanical conversions applied across all 67 files**: UUID→`CHAR(36)`
+(dropping `DEFAULT gen_random_uuid()` entirely — PHP always supplies
+the UUID explicitly on insert, a convention already documented in
+`SETUP.md` and never actually DB-relied-upon, confirmed before
+dropping it); `CREATE TYPE ... AS ENUM` inlined directly onto the
+column as MySQL `ENUM(...)`; `JSONB`→`JSON`; `TIMESTAMPTZ`→
+`DATETIME(6)` (not bare `DATETIME` — see the real bug below);
+`now()`/`clock_timestamp()`→`CURRENT_TIMESTAMP(6)`;
+`CREATE EXTENSION "pgcrypto"` removed (only ever backed
+`gen_random_uuid()`, already dropped); `BIGSERIAL`→`BIGINT NOT NULL
+AUTO_INCREMENT UNIQUE` (MySQL, unlike Postgres, requires an
+AUTO_INCREMENT column to be indexed); `pg_advisory_lock`/
+`pg_advisory_unlock`→MySQL's `GET_LOCK(name, -1)`/`RELEASE_LOCK(name)`
+in `AuditLogService.php` (string-keyed, not numeric — a private
+`ADVISORY_LOCK_NAME` constant replaces the old numeric key); `ALTER
+COLUMN ... TYPE`/`SET NOT NULL`/`DROP NOT NULL`→MySQL `MODIFY COLUMN`
+with the complete column definition restated; `ALTER TYPE ... ADD
+VALUE`→MySQL `MODIFY COLUMN ... ENUM(<full expanded value list>)`,
+applied across all 9 real occurrences (`party_role.role`,
+`listing.status`, `otp_verification.purpose` ×2 cumulative,
+`dispute.category`, `dispute.ruling_outcome`, `listing_media.media_type`,
+`party.kyc_status`, `invoice.invoice_type` ×2 at once) — each one's
+complete value list traced by hand from its origin migration forward.
+
+**Real bugs found and fixed, not assumed away — the actual substance
+of this work**:
+
+1. **A mechanical conversion script (written for the bulk, well-
+   defined patterns) silently corrupted every column whose name was
+   identical to its own custom enum type name** (a real, pre-existing
+   naming convention in this schema — e.g. column `sale_format` of
+   type `sale_format`). Its regex substitution replaced *every*
+   occurrence of the type name, including the column's own name and
+   any later reference to that column in a composite index — caught
+   by spot-checking rather than trusting the script's own "Changed: 45
+   files" summary. A systematic re-scan (checking every `CREATE TYPE`
+   name against its own column-name usage across all originals) found
+   exactly 3 affected files (`CreateTenant.php`'s `tenant_class`,
+   `CreateSaleEvent.php`'s `sale_format`, `CreateRatingEvent.php`'s
+   `rating_role` — the last one doubly damaged, in both its column
+   definition and a composite index referencing it), all hand-fixed
+   and confirmed clean with a repo-wide follow-up grep before trusting
+   the remaining 44 auto-converted files.
+
+2. **MySQL silently ignores inline column-level `REFERENCES`
+   clauses** — confirmed empirically, not assumed: a real local MySQL
+   8 test (`CREATE TABLE child (... parent_id CHAR(36) REFERENCES
+   parent(id))`, then `SHOW CREATE TABLE`, then an insert with a
+   non-existent `parent_id`) showed no FK constraint at all and the
+   orphaned insert succeeded silently. Every one of this schema's ~150
+   foreign keys used exactly this inline shorthand (Postgres honors
+   it; MySQL/InnoDB documents that it parses but ignores inline
+   REFERENCES, only acting on out-of-line `CONSTRAINT ... FOREIGN
+   KEY` specifications). Fixed schema-wide with a paren-balanced
+   Python rewrite of every `CREATE TABLE` block (splitting the column
+   list on top-level commas, extracting each inline REFERENCES into
+   its own `CONSTRAINT fk_<table>_<column> FOREIGN KEY (...)
+   REFERENCES ...` clause) plus 4 hand-converted `ALTER TABLE ADD
+   COLUMN ... REFERENCES` cases (two-statement form: add the column,
+   then a separate `ADD CONSTRAINT ... FOREIGN KEY`). Verified after:
+   109 real foreign key constraints now exist in
+   `information_schema.table_constraints`, confirmed by query, not
+   assumed from the DDL text.
+
+3. **CodeIgniter's MySQLi driver executes queries via plain
+   `mysqli::query()`, which — unlike the Postgres driver's
+   `pg_query()` this codebase's migrations were originally written
+   against — does not support multiple `;`-separated statements in a
+   single call.** Every one of this project's 67 migrations was
+   written as one `$this->db->query(<<<SQL ... multiple statements
+   ... SQL)` heredoc. Confirmed empirically with a raw PHP `mysqli`
+   script (a two-statement `CREATE TABLE; CREATE TABLE;` call throws a
+   syntax error) and by reading `MySQLi\Connection::execute()` itself
+   (calls `$this->connID->query()`, never `multi_query()`, and never
+   sets `MYSQLI_CLIENT_MULTI_STATEMENTS` on connect). Fixed with a new
+   `App\Libraries\MultiStatementMigrationTrait` (`use`d by every
+   migration with a heredoc) whose `execMulti()` splits a heredoc into
+   individual statements and runs each as its own query — the
+   splitter is comment- and string-literal-aware (a first, naive
+   `explode(';', $sql)` broke on this project's own `-- ...`
+   design-decision comments, several of which contain a literal
+   semicolon in a sentence, truncating mid-comment into invalid SQL;
+   caught by an actual `php spark migrate --all` failure, not
+   anticipated in advance).
+
+4. **MySQL requires an explicit key-length prefix to index or UNIQUE a
+   `TEXT` column** (Postgres has no such restriction). 9 columns
+   across the schema (`tenant.subdomain`/`custom_domain`,
+   `sale_event.ern`, `tender_stakeholder_token.token`,
+   `tenant_monthly_invoice.invoice_number`,
+   `tenant_api_credential.client_id`,
+   `trading_session_chronicle.reference_number`/`verification_token`,
+   `tenant_media_waiver.category`) were `TEXT` with an inline `UNIQUE`
+   or a composite index — converted to `VARCHAR(255)`, a real,
+   sensible bound for what are all short identifier-style fields, not
+   arbitrary free text.
+
+5. **Partial (`WHERE`-conditioned) unique indexes have no MySQL
+   equivalent.** A systematic multiline-aware scan of all 67
+   *original* files for `CREATE UNIQUE INDEX ... WHERE ...` found 5:
+   two safe to simplify by just dropping the `WHERE` (`tenant`'s
+   subdomain/custom_domain indexes exclude only `NULL` in the indexed
+   column itself — MySQL's default NULL-distinct unique-index
+   behavior already reproduces that exactly), and three genuine
+   business-rule constraints whose `WHERE` depends on *other* columns
+   (`uq_one_active_tenant_admin` on `party_role`,
+   `uq_one_open_sale_event_per_listing` on `sale_event`,
+   `uq_one_primary_per_listing` on `listing_media`) — a bare unique
+   index on just the FK column would have silently changed the rule
+   (e.g. limiting a tenant to exactly one `party_role` row of *any*
+   kind, ever, instead of one *active tenant_admin* row). Fixed with a
+   generated-marker-column technique for each: a `STORED` generated
+   column evaluating the original `WHERE` condition to `'Y'` or
+   `NULL`, then a compound `UNIQUE KEY` on `(original_column,
+   marker_column)` — MySQL's NULL-distinct default means non-matching
+   rows (marker `NULL`) never collide while matching rows (marker
+   `'Y'`) do, reproducing Postgres's partial-unique-index semantics
+   exactly. `party_role` additionally had a Postgres 15+ `UNIQUE NULLS
+   NOT DISTINCT (party_id, role, tenant_id, revoked_at)` constraint
+   (deliberately wanting NULLs to collide — the opposite of both
+   Postgres's and MySQL's shared default) — fixed with the same
+   generated-column idea, coalescing the two nullable columns to fixed
+   sentinel values first so the collision the constraint actually
+   wants happens naturally under MySQL's default behavior.
+
+6. **`DROP COLUMN IF EXISTS` and standalone `DROP INDEX ... IF
+   EXISTS`/`ON tbl_name` are Postgres syntax with no direct MySQL
+   equivalent** — `ALTER TABLE ... DROP COLUMN` doesn't support `IF
+   EXISTS` in MySQL at all (confirmed by a real syntax error, not
+   assumed), and standalone `DROP INDEX` requires the owning table
+   (`ON tbl_name`) since MySQL index names are only unique per-table,
+   unlike Postgres's cluster-wide names. Fixed: 85 `DROP COLUMN IF
+   EXISTS` occurrences across 25 files had `IF EXISTS` stripped; 5
+   `DROP INDEX` statements across 2 files gained their `ON tbl_name`
+   clause.
+
+7. **A `BLOB, TEXT, GEOMETRY or JSON column can't have a default
+   value`** — 2 columns (`listing.quantity_basis`,
+   `party_address.country`) were `TEXT NOT NULL DEFAULT '...'`, legal
+   in Postgres, rejected by MySQL outright. Both are short categorical
+   strings, not free text — converted to `VARCHAR(255)`.
+
+8. **`DATETIME` truncates to whole-second precision in MySQL by
+   default; Postgres's `TIMESTAMPTZ` retains microseconds.** Not
+   caught by inspection — caught by an actual regression failure:
+   `test:discovery`'s "most recent search comes first" assertion,
+   ordering 25 rapidly-inserted `search_history` rows by `created_at
+   DESC`, became non-deterministic once several rows landed in the
+   same MySQL second (ties then resolve by physical row order, not
+   insertion order, since the primary key is a random UUID, not
+   sequential). Fixed by widening every `DATETIME`/`CURRENT_TIMESTAMP`
+   across all 67 files to `DATETIME(6)`/`CURRENT_TIMESTAMP(6)` (139
+   and 60 occurrences respectively) — restoring microsecond precision
+   schema-wide, not just on the one table that happened to surface the
+   bug, since the same collision risk existed anywhere else with
+   rapid sequential inserts.
+
+9. **The original Postgres `REVOKE UPDATE, DELETE, TRUNCATE ... GRANT
+   INSERT, SELECT` tamper-*prevention* lockdown on `audit_log`/
+   `consent_event`/`invoice` is confirmed genuinely not achievable on
+   MySQL**, and this is the one place this migration accepts a real,
+   documented capability gap rather than forcing a broken
+   substitute. Tried and empirically ruled out: MySQL's
+   `partial_revokes` server variable (enabled: `SET PERSIST
+   partial_revokes = ON`) only carves a *database*-level restriction
+   out of a *global* (`*.*`) grant — a real `REVOKE UPDATE, DELETE ON
+   ebidhub.audit_log FROM ebidhub_app` still fails with "There is no
+   such grant defined" when `ebidhub_app`'s privileges were granted at
+   the *database* level (`ebidhub.*`), which they must be for
+   ordinary migrations to run. The only way to get genuine table-level
+   restriction in MySQL is to never grant database-wide at all and
+   instead enumerate UPDATE/DELETE per table by hand — rejected as
+   fragile (any future table whose migration forgets the explicit
+   grant silently loses app write access, a worse failure mode than
+   the gap it would close). `ebidhub_app` therefore keeps full DML on
+   these three tables under MySQL. This does **not** weaken
+   `audit_log`'s actual tamper-*evidence* guarantee — the SHA-256 hash
+   chain (`AuditLogService::verifyChainIntegrity()`) is unaffected and
+   remains fully real; the REVOKE/GRANT was always a secondary,
+   defense-in-depth *prevention* layer on top of it, not the
+   guarantee itself. `consent_event`/`invoice` have no hash-chain
+   equivalent and so have no compensating layer on MySQL — stated
+   plainly here and in `docs/DEPLOYMENT.md`'s Cloud SQL section, not
+   silently dropped.
+
+**Two more real bugs found while re-verifying the full regression
+suite against MySQL, both in test fixtures, not application code**:
+
+- `TestAuditLog.php`'s own "Database-level lockdown" section issued a
+  real `UPDATE audit_log SET event_type = 'tampered' WHERE 1=1`
+  *expecting* it to be blocked by the privilege lockdown above — once
+  that lockdown doesn't exist on MySQL (see gap #9), the UPDATE
+  actually succeeded and corrupted every pre-existing `audit_log` row
+  in the shared regression database, which then made the *next*
+  assertion ("clean chain before any tampering") correctly detect
+  that self-inflicted corruption and fail — a real, reproducible bug
+  in the test's own destructive methodology, traced with a throwaway
+  debug command (written, used, deleted) rather than assumed to be an
+  `AuditLogService` bug. Fixed: the section no longer attempts that
+  destructive probe on MySQL (documented why inline), and the
+  separate "simulate a compromised raw DB credential" tampering step
+  — previously hardcoded to `su postgres -c "psql -d ebidhub_ci4"` —
+  now shells out to the real `mysql` CLI using this session's actual
+  DB config, targeting its own record by id (not a blanket `WHERE
+  1=1`) so it can never touch another suite's rows.
+- `TestRating.php` hardcoded Postgres's literal `'t'`/`'f'` boolean-
+  string representation directly in 3 assertions on
+  `crawl_back_active_buyer`, instead of using the same
+  driver-agnostic `in_array($val, [true, 't', 1, '1'], true)`
+  normalization `RatingService.php`'s own application code already
+  uses — fixed to match.
+- **Unrelated to MySQL, but found while doing the first true
+  unbroken 39-suite regression pass this project has run**:
+  `TestChargeback.php` and `TestPayoutControl.php` both hardcoded the
+  identical 4 mobile numbers (`+919555402001`–`004`), colliding on
+  `party.mobile_number`'s UNIQUE constraint the same way
+  `TestChronicle.php`/`TestEasySchedule.php` once did (D-104) — this
+  would fail on Postgres too, just never previously exercised in one
+  continuous pass. Fixed by giving `TestPayoutControl.php` its own
+  number range (`101`–`104`).
+
+**Deploy pipeline (D-123) updated end to end for MySQL**:
+`Dockerfile` (`libpq-dev`/`pdo_pgsql pgsql`→`default-libmysqlclient-dev`/
+`pdo_mysql mysqli`); `docker-compose.yml` (`postgres:16`→`mysql:8`,
+`utf8mb4`/`utf8mb4_unicode_ci`); `.github/workflows/tests.yml`
+(Postgres service container→MySQL, the old hardcoded `ebidhub_ci4`
+database-name workaround removed now that `TestAuditLog.php` no longer
+needs it, and — a real, separate gap found while touching this file —
+`test:chargeback`/`test:domainevents` were missing from the CI suite
+list entirely, added); `.github/workflows/deploy.yml` (all 3
+`database.default.DBDriver=Postgre`/`charset=utf8` occurrences→MySQL);
+`docs/DEPLOYMENT.md` (`gcloud sql instances create
+--database-version=MYSQL_8_0`, `utf8mb4` database flags, gap #9
+documented in the Cloud SQL section itself, not just here);
+`README.md`/`SETUP.md`/`scripts/backup.sh` (install/setup commands,
+`pg_dump`→`mysqldump`, all updated to real, runnable MySQL
+equivalents, not left stale).
+
+**Verified for real**: local MySQL 8.0.46 installed and configured
+(`ebidhub`/`ebidhub_app` matching the exact dev-convention
+username/password/db-name this project has always used); all 67
+migrations run clean against it via `php spark migrate --all`,
+iteratively, fixing every real error surfaced along the way rather
+than guessing at fixes in advance; the complete 39-suite `test:*`
+regression re-run from a fresh MySQL database and confirmed
+**genuinely green — 39/39, zero failures** — multiple full passes,
+not one lucky run. `Dockerfile`'s MySQL-updated `apt-get` step was
+re-attempted for a real local build and hit the exact same
+`deb.debian.org` sandbox network block already documented in D-123
+(not a new, MySQL-specific problem) — base images still pull cleanly;
+the first real end-to-end build happens in GitHub Actions on the next
+push, same as before.

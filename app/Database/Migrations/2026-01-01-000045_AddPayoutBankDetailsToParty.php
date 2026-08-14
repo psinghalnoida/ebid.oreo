@@ -2,6 +2,7 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 // BR-50: Payout Account Change Control. Adds a single bank-details field
@@ -12,29 +13,31 @@ use CodeIgniter\Database\Migration;
 // sits here, not in the active columns, until it activates.
 class AddPayoutBankDetailsToParty extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
-        $this->db->query(<<<SQL
+        $this->execMulti(<<<SQL
             ALTER TABLE party
                 ADD COLUMN payout_bank_account_number TEXT,
                 ADD COLUMN payout_bank_ifsc TEXT,
-                ADD COLUMN payout_bank_updated_at TIMESTAMPTZ,
+                ADD COLUMN payout_bank_updated_at DATETIME(6),
                 ADD COLUMN payout_bank_pending_account_number TEXT,
                 ADD COLUMN payout_bank_pending_ifsc TEXT,
-                ADD COLUMN payout_bank_pending_activates_at TIMESTAMPTZ;
+                ADD COLUMN payout_bank_pending_activates_at DATETIME(6);
         SQL);
     }
 
     public function down()
     {
-        $this->db->query(<<<SQL
+        $this->execMulti(<<<SQL
             ALTER TABLE party
-                DROP COLUMN IF EXISTS payout_bank_account_number,
-                DROP COLUMN IF EXISTS payout_bank_ifsc,
-                DROP COLUMN IF EXISTS payout_bank_updated_at,
-                DROP COLUMN IF EXISTS payout_bank_pending_account_number,
-                DROP COLUMN IF EXISTS payout_bank_pending_ifsc,
-                DROP COLUMN IF EXISTS payout_bank_pending_activates_at;
+                DROP COLUMN payout_bank_account_number,
+                DROP COLUMN payout_bank_ifsc,
+                DROP COLUMN payout_bank_updated_at,
+                DROP COLUMN payout_bank_pending_account_number,
+                DROP COLUMN payout_bank_pending_ifsc,
+                DROP COLUMN payout_bank_pending_activates_at;
         SQL);
     }
 }

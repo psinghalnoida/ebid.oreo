@@ -2,6 +2,7 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 // PR-09: "Bulk uploads are placed into a background worker queue,
@@ -15,25 +16,44 @@ use CodeIgniter\Database\Migration;
 // cooling-off, account-deletion grace period).
 class CreateMediaUploadJob extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
-        $this->db->query(<<<SQL
-            CREATE TYPE media_job_status AS ENUM ('pending', 'processing', 'done', 'failed');
-
+        $this->execMulti(<<<SQL
             CREATE TABLE media_upload_job (
-                id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                listing_id            UUID NOT NULL REFERENCES listing(id),
-                uploaded_by_party_id  UUID NOT NULL REFERENCES party(id),
+
+                id                    CHAR(36) PRIMARY KEY,
+
+                listing_id CHAR(36) NOT NULL,
+
+                uploaded_by_party_id CHAR(36) NOT NULL,
+
                 staged_file_path      TEXT NOT NULL,
+
                 original_filename     TEXT,
+
                 mime_type             TEXT NOT NULL,
+
                 gps_lat               NUMERIC(10,7),
+
                 gps_lng               NUMERIC(10,7),
-                status                media_job_status NOT NULL DEFAULT 'pending',
+
+                status                ENUM('pending', 'processing', 'done', 'failed') NOT NULL DEFAULT 'pending',
+
                 error_message         TEXT,
-                created_media_id      UUID REFERENCES listing_media(id),
-                created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
-                processed_at          TIMESTAMPTZ
+
+                created_media_id CHAR(36),
+
+                created_at            DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+
+                processed_at          DATETIME(6),
+
+                CONSTRAINT fk_media_upload_job_listing_id FOREIGN KEY (listing_id) REFERENCES listing(id),
+
+                CONSTRAINT fk_media_upload_job_uploaded_by_party_id FOREIGN KEY (uploaded_by_party_id) REFERENCES party(id),
+
+                CONSTRAINT fk_media_upload_job_created_media_id FOREIGN KEY (created_media_id) REFERENCES listing_media(id)
             );
 
             -- Sequential FIFO drain: oldest pending job first.
@@ -45,14 +65,13 @@ class CreateMediaUploadJob extends Migration
         // supported media_type at all. Run as its own statement, matching
         // this project's established pattern (D-15/AddSuperAdminRole) for
         // ALTER TYPE ... ADD VALUE.
-        $this->db->query("ALTER TYPE listing_media_type ADD VALUE IF NOT EXISTS 'document';");
+        $this->db->query("ALTER TABLE listing_media MODIFY COLUMN media_type ENUM('photo', 'video', 'document') NOT NULL DEFAULT 'photo';");
     }
 
     public function down()
     {
-        $this->db->query(<<<SQL
+        $this->execMulti(<<<SQL
             DROP TABLE IF EXISTS media_upload_job CASCADE;
-            DROP TYPE IF EXISTS media_job_status;
         SQL);
         // Postgres cannot drop a single enum value — the 'document'
         // addition to listing_media_type is not reversed here.

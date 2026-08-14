@@ -14,7 +14,9 @@ class AddPayoutBankChangeOtpPurpose extends Migration
 {
     public function up()
     {
-        $this->db->query("ALTER TYPE otp_purpose ADD VALUE IF NOT EXISTS 'payout_bank_change';");
+        $this->db->query("ALTER TABLE otp_verification MODIFY COLUMN purpose ENUM(
+            'registration', 'mpin_reset', 'mpin_reset_email', 'payout_bank_change'
+        ) NOT NULL;");
     }
 
     public function down()

@@ -115,8 +115,9 @@ jobs:
             --set-env-vars "database.default.hostname=/cloudsql/${{ vars.GCP_CLOUDSQL_CONNECTION_NAME }}" \
             --set-env-vars "database.default.database=ebidhub" \
             --set-env-vars "database.default.username=ebidhub_app" \
-            --set-env-vars "database.default.DBDriver=Postgre" \
-            --set-env-vars "database.default.charset=utf8" \
+            --set-env-vars "database.default.DBDriver=MySQLi" \
+            --set-env-vars "database.default.charset=utf8mb4" \
+            --set-env-vars "database.default.DBCollat=utf8mb4_unicode_ci" \
             --set-env-vars "EBIDHUB_WS_INTERNAL_URL=${{ steps.realtime_url.outputs.url }}/broadcast" \
             --set-secrets "database.default.password=ebidhub-db-password:latest" \
             --set-secrets "EBIDHUB_BROADCAST_SECRET=ebidhub-broadcast-secret:latest" \
@@ -137,8 +138,9 @@ jobs:
             --set-env-vars "database.default.hostname=/cloudsql/${{ vars.GCP_CLOUDSQL_CONNECTION_NAME }}" \
             --set-env-vars "database.default.database=ebidhub" \
             --set-env-vars "database.default.username=ebidhub_app" \
-            --set-env-vars "database.default.DBDriver=Postgre" \
-            --set-env-vars "database.default.charset=utf8" \
+            --set-env-vars "database.default.DBDriver=MySQLi" \
+            --set-env-vars "database.default.charset=utf8mb4" \
+            --set-env-vars "database.default.DBCollat=utf8mb4_unicode_ci" \
             --set-secrets "database.default.password=ebidhub-db-password:latest" \
             --max-retries 0
           gcloud run jobs execute ebidhub-migrate --region "${REGION}" --wait
@@ -161,8 +163,9 @@ jobs:
             --set-env-vars "database.default.hostname=/cloudsql/${{ vars.GCP_CLOUDSQL_CONNECTION_NAME }}" \
             --set-env-vars "database.default.database=ebidhub" \
             --set-env-vars "database.default.username=ebidhub_app" \
-            --set-env-vars "database.default.DBDriver=Postgre" \
-            --set-env-vars "database.default.charset=utf8" \
+            --set-env-vars "database.default.DBDriver=MySQLi" \
+            --set-env-vars "database.default.charset=utf8mb4" \
+            --set-env-vars "database.default.DBCollat=utf8mb4_unicode_ci" \
             --set-env-vars "EBIDHUB_WS_INTERNAL_URL=${{ steps.realtime_url.outputs.url }}/broadcast" \
             --set-secrets "database.default.password=ebidhub-db-password:latest" \
             --set-secrets "EBIDHUB_BROADCAST_SECRET=ebidhub-broadcast-secret:latest" \

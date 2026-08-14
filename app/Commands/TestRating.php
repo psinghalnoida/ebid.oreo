@@ -60,7 +60,10 @@ class TestRating extends BaseCommand
         $this->assert((float) $current['star_rating'] === 1.9, 'Rating now 1.9 after dual-approved downgrade');
 
         CLI::write("\n=== BR-38: Crawl-Back triggered ===", 'yellow');
-        $this->assert($current['crawl_back_active_buyer'] === 't' || $current['crawl_back_active_buyer'] === true, 'Crawl-Back automatically activated');
+        // Driver-agnostic boolean check, same normalization RatingService
+        // itself uses (Postgres returns 't'/'f' strings; MySQL returns 1/0,
+        // possibly as strings depending on driver config).
+        $this->assert(in_array($current['crawl_back_active_buyer'], [true, 't', 1, '1'], true), 'Crawl-Back automatically activated');
         $this->assert((int) $current['crawl_back_clean_required_buyer'] === 3, 'First offence requires 3 clean transactions');
         $this->assert((int) $current['offence_count_buyer'] === 1, 'Offence count incremented to 1');
 
@@ -69,7 +72,7 @@ class TestRating extends BaseCommand
         $ratingService->recordCleanTransactionForCrawlBack($buyer['id'], 'star_rating');
         $current = $partyModel->find($buyer['id']);
         $this->assert(
-            $current['crawl_back_active_buyer'] === 't' || $current['crawl_back_active_buyer'] === true,
+            in_array($current['crawl_back_active_buyer'], [true, 't', 1, '1'], true),
             'Still active after 2 of 3 required clean transactions'
         );
 
@@ -78,7 +81,7 @@ class TestRating extends BaseCommand
         $current = $partyModel->find($buyer['id']);
         $this->assert((float) $current['star_rating'] === 3.0, 'BR-38: rating restored to exactly 3.0 stars');
         $this->assert(
-            $current['crawl_back_active_buyer'] === 'f' || $current['crawl_back_active_buyer'] === false,
+            in_array($current['crawl_back_active_buyer'], [false, 'f', 0, '0'], true),
             'Crawl-Back deactivated after restoration'
         );
 

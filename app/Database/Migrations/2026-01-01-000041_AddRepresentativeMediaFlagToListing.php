@@ -13,6 +13,6 @@ class AddRepresentativeMediaFlagToListing extends Migration
 
     public function down()
     {
-        $this->db->query('ALTER TABLE listing DROP COLUMN IF EXISTS media_is_representative_under_waiver;');
+        $this->db->query('ALTER TABLE listing DROP COLUMN media_is_representative_under_waiver;');
     }
 }

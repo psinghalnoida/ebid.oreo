@@ -2,6 +2,7 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 // BR-17/BR-18/BR-55/PR-15: fills gaps in the party-level KYC schema
@@ -29,51 +30,57 @@ use CodeIgniter\Database\Migration;
 // gates a specific high-value transaction, not the account as a whole.
 class AddKycComplianceFieldsToParty extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
         // Postgres requires ALTER TYPE ... ADD VALUE outside an explicit
         // transaction in older versions; works fine on Postgres 16
         // (used throughout this project's testing) — same pattern as
         // D-15's AddSuperAdminRole migration.
-        $this->db->query("ALTER TYPE kyc_status ADD VALUE IF NOT EXISTS 'submitted';");
+        $this->db->query("ALTER TABLE party MODIFY COLUMN kyc_status ENUM('pending', 'verified', 'suspended', 'submitted') NOT NULL DEFAULT 'pending';");
 
-        $this->db->query(<<<SQL
+        $this->execMulti(<<<SQL
             ALTER TABLE party
-                ADD COLUMN pan_verified_at TIMESTAMPTZ,
-                ADD COLUMN gstin_verified_at TIMESTAMPTZ,
-                ADD COLUMN aadhaar_verified_at TIMESTAMPTZ,
-                ADD COLUMN email_verified_at TIMESTAMPTZ,
-                ADD COLUMN bank_verified_at TIMESTAMPTZ,
-                ADD COLUMN kyc_verified_by_party_id UUID REFERENCES party(id),
-                ADD COLUMN kyc_submitted_at TIMESTAMPTZ,
+                ADD COLUMN pan_verified_at DATETIME(6),
+                ADD COLUMN gstin_verified_at DATETIME(6),
+                ADD COLUMN aadhaar_verified_at DATETIME(6),
+                ADD COLUMN email_verified_at DATETIME(6),
+                ADD COLUMN bank_verified_at DATETIME(6),
+                ADD COLUMN kyc_verified_by_party_id CHAR(36),
+                ADD COLUMN kyc_submitted_at DATETIME(6),
                 ADD COLUMN payout_bank_account_holder_name TEXT,
                 ADD COLUMN payout_bank_name TEXT,
                 ADD COLUMN payout_bank_branch_name TEXT,
                 ADD COLUMN payout_bank_upi_id TEXT,
-                ADD COLUMN edd_required_at TIMESTAMPTZ,
-                ADD COLUMN edd_cleared_at TIMESTAMPTZ,
-                ADD COLUMN edd_cleared_by_party_id UUID REFERENCES party(id);
+                ADD COLUMN edd_required_at DATETIME(6),
+                ADD COLUMN edd_cleared_at DATETIME(6),
+                ADD COLUMN edd_cleared_by_party_id CHAR(36),
+                ADD CONSTRAINT fk_party_kyc_verified_by_party_id FOREIGN KEY (kyc_verified_by_party_id) REFERENCES party(id),
+                ADD CONSTRAINT fk_party_edd_cleared_by_party_id FOREIGN KEY (edd_cleared_by_party_id) REFERENCES party(id);
         SQL);
     }
 
     public function down()
     {
-        $this->db->query(<<<SQL
+        $this->execMulti(<<<SQL
             ALTER TABLE party
-                DROP COLUMN IF EXISTS pan_verified_at,
-                DROP COLUMN IF EXISTS gstin_verified_at,
-                DROP COLUMN IF EXISTS aadhaar_verified_at,
-                DROP COLUMN IF EXISTS email_verified_at,
-                DROP COLUMN IF EXISTS bank_verified_at,
-                DROP COLUMN IF EXISTS kyc_verified_by_party_id,
-                DROP COLUMN IF EXISTS kyc_submitted_at,
-                DROP COLUMN IF EXISTS payout_bank_account_holder_name,
-                DROP COLUMN IF EXISTS payout_bank_name,
-                DROP COLUMN IF EXISTS payout_bank_branch_name,
-                DROP COLUMN IF EXISTS payout_bank_upi_id,
-                DROP COLUMN IF EXISTS edd_required_at,
-                DROP COLUMN IF EXISTS edd_cleared_at,
-                DROP COLUMN IF EXISTS edd_cleared_by_party_id;
+                DROP FOREIGN KEY fk_party_kyc_verified_by_party_id,
+                DROP FOREIGN KEY fk_party_edd_cleared_by_party_id,
+                DROP COLUMN pan_verified_at,
+                DROP COLUMN gstin_verified_at,
+                DROP COLUMN aadhaar_verified_at,
+                DROP COLUMN email_verified_at,
+                DROP COLUMN bank_verified_at,
+                DROP COLUMN kyc_verified_by_party_id,
+                DROP COLUMN kyc_submitted_at,
+                DROP COLUMN payout_bank_account_holder_name,
+                DROP COLUMN payout_bank_name,
+                DROP COLUMN payout_bank_branch_name,
+                DROP COLUMN payout_bank_upi_id,
+                DROP COLUMN edd_required_at,
+                DROP COLUMN edd_cleared_at,
+                DROP COLUMN edd_cleared_by_party_id;
         SQL);
         // Postgres does not support removing an enum value directly —
         // additive-only, harmless to leave 'submitted' in place.

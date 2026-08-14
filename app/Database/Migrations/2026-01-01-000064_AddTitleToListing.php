@@ -18,6 +18,6 @@ class AddTitleToListing extends Migration
 
     public function down()
     {
-        $this->db->query('ALTER TABLE listing DROP COLUMN IF EXISTS title;');
+        $this->db->query('ALTER TABLE listing DROP COLUMN title;');
     }
 }

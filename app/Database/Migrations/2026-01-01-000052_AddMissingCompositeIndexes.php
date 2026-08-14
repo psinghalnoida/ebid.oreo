@@ -2,6 +2,7 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 // Phase 3D remainder: composite indexes matching real, already-existing
@@ -10,9 +11,11 @@ use CodeIgniter\Database\Migration;
 // codebase, not speculative — see the comment on each.
 class AddMissingCompositeIndexes extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
-        $this->db->query(<<<SQL
+        $this->execMulti(<<<SQL
             -- MyActivityController::mySales/myPurchases/CSV exports filter
             -- by buyer_party_id or seller_party_id and always order by
             -- created_at DESC. The existing idx_settlement_buyer/seller
@@ -34,11 +37,11 @@ class AddMissingCompositeIndexes extends Migration
 
     public function down()
     {
-        $this->db->query(<<<SQL
-            DROP INDEX IF EXISTS idx_settlement_buyer_created;
-            DROP INDEX IF EXISTS idx_settlement_seller_created;
-            DROP INDEX IF EXISTS idx_settlement_seller_status_completed;
-            DROP INDEX IF EXISTS idx_dispute_respondent_category_status;
+        $this->execMulti(<<<SQL
+            DROP INDEX IF EXISTS idx_settlement_buyer_created ON settlement;
+            DROP INDEX IF EXISTS idx_settlement_seller_created ON settlement;
+            DROP INDEX IF EXISTS idx_settlement_seller_status_completed ON settlement;
+            DROP INDEX IF EXISTS idx_dispute_respondent_category_status ON dispute;
         SQL);
     }
 }

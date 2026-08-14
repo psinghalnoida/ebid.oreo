@@ -2,31 +2,46 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 class CreateOffer extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
-        $this->db->query(<<<SQL
-            CREATE TYPE offer_status AS ENUM ('submitted', 'accepted', 'rejected', 'withdrawn', 'lapsed');
-
+        $this->execMulti(<<<SQL
             CREATE TABLE offer (
-                id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                sale_event_id           UUID NOT NULL REFERENCES sale_event(id),
-                buyer_party_id          UUID NOT NULL REFERENCES party(id),
+
+                id                      CHAR(36) PRIMARY KEY,
+
+                sale_event_id CHAR(36) NOT NULL,
+
+                buyer_party_id CHAR(36) NOT NULL,
+
                 amount                  NUMERIC(14,2) NOT NULL,
-                status                  offer_status NOT NULL DEFAULT 'submitted',
+
+                status                  ENUM('submitted', 'accepted', 'rejected', 'withdrawn', 'lapsed') NOT NULL DEFAULT 'submitted',
+
 
                 -- BR-42: mandatory, closed-list reason whenever the seller
                 -- accepts an offer other than the highest received
                 seller_selection_reason  TEXT,
 
+
                 withdrawal_reason         TEXT,
 
-                created_at                 TIMESTAMPTZ NOT NULL DEFAULT now(),
-                decided_at                  TIMESTAMPTZ,
-                withdrawn_at                 TIMESTAMPTZ
+
+                created_at                 DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+
+                decided_at                  DATETIME(6),
+
+                withdrawn_at                 DATETIME(6),
+
+                CONSTRAINT fk_offer_sale_event_id FOREIGN KEY (sale_event_id) REFERENCES sale_event(id),
+
+                CONSTRAINT fk_offer_buyer_party_id FOREIGN KEY (buyer_party_id) REFERENCES party(id)
             );
 
             CREATE INDEX idx_offer_sale_event ON offer (sale_event_id, amount DESC);
@@ -37,6 +52,5 @@ class CreateOffer extends Migration
     public function down()
     {
         $this->db->query('DROP TABLE IF EXISTS offer CASCADE;');
-        $this->db->query('DROP TYPE IF EXISTS offer_status;');
     }
 }

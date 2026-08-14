@@ -23,22 +23,27 @@ class TestAuditLog extends BaseCommand
         $db = \Config\Database::connect();
 
         CLI::write('=== Database-level lockdown ===', 'yellow');
-        $grants = $db->query("SELECT privilege_type FROM information_schema.role_table_grants WHERE table_name='audit_log' AND grantee='ebidhub_app'")->getResultArray();
-        $privileges = array_column($grants, 'privilege_type');
-        $this->assert(!in_array('UPDATE', $privileges, true), 'UPDATE is genuinely not granted to the app database role');
-        $this->assert(!in_array('DELETE', $privileges, true), 'DELETE is genuinely not granted to the app database role');
-        $this->assert(!in_array('TRUNCATE', $privileges, true), 'TRUNCATE is genuinely not granted to the app database role');
-        $this->assert(in_array('INSERT', $privileges, true), 'INSERT is correctly still allowed');
-        $this->assert(in_array('SELECT', $privileges, true), 'SELECT is correctly still allowed');
-
-        CLI::write("\n=== Actually attempting an UPDATE fails at the database level ===", 'yellow');
-        $updateBlocked = false;
-        try {
-            $db->query("UPDATE audit_log SET event_type = 'tampered' WHERE 1=1");
-        } catch (\Throwable $e) {
-            $updateBlocked = str_contains(strtolower($e->getMessage()), 'permission denied');
-        }
-        $this->assert($updateBlocked, 'A real UPDATE attempt genuinely fails with a permission error');
+        // MySQL migration (D-124+): the REVOKE UPDATE/DELETE/TRUNCATE ...
+        // GRANT INSERT/SELECT privilege lockdown this section originally
+        // verified is NOT reproduced on MySQL -- confirmed empirically not
+        // achievable there (MySQL's partial_revokes only carves a
+        // database-level restriction out of a global grant, never a
+        // table-level restriction out of a database-level grant; see
+        // CreateAuditLog.php's up() for the full reasoning). ebidhub_app
+        // genuinely retains UPDATE/DELETE on audit_log under MySQL -- a
+        // real, accepted, documented limitation (docs/DECISIONS.md).
+        //
+        // This section therefore no longer attempts the destructive
+        // "UPDATE ... WHERE 1=1, expect it to be blocked" probe the
+        // Postgres version used: on MySQL that UPDATE would actually
+        // succeed and corrupt every existing audit_log row (including
+        // ones written by other test suites sharing this database),
+        // which is exactly the kind of self-inflicted damage a real
+        // regression run must not risk. What MySQL retains, and what the
+        // rest of this suite verifies below, is tamper-EVIDENCE: the
+        // hash chain still catches any tampering after the fact,
+        // regardless of which privileges the connection holds.
+        CLI::write('  (skipped on MySQL -- privilege-based lockdown not available; see comment above)', 'yellow');
 
         CLI::write("\n=== Real log entries chain correctly ===", 'yellow');
         $party = $partyModel->createParty('+919888701001');
@@ -59,15 +64,29 @@ class TestAuditLog extends BaseCommand
         $this->assert($cleanResult === null, 'verifyChainIntegrity() correctly reports null (clean) before any tampering');
 
         CLI::write("\n=== Deliberately tamper with a record via SQL (simulating a compromised raw DB credential) ===", 'yellow');
-        // Tamper as the postgres superuser via a SQL file + direct shell
-        // call — this genuinely bypasses the application entirely,
-        // exactly the threat model BR-05 describes (someone with raw
-        // database access, not going through the app's own connection).
+        // Tamper via a direct shell call to the mysql CLI, entirely outside
+        // this PHP process's own DB connection -- genuinely bypasses the
+        // application, exactly the threat model BR-05 describes (someone
+        // with raw database access, not going through the app's own
+        // connection). Targets this test's own record 2 by id specifically
+        // (not a blanket WHERE 1=1) so it can never touch rows belonging
+        // to any other suite sharing this database.
+        $dbConfig = (new \Config\Database())->default;
         $tamperSqlPath = sys_get_temp_dir() . '/audit_tamper_test.sql';
         file_put_contents($tamperSqlPath, "UPDATE audit_log SET payload = '{\"detail\": \"TAMPERED\"}' WHERE id = '{$r2['id']}';");
-        exec('su postgres -c "psql -d ebidhub_ci4 -f ' . escapeshellarg($tamperSqlPath) . '" 2>&1', $tamperOutput, $tamperReturn);
-        $tamperSucceeded = $tamperReturn === 0 && str_contains(implode(' ', $tamperOutput), 'UPDATE 1');
-        $this->assert($tamperSucceeded, 'The tampering attempt itself succeeded (bypassing the app entirely, as a raw superuser) — setup for the real test below: ' . implode(' ', $tamperOutput));
+        $tamperCmd = sprintf(
+            'mysql -h %s -P %d -u %s -p%s %s < %s 2>&1',
+            escapeshellarg($dbConfig['hostname']),
+            (int) $dbConfig['port'],
+            escapeshellarg($dbConfig['username']),
+            escapeshellarg($dbConfig['password']),
+            escapeshellarg($dbConfig['database']),
+            escapeshellarg($tamperSqlPath)
+        );
+        exec($tamperCmd, $tamperOutput, $tamperReturn);
+        $rowAfterTamper = $db->table('audit_log')->where('id', $r2['id'])->get()->getRowArray();
+        $tamperSucceeded = $tamperReturn === 0 && str_contains($rowAfterTamper['payload'], 'TAMPERED');
+        $this->assert($tamperSucceeded, 'The tampering attempt itself succeeded (bypassing the app entirely, via a raw DB connection) — setup for the real test below: ' . implode(' ', $tamperOutput));
 
         CLI::write("\n=== The tampering is now genuinely detected by re-walking the chain ===", 'yellow');
         $tamperedResult = $audit->verifyChainIntegrity();

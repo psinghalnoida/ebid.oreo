@@ -2,40 +2,59 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 class CreateInvoice extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
-        $this->db->query(<<<SQL
-            CREATE TYPE invoice_type AS ENUM ('tenant_to_buyer', 'saas_to_tenant');
-
+        $this->execMulti(<<<SQL
             CREATE TABLE invoice (
-                id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                settlement_id     UUID NOT NULL REFERENCES settlement(id),
-                invoice_type      invoice_type NOT NULL,
-                invoice_number    TEXT NOT NULL UNIQUE,
+
+                id                CHAR(36) PRIMARY KEY,
+
+                settlement_id CHAR(36) NOT NULL,
+
+                invoice_type      ENUM('tenant_to_buyer', 'saas_to_tenant') NOT NULL,
+
+                invoice_number    VARCHAR(255) NOT NULL UNIQUE,
+
                 issued_by_name    TEXT NOT NULL,
+
                 issued_to_name    TEXT NOT NULL,
+
                 base_amount       NUMERIC(14,2) NOT NULL,
+
                 gst_rate_percent  NUMERIC(5,2) NOT NULL,
+
                 gst_amount        NUMERIC(14,2) NOT NULL,
+
                 total_amount      NUMERIC(14,2) NOT NULL,
-                created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
+
+                created_at        DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+
+                CONSTRAINT fk_invoice_settlement_id FOREIGN KEY (settlement_id) REFERENCES settlement(id)
             );
 
             CREATE INDEX idx_invoice_settlement ON invoice (settlement_id);
-
-            REVOKE UPDATE, DELETE, TRUNCATE ON invoice FROM ebidhub_app;
-            GRANT INSERT, SELECT ON invoice TO ebidhub_app;
         SQL);
+
+        // Tamper-evidence via privilege restriction (REVOKE UPDATE/DELETE/
+        // TRUNCATE ... GRANT INSERT/SELECT) not reproduced on MySQL -- see
+        // CreateAuditLog.php's up() for the full empirically-confirmed
+        // reasoning (MySQL's partial_revokes only carves database-level
+        // restrictions out of global grants, not table-level out of
+        // database-level). invoice has no hash-chain equivalent to
+        // audit_log's, so this table has no compensating tamper-evidence
+        // layer on MySQL -- a real, accepted limitation, documented in
+        // docs/DECISIONS.md.
     }
 
     public function down()
     {
-        $this->db->query('GRANT UPDATE, DELETE, TRUNCATE ON invoice TO ebidhub_app;');
         $this->db->query('DROP TABLE IF EXISTS invoice CASCADE;');
-        $this->db->query('DROP TYPE IF EXISTS invoice_type;');
     }
 }

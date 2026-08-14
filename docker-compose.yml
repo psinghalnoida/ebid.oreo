@@ -1,20 +1,22 @@
 # Local integration check for the two production images — builds and
-# runs them together against a real Postgres, the same shape as the
+# runs them together against a real MySQL, the same shape as the
 # two-Cloud-Run-service production topology (see docs/DEPLOYMENT.md).
 # Not used by the deploy workflow itself; this is for verifying the
 # images actually work before/after any Dockerfile change.
 
 services:
   db:
-    image: postgres:16
+    image: mysql:8
     environment:
-      POSTGRES_DB: ebidhub
-      POSTGRES_USER: ebidhub_app
-      POSTGRES_PASSWORD: ebidhub_dev_pw
+      MYSQL_DATABASE: ebidhub
+      MYSQL_USER: ebidhub_app
+      MYSQL_PASSWORD: ebidhub_dev_pw
+      MYSQL_ROOT_PASSWORD: ebidhub_root_dev_pw
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     ports:
-      - "5433:5432"
+      - "3307:3306"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ebidhub_app -d ebidhub"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u ebidhub_app -pebidhub_dev_pw"]
       interval: 3s
       timeout: 3s
       retries: 10
@@ -43,9 +45,10 @@ services:
       database.default.database: ebidhub
       database.default.username: ebidhub_app
       database.default.password: ebidhub_dev_pw
-      database.default.DBDriver: Postgre
-      database.default.port: "5432"
-      database.default.charset: utf8
+      database.default.DBDriver: MySQLi
+      database.default.port: "3306"
+      database.default.charset: utf8mb4
+      database.default.DBCollat: utf8mb4_unicode_ci
       EBIDHUB_WS_INTERNAL_URL: "http://realtime:8081/broadcast"
       EBIDHUB_BROADCAST_SECRET: "compose-local-secret"
       EBIDHUB_API_TOKEN_SECRET: "compose-local-secret"

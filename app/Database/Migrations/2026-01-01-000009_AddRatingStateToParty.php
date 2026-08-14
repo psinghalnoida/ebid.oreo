@@ -2,13 +2,16 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 class AddRatingStateToParty extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
-        $this->db->query(<<<SQL
+        $this->execMulti(<<<SQL
             ALTER TABLE party ADD COLUMN offence_count_buyer INTEGER NOT NULL DEFAULT 0;
             ALTER TABLE party ADD COLUMN offence_count_seller INTEGER NOT NULL DEFAULT 0;
 
@@ -20,8 +23,8 @@ class AddRatingStateToParty extends Migration
             ALTER TABLE party ADD COLUMN crawl_back_clean_required_seller INTEGER;
             ALTER TABLE party ADD COLUMN crawl_back_clean_completed_seller INTEGER NOT NULL DEFAULT 0;
 
-            ALTER TABLE party ADD COLUMN shadow_banned_at_buyer TIMESTAMPTZ;
-            ALTER TABLE party ADD COLUMN shadow_banned_at_seller TIMESTAMPTZ;
+            ALTER TABLE party ADD COLUMN shadow_banned_at_buyer DATETIME(6);
+            ALTER TABLE party ADD COLUMN shadow_banned_at_seller DATETIME(6);
 
             ALTER TABLE party ADD COLUMN deposit_override_amount NUMERIC(14,2);
 
@@ -32,21 +35,21 @@ class AddRatingStateToParty extends Migration
 
     public function down()
     {
-        $this->db->query(<<<SQL
+        $this->execMulti(<<<SQL
             ALTER TABLE party
-                DROP COLUMN IF EXISTS offence_count_buyer,
-                DROP COLUMN IF EXISTS offence_count_seller,
-                DROP COLUMN IF EXISTS crawl_back_active_buyer,
-                DROP COLUMN IF EXISTS crawl_back_clean_required_buyer,
-                DROP COLUMN IF EXISTS crawl_back_clean_completed_buyer,
-                DROP COLUMN IF EXISTS crawl_back_active_seller,
-                DROP COLUMN IF EXISTS crawl_back_clean_required_seller,
-                DROP COLUMN IF EXISTS crawl_back_clean_completed_seller,
-                DROP COLUMN IF EXISTS shadow_banned_at_buyer,
-                DROP COLUMN IF EXISTS shadow_banned_at_seller,
-                DROP COLUMN IF EXISTS deposit_override_amount,
-                DROP COLUMN IF EXISTS forced_neutral_count_buyer,
-                DROP COLUMN IF EXISTS forced_neutral_count_seller;
+                DROP COLUMN offence_count_buyer,
+                DROP COLUMN offence_count_seller,
+                DROP COLUMN crawl_back_active_buyer,
+                DROP COLUMN crawl_back_clean_required_buyer,
+                DROP COLUMN crawl_back_clean_completed_buyer,
+                DROP COLUMN crawl_back_active_seller,
+                DROP COLUMN crawl_back_clean_required_seller,
+                DROP COLUMN crawl_back_clean_completed_seller,
+                DROP COLUMN shadow_banned_at_buyer,
+                DROP COLUMN shadow_banned_at_seller,
+                DROP COLUMN deposit_override_amount,
+                DROP COLUMN forced_neutral_count_buyer,
+                DROP COLUMN forced_neutral_count_seller;
         SQL);
     }
 }

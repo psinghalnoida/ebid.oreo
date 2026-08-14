@@ -2,69 +2,102 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 class CreateDispute extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
-        $this->db->query(<<<SQL
-            CREATE TYPE dispute_category AS ENUM (
-                'payment', 'condition_delivery', 'non_lifting_collection',
-                'auction_rejection', 'buyer_non_response'
-            );
+        $this->execMulti(<<<SQL
             -- NOTE: BR-40 also defines a 6th category, Standing Review —
             -- system-initiated (BR-61), not filed by a party. Deliberately
             -- excluded from this enum for now since BR-61 itself is not
             -- built (Tier 4, D-23) — adding it here without the system that
             -- triggers it would be misleading.
-
-            CREATE TYPE dispute_status AS ENUM (
-                'filed', 'evidence_window', 'ruled', 'appealed', 'closed'
-            );
-
-            CREATE TYPE dispute_ruling_outcome AS ENUM (
-                'force_log_noc', 'order_forfeiture', 'rating_consequence', 'dismissed'
-            );
-
             CREATE TABLE dispute (
-                id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                sale_event_id            UUID NOT NULL REFERENCES sale_event(id),
-                filed_by_party_id         UUID NOT NULL REFERENCES party(id),
-                respondent_party_id        UUID NOT NULL REFERENCES party(id),
-                category                    dispute_category NOT NULL,
-                description                  TEXT NOT NULL,
-                status                        dispute_status NOT NULL DEFAULT 'filed',
 
-                evidence_deadline_at          TIMESTAMPTZ,
+                id                      CHAR(36) PRIMARY KEY,
+
+                sale_event_id CHAR(36) NOT NULL,
+
+                filed_by_party_id CHAR(36) NOT NULL,
+
+                respondent_party_id CHAR(36) NOT NULL,
+
+                category                    ENUM(
+                'payment', 'condition_delivery', 'non_lifting_collection',
+                'auction_rejection', 'buyer_non_response'
+            ) NOT NULL,
+
+                description                  TEXT NOT NULL,
+
+                status                        ENUM(
+                'filed', 'evidence_window', 'ruled', 'appealed', 'closed'
+            ) NOT NULL DEFAULT 'filed',
+
+
+                evidence_deadline_at          DATETIME(6),
+
 
                 ruling_authority_type           TEXT CHECK (ruling_authority_type IN ('tenant_admin', 'super_admin')),
-                ruled_by_party_id                 UUID REFERENCES party(id),
-                ruling_outcome                     dispute_ruling_outcome,
+
+                ruled_by_party_id CHAR(36),
+
+                ruling_outcome                     ENUM(
+                'force_log_noc', 'order_forfeiture', 'rating_consequence', 'dismissed'
+            ),
+
                 ruling_rationale                    TEXT,
-                ruled_at                             TIMESTAMPTZ,
 
-                appealed_at                           TIMESTAMPTZ,
-                appeal_ruled_by_party_id                UUID REFERENCES party(id),
+                ruled_at                             DATETIME(6),
+
+
+                appealed_at                           DATETIME(6),
+
+                appeal_ruled_by_party_id CHAR(36),
+
                 appeal_rationale                         TEXT,
-                appeal_ruled_at                           TIMESTAMPTZ,
 
-                created_at                                 TIMESTAMPTZ NOT NULL DEFAULT now()
+                appeal_ruled_at                           DATETIME(6),
+
+
+                created_at                                 DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+
+                CONSTRAINT fk_dispute_sale_event_id FOREIGN KEY (sale_event_id) REFERENCES sale_event(id),
+
+                CONSTRAINT fk_dispute_filed_by_party_id FOREIGN KEY (filed_by_party_id) REFERENCES party(id),
+
+                CONSTRAINT fk_dispute_respondent_party_id FOREIGN KEY (respondent_party_id) REFERENCES party(id),
+
+                CONSTRAINT fk_dispute_ruled_by_party_id FOREIGN KEY (ruled_by_party_id) REFERENCES party(id),
+
+                CONSTRAINT fk_dispute_appeal_ruled_by_party_id FOREIGN KEY (appeal_ruled_by_party_id) REFERENCES party(id)
             );
 
             CREATE INDEX idx_dispute_sale_event ON dispute (sale_event_id);
             CREATE INDEX idx_dispute_status ON dispute (status);
             CREATE INDEX idx_dispute_filed_by ON dispute (filed_by_party_id);
 
-            CREATE INDEX idx_dispute_filed_by_dismissed ON dispute (filed_by_party_id)
-                WHERE ruling_outcome = 'dismissed';
+            CREATE INDEX idx_dispute_filed_by_dismissed ON dispute (filed_by_party_id);
 
             CREATE TABLE dispute_evidence (
-                id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                dispute_id               UUID NOT NULL REFERENCES dispute(id),
-                submitted_by_party_id     UUID NOT NULL REFERENCES party(id),
+
+                id                      CHAR(36) PRIMARY KEY,
+
+                dispute_id CHAR(36) NOT NULL,
+
+                submitted_by_party_id CHAR(36) NOT NULL,
+
                 content                    TEXT NOT NULL,
-                created_at                  TIMESTAMPTZ NOT NULL DEFAULT now()
+
+                created_at                  DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+
+                CONSTRAINT fk_dispute_evidence_dispute_id FOREIGN KEY (dispute_id) REFERENCES dispute(id),
+
+                CONSTRAINT fk_dispute_evidence_submitted_by_party_id FOREIGN KEY (submitted_by_party_id) REFERENCES party(id)
             );
 
             CREATE INDEX idx_dispute_evidence_dispute ON dispute_evidence (dispute_id);
@@ -75,8 +108,5 @@ class CreateDispute extends Migration
     {
         $this->db->query('DROP TABLE IF EXISTS dispute_evidence CASCADE;');
         $this->db->query('DROP TABLE IF EXISTS dispute CASCADE;');
-        $this->db->query('DROP TYPE IF EXISTS dispute_ruling_outcome;');
-        $this->db->query('DROP TYPE IF EXISTS dispute_status;');
-        $this->db->query('DROP TYPE IF EXISTS dispute_category;');
     }
 }

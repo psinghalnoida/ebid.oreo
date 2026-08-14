@@ -8,7 +8,7 @@ class AddEmailOtpPurpose extends Migration
 {
     public function up()
     {
-        $this->db->query("ALTER TYPE otp_purpose ADD VALUE IF NOT EXISTS 'mpin_reset_email';");
+        $this->db->query("ALTER TABLE otp_verification MODIFY COLUMN purpose ENUM('registration', 'mpin_reset', 'mpin_reset_email') NOT NULL;");
     }
 
     public function down()

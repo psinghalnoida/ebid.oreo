@@ -2,25 +2,23 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 class CreateParty extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
-        $this->db->query(<<<SQL
-            CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-
-            CREATE TYPE entity_type AS ENUM ('individual', 'organization');
-            CREATE TYPE kyc_status AS ENUM ('pending', 'verified', 'suspended');
-
+        $this->execMulti(<<<SQL
             CREATE TABLE party (
-                id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                id                  CHAR(36) PRIMARY KEY,
                 mobile_number       VARCHAR(13) NOT NULL UNIQUE,
-                mobile_verified_at  TIMESTAMPTZ,
+                mobile_verified_at  DATETIME(6),
                 mpin_hash           TEXT,
                 failed_mpin_attempts INTEGER NOT NULL DEFAULT 0,
-                entity_type         entity_type NOT NULL DEFAULT 'individual',
+                entity_type         ENUM('individual', 'organization') NOT NULL DEFAULT 'individual',
                 full_name           TEXT,
                 pan                 VARCHAR(10),
                 aadhaar_masked      VARCHAR(20),
@@ -35,26 +33,29 @@ class CreateParty extends Migration
                 org_industry        TEXT,
                 org_annual_turnover NUMERIC(15,2),
                 org_employee_count  INTEGER,
-                kyc_status          kyc_status NOT NULL DEFAULT 'pending',
+                kyc_status          ENUM('pending', 'verified', 'suspended') NOT NULL DEFAULT 'pending',
                 kyc_status_reason   TEXT,
                 star_rating         NUMERIC(2,1) NOT NULL DEFAULT 3.0
                                        CHECK (star_rating >= 0 AND star_rating <= 5),
                 seller_star_rating  NUMERIC(2,1) NOT NULL DEFAULT 3.0
                                        CHECK (seller_star_rating >= 0 AND seller_star_rating <= 5),
-                created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
-                updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
-                archived_at         TIMESTAMPTZ
+                created_at          DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+                updated_at          DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+                archived_at         DATETIME(6)
             );
 
-            CREATE INDEX idx_party_mobile ON party (mobile_number) WHERE archived_at IS NULL;
-            CREATE INDEX idx_party_kyc_status ON party (kyc_status) WHERE archived_at IS NULL;
+            -- Partial indexes (WHERE archived_at IS NULL) have no MySQL
+            -- equivalent; both are plain (non-unique) indexes so dropping the
+            -- WHERE is a pure performance trade-off (a few archived rows stay
+            -- indexed too), not a correctness change -- unlike the
+            -- partial *unique* indexes elsewhere in this schema.
+            CREATE INDEX idx_party_mobile ON party (mobile_number);
+            CREATE INDEX idx_party_kyc_status ON party (kyc_status);
         SQL);
     }
 
     public function down()
     {
         $this->db->query('DROP TABLE IF EXISTS party CASCADE;');
-        $this->db->query('DROP TYPE IF EXISTS kyc_status;');
-        $this->db->query('DROP TYPE IF EXISTS entity_type;');
     }
 }

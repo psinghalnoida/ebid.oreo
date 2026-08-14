@@ -1,10 +1,10 @@
 name: Regression suite
 
-# Runs the 37 real, permanent test:* commands (see README.md Step 10)
-# against a real PostgreSQL 16 database on every push and pull request.
-# These are assertion-based suites, not throwaway scripts -- a failure
-# here means something genuinely broke, the same signal SETUP.md asks
-# a human deploying to a real server to check by hand.
+# Runs the 39 real, permanent test:* commands (see README.md Step 10)
+# against a real MySQL 8 database on every push and pull request. These
+# are assertion-based suites, not throwaway scripts -- a failure here
+# means something genuinely broke, the same signal SETUP.md asks a human
+# deploying to a real server to check by hand.
 
 on:
   push:
@@ -17,24 +17,17 @@ jobs:
     runs-on: ubuntu-22.04
 
     services:
-      postgres:
-        image: postgres:16
+      mysql:
+        image: mysql:8
         env:
-          # Named ebidhub_ci4, not ebidhub -- app/Database/Migrations
-          # /2026-01-01-000028_CreateAuditLog.php's own REVOKE/GRANT
-          # statements are hardcoded to the `ebidhub_app` role, and
-          # TestAuditLog.php's raw-tamper simulation step is hardcoded
-          # to connect to a database literally named ebidhub_ci4 --
-          # matching that name here, rather than the ebidhub name used
-          # in a real deployment (see README.md Step 5), avoids a false
-          # failure that has nothing to do with the code under test.
-          POSTGRES_USER: ebidhub_app
-          POSTGRES_PASSWORD: ci_test_password_not_for_production
-          POSTGRES_DB: ebidhub_ci4
+          MYSQL_DATABASE: ebidhub
+          MYSQL_USER: ebidhub_app
+          MYSQL_PASSWORD: ci_test_password_not_for_production
+          MYSQL_ROOT_PASSWORD: ci_test_root_password_not_for_production
         ports:
-          - 5432:5432
+          - 3306:3306
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "mysqladmin ping -h localhost -u root -pci_test_root_password_not_for_production"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -46,7 +39,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: mbstring, xml, curl, pgsql, intl, gd
+          extensions: mbstring, xml, curl, mysqli, pdo_mysql, intl, gd
           coverage: none
 
       - name: Install ffmpeg
@@ -55,6 +48,18 @@ jobs:
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Configure MySQL server (utf8mb4 default)
+        # utf8mb4/utf8mb4_unicode_ci to match this project's migrations
+        # (see docs/DECISIONS.md's MySQL migration entry) -- the service
+        # container's default charset/collation otherwise stays whatever
+        # the mysql:8 image ships with.
+        run: |
+          mysql -h 127.0.0.1 -u root -pci_test_root_password_not_for_production -e "
+            ALTER DATABASE ebidhub CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+            GRANT ALL PRIVILEGES ON ebidhub.* TO 'ebidhub_app'@'%';
+            FLUSH PRIVILEGES;
+          "
 
       - name: Configure environment
         run: |
@@ -69,12 +74,13 @@ jobs:
           sed -i "s|^# app\.baseURL = ''|app.baseURL = 'http://localhost:8080/'|" .env
           {
             echo "database.default.hostname = 127.0.0.1"
-            echo "database.default.database = ebidhub_ci4"
+            echo "database.default.database = ebidhub"
             echo "database.default.username = ebidhub_app"
             echo "database.default.password = ci_test_password_not_for_production"
-            echo "database.default.DBDriver = Postgre"
-            echo "database.default.port = 5432"
-            echo "database.default.charset = utf8"
+            echo "database.default.DBDriver = MySQLi"
+            echo "database.default.port = 3306"
+            echo "database.default.charset = utf8mb4"
+            echo "database.default.DBCollat = utf8mb4_unicode_ci"
           } >> .env
 
       - name: Run migrations
@@ -89,7 +95,8 @@ jobs:
                      tenderreview easyexpresscorrections kyc aml standingreview \
                      payoutcontrol crawlback auditlog sovereignrule servertimecheck \
                      invoices successfee tenantapi media selleraudit phase3a discovery \
-                     browse br35 terminology chronicle aiaudit listingreach partydashboards; do
+                     browse br35 terminology chronicle aiaudit listingreach partydashboards \
+                     chargeback domainevents; do
             echo "::group::test:$cmd"
             if ! php spark test:$cmd; then
               FAILED="$FAILED test:$cmd"
@@ -100,4 +107,4 @@ jobs:
             echo "Failed suites:$FAILED"
             exit 1
           fi
-          echo "All 37 suites passed."
+          echo "All 39 suites passed."

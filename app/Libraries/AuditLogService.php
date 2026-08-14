@@ -5,7 +5,10 @@ namespace App\Libraries;
 class AuditLogService
 {
     private const GENESIS_HASH = 'ebidhub-audit-genesis-2026';
-    private const ADVISORY_LOCK_KEY = 725001;
+
+    // MySQL's GET_LOCK()/RELEASE_LOCK() take a string name, not the numeric
+    // key Postgres's pg_advisory_lock()/pg_advisory_unlock() used.
+    private const ADVISORY_LOCK_NAME = 'ebidhub_audit_log_chain';
 
     private \CodeIgniter\Database\BaseConnection $db;
 
@@ -16,7 +19,9 @@ class AuditLogService
 
     public function log(string $eventType, ?string $actorPartyId, array $payload, ?string $ipAddress = null, ?string $userAgent = null): array
     {
-        $this->db->query('SELECT pg_advisory_lock(?)', [self::ADVISORY_LOCK_KEY]);
+        // -1 timeout = block indefinitely, matching pg_advisory_lock()'s
+        // original (non-timing-out) blocking behavior.
+        $this->db->query('SELECT GET_LOCK(?, -1)', [self::ADVISORY_LOCK_NAME]);
 
         try {
             $previousHash = $this->getLastHash();
@@ -49,7 +54,7 @@ class AuditLogService
 
             return ['id' => $id, 'recordHash' => $recordHash];
         } finally {
-            $this->db->query('SELECT pg_advisory_unlock(?)', [self::ADVISORY_LOCK_KEY]);
+            $this->db->query('SELECT RELEASE_LOCK(?)', [self::ADVISORY_LOCK_NAME]);
         }
     }
 

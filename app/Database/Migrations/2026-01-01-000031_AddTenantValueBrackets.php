@@ -2,10 +2,13 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 class AddTenantValueBrackets extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
         // Party-level Crawl-Back/Shadow-Ban columns already exist (see
@@ -14,7 +17,7 @@ class AddTenantValueBrackets extends Migration
         // logic until now (found before writing any duplicate schema,
         // not after). Only the tenant-level value brackets are
         // genuinely new.
-        $this->db->query(<<<SQL
+        $this->execMulti(<<<SQL
             ALTER TABLE tenant ADD COLUMN low_bracket_max NUMERIC(14,2);
             ALTER TABLE tenant ADD COLUMN medium_bracket_max NUMERIC(14,2);
         SQL);
@@ -22,9 +25,9 @@ class AddTenantValueBrackets extends Migration
 
     public function down()
     {
-        $this->db->query(<<<SQL
-            ALTER TABLE tenant DROP COLUMN IF EXISTS low_bracket_max;
-            ALTER TABLE tenant DROP COLUMN IF EXISTS medium_bracket_max;
+        $this->execMulti(<<<SQL
+            ALTER TABLE tenant DROP COLUMN low_bracket_max;
+            ALTER TABLE tenant DROP COLUMN medium_bracket_max;
         SQL);
     }
 }

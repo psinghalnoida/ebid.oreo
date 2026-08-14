@@ -25,9 +25,10 @@ push/pull endpoints, webhook delivery), the Trading Session Chronicle
 Listing Pre-Audit (built end to end, inert until a Gemini key lands),
 real CSRF protection and a real Content-Security-Policy on every page,
 and a full Trust & Support content section — all built and verified
-against real PostgreSQL data before ever being pushed. 37 permanent
-test-command suites (see Step 10 below), each with real assertions
-re-run on every change, not throwaway scripts, now also run
+against real MySQL data before ever being pushed (migrated from
+PostgreSQL — see `docs/DECISIONS.md`'s MySQL migration entry). 39
+permanent test-command suites (see Step 10 below), each with real
+assertions re-run on every change, not throwaway scripts, now also run
 automatically on every push/PR — see `.github/workflows/tests.yml`.
 
 ## ⚠️ Before deploying — read this first
@@ -122,7 +123,7 @@ sudo add-apt-repository -y ppa:ondrej/php
 sudo apt update
 
 sudo apt install -y php8.2 php8.2-cli php8.2-fpm php8.2-mbstring \
-  php8.2-xml php8.2-curl php8.2-pgsql php8.2-intl php8.2-gd unzip git
+  php8.2-xml php8.2-curl php8.2-mysql php8.2-intl php8.2-gd unzip git
 
 php -v    # confirm it now reports 8.2.x, not 8.1.x
 ```
@@ -167,23 +168,25 @@ upload_max_filesize = 520M
 Restart PHP-FPM after this change (`sudo systemctl restart php8.2-fpm` —
 covered again in Step 12 once Nginx is set up).
 
-### Step 4 — Install PostgreSQL
+### Step 4 — Install MySQL
 
 ```bash
-sudo apt install -y postgresql postgresql-contrib
-sudo systemctl enable postgresql
-sudo systemctl start postgresql
+sudo apt install -y mysql-server
+sudo systemctl enable mysql
+sudo systemctl start mysql
 ```
 
 ### Step 5 — Create the database and user
 
 Replace `<REAL_PASSWORD>` with an actual strong password — you'll need it
-again in Step 8.
+again in Step 8. `utf8mb4`/`utf8mb4_unicode_ci` matches every migration
+in `app/Database/Migrations/` exactly — a plain `utf8` database would
+reject some real data (4-byte Unicode, e.g. emoji in free-text fields).
 
 ```bash
-sudo -u postgres psql -c "CREATE USER ebidhub_app WITH PASSWORD '<REAL_PASSWORD>';"
-sudo -u postgres psql -c "CREATE DATABASE ebidhub OWNER ebidhub_app;"
-sudo -u postgres psql -d ebidhub -c "GRANT ALL ON SCHEMA public TO ebidhub_app;"
+sudo mysql -e "CREATE DATABASE ebidhub CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+sudo mysql -e "CREATE USER 'ebidhub_app'@'localhost' IDENTIFIED BY '<REAL_PASSWORD>';"
+sudo mysql -e "GRANT ALL PRIVILEGES ON ebidhub.* TO 'ebidhub_app'@'localhost'; FLUSH PRIVILEGES;"
 ```
 
 ### Step 6 — Install Composer
@@ -228,9 +231,10 @@ database.default.hostname = localhost
 database.default.database = ebidhub
 database.default.username = ebidhub_app
 database.default.password = <REAL_PASSWORD from Step 5>
-database.default.DBDriver = Postgre
-database.default.port = 5432
-database.default.charset = utf8
+database.default.DBDriver = MySQLi
+database.default.port = 3306
+database.default.charset = utf8mb4
+database.default.DBCollat = utf8mb4_unicode_ci
 
 app.baseURL = 'https://<YOUR_ACTUAL_DOMAIN>/'
 ```
@@ -254,7 +258,7 @@ declining Success Fee schedule/Fee Payer Election/Tenant monthly
 billing, and Tenant API Access. Confirm with:
 
 ```bash
-sudo -u postgres psql -d ebidhub -c "\dt"
+sudo mysql ebidhub -e "SHOW TABLES;"
 ```
 
 If the migration count doesn't match what you expect, check
@@ -305,26 +309,31 @@ sudo php spark test:chronicle              # Trading Session Chronicle, QR verif
 sudo php spark test:aiaudit                # BR-46 AI Listing Pre-Audit (Gemini-gated)
 sudo php spark test:listingreach           # Lot Reach & Interest: reversed CLV matching, real in-app messaging (D-105)
 sudo php spark test:partydashboards        # Buyer/Seller Dashboard, Rating History, Star Ratings, admin directories (D-106)
+sudo php spark test:chargeback             # BR-52/PR-30 Chargeback Handling & Representment
+sudo php spark test:domainevents           # Domain-event publish/subscribe layer
 ```
 
-37 suites total, not 33 — this list itself had drifted out of date before this
-update (D-104); `grep -h "protected \$name" app/Commands/Test*.php` is the
-source of truth if this list and the codebase ever disagree again.
+39 suites total — this list itself had drifted out of date more than
+once before (D-104, and again when `test:chargeback`/`test:domainevents`
+were missing from it); `grep -h "protected \$name" app/Commands/Test*.php`
+is the source of truth if this list and the codebase ever disagree again.
 
-**Fixture-collision note (D-104):** these suites share one PostgreSQL
-session when run back-to-back like this, and two of them — a hardcoded
-mobile number reused by both `TestChronicle.php` and
-`TestEasySchedule.php` — used to collide because of it, failing
-`test:chronicle` with a `duplicate key` error that had nothing to do with
-the code under test. Fixed by giving `TestChronicle.php` its own numbers.
-If a suite fails here with a `duplicate key value violates unique
-constraint` error and the code you're testing genuinely didn't change,
-check for this pattern before assuming a real regression — grep the
-fixture numbers across `app/Commands/Test*.php` for a collision, the same
-way this one was found.
+**Fixture-collision note (D-104, recurred during the MySQL migration):**
+these suites share one database session when run back-to-back like this,
+and hardcoded mobile numbers reused across two different `Test*.php`
+files collide because of it — a `duplicate key`/`Duplicate entry` error
+that has nothing to do with the code under test. Two separate instances
+of this exact pattern have been found and fixed so far: `TestChronicle.php`
+vs `TestEasySchedule.php` (D-104), and `TestChargeback.php` vs
+`TestPayoutControl.php` (found while re-verifying the full suite against
+MySQL). If a suite fails here with a duplicate-key/duplicate-entry error
+and the code you're testing genuinely didn't change, check for this
+pattern before assuming a real regression — grep the fixture numbers
+across `app/Commands/Test*.php` for a collision, the same way both of
+these were found.
 
 If any of these fail here but passed during development, something about
-*this specific server's* PHP version, PostgreSQL version, or configuration
+*this specific server's* PHP version, MySQL version, or configuration
 differs — stop and investigate before going further, rather than
 deploying something unverified.
 
@@ -531,8 +540,8 @@ beyond internal testing.
 needed here: real CSRF protection on every state-changing POST (was
 fully disabled repo-wide before), a real Content-Security-Policy on
 every response (was off entirely before), and a CI pipeline
-(`.github/workflows/tests.yml`) that runs all 37 suites automatically
-on every push/PR against a real Postgres service container.
+(`.github/workflows/tests.yml`) that runs all 39 suites automatically
+on every push/PR against a real MySQL service container.
 
 ### Scheduled jobs — required for timers to work automatically
 
@@ -572,12 +581,12 @@ Add (daily at 02:00 server time):
 
 Restore a database dump with:
 ```bash
-gunzip -c /var/backups/ebidhub/ebidhub-db-<timestamp>.sql.gz | sudo -u postgres psql -d ebidhub
+gunzip -c /var/backups/ebidhub/ebidhub-db-<timestamp>.sql.gz | sudo mysql ebidhub
 ```
 
 ## Verifying the build (quick reference)
 
-See Step 10 above for the full list of 37 test commands — all real,
+See Step 10 above for the full list of 39 test commands — all real,
 permanent verification tooling, not throwaway scripts. Rerun any of them
 after making a change to confirm nothing broke. They also now run
 automatically on every push/PR via `.github/workflows/tests.yml`.

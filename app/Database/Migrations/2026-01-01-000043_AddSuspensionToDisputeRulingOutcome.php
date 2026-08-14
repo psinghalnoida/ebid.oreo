@@ -8,7 +8,9 @@ class AddSuspensionToDisputeRulingOutcome extends Migration
 {
     public function up()
     {
-        $this->db->query("ALTER TYPE dispute_ruling_outcome ADD VALUE 'suspension';");
+        $this->db->query("ALTER TABLE dispute MODIFY COLUMN ruling_outcome ENUM(
+            'force_log_noc', 'order_forfeiture', 'rating_consequence', 'dismissed', 'suspension'
+        );");
     }
 
     public function down()

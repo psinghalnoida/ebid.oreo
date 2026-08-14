@@ -2,6 +2,7 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 // Phase 3A: account deletion request — soft delete with a 30-day grace
@@ -10,23 +11,25 @@ use CodeIgniter\Database\Migration;
 // cooling-off, rather than archiving immediately.
 class AddAccountDeletionRequestToParty extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
-        $this->db->query(<<<SQL
+        $this->execMulti(<<<SQL
             ALTER TABLE party
-                ADD COLUMN deletion_requested_at TIMESTAMPTZ,
+                ADD COLUMN deletion_requested_at DATETIME(6),
                 ADD COLUMN deletion_reason TEXT,
-                ADD COLUMN last_login_at TIMESTAMPTZ;
+                ADD COLUMN last_login_at DATETIME(6);
         SQL);
     }
 
     public function down()
     {
-        $this->db->query(<<<SQL
+        $this->execMulti(<<<SQL
             ALTER TABLE party
-                DROP COLUMN IF EXISTS deletion_requested_at,
-                DROP COLUMN IF EXISTS deletion_reason,
-                DROP COLUMN IF EXISTS last_login_at;
+                DROP COLUMN deletion_requested_at,
+                DROP COLUMN deletion_reason,
+                DROP COLUMN last_login_at;
         SQL);
     }
 }

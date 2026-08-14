@@ -21,17 +21,17 @@ FROM mirror.gcr.io/library/php:8.2-apache
 # tested against locally.
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        libpq-dev libzip-dev libicu-dev libfreetype6-dev libjpeg62-turbo-dev libpng-dev \
+        default-libmysqlclient-dev libzip-dev libicu-dev libfreetype6-dev libjpeg62-turbo-dev libpng-dev \
         unzip git \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j"$(nproc)" pdo_pgsql pgsql gd intl zip \
+    && docker-php-ext-install -j"$(nproc)" pdo_mysql mysqli gd intl zip \
     && a2enmod rewrite \
     && rm -rf /var/lib/apt/lists/*
 
 # Composer itself only needs its binary, not a whole separate PHP
 # environment — copying it into this image (rather than `composer
 # install` running inside the composer:2 image, which does NOT have
-# ext-intl/pdo_pgsql/etc. installed) means composer's platform-
+# ext-intl/pdo_mysql/etc. installed) means composer's platform-
 # requirement check runs against the actual runtime the app ships in,
 # not a bare, different PHP. Caught by a real local build: running
 # `composer install` in a separate composer:2 stage failed outright

@@ -2,36 +2,57 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 class CreateSettlement extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
-        $this->db->query(<<<SQL
-            CREATE TYPE settlement_status AS ENUM ('pending', 'completed', 'stalled');
-
+        $this->execMulti(<<<SQL
             CREATE TABLE settlement (
-                id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                sale_event_id            UUID NOT NULL UNIQUE REFERENCES sale_event(id),
-                buyer_party_id           UUID NOT NULL REFERENCES party(id),
-                seller_party_id          UUID NOT NULL REFERENCES party(id),
+
+                id                       CHAR(36) PRIMARY KEY,
+
+                sale_event_id CHAR(36) NOT NULL UNIQUE,
+
+                buyer_party_id CHAR(36) NOT NULL,
+
+                seller_party_id CHAR(36) NOT NULL,
+
                 final_price              NUMERIC(14,2) NOT NULL,
 
-                -- BR-33: all four must complete before formal closure
-                seller_noc_confirmed_at   TIMESTAMPTZ,
-                buyer_noc_confirmed_at    TIMESTAMPTZ,
-                buyer_rated_seller_at     TIMESTAMPTZ,
-                seller_rated_buyer_at     TIMESTAMPTZ,
 
-                status                    settlement_status NOT NULL DEFAULT 'pending',
+                -- BR-33: all four must complete before formal closure
+                seller_noc_confirmed_at   DATETIME(6),
+
+                buyer_noc_confirmed_at    DATETIME(6),
+
+                buyer_rated_seller_at     DATETIME(6),
+
+                seller_rated_buyer_at     DATETIME(6),
+
+
+                status                    ENUM('pending', 'completed', 'stalled') NOT NULL DEFAULT 'pending',
+
 
                 -- BR-39: stall resolution tracking
-                stall_flagged_at           TIMESTAMPTZ,
-                forced_neutral_applied_at   TIMESTAMPTZ,
+                stall_flagged_at           DATETIME(6),
 
-                created_at                   TIMESTAMPTZ NOT NULL DEFAULT now(),
-                completed_at                  TIMESTAMPTZ
+                forced_neutral_applied_at   DATETIME(6),
+
+
+                created_at                   DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+
+                completed_at                  DATETIME(6),
+
+                CONSTRAINT fk_settlement_sale_event_id FOREIGN KEY (sale_event_id) REFERENCES sale_event(id),
+
+                CONSTRAINT fk_settlement_buyer_party_id FOREIGN KEY (buyer_party_id) REFERENCES party(id),
+
+                CONSTRAINT fk_settlement_seller_party_id FOREIGN KEY (seller_party_id) REFERENCES party(id)
             );
 
             CREATE INDEX idx_settlement_status ON settlement (status);
@@ -43,6 +64,5 @@ class CreateSettlement extends Migration
     public function down()
     {
         $this->db->query('DROP TABLE IF EXISTS settlement CASCADE;');
-        $this->db->query('DROP TYPE IF EXISTS settlement_status;');
     }
 }

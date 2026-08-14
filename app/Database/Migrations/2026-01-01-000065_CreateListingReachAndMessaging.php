@@ -2,6 +2,7 @@
 
 namespace App\Database\Migrations;
 
+use App\Libraries\MultiStatementMigrationTrait;
 use CodeIgniter\Database\Migration;
 
 // D-105: builds the real backend behind "Lot Reach & Interest" -- a
@@ -17,6 +18,8 @@ use CodeIgniter\Database\Migration;
 //      audit), delivered to a real inbox a buyer can actually read.
 class CreateListingReachAndMessaging extends Migration
 {
+    use MultiStatementMigrationTrait;
+
     public function up()
     {
         // view_count: a simple rolling total, incremented on every real
@@ -30,13 +33,22 @@ class CreateListingReachAndMessaging extends Migration
         // matched buyer*, which an aggregate counter alone can't answer.
         // Anonymous views still increment listing.view_count above but
         // don't get a row here (there's no party to attribute it to).
-        $this->db->query(<<<SQL
+        $this->execMulti(<<<SQL
             CREATE TABLE listing_view (
-                id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                listing_id  UUID NOT NULL REFERENCES listing(id),
-                party_id    UUID NOT NULL REFERENCES party(id),
-                viewed_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
-                UNIQUE (listing_id, party_id)
+
+                id          CHAR(36) PRIMARY KEY,
+
+                listing_id CHAR(36) NOT NULL,
+
+                party_id CHAR(36) NOT NULL,
+
+                viewed_at   DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+
+                UNIQUE (listing_id, party_id),
+
+                CONSTRAINT fk_listing_view_listing_id FOREIGN KEY (listing_id) REFERENCES listing(id),
+
+                CONSTRAINT fk_listing_view_party_id FOREIGN KEY (party_id) REFERENCES party(id)
             );
 
             CREATE INDEX idx_listing_view_listing ON listing_view (listing_id);
@@ -47,22 +59,41 @@ class CreateListingReachAndMessaging extends Migration
         // seller_message_recipient: one row per matched buyer the message
         // actually went to -- this is the real inbox delivery record, and
         // read_at is what a buyer's inbox uses to show unread state.
-        $this->db->query(<<<SQL
+        $this->execMulti(<<<SQL
             CREATE TABLE seller_message (
-                id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                listing_id            UUID NOT NULL REFERENCES listing(id),
-                seller_party_id       UUID NOT NULL REFERENCES party(id),
+
+                id                    CHAR(36) PRIMARY KEY,
+
+                listing_id CHAR(36) NOT NULL,
+
+                seller_party_id CHAR(36) NOT NULL,
+
                 message_body          TEXT NOT NULL,
+
                 matched_buyer_count   INTEGER NOT NULL,
-                created_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+
+                created_at            DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+
+                CONSTRAINT fk_seller_message_listing_id FOREIGN KEY (listing_id) REFERENCES listing(id),
+
+                CONSTRAINT fk_seller_message_seller_party_id FOREIGN KEY (seller_party_id) REFERENCES party(id)
             );
 
             CREATE TABLE seller_message_recipient (
-                id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                seller_message_id   UUID NOT NULL REFERENCES seller_message(id),
-                buyer_party_id      UUID NOT NULL REFERENCES party(id),
-                delivered_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
-                read_at             TIMESTAMPTZ
+
+                id                  CHAR(36) PRIMARY KEY,
+
+                seller_message_id CHAR(36) NOT NULL,
+
+                buyer_party_id CHAR(36) NOT NULL,
+
+                delivered_at        DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+
+                read_at             DATETIME(6),
+
+                CONSTRAINT fk_seller_message_recipient_seller_message_id FOREIGN KEY (seller_message_id) REFERENCES seller_message(id),
+
+                CONSTRAINT fk_seller_message_recipient_buyer_party_id FOREIGN KEY (buyer_party_id) REFERENCES party(id)
             );
 
             CREATE INDEX idx_seller_message_listing ON seller_message (listing_id);
@@ -72,11 +103,11 @@ class CreateListingReachAndMessaging extends Migration
 
     public function down()
     {
-        $this->db->query(<<<SQL
+        $this->execMulti(<<<SQL
             DROP TABLE IF EXISTS seller_message_recipient;
             DROP TABLE IF EXISTS seller_message;
             DROP TABLE IF EXISTS listing_view;
         SQL);
-        $this->db->query('ALTER TABLE listing DROP COLUMN IF EXISTS view_count;');
+        $this->db->query('ALTER TABLE listing DROP COLUMN view_count;');
     }
 }
