@@ -8523,3 +8523,92 @@ decided first, everything else waits its turn) was explicitly bypassed
 for this one screen because the owner asked for it directly — worth
 noting so the next screen picked from that queue doesn't get the same
 treatment without being asked.
+
+### D-127: a tag-and-notify release process for the i2k2 handoff
+
+The project owner builds features here but doesn't operate the i2k2
+server himself — Arpit deploys there — and asked for "what workflow we
+create to make it seamless." Asked what he wanted the automation level
+to be; his answer was explicit: he needs to push and test constantly,
+has limited hands-on ops experience, and does not want his own
+experimentation to ever risk breaking the live site.
+
+**Not new infrastructure — a missing half of an existing one.** D-04
+already establishes the hard boundary ("Claude never writes, edits, or
+executes anything directly on the production server") and D-05
+established GitHub as the handoff layer. `README.md`'s "Deployment
+Guide — i2k2 Server" (Steps 1–17) already fully covers the *one-time*
+server bootstrap — PHP 8.2-FPM, Nginx, MySQL, the `realtime/`
+WebSocket sidecar as a systemd unit, cron, SSL. What had never existed
+was the *ongoing update* half: once the server is already running, how
+a new batch of work gets onto it safely and repeatably, without Arpit
+reconstructing the right command sequence from memory (or Piyush's own
+pushes ever being a single step away from production).
+
+**Built**: `docs/RELEASE_PROCESS.md` (the workflow itself — three
+zones: feature branches, where all experimentation is zero-risk →
+`main`, always working but not a deploy by itself → a deliberately-cut
+release tag, the only thing Arpit ever deploys), `docs/RELEASES.md` (a
+plain-English, Arpit-facing changelog — distinct from the dense
+engineering `DECISIONS.md`, one entry per tag: what changed, whether
+migrations/new `.env` keys are needed, whether the realtime sidecar
+needs restarting, rollback notes), and `scripts/deploy-i2k2.sh` (the
+one command Arpit actually runs — `git fetch --tags` + checkout,
+`composer install --no-dev`, `php spark migrate --all`, a **required**
+`systemctl restart php8.2-fpm` since PHP-FPM's opcache otherwise keeps
+serving the previous release's bytecode after the files on disk have
+already changed, and a conditional realtime-sidecar reinstall/restart
+that only fires when `realtime/` actually changed between the previous
+deployed tag and the new one — diffed automatically via a
+`.last-deployed-tag` marker file, not left for Arpit to remember).
+Real paths and commands throughout (`/var/www/ebid.oreo`,
+`php8.2-fpm`, `ebidhub-realtime`) are lifted directly from README.md's
+existing guide, not invented — this doc explicitly defers to that one
+for anything already covered there rather than duplicating it.
+
+**The recommended automation level, and why the other two were ruled
+out**: presented three options — fully automated push-to-deploy (a
+GitHub Action with I2K2 SSH secrets, so `main` going green auto-
+deploys), semi-automated tag-and-script (cut a release, Arpit runs one
+provided script on his own schedule), and fully manual (just better
+documentation, no script). Fully-automated is a direct violation of
+D-04's existing boundary — it would mean a stray push to `main`
+reaching the live site with no human in the loop, which is exactly the
+"ruin it by accident" scenario the owner named as his actual fear.
+Fully-manual leaves Arpit reconstructing commands from memory each
+time, the same failure mode the process is meant to close. The
+semi-automated middle path was recommended and chosen: three
+deliberate gates stand between any push here and the live site (merge
+to `main`, cutting a tag, Arpit running the script) and the last one is
+always a specific human action, never a git event.
+
+**One further safety layer recommended but not executable from this
+session** (no branch-protection API in this session's GitHub tool
+set): enabling "require PR + passing status check" on `main` in
+GitHub's own repo settings, so even an accidental direct push to
+`main` is rejected outright before it can reach the first of the three
+gates above. Documented as a 5-step manual action in
+`docs/RELEASE_PROCESS.md`.
+
+**Real evidence used, not assumed**: this session's own earlier crawl
+of `salvage.claimsmitra.com` (resolving to `103.25.128.136` — the
+exact i2k2 IP `README.md` documents) found `/admin/forgot-mpin`
+returning a genuine `404` there — real, first-hand confirmation that
+the live server currently predates both D-125 and D-126. That evidence
+is cited directly in `docs/RELEASES.md`'s `v1.0.0` entry (the first
+real tag, covering exactly those two un-deployed changes) rather than
+guessing at what's actually running.
+
+**Tagged and pushed**: `v1.0.0` at the current `main` HEAD, with the
+release notes above. This is now the first real payload ready to hand
+to Arpit under this process.
+
+**Real gap, deliberately not fixed here**: `docs/DECISIONS.md` D-02's
+own comparison table (GCP → i2k2 adaptation) still says "Docker
+Compose running directly on the server" / "PostgreSQL container" —
+both stale relative to reality: the actual, working deployment
+(`README.md`'s Steps 1–17, and now `scripts/deploy-i2k2.sh`) is a
+native PHP-FPM/Nginx/MySQL/systemd stack, no Docker involved, and the
+database has been MySQL since D-124. Flagging this drift rather than
+silently rewriting a different decision's entry outside this task's
+scope.
