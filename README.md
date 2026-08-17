@@ -572,7 +572,7 @@ Add:
 No backup strategy existed anywhere in this repo before D-104 —
 `scripts/backup.sh` closes that. It reads the real DB credentials
 straight out of `.env` (nothing to duplicate or keep in sync), runs a
-compressed `pg_dump`, tars up `public/uploads/` (real listing
+compressed `mysqldump`, tars up `public/uploads/` (real listing
 photos/videos/documents — these live on local disk, see the "Not yet
 built" caveats above about scaling past one server), and prunes
 anything older than 14 days. Exits non-zero on a genuinely failed
@@ -592,6 +592,25 @@ Add (daily at 02:00 server time):
 Restore a database dump with:
 ```bash
 gunzip -c /var/backups/ebidhub/ebidhub-db-<timestamp>.sql.gz | sudo mysql ebidhub
+```
+
+### Demo data for realistic manual testing (D-129)
+
+Testing against a genuinely empty marketplace only goes so far — the
+live ticker, dashboards, and Lot Approval queue all have nothing to
+show. `php spark seed:demo-data` seeds a real, realistic dataset
+through the exact same services the app itself uses (not fabricated
+rows that bypass business logic): 1 demo tenant ("TradeSphereX"), 20
+demo parties (1 Tenant Admin, 6 sellers, 13 buyers — all KYC
+pre-verified, all sharing mPIN `9999` so they're actually usable), and
+8 listings across Easy/Express/Buy-Now with real EMD holds and
+bids/offers/pledges placed for real.
+
+Every seeded row is clearly marked (`DEMO — ` name prefix, a dedicated
+`+9195000000XX` mobile-number range) and fully reversible:
+```bash
+php spark seed:demo-data          # seed it
+php spark seed:demo-data --undo   # remove it (safe to re-run either command)
 ```
 
 ## Verifying the build (quick reference)

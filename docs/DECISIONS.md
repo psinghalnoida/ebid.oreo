@@ -8677,3 +8677,80 @@ same testing-friction problem doesn't require rebuilding this again if
 it comes up a second time — but the recommendation is to set it back
 to (or simply not set) `totp` once real authenticator-app testing is
 done.
+
+### D-129: `seed:demo-data` — realistic demo data for authentic manual testing
+
+The project owner asked for dummy data — "5-10 items, create
+tradexsphere, create 20 something users, some buyers, some sellers,
+some admins" — to make manual testing (the live ticker, dashboards,
+Lot Approval, browse/homepage) meaningful instead of testing against
+an empty marketplace, and confirmed he'll deploy it to the real i2k2
+server himself.
+
+**Built as `php spark seed:demo-data`** (new file, `app/Commands/
+SeedDemoData.php`), reusing the exact same real service classes the
+app itself uses for every business action — `BiddingService`,
+`OfferService`, `ExpressAuctionService` — the same patterns already
+proven correct in `test:cascade`/`test:buynow`/`test:express`, not a
+shortcut that inserts data the real app couldn't actually produce.
+
+**What it creates**: 1 tenant ("TradeSphereX", `tsx_growth` tier,
+whitelisted) · 20 parties (1 Tenant Admin, 6 sellers, 13 buyers — all
+KYC pre-verified so BR-55 doesn't block them, all sharing mPIN `9999`
+so every account is actually usable for manual testing, not just
+present in the DB) · 8 listings, one per BR-07's real closed-list
+category, across all 3 self-service sale formats (3 Easy, 2 Express, 2
+Buy-Now) with real EMD holds and real bids/pledges/offers placed
+through the actual services, plus 1 listing left genuinely
+`pending_approval` for the Lot Approval queue. Tender was deliberately
+left out — it's Concierge-run against the platform's own "Company
+Shop" tenant, not a self-service format any whitelisted tenant can use
+(confirmed in `TestTenderFoundation.php`'s own fixture setup), so
+faking one under a regular demo tenant would have been fabricating a
+data shape the real system doesn't produce.
+
+**Identifiable and reversible by construction, not an afterthought**:
+every demo party shares one unused mobile-number range
+(`+9195000000XX`, checked against every `test:*` fixture's own ranges
+first) and every demo name/tenant/listing title carries a `DEMO — `
+prefix. `--undo` removes it all by querying those same two markers —
+no ID bookkeeping needed, safe to run against a database this has
+already seeded before.
+
+**A real, useful discovery made while building this — not assumed,
+found by the first real `--undo` run actually failing**: hard-deleting
+demo parties hit a genuine `audit_log` foreign-key constraint
+violation (`fk_audit_log_actor_party_id`) — every seeding action above
+(mPIN set, Tenant Admin grant, ...) had already written real,
+immutable audit rows referencing those parties, exactly as BR-05
+requires. That's the platform's own tamper-evident audit trail
+correctly refusing to let a referenced party vanish — not a bug to
+work around, a design constraint to respect. Fixed by archiving
+demo parties instead of deleting them (`archived_at`, the same
+soft-delete convention `findByMobile()`/`findActiveById()` already
+filter on everywhere else in this app) — functionally gone (can't log
+in, invisible to every query) without touching the audit trail. This
+also meant re-seeding after an undo needed to reuse and un-archive the
+existing party row for a given demo mobile number rather than
+attempting a second `INSERT` — `mobile_number` is a hard `UNIQUE`
+column with no exception for archived rows, so a naive re-seed would
+have collided with itself. Both fixed, and both re-verified for real
+(seed → undo → re-seed → undo, each run inspected) before calling this
+done.
+
+**Verified for real, end to end**: seeded against a fresh MySQL
+database with zero errors on the first attempt for every one of the 8
+listings' business-rule interactions (EMD-then-bid ordering, Express's
+3-pledge trigger, Buy-Now's EMD-then-offer ordering — all enforced by
+the real services, not bypassed). Real HTTP checks after seeding: the
+homepage's "Live Right Now" stat — previously `0` — now genuinely
+reads `7` (3 Easy + 2 Express + 2 Buy-Now active sale events, correctly
+excluding the 1 pending-approval listing with no sale event yet);
+logging in as a seeded buyer and hitting `/ticker-feed` returns real,
+non-empty `ownBids` (correct H3 standing on the Easy auction they lost,
+correct `submitted` status on their Buy-Now offer) — the live ticker
+now has genuine content to test the D-125-era WebSocket-push question
+against, not just an empty state. The complete 39-suite `test:*`
+regression was re-run from a **separate, freshly-migrated database**
+(not the seeded one) immediately afterward and passed clean, 39/39 —
+confirming this new command has no effect on the existing test suite.
