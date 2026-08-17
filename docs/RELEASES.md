@@ -83,3 +83,48 @@ account should already exist on this server.
 **Rollback notes:** safe to roll back to the commit this server was
 already running with no extra steps — neither change here is a
 breaking schema change.
+
+---
+
+## v1.1.0 — 2026-08-17
+
+**What changed:**
+
+1. **Temporary email-OTP toggle for Custodian login** (D-128) — for
+   testing the login flow without an authenticator app set up yet.
+   Off by default; only takes effect if you deliberately add
+   `admin.twoFactorMode = email_otp` to this server's `.env`. See the
+   "D-128 — testing without an authenticator app set up yet" note in
+   this README's Step 16 for exactly how to turn it on/off.
+2. **`php spark seed:demo-data`** (D-129) — one command that fills the
+   marketplace with a realistic demo tenant, 20 demo users, and 8
+   listings across all 3 self-service sale formats, with real bids/
+   offers already placed. Not run automatically — a deliberate,
+   reversible action (`--undo` removes it cleanly) for whenever you
+   want the site to have real-looking content to test/demo against
+   instead of an empty marketplace.
+
+**Migrations needed:** yes. `php spark migrate --all` — one new
+migration (`AddAdminLoginEmailOtpPurpose`) for D-128's OTP purpose.
+
+**New environment variables / config:** none required. Optional:
+`admin.twoFactorMode = email_otp` in `.env`, only if/when you want the
+email-code login path active — see point 1 above. Leaving it unset
+keeps the normal, secure TOTP-required login exactly as it's always
+been.
+
+**Realtime sidecar affected:** no.
+
+**Anything Arpit should watch for after deploying:** nothing runs
+automatically for either change — the email-2FA toggle needs a
+deliberate `.env` edit + `php8.2-fpm` restart to take effect, and the
+demo data needs `php spark seed:demo-data` run by hand if/when it's
+wanted on this server. Neither happens on its own just by deploying
+this tag.
+
+**Rollback notes:** safe to roll back to `v1.0.0` with no extra steps.
+If `seed:demo-data` was run on this server, running `php spark
+seed:demo-data --undo` first (before rolling back) is the cleanest way
+to remove the demo tenant/listings/users, though it isn't required —
+they're clearly marked (`DEMO — ` prefix) and harmless to leave in
+place either way.
