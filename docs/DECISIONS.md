@@ -8612,3 +8612,68 @@ native PHP-FPM/Nginx/MySQL/systemd stack, no Docker involved, and the
 database has been MySQL since D-124. Flagging this drift rather than
 silently rewriting a different decision's entry outside this task's
 scope.
+
+### D-128: TEMPORARY email-OTP second factor for Super Admin login, in place of TOTP
+
+The project owner asked, directly: "can we remove totp authenticator
+till we test it properly and instead ask email ID
+psinghalnoida@gmail.com" — the friction of setting up an authenticator
+app was blocking him from testing the admin login flow himself.
+
+**Built as a reversible toggle, not a removal.** BR-04's real
+requirement is mobile + mPIN + TOTP, all three. Ripping TOTP out of
+`SuperAdminAuthService::login()` outright would mean re-adding it
+later is a second, separate piece of work, and — worse — a fresh
+deploy in the meantime would silently run with a weaker Super Admin
+login and no code-level signal that anything was different from
+intended. Instead: `SuperAdminAuthService::twoFactorMode()` reads
+`admin.twoFactorMode` from `.env`, defaulting to `'totp'` if that key
+is absent — so a server that never touches this setting stays on the
+secure-by-default path automatically. Only an explicit
+`admin.twoFactorMode = email_otp` in a specific `.env` switches the
+behavior, and reverting is one line, not a re-implementation.
+
+**What changes in email_otp mode**: `/admin/login`'s form drops the
+TOTP field; submitting mobile+mPIN sends a real OTP to the account's
+`recovery_email` (already `psinghalnoida@gmail.com` by default via
+`bootstrap:custodian`) and redirects to a new step,
+`/admin/login/verify-email`, before completing login — a genuine
+two-step flow, since (unlike TOTP) the code doesn't exist yet at the
+time of the first POST. `SuperAdminAuthService::login()` itself is
+untouched for the TOTP path; a new `verifyMobileAndMpin()` private
+helper factors out the mobile/mPIN/role checks so both paths share
+them, and two new public methods (`requestLoginEmailOtp()`,
+`completeLoginWithEmailOtp()`) handle the email path's two stages.
+`AuthService::requestEmailOtp()`/`verifyEmailOtp()` (built for D-125's
+forgot-mPIN flow) gained a `$purpose` parameter, defaulting to the
+original `'mpin_reset_email'` for backward compatibility, so the new
+`'admin_login_email'` purpose (new otp_purpose ENUM value, its own
+migration per this project's established one-purpose-per-migration
+convention) keeps this flow's OTPs scoped apart from an in-progress
+mPIN reset rather than colliding in `otp_verification`.
+
+**Verified for real, both directions**: with `admin.twoFactorMode =
+email_otp` set, the full flow — mobile+mPIN submitted → dev-mode email
+code shown (real send genuinely attempted, same honest fail-closed
+`EmailNotificationService` pattern as D-125, since no real SMTP is
+configured in this sandbox) → code verified → real `/admin` dashboard
+loads — worked end to end over real HTTP, and a wrong code was
+genuinely rejected ("Incorrect or expired code."). The setting was
+then reverted to `totp` and the server restarted: the TOTP field
+reappeared on the login form, and a full TOTP login (fresh secret via
+`/admin/setup-totp`, confirmed, then `/admin/login` with mobile +
+mPIN + a real generated TOTP code) succeeded exactly as before —
+confirming the toggle is genuinely reversible, not a one-way change.
+The complete 39-suite `test:*` regression was re-run from a fresh
+MySQL database afterward (with the setting back at the safe `totp`
+default) and passed clean, 39/39.
+
+**Explicitly temporary — revert once TOTP has been tested properly.**
+Documented as such in three places so it can't be missed later: the
+`.env`/`env` files' own comments, `README.md`'s Step 16, and this
+entry. `admin.twoFactorMode` is not removed from the codebase once
+reverted — leaving the toggle in place costs nothing and means the
+same testing-friction problem doesn't require rebuilding this again if
+it comes up a second time — but the recommendation is to set it back
+to (or simply not set) `totp` once real authenticator-app testing is
+done.

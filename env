@@ -78,3 +78,18 @@
 # available" -- it never silently fakes a result.
 # GEMINI_API_KEY =
 # GEMINI_MODEL = gemini-2.0-flash
+
+#--------------------------------------------------------------------
+# SUPER ADMIN (CUSTODIAN) LOGIN -- D-128
+#--------------------------------------------------------------------
+
+# D-128: TEMPORARY toggle, at the project owner's explicit request, to
+# swap Super Admin/Custodian login's second factor from an
+# authenticator app (TOTP, BR-04's real requirement) to a one-time
+# code emailed to the account's recovery_email instead -- meant for
+# testing the login flow before committing to TOTP, not a permanent
+# replacement. Leave commented out (defaults to 'totp' in code, see
+# SuperAdminAuthService::twoFactorMode()) for the normal, secure
+# behavior. Set to 'email_otp' only deliberately, and revert once
+# testing is done.
+# admin.twoFactorMode = totp

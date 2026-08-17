@@ -83,10 +83,27 @@ class SuperAdminAuthService
         return $backupCodes;
     }
 
-    // BR-04: the real separate Super Admin login — mobile + mPIN (same
-    // credential mechanism as regular users, per the existing schema) +
-    // a genuinely-verified TOTP code, all three required.
-    public function login(string $mobileNumber, string $mpin, string $totpCode): array
+    // D-128: TEMPORARY toggle, at the project owner's explicit request —
+    // "remove TOTP till we test it properly, use email instead." Reads
+    // admin.twoFactorMode from .env; defaults to 'totp' (the real BR-04
+    // requirement) if that key is absent, so a fresh deploy that never
+    // touches this setting stays on the secure-by-default path. Only an
+    // explicit `admin.twoFactorMode = email_otp` in a specific server's
+    // .env switches it — this file's own code never assumes which mode
+    // is active. Meant to be reverted (delete the .env line, or set it
+    // back to 'totp') once TOTP has been tested properly; not a
+    // permanent replacement for BR-04's second factor.
+    public static function twoFactorMode(): string
+    {
+        $mode = env('admin.twoFactorMode', 'totp');
+        return $mode === 'email_otp' ? 'email_otp' : 'totp';
+    }
+
+    // Shared by both the TOTP path (login(), below) and the email-OTP
+    // path (requestLoginEmailOtp()/completeLoginWithEmailOtp()) — mobile
+    // + mPIN + super_admin role is the common first stage regardless of
+    // which second factor is active.
+    private function verifyMobileAndMpin(string $mobileNumber, string $mpin): array
     {
         $party = $this->partyModel->findByMobile($mobileNumber);
         if (!$party || !$party['mpin_hash']) {
@@ -98,6 +115,18 @@ class SuperAdminAuthService
         if (!$this->authz->isSuperAdmin($party['id'])) {
             throw new \RuntimeException('This account does not have Super Admin access.');
         }
+        return $party;
+    }
+
+    // BR-04: the real separate Super Admin login — mobile + mPIN (same
+    // credential mechanism as regular users, per the existing schema) +
+    // a genuinely-verified TOTP code, all three required. Only used when
+    // twoFactorMode() === 'totp' (the default) — the controller branches
+    // to requestLoginEmailOtp()/completeLoginWithEmailOtp() instead when
+    // the D-128 toggle is set to 'email_otp'.
+    public function login(string $mobileNumber, string $mpin, string $totpCode): array
+    {
+        $party = $this->verifyMobileAndMpin($mobileNumber, $mpin);
         if (!$party['totp_enabled_at'] || !$party['totp_secret']) {
             throw new \RuntimeException('TOTP has not been set up for this account yet.');
         }
@@ -108,6 +137,43 @@ class SuperAdminAuthService
                 throw new \RuntimeException('Invalid or expired authentication code.');
             }
             (new \App\Libraries\AuditLogService())->log('admin.totp_backup_code_used', $party['id'], []);
+        }
+        return $party;
+    }
+
+    // D-128: stage 1 of the email-OTP login path — validates mobile +
+    // mPIN + super_admin role (same as login()'s first stage), then
+    // sends a real OTP to the account's recovery_email. Throws if no
+    // recovery_email is on file, rather than silently failing to send
+    // anything — bootstrap:custodian sets one by default, but an older
+    // or differently-provisioned account might not have one.
+    public function requestLoginEmailOtp(string $mobileNumber, string $mpin): array
+    {
+        $party = $this->verifyMobileAndMpin($mobileNumber, $mpin);
+        if (empty($party['recovery_email'])) {
+            throw new \RuntimeException('No recovery email is on file for this account — email-based login cannot proceed. Set one (e.g. via bootstrap:custodian) or switch admin.twoFactorMode back to totp.');
+        }
+        $auth = new AuthService();
+        $otp = $auth->requestEmailOtp($party['recovery_email'], 'admin_login_email');
+        $emailSent = (new EmailNotificationService())->sendOtp($party['recovery_email'], $otp, 'admin_login_email');
+
+        return ['party' => $party, 'otp' => $otp, 'emailSent' => $emailSent];
+    }
+
+    // D-128: stage 2 — verifies the emailed code and completes login.
+    // Deliberately re-checks isSuperAdmin() rather than trusting the
+    // party id alone came from a legitimate stage-1 call — the same
+    // defensive posture login()'s TOTP path already has via
+    // verifyMobileAndMpin().
+    public function completeLoginWithEmailOtp(string $partyId, string $submittedOtp): array
+    {
+        $party = $this->partyModel->find($partyId);
+        if (!$party || !$this->authz->isSuperAdmin($partyId) || empty($party['recovery_email'])) {
+            throw new \RuntimeException('Invalid session — start the login again.');
+        }
+        $auth = new AuthService();
+        if (!$auth->verifyEmailOtp($party['recovery_email'], $submittedOtp, 'admin_login_email')) {
+            throw new \RuntimeException('Incorrect or expired code.');
         }
         return $party;
     }

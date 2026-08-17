@@ -2,7 +2,14 @@
 <?= $this->section('content') ?>
 <main style="max-width:420px; padding:60px 24px;">
   <h1 style="font-size:24px;"><?= tsx_term('Super Admin') ?> Login</h1>
-  <p style="color:var(--ink-3); font-size:13px;">BR-04: separate from regular user login — requires mPIN plus a verified TOTP code.</p>
+  <?php if (($twoFactorMode ?? 'totp') === 'email_otp'): ?>
+    <p style="color:var(--ink-3); font-size:13px;">BR-04: separate from regular user login — requires mPIN, then a code emailed to you.</p>
+    <p style="color:#9C5B1F; font-size:12px; background:var(--amber-soft); padding:10px; border-radius:8px;">
+      <strong>Temporary mode</strong>: email-based verification is standing in for the authenticator app while it's being tested — see D-128.
+    </p>
+  <?php else: ?>
+    <p style="color:var(--ink-3); font-size:13px;">BR-04: separate from regular user login — requires mPIN plus a verified TOTP code.</p>
+  <?php endif; ?>
   <?php if (!empty($message)): ?>
     <p style="color:#1E7A4C; font-size:13px; background:#E4F5EC; padding:10px; border-radius:8px;"><?= esc($message) ?></p>
   <?php endif; ?>
@@ -16,10 +23,14 @@
     <label style="font-size:12px; color:var(--ink-3);">mPIN</label>
     <input type="password" name="mpin" maxlength="4" required
       style="display:block; width:100%; padding:12px; margin:6px 0 14px; border:1px solid var(--line); border-radius:10px;">
-    <label style="font-size:12px; color:var(--ink-3);">Authenticator Code (or a backup code)</label>
-    <input type="text" name="totp_code" maxlength="8" required
-      style="display:block; width:100%; padding:12px; margin:6px 0 20px; border:1px solid var(--line); border-radius:10px;">
-    <button type="submit" class="btn btn-emerald" style="width:100%;">Log In</button>
+    <?php if (($twoFactorMode ?? 'totp') !== 'email_otp'): ?>
+      <label style="font-size:12px; color:var(--ink-3);">Authenticator Code (or a backup code)</label>
+      <input type="text" name="totp_code" maxlength="8" required
+        style="display:block; width:100%; padding:12px; margin:6px 0 20px; border:1px solid var(--line); border-radius:10px;">
+    <?php endif; ?>
+    <button type="submit" class="btn btn-emerald" style="width:100%;">
+      <?= ($twoFactorMode ?? 'totp') === 'email_otp' ? 'Continue' : 'Log In' ?>
+    </button>
   </form>
   <p style="margin-top:16px;"><a href="/admin/forgot-mpin" style="font-size:13px; color:var(--ink-3);">Forgot mPIN?</a></p>
 </main>

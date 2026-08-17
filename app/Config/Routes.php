@@ -78,6 +78,10 @@ $routes->get('/admin/setup-totp', 'SuperAdminAuthController::setupTotpForm');
 $routes->post('/admin/setup-totp', 'SuperAdminAuthController::setupTotpSubmit');
 $routes->get('/admin/login', 'SuperAdminAuthController::loginForm');
 $routes->post('/admin/login', 'SuperAdminAuthController::loginSubmit');
+// D-128: TEMPORARY email-OTP second-factor stage, only reached when
+// admin.twoFactorMode=email_otp — see SuperAdminAuthService::twoFactorMode().
+$routes->get('/admin/login/verify-email', 'SuperAdminAuthController::loginVerifyEmailForm');
+$routes->post('/admin/login/verify-email', 'SuperAdminAuthController::loginVerifyEmailSubmit');
 $routes->get('/admin/logout', 'SuperAdminAuthController::logout');
 $routes->get('/admin/forgot-mpin', 'SuperAdminAuthController::forgotMpinForm');
 $routes->post('/admin/forgot-mpin', 'SuperAdminAuthController::forgotMpinSubmit');

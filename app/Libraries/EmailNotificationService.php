@@ -26,6 +26,7 @@ class EmailNotificationService
     {
         $subject = match ($purpose) {
             'mpin_reset_email' => 'Your AdwitiX Custodian mPIN reset code',
+            'admin_login_email' => 'Your AdwitiX Custodian login code',
             default => 'Your AdwitiX verification code',
         };
 

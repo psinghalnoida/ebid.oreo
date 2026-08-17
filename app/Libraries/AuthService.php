@@ -84,22 +84,34 @@ class AuthService
     // kind of silent-wrong-validation bug this project has hit before.
     // Same dev-stub caveat as requestOtp — real email sending isn't
     // connected yet, this returns the plain OTP for on-screen display.
-    public function requestEmailOtp(string $email): string
+    //
+    // $purpose defaults to the original 'mpin_reset_email' caller
+    // (forgot-mPIN) for backward compatibility; D-128 added a second
+    // caller (admin_login_email, SuperAdminAuthService's temporary
+    // email-2FA toggle) that passes its own purpose explicitly so the
+    // two flows' OTPs stay scoped apart in otp_verification, same as
+    // the mobile-number requestOtp()/verifyOtp() pair above already
+    // does across their own multiple purposes.
+    public function requestEmailOtp(string $email, string $purpose = 'mpin_reset_email'): string
     {
+        if (!in_array($purpose, ['mpin_reset_email', 'admin_login_email'], true)) {
+            throw new \RuntimeException("Unknown email OTP purpose: {$purpose}");
+        }
+
         $otp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         $expiresAt = (new \DateTimeImmutable())->modify('+' . self::OTP_EXPIRY_MINUTES . ' minutes');
 
         $this->otpModel->createOtp(
             Uuid::v4(), $email, password_hash($otp, PASSWORD_BCRYPT),
-            'mpin_reset_email', $expiresAt->format('Y-m-d H:i:s')
+            $purpose, $expiresAt->format('Y-m-d H:i:s')
         );
 
         return $otp;
     }
 
-    public function verifyEmailOtp(string $email, string $submittedOtp): bool
+    public function verifyEmailOtp(string $email, string $submittedOtp, string $purpose = 'mpin_reset_email'): bool
     {
-        $record = $this->otpModel->findActive($email, 'mpin_reset_email');
+        $record = $this->otpModel->findActive($email, $purpose);
         if (!$record) {
             return false;
         }

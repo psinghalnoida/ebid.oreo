@@ -501,6 +501,16 @@ way it was in earlier builds.
    through `/admin/tenants/create` — no more manual database inserts
    needed for this.
 
+**D-128 — testing without an authenticator app set up yet**: if you
+want to log in via `/admin/login` before setting up TOTP (e.g. to test
+the login flow itself), set `admin.twoFactorMode = email_otp` in
+`.env` — this swaps the TOTP requirement for a one-time code emailed
+to the account's `recovery_email` instead (`bootstrap:custodian` sets
+this to `psinghalnoida@gmail.com` by default). **This is temporary, not
+a real substitute for BR-04's TOTP requirement** — leave the line out
+of `.env` (or set it to `totp`) for normal, secure operation once
+you've tested what you needed to.
+
 **Tenant Admin** (still CLI-only — no self-service UI exists for this yet):
 ```bash
 sudo php spark grant:tenant-admin <mobile_number> <tenant_id>

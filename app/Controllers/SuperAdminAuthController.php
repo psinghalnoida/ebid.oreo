@@ -83,6 +83,10 @@ class SuperAdminAuthController extends BaseController
         return view('admin/login', [
             'title' => 'Super Admin Login — AdwitiX',
             'message' => session()->getFlashdata('message'),
+            // D-128: TEMPORARY toggle — see SuperAdminAuthService::twoFactorMode()'s
+            // own doc comment. Drives whether the login form shows a TOTP
+            // field or explains a code will be emailed instead.
+            'twoFactorMode' => SuperAdminAuthService::twoFactorMode(),
         ]);
     }
 
@@ -90,21 +94,87 @@ class SuperAdminAuthController extends BaseController
     {
         $mobile = trim($this->request->getPost('mobile_number'));
         $mpin = trim($this->request->getPost('mpin'));
-        $totpCode = trim($this->request->getPost('totp_code'));
 
+        // D-128: email-OTP mode is a genuine two-step flow (the code
+        // doesn't exist yet at the time of this POST — it has to be
+        // generated and sent first), unlike TOTP where the code already
+        // exists on the caller's device. So this branch validates
+        // mobile+mPIN, sends the email, and redirects to a second step
+        // instead of completing login in one request.
+        if (SuperAdminAuthService::twoFactorMode() === 'email_otp') {
+            try {
+                $result = $this->auth->requestLoginEmailOtp($mobile, $mpin);
+            } catch (\RuntimeException $e) {
+                return view('admin/login', ['title' => 'Super Admin Login — AdwitiX', 'error' => $e->getMessage(), 'twoFactorMode' => 'email_otp']);
+            }
+
+            session()->set('admin_login_email_pending_party_id', $result['party']['id']);
+            (new AuditLogService())->log('admin.login_email_otp_requested', $result['party']['id'], [
+                'emailDeliveredForReal' => $result['emailSent'],
+            ], $this->request->getIPAddress(), (string) $this->request->getUserAgent());
+
+            return view('admin/login_verify_email', [
+                'title' => 'Verify Login Code — AdwitiX',
+                'email' => $result['party']['recovery_email'],
+                'emailSent' => $result['emailSent'],
+                // Dev-mode on-screen fallback — same honest convention
+                // as every other OTP flow in this app (devOtp/
+                // devEmailOtp): no real SMTP is configured in this
+                // environment, so without this the flow would be
+                // untestable here.
+                'devOtp' => $result['otp'],
+            ]);
+        }
+
+        $totpCode = trim($this->request->getPost('totp_code'));
         try {
             $party = $this->auth->login($mobile, $mpin, $totpCode);
         } catch (\RuntimeException $e) {
-            return view('admin/login', ['title' => 'Super Admin Login — AdwitiX', 'error' => $e->getMessage()]);
+            return view('admin/login', ['title' => 'Super Admin Login — AdwitiX', 'error' => $e->getMessage(), 'twoFactorMode' => 'totp']);
         }
 
+        $this->completeLogin($party['id']);
+        return redirect()->to('/admin');
+    }
+
+    // D-128: stage 2 of the email-OTP login path.
+    public function loginVerifyEmailForm()
+    {
+        if (!session()->get('admin_login_email_pending_party_id')) {
+            return redirect()->to('/admin/login');
+        }
+        return view('admin/login_verify_email', ['title' => 'Verify Login Code — AdwitiX']);
+    }
+
+    public function loginVerifyEmailSubmit()
+    {
+        $partyId = session()->get('admin_login_email_pending_party_id');
+        if (!$partyId) {
+            return redirect()->to('/admin/login');
+        }
+
+        $otp = trim($this->request->getPost('otp'));
+        try {
+            $party = $this->auth->completeLoginWithEmailOtp($partyId, $otp);
+        } catch (\RuntimeException $e) {
+            return view('admin/login_verify_email', ['title' => 'Verify Login Code — AdwitiX', 'error' => $e->getMessage()]);
+        }
+
+        session()->remove('admin_login_email_pending_party_id');
+        $this->completeLogin($party['id']);
+        return redirect()->to('/admin');
+    }
+
+    // Shared by both the TOTP and email-OTP paths — the session markers
+    // that actually constitute "logged in as Super Admin" are identical
+    // either way; only how the second factor was verified differs.
+    private function completeLogin(string $partyId): void
+    {
         // Distinct session markers from regular login — this is the real
         // separate-login-path security boundary the SuperAdminFilter checks.
         session()->set('super_admin_totp_verified_at', date('Y-m-d H:i:s'));
-        session()->set('super_admin_party_id', $party['id']);
-        session()->set('logged_in_party_id', $party['id']); // also usable as a regular session
-
-        return redirect()->to('/admin');
+        session()->set('super_admin_party_id', $partyId);
+        session()->set('logged_in_party_id', $partyId); // also usable as a regular session
     }
 
     public function logout()
