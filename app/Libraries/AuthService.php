@@ -38,7 +38,11 @@ class AuthService
         if (!self::isValidIndianMobile($mobileNumber)) {
             throw new \RuntimeException('BR-03 violation: invalid Indian mobile number format (expected +91XXXXXXXXXX)');
         }
-        if (!in_array($purpose, ['registration', 'mpin_reset', 'payout_bank_change'], true)) {
+        // 'api_login': UserAuthApiService's REST/JWT login flow — a single
+        // mobile-OTP purpose shared by both new and returning users, since
+        // that flow doesn't branch on mPIN/registration state the way the
+        // browser session flow does.
+        if (!in_array($purpose, ['registration', 'mpin_reset', 'payout_bank_change', 'api_login'], true)) {
             throw new \RuntimeException("Unknown OTP purpose: {$purpose}");
         }
 

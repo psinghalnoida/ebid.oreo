@@ -304,3 +304,13 @@ $routes->post('/api/v1/listings', 'TenantApiController::pushListing', ['filter' 
 $routes->get('/api/v1/listings/(:segment)', 'TenantApiController::getListing/$1', ['filter' => 'apiAuth']);
 $routes->post('/api/v1/listings/(:segment)/sale-events', 'TenantApiController::pushSaleEvent/$1', ['filter' => 'apiAuth']);
 $routes->get('/api/v1/sale-events/(:segment)', 'TenantApiController::getSaleEvent/$1', ['filter' => 'apiAuth']);
+
+// User REST/JWT Login API — mobile-OTP login for mobile/SPA clients.
+// Distinct from both the browser session flow (AuthController) and the
+// Tenant API above: this issues a user-scoped JWT (jwtAuth filter), not a
+// PHP session cookie or a Tenant API credential token.
+// 1) request OTP  2) verify OTP -> otp_ticket  3) submit profile -> JWT
+$routes->post('/api/v1/auth/otp/request', 'UserAuthApiController::requestOtp');
+$routes->post('/api/v1/auth/otp/verify', 'UserAuthApiController::verifyOtp');
+$routes->post('/api/v1/auth/submit', 'UserAuthApiController::submit');
+$routes->get('/api/v1/auth/me', 'UserAuthApiController::me', ['filter' => 'jwtAuth']);

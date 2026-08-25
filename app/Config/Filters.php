@@ -38,6 +38,7 @@ class Filters extends BaseFilters
         'superAdmin'    => \App\Filters\SuperAdminFilter::class,
         'tenantResolve' => \App\Filters\TenantResolutionFilter::class,
         'apiAuth'       => \App\Filters\ApiAuthFilter::class,
+        'jwtAuth'       => \App\Filters\JwtAuthFilter::class,
     ];
 
     /**
