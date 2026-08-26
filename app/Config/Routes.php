@@ -6,15 +6,9 @@ use CodeIgniter\Router\RouteCollection;
 $routes->get('/', 'Home::index');
 $routes->get('/trust-support', 'TrustSupport::index');
 
-// BR-02 auth flow
-$routes->get('/register', 'AuthController::registerForm');
-$routes->post('/register', 'AuthController::registerSubmit');
-$routes->post('/register/verify-otp', 'AuthController::registerVerifyOtpSubmit');
-$routes->post('/register/set-mpin', 'AuthController::setMpinSubmit');
-
-$routes->get('/login', 'AuthController::loginForm');
-$routes->post('/login', 'AuthController::loginSubmit');
-$routes->post('/login/reset-verify-otp', 'AuthController::resetVerifyOtpSubmit');
+// BR-02 auth flow — see the REST/JWT routes near the bottom of this
+// file (UserAuthApiController) for the register/login/mpin-reset API
+// that replaced this section's former HTML routes (D-137, Phase 6).
 
 // BR-11/BR-13 listing lifecycle + BR-12 Easy Auction — Phase 2 of the
 // CI4->REST/JWT migration (D-132). Party-facing actions run behind
@@ -122,20 +116,9 @@ $routes->post('/api/v1/app/account/delete/request', 'AccountController::deleteRe
 $routes->post('/api/v1/app/account/delete/cancel', 'AccountController::deleteCancelSubmit', ['filter' => 'jwtAuth']);
 $routes->get('/api/v1/app/account/earnings', 'AccountController::earnings', ['filter' => 'jwtAuth']);
 
-// Super Admin real auth (BR-04)
-$routes->get('/admin/setup-totp', 'SuperAdminAuthController::setupTotpForm');
-$routes->post('/admin/setup-totp', 'SuperAdminAuthController::setupTotpSubmit');
-$routes->get('/admin/login', 'SuperAdminAuthController::loginForm');
-$routes->post('/admin/login', 'SuperAdminAuthController::loginSubmit');
-// D-128: TEMPORARY email-OTP second-factor stage, only reached when
-// admin.twoFactorMode=email_otp — see SuperAdminAuthService::twoFactorMode().
-$routes->get('/admin/login/verify-email', 'SuperAdminAuthController::loginVerifyEmailForm');
-$routes->post('/admin/login/verify-email', 'SuperAdminAuthController::loginVerifyEmailSubmit');
-$routes->get('/admin/logout', 'SuperAdminAuthController::logout');
-$routes->get('/admin/forgot-mpin', 'SuperAdminAuthController::forgotMpinForm');
-$routes->post('/admin/forgot-mpin', 'SuperAdminAuthController::forgotMpinSubmit');
-$routes->post('/admin/forgot-mpin/verify', 'SuperAdminAuthController::forgotMpinVerifySubmit');
-$routes->post('/admin/forgot-mpin/set-mpin', 'SuperAdminAuthController::forgotMpinSetMpinSubmit');
+// Super Admin real auth (BR-04) — see SuperAdminAuthApiController's
+// REST/JWT routes near the bottom of this file for the setup-totp/
+// login/forgot-mpin API that replaced this section (D-137, Phase 6).
 
 // Phase 5 of the CI4->REST/JWT migration (D-135): Admin dashboard,
 // Tenant/User management — jwtSuperAdmin-gated.
@@ -170,14 +153,13 @@ $routes->post('/sale-events/(:segment)/tender/close-bidding', 'TenderController:
 $routes->post('/tender-reviews/(:segment)/action', 'TenderController::reviewAction/$1');
 $routes->get('/sale-events/(:segment)/tender/report', 'TenderController::auctionReport/$1');
 
-// Navigation gaps closed — logout, browse
-$routes->get('/logout', 'AuthController::logout');
+// Navigation gaps closed — browse. (No server-side /logout route: JWT
+// logout is client-side — the React app just discards the token.)
 $routes->get('/browse', 'Home::browse');
 $routes->get('/listings', 'Home::browse');
-$routes->get('/admin/audit-log', 'AuditLogController::index', ['filter' => 'superAdmin']);
-$routes->get('/admin/audit-log/verify', 'AuditLogController::verifyIntegrity', ['filter' => 'superAdmin']);
-$routes->get('/admin/audit-log/export', 'AuditLogController::exportForm', ['filter' => 'superAdmin']);
-$routes->get('/admin/audit-log/export/download', 'AuditLogController::export', ['filter' => 'superAdmin']);
+$routes->get('/api/v1/app/admin/audit-log', 'AuditLogController::index', ['filter' => 'jwtSuperAdmin']);
+$routes->get('/api/v1/app/admin/audit-log/verify', 'AuditLogController::verifyIntegrity', ['filter' => 'jwtSuperAdmin']);
+$routes->get('/api/v1/app/admin/audit-log/export', 'AuditLogController::export', ['filter' => 'jwtSuperAdmin']);
 $routes->post('/api/v1/app/tenants/(:segment)/media-waiver', 'TenantMediaWaiverController::requestSubmit/$1', ['filter' => 'jwtAuth']);
 $routes->get('/api/v1/app/admin/media-waivers', 'TenantMediaWaiverController::pendingList', ['filter' => 'jwtSuperAdmin']);
 $routes->post('/api/v1/app/admin/media-waivers/(:segment)/decide', 'TenantMediaWaiverController::decide/$1', ['filter' => 'jwtSuperAdmin']);
@@ -192,8 +174,8 @@ $routes->post('/api/v1/app/admin/tenants/(:segment)/edit', 'TenantController::ed
 $routes->get('/api/v1/app/tenants', 'TenantController::directory');
 
 // AML Monitoring (BR-54/PR-31) — SaaS Admin only
-$routes->get('/admin/aml', 'AmlController::index', ['filter' => 'superAdmin']);
-$routes->post('/admin/aml/(:segment)/review', 'AmlController::review/$1', ['filter' => 'superAdmin']);
+$routes->get('/api/v1/app/admin/aml', 'AmlController::index', ['filter' => 'jwtSuperAdmin']);
+$routes->post('/api/v1/app/admin/aml/(:segment)/review', 'AmlController::review/$1', ['filter' => 'jwtSuperAdmin']);
 
 // Payout Account Change Control (BR-50/PR-28) — migrated to /api/v1
 // below (Phase 4, D-134).
@@ -215,9 +197,8 @@ $routes->get('/api/v1/app/tenants/(:segment)/sellers/(:segment)', 'SellerManagem
 $routes->post('/api/v1/app/tenants/(:segment)/sellers/(:segment)/initiate-review', 'SellerManagementController::initiateReview/$1/$2', ['filter' => 'jwtAuth']);
 
 // Consent Audit viewer (BR-51)
-$routes->get('/admin/consent-audit', 'ConsentAuditController::index', ['filter' => 'superAdmin']);
-$routes->get('/admin/consent-audit/export', 'ConsentAuditController::exportForm', ['filter' => 'superAdmin']);
-$routes->get('/admin/consent-audit/export/download', 'ConsentAuditController::export', ['filter' => 'superAdmin']);
+$routes->get('/api/v1/app/admin/consent-audit', 'ConsentAuditController::index', ['filter' => 'jwtSuperAdmin']);
+$routes->get('/api/v1/app/admin/consent-audit/export', 'ConsentAuditController::export', ['filter' => 'jwtSuperAdmin']);
 
 // Phase 3A: account management — migrated to /api/v1 below (Phase 4, D-134).
 
@@ -290,19 +271,19 @@ $routes->post('/api/v1/app/kyc/submit', 'KycController::submit', ['filter' => 'j
 
 // KYC review — Super Admin (SaaS Admin) side, see KycReviewController's
 // class doc block for why this is Super Admin rather than Tenant Admin.
-$routes->get('/admin/kyc', 'KycReviewController::index', ['filter' => 'superAdmin']);
-$routes->get('/admin/kyc/(:segment)', 'KycReviewController::detail/$1', ['filter' => 'superAdmin']);
-$routes->post('/admin/kyc/(:segment)/verify-flag', 'KycReviewController::verifyFlag/$1', ['filter' => 'superAdmin']);
-$routes->post('/admin/kyc/(:segment)/decide', 'KycReviewController::decide/$1', ['filter' => 'superAdmin']);
-$routes->post('/admin/kyc/(:segment)/clear-edd', 'KycReviewController::clearEdd/$1', ['filter' => 'superAdmin']);
-$routes->get('/admin/kyc-documents/(:segment)/download', 'KycReviewController::downloadDocument/$1', ['filter' => 'superAdmin']);
+$routes->get('/api/v1/app/admin/kyc', 'KycReviewController::index', ['filter' => 'jwtSuperAdmin']);
+$routes->get('/api/v1/app/admin/kyc/(:segment)', 'KycReviewController::detail/$1', ['filter' => 'jwtSuperAdmin']);
+$routes->post('/api/v1/app/admin/kyc/(:segment)/verify-flag', 'KycReviewController::verifyFlag/$1', ['filter' => 'jwtSuperAdmin']);
+$routes->post('/api/v1/app/admin/kyc/(:segment)/decide', 'KycReviewController::decide/$1', ['filter' => 'jwtSuperAdmin']);
+$routes->post('/api/v1/app/admin/kyc/(:segment)/clear-edd', 'KycReviewController::clearEdd/$1', ['filter' => 'jwtSuperAdmin']);
+$routes->get('/api/v1/app/admin/kyc-documents/(:segment)/download', 'KycReviewController::downloadDocument/$1', ['filter' => 'jwtSuperAdmin']);
 
 // Tenant API Access (BR-62-66/PR-37) — Tenant Admin portal-side credential
 // and webhook management.
-$routes->get('/tenants/(:segment)/api-access', 'TenantApiSettingsController::index/$1', ['filter' => 'tenantAdmin:tenant']);
-$routes->post('/tenants/(:segment)/api-access/credentials', 'TenantApiSettingsController::issueCredential/$1', ['filter' => 'tenantAdmin:tenant']);
-$routes->post('/tenants/(:segment)/api-access/credentials/(:segment)/revoke', 'TenantApiSettingsController::revokeCredential/$1/$2', ['filter' => 'tenantAdmin:tenant']);
-$routes->post('/tenants/(:segment)/api-access/webhook-url', 'TenantApiSettingsController::updateWebhookUrl/$1', ['filter' => 'tenantAdmin:tenant']);
+$routes->get('/api/v1/app/tenants/(:segment)/api-access', 'TenantApiSettingsController::index/$1', ['filter' => 'jwtTenantAdmin:tenant']);
+$routes->post('/api/v1/app/tenants/(:segment)/api-access/credentials', 'TenantApiSettingsController::issueCredential/$1', ['filter' => 'jwtTenantAdmin:tenant']);
+$routes->post('/api/v1/app/tenants/(:segment)/api-access/credentials/(:segment)/revoke', 'TenantApiSettingsController::revokeCredential/$1/$2', ['filter' => 'jwtTenantAdmin:tenant']);
+$routes->post('/api/v1/app/tenants/(:segment)/api-access/webhook-url', 'TenantApiSettingsController::updateWebhookUrl/$1', ['filter' => 'jwtTenantAdmin:tenant']);
 
 // Tenant API Access (BR-62-66/PR-37) — the actual API surface, OAuth2
 // client-credentials-authenticated (apiAuth filter), not session-based.
@@ -327,10 +308,22 @@ $routes->post('/api/v1/app/auth/otp/verify', 'UserAuthApiController::verifyOtp')
 $routes->post('/api/v1/app/auth/submit', 'UserAuthApiController::submit');
 $routes->get('/api/v1/app/auth/me', 'UserAuthApiController::me', ['filter' => 'jwtAuth']);
 
-// Super Admin REST/JWT login (BR-04) — JWT counterpart of
-// SuperAdminAuthController::loginSubmit/loginVerifyEmailSubmit. See
-// SuperAdminAuthApiController's docblock re: the session dual-write this
-// still does until every superAdmin-filtered controller below is itself
-// migrated to the jwtSuperAdmin filter.
+// BR-02 mPIN registration/login (D-137, Phase 6 — replaces the former
+// AuthController). registerVerifyOtp and loginVerifyResetOtp both
+// return a pending_ticket for the shared final step, mpin/complete.
+$routes->post('/api/v1/app/auth/register/otp/request', 'UserAuthApiController::registerRequestOtp');
+$routes->post('/api/v1/app/auth/register/otp/verify', 'UserAuthApiController::registerVerifyOtp');
+$routes->post('/api/v1/app/auth/login', 'UserAuthApiController::loginWithMpin');
+$routes->post('/api/v1/app/auth/login/verify-reset-otp', 'UserAuthApiController::loginVerifyResetOtp');
+$routes->post('/api/v1/app/auth/mpin/complete', 'UserAuthApiController::completeMpinSetup');
+
+// Super Admin REST/JWT login (BR-04) — JWT counterpart of the former
+// SuperAdminAuthController. forgotMpinVerify's resulting ticket is
+// completed via the same shared UserAuthApiController::mpin/complete
+// endpoint above.
 $routes->post('/api/v1/app/admin/auth/login', 'SuperAdminAuthApiController::login');
 $routes->post('/api/v1/app/admin/auth/login/verify-email', 'SuperAdminAuthApiController::verifyEmail');
+$routes->post('/api/v1/app/admin/auth/setup-totp', 'SuperAdminAuthApiController::setupTotp', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/admin/auth/setup-totp/confirm', 'SuperAdminAuthApiController::confirmSetupTotp', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/admin/auth/forgot-mpin', 'SuperAdminAuthApiController::forgotMpinRequest');
+$routes->post('/api/v1/app/admin/auth/forgot-mpin/verify', 'SuperAdminAuthApiController::forgotMpinVerify');

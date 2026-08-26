@@ -173,6 +173,130 @@ class UserAuthApiService
         return $claims;
     }
 
+    // ── BR-02 mPIN registration/login (D-137: JWT replacement for the
+    // former AuthController) ────────────────────────────────────────
+    //
+    // A separate flow from the OTP-only quick-login above (requestLoginOtp/
+    // verifyLoginOtp/completeLogin): this is the platform's real BR-02
+    // identity — mobile + a 4-digit mPIN with a 3-strike lockout, not a
+    // fresh OTP on every login. All three of registration's OTP-verified
+    // step, login's lockout-triggered reset, and Super Admin's forgot-mPIN
+    // (SuperAdminAuthApiController) converge on the same
+    // 'mpin_setup_pending' ticket + completeMpinSetup() below, since
+    // "prove who you are, then set an mPIN" is identical in each case —
+    // only how the proof happened differs.
+
+    // Registration step 1.
+    public function registerRequestOtp(string $mobileNumber): string
+    {
+        return $this->auth->requestOtp($mobileNumber, 'registration');
+    }
+
+    // Registration step 2 — verifies the OTP, creates the party record
+    // (BR-02: idempotent if one already exists for this mobile), and
+    // returns a ticket for step 3 (completeMpinSetup).
+    public function registerVerifyOtp(string $mobileNumber, string $otp): string
+    {
+        if (!$this->auth->verifyOtp($mobileNumber, 'registration', $otp)) {
+            throw new \RuntimeException('Incorrect or expired OTP.');
+        }
+        $party = $this->auth->completeRegistration($mobileNumber);
+        return self::issuePendingTicket('mpin_setup_pending', ['sub' => $party['id']]);
+    }
+
+    // Login step 1. Mirrors AuthService::authenticateWithMpin()'s three
+    // outcomes:
+    //  - 'ok': access token issued directly.
+    //  - 'otp_required': 3-strike lockout hit — an OTP (dual-channel with
+    //    email, if on file) is sent and a ticket returned for step 2
+    //    (verifyMpinResetOtp).
+    //  - 'invalid_mpin': wrong mPIN, lockout not yet hit.
+    public function loginWithMpin(string $mobileNumber, string $mpin): array
+    {
+        $result = $this->auth->authenticateWithMpin($mobileNumber, $mpin);
+
+        if ($result['status'] === 'ok') {
+            $this->partyModel->update($result['party']['id'], ['last_login_at' => date('Y-m-d H:i:s')]);
+            return [
+                'status' => 'ok',
+                'access_token' => $this->issueAccessToken($result['party']),
+                'token_type' => 'Bearer',
+                'expires_in' => self::ACCESS_TOKEN_TTL_SECONDS,
+                'party' => self::toProfile($result['party']),
+            ];
+        }
+
+        if ($result['status'] === 'otp_required') {
+            $party = $this->partyModel->find($result['partyId']);
+            $otp = $this->auth->requestOtp($mobileNumber, 'mpin_reset');
+            $ticketClaims = ['sub' => $result['partyId'], 'mobile' => $mobileNumber];
+
+            $response = ['status' => 'otp_required', 'dev_otp' => $otp];
+            // Dual-channel: both mobile and email OTP required together,
+            // per the account owner's explicit request.
+            if (!empty($party['recovery_email'])) {
+                $ticketClaims['email'] = $party['recovery_email'];
+                $response['dev_email_otp'] = $this->auth->requestEmailOtp($party['recovery_email']);
+                $response['email'] = $party['recovery_email'];
+            }
+            $response['pending_ticket'] = self::issuePendingTicket('mpin_reset_otp_pending', $ticketClaims);
+            return $response;
+        }
+
+        // 'invalid_mpin'
+        return ['status' => 'invalid_mpin', 'attemptsRemaining' => $result['attemptsRemaining']];
+    }
+
+    // Login step 2 (only reached via the 'otp_required' branch above).
+    public function verifyMpinResetOtp(string $pendingTicket, string $otp, ?string $emailOtp): string
+    {
+        $claims = self::decodePendingTicket($pendingTicket, 'mpin_reset_otp_pending');
+        if (!$claims) {
+            throw new \RuntimeException('Invalid or expired pending_ticket. Start the login again.');
+        }
+
+        if (!$this->auth->verifyOtp($claims['mobile'], 'mpin_reset', $otp)) {
+            throw new \RuntimeException('Incorrect or expired mobile OTP.');
+        }
+        // Dual-channel: both codes required together once a recovery
+        // email is on file.
+        if (!empty($claims['email'])) {
+            if (!$this->auth->verifyEmailOtp($claims['email'], (string) $emailOtp)) {
+                throw new \RuntimeException('Mobile OTP correct, but the email OTP was incorrect or expired. Both are required together.');
+            }
+        }
+
+        return self::issuePendingTicket('mpin_setup_pending', ['sub' => $claims['sub']]);
+    }
+
+    // Shared step 3 for registration, login-reset, AND
+    // SuperAdminAuthApiController's forgot-mPIN (all three produce a
+    // 'mpin_setup_pending' ticket from their own verification path).
+    // Deliberately does NOT grant the super_admin role claim even when
+    // reached via the admin forgot-mPIN path — resetting the mPIN proves
+    // mobile+email control, not the separate TOTP/email-OTP second
+    // factor BR-04's real Super Admin login requires, so the caller
+    // logs in again afterward rather than being auto-elevated here.
+    public function completeMpinSetup(string $pendingTicket, string $mpin): array
+    {
+        $claims = self::decodePendingTicket($pendingTicket, 'mpin_setup_pending');
+        if (!$claims) {
+            throw new \RuntimeException('Invalid or expired pending_ticket. Start again.');
+        }
+
+        $this->auth->setMpin($claims['sub'], $mpin);
+        $party = $this->partyModel->find($claims['sub']);
+        $this->partyModel->update($party['id'], ['last_login_at' => date('Y-m-d H:i:s')]);
+        (new AuditLogService())->log('auth.mpin_setup_completed', $party['id'], []);
+
+        return [
+            'access_token' => $this->issueAccessToken($party),
+            'token_type' => 'Bearer',
+            'expires_in' => self::ACCESS_TOKEN_TTL_SECONDS,
+            'party' => self::toProfile($party),
+        ];
+    }
+
     private static function toProfile(array $party): array
     {
         return [

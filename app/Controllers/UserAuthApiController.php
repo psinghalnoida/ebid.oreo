@@ -99,6 +99,98 @@ class UserAuthApiController extends BaseController
         return $this->response->setStatusCode(200)->setJSON($result);
     }
 
+    // ── BR-02 mPIN registration/login (D-137, replaces AuthController) ──
+
+    // POST /api/v1/auth/register/otp/request  { mobile_number }
+    public function registerRequestOtp()
+    {
+        $mobile = trim((string) $this->input('mobile_number'));
+        if (!AuthService::isValidIndianMobile($mobile)) {
+            return $this->jsonError(422, 'invalid_mobile_number', 'Expected a 10-digit Indian mobile number in +91XXXXXXXXXX format.');
+        }
+        try {
+            $otp = $this->service->registerRequestOtp($mobile);
+        } catch (\RuntimeException $e) {
+            return $this->jsonError(422, 'request_failed', $e->getMessage());
+        }
+        return $this->response->setJSON(['message' => 'OTP sent.', 'dev_otp' => $otp]);
+    }
+
+    // POST /api/v1/auth/register/otp/verify  { mobile_number, otp }
+    // -> pending_ticket for /api/v1/auth/mpin/complete
+    public function registerVerifyOtp()
+    {
+        $mobile = trim((string) $this->input('mobile_number'));
+        $otp = trim((string) $this->input('otp'));
+        try {
+            $ticket = $this->service->registerVerifyOtp($mobile, $otp);
+        } catch (\RuntimeException $e) {
+            return $this->jsonError(401, 'invalid_otp', $e->getMessage());
+        }
+        return $this->response->setJSON(['pending_ticket' => $ticket]);
+    }
+
+    // POST /api/v1/auth/login  { mobile_number, mpin }
+    // Three shapes back, mirroring AuthService::authenticateWithMpin():
+    // {status:"ok", access_token, ...}, {status:"otp_required",
+    // pending_ticket, ...}, or {status:"invalid_mpin", attemptsRemaining}.
+    public function loginWithMpin()
+    {
+        $mobile = trim((string) $this->input('mobile_number'));
+        $mpin = trim((string) $this->input('mpin'));
+        $audit = new \App\Libraries\AuditLogService();
+        $ip = $this->request->getIPAddress();
+        $userAgent = (string) $this->request->getUserAgent();
+
+        try {
+            $result = $this->service->loginWithMpin($mobile, $mpin);
+        } catch (\RuntimeException $e) {
+            $audit->log('auth.login.failed', null, ['mobile' => $mobile, 'reason' => $e->getMessage()], $ip, $userAgent);
+            return $this->jsonError(401, 'login_failed', $e->getMessage());
+        }
+
+        $eventsByStatus = ['ok' => 'auth.login.success', 'otp_required' => 'auth.login.otp_required', 'invalid_mpin' => 'auth.login.invalid_mpin'];
+        $audit->log($eventsByStatus[$result['status']], $result['party']['id'] ?? null, ['mobile' => $mobile], $ip, $userAgent);
+
+        if ($result['status'] === 'invalid_mpin') {
+            return $this->jsonError(401, 'invalid_mpin', "Incorrect mPIN. {$result['attemptsRemaining']} attempt(s) remaining before OTP verification is required.");
+        }
+
+        return $this->response->setJSON($result);
+    }
+
+    // POST /api/v1/auth/login/verify-reset-otp  { pending_ticket, otp, email_otp? }
+    // -> pending_ticket for /api/v1/auth/mpin/complete
+    public function loginVerifyResetOtp()
+    {
+        $ticket = (string) $this->input('pending_ticket');
+        $otp = trim((string) $this->input('otp'));
+        $emailOtp = $this->input('email_otp') !== null ? trim((string) $this->input('email_otp')) : null;
+
+        try {
+            $mpinSetupTicket = $this->service->verifyMpinResetOtp($ticket, $otp, $emailOtp);
+        } catch (\RuntimeException $e) {
+            return $this->jsonError(401, 'invalid_otp', $e->getMessage());
+        }
+        return $this->response->setJSON(['pending_ticket' => $mpinSetupTicket]);
+    }
+
+    // POST /api/v1/auth/mpin/complete  { pending_ticket, mpin }
+    // Shared final step for registration, login-reset, and
+    // SuperAdminAuthApiController's forgot-mPIN.
+    public function completeMpinSetup()
+    {
+        $ticket = (string) $this->input('pending_ticket');
+        $mpin = trim((string) $this->input('mpin'));
+
+        try {
+            $result = $this->service->completeMpinSetup($ticket, $mpin);
+        } catch (\RuntimeException $e) {
+            return $this->jsonError(422, 'mpin_setup_failed', $e->getMessage());
+        }
+        return $this->response->setJSON($result);
+    }
+
     // GET /api/v1/auth/me  (filter: jwtAuth)
     // Returns the authenticated user's data — the "get user data with JWT
     // token" step, callable again on any later request with the same token.

@@ -34,13 +34,15 @@ class Filters extends BaseFilters
         'forcehttps'    => ForceHTTPS::class,
         'pagecache'     => PageCache::class,
         'performance'   => PerformanceMetrics::class,
-        'tenantAdmin'   => \App\Filters\TenantAdminFilter::class,
-        'superAdmin'    => \App\Filters\SuperAdminFilter::class,
+        // 'tenantAdmin'/'superAdmin' (session-based) retired in D-137
+        // (Phase 6) — every controller that used them is now migrated
+        // to jwtTenantAdmin/jwtSuperAdmin below.
         'tenantResolve' => \App\Filters\TenantResolutionFilter::class,
         'apiAuth'       => \App\Filters\ApiAuthFilter::class,
         'jwtAuth'       => \App\Filters\JwtAuthFilter::class,
         'jwtSuperAdmin' => \App\Filters\JwtSuperAdminFilter::class,
         'jwtTenantAdmin' => \App\Filters\JwtTenantAdminFilter::class,
+        'jwtOptional'   => \App\Filters\JwtOptionalAuthFilter::class,
     ];
 
     /**
@@ -89,6 +91,15 @@ class Filters extends BaseFilters
             'csrf' => ['except' => ['api/*']],
             // 'invalidchars',
             'tenantResolve', // BR-06: Host-header tenant resolution, every request
+            // D-137 (Phase 6): populates UserAuthContext from a Bearer
+            // token when one is offered, without rejecting requests that
+            // don't — see JwtOptionalAuthFilter's own docblock. Runs
+            // globally so the handful of not-yet-converted, session-
+            // optional controllers (Home, DiscoveryController, etc.)
+            // keep degrading to "anonymous viewer" instead of silently
+            // losing their personalization now that nothing sets the
+            // old PHP session anymore.
+            'jwtOptional',
         ],
         'after' => [
             // 'honeypot',

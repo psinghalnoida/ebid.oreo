@@ -20,7 +20,7 @@ class InvoiceController extends BaseController
 
     private function requireLogin()
     {
-        return session()->get('logged_in_party_id');
+        return \App\Libraries\UserAuthContext::partyId();
     }
 
     public function index()

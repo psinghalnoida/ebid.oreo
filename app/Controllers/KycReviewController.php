@@ -3,24 +3,24 @@
 namespace App\Controllers;
 
 use App\Libraries\KycService;
+use App\Libraries\UserAuthContext;
 use App\Models\PartyModel;
 use App\Models\PartyDocumentModel;
 use App\Models\PartyAddressModel;
 
-// BR-17/PR-15: Super Admin (SaaS Admin) side of KYC review — gated
-// behind the superAdmin filter (real TOTP-verified login, BR-04).
+// BR-17/PR-15: Super Admin (SaaS Admin) side of KYC review —
+// jwtSuperAdmin-gated (real TOTP/email-OTP-verified login, BR-04).
 //
 // Deliberate, flagged deviation from PR-15's literal text: PR-15 says
 // "Tenant Admin reviews the compliance dossier and transitions master
 // KYC Status." KYC is party-level data with no owning tenant, though —
-// unlike every other resource TenantAdminFilter guards (listing,
-// saleEvent, settlement, sellerApplication, all tenant-owned), a Party's
-// own identity isn't scoped to one tenant (BR-06: buyers are federated
-// globally). There is no coherent answer to "which Tenant Admin" for a
-// buyer who hasn't yet transacted with any tenant. Routed to Super Admin
-// instead, consistent with how this codebase already handles other
-// genuinely platform-wide compliance functions (BR-54 AML review,
-// BR-05 audit log, BR-49's cross-tenant high-value reporting).
+// unlike every other resource jwtTenantAdmin guards (listing, saleEvent,
+// settlement, sellerApplication, all tenant-owned), a Party's own
+// identity isn't scoped to one tenant (BR-06: buyers are federated
+// globally). Routed to Super Admin instead, consistent with how this
+// codebase already handles other genuinely platform-wide compliance
+// functions (BR-54 AML review, BR-05 audit log, BR-49's cross-tenant
+// high-value reporting).
 class KycReviewController extends BaseController
 {
     private KycService $kyc;
@@ -35,63 +35,59 @@ class KycReviewController extends BaseController
     public function index()
     {
         $submitted = $this->partyModel->where('kyc_status', 'submitted')->orderBy('kyc_submitted_at', 'ASC')->findAll();
-        return view('admin/kyc_review_list', ['title' => 'KYC Review Queue — AdwitiX', 'parties' => $submitted]);
+        return $this->response->setJSON(['parties' => $submitted]);
     }
 
     public function detail(string $partyId)
     {
         $party = $this->partyModel->find($partyId);
         if (!$party) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->jsonError(404, 'not_found', 'Party not found.');
         }
         $documents = (new PartyDocumentModel())->forParty($partyId);
         $addresses = (new PartyAddressModel())->forParty($partyId);
 
-        return view('admin/kyc_review_detail', [
-            'title' => 'KYC Dossier — AdwitiX', 'party' => $party,
-            'documents' => $documents, 'addresses' => $addresses,
+        return $this->response->setJSON([
+            'party' => $party, 'documents' => $documents, 'addresses' => $addresses,
             'suspensionReasons' => KycService::suspensionReasons(),
         ]);
     }
 
     public function verifyFlag(string $partyId)
     {
-        $verifierId = session()->get('super_admin_party_id');
         try {
-            $this->kyc->verifyComplianceFlag($partyId, (string) $this->request->getPost('flag'), $verifierId);
+            $this->kyc->verifyComplianceFlag($partyId, (string) $this->input('flag'), UserAuthContext::partyId());
         } catch (\RuntimeException $e) {
-            return redirect()->to("/admin/kyc/{$partyId}")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'verify_failed', $e->getMessage());
         }
-        return redirect()->to("/admin/kyc/{$partyId}")->with('error', 'Compliance flag verified.');
+        return $this->response->setJSON(['party' => $this->partyModel->find($partyId), 'message' => 'Compliance flag verified.']);
     }
 
     public function decide(string $partyId)
     {
-        $reviewerId = session()->get('super_admin_party_id');
-        $approve = $this->request->getPost('decision') === 'verify';
+        $approve = $this->input('decision') === 'verify';
         try {
-            $this->kyc->reviewDossier($partyId, $reviewerId, $approve, $this->request->getPost('reason'));
+            $this->kyc->reviewDossier($partyId, UserAuthContext::partyId(), $approve, $this->input('reason'));
         } catch (\RuntimeException $e) {
-            return redirect()->to("/admin/kyc/{$partyId}")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'decide_failed', $e->getMessage());
         }
-        return redirect()->to('/admin/kyc')->with('error', $approve ? 'KYC verified.' : 'KYC suspended.');
+        return $this->response->setJSON(['party' => $this->partyModel->find($partyId), 'message' => $approve ? 'KYC verified.' : 'KYC suspended.']);
     }
 
     public function clearEdd(string $partyId)
     {
-        $clearedBy = session()->get('super_admin_party_id');
-        $this->kyc->clearEnhancedDueDiligence($partyId, $clearedBy);
-        return redirect()->to("/admin/kyc/{$partyId}")->with('error', 'Enhanced due diligence cleared for this party.');
+        $this->kyc->clearEnhancedDueDiligence($partyId, UserAuthContext::partyId());
+        return $this->response->setJSON(['party' => $this->partyModel->find($partyId), 'message' => 'Enhanced due diligence cleared for this party.']);
     }
 
     // Documents are never reachable by a guessed URL — decrypted only
-    // on-demand for a real, TOTP-verified Super Admin session.
+    // on-demand for a real, TOTP-verified Super Admin (jwtSuperAdmin).
     public function downloadDocument(string $documentId)
     {
         try {
             $decrypted = $this->kyc->decryptDocument($documentId);
         } catch (\RuntimeException $e) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->jsonError(404, 'not_found', 'Document not found.');
         }
         return $this->response
             ->setHeader('Content-Type', $decrypted['mimeType'])

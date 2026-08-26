@@ -3,11 +3,12 @@
 namespace App\Controllers;
 
 use App\Libraries\ApiCredentialService;
+use App\Libraries\UserAuthContext;
 use App\Models\TenantApiCredentialModel;
 use App\Models\TenantModel;
 
 // BR-62-66: Tenant Admin-facing credential issuance/revocation and
-// webhook URL registration. Access enforced by the tenantAdmin route
+// webhook URL registration. Access enforced by the jwtTenantAdmin route
 // filter, not by this controller.
 class TenantApiSettingsController extends BaseController
 {
@@ -15,11 +16,10 @@ class TenantApiSettingsController extends BaseController
     {
         $tenant = (new TenantModel())->find($tenantId);
         if (!$tenant) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->jsonError(404, 'not_found', 'Tenant not found.');
         }
 
-        return view('tenant_admin/api_access', [
-            'title' => 'API Access — ' . $tenant['name'],
+        return $this->response->setJSON([
             'tenant' => $tenant,
             'hasApiAccess' => TenantModel::hasApiAccess($tenant['subscription_tier']),
             'canPushListings' => TenantModel::canPushListings($tenant['subscription_tier']),
@@ -30,21 +30,21 @@ class TenantApiSettingsController extends BaseController
 
     // BR-62: "credentials are issued at the Tenant level... established
     // as part of the same formal agreement that establishes the Tenant
-    // Admin." The plaintext secret is shown exactly once, on this
-    // redirect's flash message, and never retrievable again.
+    // Admin." The plaintext secret is returned exactly once, in this
+    // response, and never retrievable again.
     public function issueCredential(string $tenantId)
     {
         $tenant = (new TenantModel())->find($tenantId);
         if (!$tenant) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->jsonError(404, 'not_found', 'Tenant not found.');
         }
         if (!TenantModel::hasApiAccess($tenant['subscription_tier'])) {
-            return redirect()->to("/tenants/{$tenantId}/api-access")->with('error', 'BR-66: this TSX\'s subscription tier (CoCo Starter) has no API access.');
+            return $this->jsonError(403, 'no_api_access', 'BR-66: this TSX\'s subscription tier (CoCo Starter) has no API access.');
         }
 
-        $issued = (new ApiCredentialService())->issueCredential($tenantId, session()->get('logged_in_party_id'));
+        $issued = (new ApiCredentialService())->issueCredential($tenantId, UserAuthContext::partyId());
 
-        return redirect()->to("/tenants/{$tenantId}/api-access")->with('newCredential', [
+        return $this->response->setStatusCode(201)->setJSON([
             'clientId' => $issued['credential']['client_id'], 'clientSecret' => $issued['clientSecret'],
         ]);
     }
@@ -53,22 +53,22 @@ class TenantApiSettingsController extends BaseController
     {
         $credential = (new TenantApiCredentialModel())->find($credentialId);
         if (!$credential || $credential['tenant_id'] !== $tenantId) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->jsonError(404, 'not_found', 'Credential not found.');
         }
-        (new ApiCredentialService())->revokeCredential($credentialId, session()->get('logged_in_party_id'));
-        return redirect()->to("/tenants/{$tenantId}/api-access")->with('error', 'Credential revoked — any outstanding access token is rejected immediately.');
+        (new ApiCredentialService())->revokeCredential($credentialId, UserAuthContext::partyId());
+        return $this->response->setJSON(['message' => 'Credential revoked — any outstanding access token is rejected immediately.']);
     }
 
     public function updateWebhookUrl(string $tenantId)
     {
         $tenant = (new TenantModel())->find($tenantId);
         if (!$tenant) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->jsonError(404, 'not_found', 'Tenant not found.');
         }
 
-        $url = trim((string) $this->request->getPost('webhook_url'));
+        $url = trim((string) $this->input('webhook_url'));
         if ($url !== '' && !filter_var($url, FILTER_VALIDATE_URL)) {
-            return redirect()->to("/tenants/{$tenantId}/api-access")->with('error', 'Webhook URL must be a valid URL, or left blank to disable webhook delivery.');
+            return $this->jsonError(422, 'invalid_url', 'Webhook URL must be a valid URL, or left blank to disable webhook delivery.');
         }
 
         $update = ['webhook_url' => $url ?: null];
@@ -79,6 +79,6 @@ class TenantApiSettingsController extends BaseController
         }
 
         (new TenantModel())->update($tenantId, $update);
-        return redirect()->to("/tenants/{$tenantId}/api-access")->with('error', $url ? 'Webhook URL saved.' : 'Webhook URL cleared — webhook delivery disabled.');
+        return $this->response->setJSON(['message' => $url ? 'Webhook URL saved.' : 'Webhook URL cleared — webhook delivery disabled.']);
     }
 }
