@@ -4,14 +4,13 @@ namespace App\Controllers;
 
 use App\Libraries\AuthService;
 use App\Libraries\AuditLogService;
+use App\Libraries\UserAuthApiService;
+use App\Libraries\UserAuthContext;
 use App\Models\PartyModel;
 
 class AccountController extends BaseController
 {
-    private function requireLogin(): ?string
-    {
-        return session()->get('logged_in_party_id');
-    }
+    private const MPIN_CHANGE_TICKET_TYP = 'account_mpin_change_pending';
 
     // Phase 3A: account edit. Deliberately scoped to non-verification-
     // critical fields only — full_name, recovery_email, occupation, and
@@ -20,134 +19,103 @@ class AccountController extends BaseController
     // editable here — those are BR-17's KYC-verification anchors and
     // should only change through a real KYC re-verification flow (not
     // built yet), not a casual self-service form.
-    public function editForm()
-    {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
-
-        $party = (new PartyModel())->find($partyId);
-        return view('account/edit', ['title' => 'Edit Account — AdwitiX', 'party' => $party]);
-    }
-
     public function editSubmit()
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
-
+        $partyId = UserAuthContext::partyId();
         $partyModel = new PartyModel();
         $party = $partyModel->find($partyId);
 
         $update = [
-            'full_name' => $this->request->getPost('full_name'),
-            'recovery_email' => $this->request->getPost('recovery_email') ?: null,
-            'occupation' => $this->request->getPost('occupation') ?: null,
+            'full_name' => $this->input('full_name'),
+            'recovery_email' => $this->input('recovery_email') ?: null,
+            'occupation' => $this->input('occupation') ?: null,
         ];
         if ($party['entity_type'] === 'organization') {
-            $update['org_company_type'] = $this->request->getPost('org_company_type') ?: null;
-            $update['org_industry'] = $this->request->getPost('org_industry') ?: null;
-            $update['org_annual_turnover'] = $this->request->getPost('org_annual_turnover') !== '' ? (float) $this->request->getPost('org_annual_turnover') : null;
-            $update['org_employee_count'] = $this->request->getPost('org_employee_count') !== '' ? (int) $this->request->getPost('org_employee_count') : null;
+            $update['org_company_type'] = $this->input('org_company_type') ?: null;
+            $update['org_industry'] = $this->input('org_industry') ?: null;
+            $update['org_annual_turnover'] = $this->input('org_annual_turnover') !== null && $this->input('org_annual_turnover') !== '' ? (float) $this->input('org_annual_turnover') : null;
+            $update['org_employee_count'] = $this->input('org_employee_count') !== null && $this->input('org_employee_count') !== '' ? (int) $this->input('org_employee_count') : null;
         }
 
         $partyModel->update($partyId, $update);
         (new AuditLogService())->log('account.edited', $partyId, ['fields' => array_keys($update)]);
 
-        return redirect()->to('/profile')->with('error', 'Account details updated.');
+        return $this->response->setJSON(['party' => $partyModel->find($partyId), 'message' => 'Account details updated.']);
     }
 
-    // mPIN change — OTP-gated even though the caller is already logged
-    // in, so a hijacked session alone can't change the credential
-    // without also controlling the registered mobile.
-    public function changeMpinForm()
-    {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
-        return view('account/change_mpin_request', ['title' => 'Change mPIN — AdwitiX']);
-    }
-
+    // mPIN change — OTP-gated even though the caller is already
+    // authenticated, so a leaked access token alone can't change the
+    // credential without also controlling the registered mobile. The
+    // "pending" step is a stateless JWT ticket (like PayoutBankController's)
+    // instead of a PHP session value.
     public function changeMpinRequestOtp()
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
-
+        $partyId = UserAuthContext::partyId();
         $party = (new PartyModel())->find($partyId);
         $otp = (new AuthService())->requestOtp($party['mobile_number'], 'mpin_reset');
-        session()->set('pending_mpin_change_party_id', $partyId);
 
-        return view('account/change_mpin_confirm', ['title' => 'Confirm mPIN Change — AdwitiX', 'devOtp' => $otp]);
+        $pendingTicket = UserAuthApiService::issuePendingTicket(self::MPIN_CHANGE_TICKET_TYP, ['sub' => $partyId]);
+
+        return $this->response->setJSON(['pending_ticket' => $pendingTicket, 'dev_otp' => $otp]);
     }
 
     public function changeMpinConfirm()
     {
-        $partyId = session()->get('pending_mpin_change_party_id');
-        if (!$partyId || $partyId !== $this->requireLogin()) {
-            return redirect()->to('/account/change-mpin');
+        $partyId = UserAuthContext::partyId();
+        $pending = UserAuthApiService::decodePendingTicket((string) $this->input('pending_ticket'), self::MPIN_CHANGE_TICKET_TYP);
+        if (!$pending || $pending['sub'] !== $partyId) {
+            return $this->jsonError(401, 'invalid_ticket', 'Invalid or expired pending_ticket — request the OTP again.');
         }
 
         $party = (new PartyModel())->find($partyId);
-        $otp = trim($this->request->getPost('otp'));
-        $newMpin = trim($this->request->getPost('new_mpin'));
+        $otp = trim((string) $this->input('otp'));
+        $newMpin = trim((string) $this->input('new_mpin'));
 
         if (!(new AuthService())->verifyOtp($party['mobile_number'], 'mpin_reset', $otp)) {
-            return view('account/change_mpin_confirm', ['title' => 'Confirm mPIN Change — AdwitiX', 'error' => 'Incorrect or expired OTP.']);
+            return $this->jsonError(401, 'invalid_otp', 'Incorrect or expired OTP.');
         }
 
         try {
             (new AuthService())->setMpin($partyId, $newMpin);
         } catch (\RuntimeException $e) {
-            return view('account/change_mpin_confirm', ['title' => 'Confirm mPIN Change — AdwitiX', 'error' => $e->getMessage()]);
+            return $this->jsonError(422, 'mpin_change_failed', $e->getMessage());
         }
 
-        session()->remove('pending_mpin_change_party_id');
         (new AuditLogService())->log('account.mpin_changed', $partyId, []);
 
-        return redirect()->to('/profile')->with('error', 'mPIN changed successfully.');
+        return $this->response->setJSON(['message' => 'mPIN changed successfully.']);
     }
 
     // Account deletion — soft delete via the existing archived_at
     // mechanism, staged 30 days out (same pattern as BR-50's payout
     // cooling-off) rather than immediate, with a genuine cancellation
     // option in the meantime.
-    public function deleteForm()
-    {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
-
-        $party = (new PartyModel())->find($partyId);
-        return view('account/delete', ['title' => 'Delete Account — AdwitiX', 'party' => $party]);
-    }
-
     public function deleteRequestSubmit()
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
-
-        $reason = $this->request->getPost('reason') ?: null;
+        $partyId = UserAuthContext::partyId();
+        $reason = $this->input('reason') ?: null;
         (new PartyModel())->update($partyId, [
             'deletion_requested_at' => date('Y-m-d H:i:s'), 'deletion_reason' => $reason,
         ]);
         (new AuditLogService())->log('account.deletion_requested', $partyId, ['reason' => $reason]);
 
-        return redirect()->to('/profile')->with('error', 'Deletion requested — your account will be archived in 30 days unless you cancel before then.');
+        return $this->response->setJSON(['message' => 'Deletion requested — your account will be archived in 30 days unless you cancel before then.']);
     }
 
     public function deleteCancelSubmit()
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
-
+        $partyId = UserAuthContext::partyId();
         (new PartyModel())->update($partyId, ['deletion_requested_at' => null, 'deletion_reason' => null]);
         (new AuditLogService())->log('account.deletion_cancelled', $partyId, []);
 
-        return redirect()->to('/profile')->with('error', 'Deletion request cancelled.');
+        return $this->response->setJSON(['message' => 'Deletion request cancelled.']);
     }
 
     // Seller earnings summary — real aggregates from completed
     // settlements, not a separate ledger.
     public function earnings()
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
+        $partyId = UserAuthContext::partyId();
 
         $db = \Config\Database::connect();
         $monthStart = date('Y-m-01 00:00:00');
@@ -187,9 +155,8 @@ class AccountController extends BaseController
 
         $party = (new PartyModel())->find($partyId);
 
-        return view('account/earnings', [
-            'title' => 'Earnings — AdwitiX', 'thisMonth' => $thisMonth, 'ytd' => $ytd,
-            'pendingCount' => $pendingCount, 'party' => $party,
+        return $this->response->setJSON([
+            'thisMonth' => $thisMonth, 'ytd' => $ytd, 'pendingCount' => $pendingCount, 'party' => $party,
         ]);
     }
 }

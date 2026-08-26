@@ -42,8 +42,10 @@ class JwtTenantAdminFilter implements FilterInterface
 
         $resourceType = $arguments[0] ?? 'listing';
         $segments = $request->getUri()->getSegments();
-        // e.g. ['api', 'v1', 'listings', '{id}', 'approve']
-        $resourceId = $segments[2] ?? null;
+        // e.g. ['api', 'v1', 'listings', '{id}', 'approve'] — the 'api/v1'
+        // prefix shifts the resource ID two slots later than the original
+        // session-based TenantAdminFilter's un-prefixed routes had it.
+        $resourceId = $segments[3] ?? null;
         if (!$resourceId) {
             return service('response')->setStatusCode(400)->setJSON(['error' => 'invalid_request', 'error_description' => 'Missing resource ID']);
         }

@@ -20,66 +20,104 @@ $routes->post('/login/reset-verify-otp', 'AuthController::resetVerifyOtpSubmit')
 // CI4->REST/JWT migration (D-132). Party-facing actions run behind
 // jwtAuth; Tenant-Admin actions behind jwtTenantAdmin (the JWT
 // counterpart of the old session-based tenantAdmin filter).
-$routes->get('/api/v1/tenants', 'ListingController::tenants');
-$routes->post('/api/v1/listings/pre-audit', 'ListingController::preAudit', ['filter' => 'jwtAuth']);
-$routes->post('/api/v1/listings', 'ListingController::createSubmit', ['filter' => 'jwtAuth']);
-$routes->get('/api/v1/listings/(:segment)', 'ListingController::show/$1');
-$routes->post('/api/v1/listings/(:segment)/edit', 'ListingController::editSubmit/$1', ['filter' => 'jwtAuth']);
-$routes->post('/api/v1/listings/(:segment)/favorite', 'ListingController::favorite/$1', ['filter' => 'jwtAuth']);
-$routes->post('/api/v1/listings/(:segment)/unfavorite', 'ListingController::unfavorite/$1', ['filter' => 'jwtAuth']);
-$routes->post('/api/v1/listings/(:segment)/flag-cbs-violation', 'ListingController::flagCbsViolation/$1', ['filter' => 'jwtAuth']);
-$routes->post('/api/v1/listings/(:segment)/submit-for-approval', 'ListingController::submitForApproval/$1', ['filter' => 'jwtAuth']);
-$routes->post('/api/v1/listings/(:segment)/approve', 'ListingController::approve/$1', ['filter' => 'jwtTenantAdmin:listing']);
-$routes->post('/api/v1/listings/(:segment)/reject', 'ListingController::reject/$1', ['filter' => 'jwtTenantAdmin:listing']);
-$routes->post('/api/v1/listings/(:segment)/sale-events', 'SaleEventController::createSubmit/$1', ['filter' => 'jwtAuth']);
+$routes->get('/api/v1/app/tenants', 'ListingController::tenants');
+$routes->post('/api/v1/app/listings/pre-audit', 'ListingController::preAudit', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/listings', 'ListingController::createSubmit', ['filter' => 'jwtAuth']);
+$routes->get('/api/v1/app/listings/(:segment)', 'ListingController::show/$1');
+$routes->post('/api/v1/app/listings/(:segment)/edit', 'ListingController::editSubmit/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/listings/(:segment)/favorite', 'ListingController::favorite/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/listings/(:segment)/unfavorite', 'ListingController::unfavorite/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/listings/(:segment)/flag-cbs-violation', 'ListingController::flagCbsViolation/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/listings/(:segment)/submit-for-approval', 'ListingController::submitForApproval/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/listings/(:segment)/approve', 'ListingController::approve/$1', ['filter' => 'jwtTenantAdmin:listing']);
+$routes->post('/api/v1/app/listings/(:segment)/reject', 'ListingController::reject/$1', ['filter' => 'jwtTenantAdmin:listing']);
+$routes->post('/api/v1/app/listings/(:segment)/sale-events', 'SaleEventController::createSubmit/$1', ['filter' => 'jwtAuth']);
 
-$routes->post('/api/v1/sale-events/(:segment)/approve', 'SaleEventController::approve/$1', ['filter' => 'jwtTenantAdmin:saleEvent']);
-$routes->post('/api/v1/sale-events/(:segment)/defect-disclosure', 'SaleEventController::defectDisclosureSubmit/$1', ['filter' => 'jwtAuth']);
-$routes->post('/api/v1/sale-events/(:segment)/dev-force-freeze', 'SaleEventController::devForceFreeze/$1', ['filter' => 'jwtTenantAdmin:saleEvent']);
-$routes->post('/api/v1/sale-events/(:segment)/emergency-stop', 'SaleEventController::emergencyStop/$1', ['filter' => 'jwtTenantAdmin:saleEvent']);
-$routes->post('/api/v1/sale-events/(:segment)/dev-fund-emd', 'BidController::devFundEmd/$1', ['filter' => 'jwtAuth']);
-$routes->post('/api/v1/sale-events/(:segment)/bid', 'BidController::placeBid/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/sale-events/(:segment)/approve', 'SaleEventController::approve/$1', ['filter' => 'jwtTenantAdmin:saleEvent']);
+$routes->post('/api/v1/app/sale-events/(:segment)/defect-disclosure', 'SaleEventController::defectDisclosureSubmit/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/sale-events/(:segment)/dev-force-freeze', 'SaleEventController::devForceFreeze/$1', ['filter' => 'jwtTenantAdmin:saleEvent']);
+$routes->post('/api/v1/app/sale-events/(:segment)/emergency-stop', 'SaleEventController::emergencyStop/$1', ['filter' => 'jwtTenantAdmin:saleEvent']);
+$routes->post('/api/v1/app/sale-events/(:segment)/dev-fund-emd', 'BidController::devFundEmd/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/sale-events/(:segment)/bid', 'BidController::placeBid/$1', ['filter' => 'jwtAuth']);
 // D-113: BR-28 cascade top-up payment — closes the gap CascadeService::
 // processTopupPaid() had no real route to reach.
-$routes->post('/api/v1/sale-events/(:segment)/dev-pay-topup', 'BidController::devPayTopup/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/sale-events/(:segment)/dev-pay-topup', 'BidController::devPayTopup/$1', ['filter' => 'jwtAuth']);
 
 // D-117: BR-52/PR-30 Chargeback Handling & Representment.
-$routes->post('/api/v1/sale-events/(:segment)/dev-file-chargeback', 'ChargebackController::devFile/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/sale-events/(:segment)/dev-file-chargeback', 'ChargebackController::devFile/$1', ['filter' => 'jwtAuth']);
 $routes->get('/admin/chargebacks', 'ChargebackController::index', ['filter' => 'superAdmin']);
 $routes->post('/admin/chargebacks/(:segment)/decide', 'ChargebackController::decide/$1', ['filter' => 'superAdmin']);
 $routes->post('/admin/chargebacks/(:segment)/review-integrity', 'ChargebackController::reviewIntegrity/$1', ['filter' => 'superAdmin']);
 
 // Buy-Now offers (BR-27/BR-42/BR-29)
-$routes->post('/api/v1/sale-events/(:segment)/dev-fund-emd-offer', 'OfferController::devFundEmd/$1', ['filter' => 'jwtAuth']);
-$routes->post('/api/v1/sale-events/(:segment)/offers', 'OfferController::submit/$1', ['filter' => 'jwtAuth']);
-$routes->post('/api/v1/sale-events/(:segment)/offers/(:segment)/accept', 'OfferController::accept/$1/$2', ['filter' => 'jwtAuth']);
-$routes->post('/api/v1/offers/(:segment)/withdraw', 'OfferController::withdraw/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/sale-events/(:segment)/dev-fund-emd-offer', 'OfferController::devFundEmd/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/sale-events/(:segment)/offers', 'OfferController::submit/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/sale-events/(:segment)/offers/(:segment)/accept', 'OfferController::accept/$1/$2', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/offers/(:segment)/withdraw', 'OfferController::withdraw/$1', ['filter' => 'jwtAuth']);
 
 // Express Auction (BR-12/PR-11)
-$routes->post('/api/v1/sale-events/(:segment)/pledge', 'ExpressController::pledge/$1', ['filter' => 'jwtAuth']);
-$routes->post('/api/v1/sale-events/(:segment)/express-bid', 'ExpressController::placeBid/$1', ['filter' => 'jwtAuth']);
-$routes->post('/api/v1/sale-events/(:segment)/dev-force-close-bidding', 'ExpressController::devForceCloseBidding/$1', ['filter' => 'jwtTenantAdmin:saleEvent']);
+$routes->post('/api/v1/app/sale-events/(:segment)/pledge', 'ExpressController::pledge/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/sale-events/(:segment)/express-bid', 'ExpressController::placeBid/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/sale-events/(:segment)/dev-force-close-bidding', 'ExpressController::devForceCloseBidding/$1', ['filter' => 'jwtTenantAdmin:saleEvent']);
 
 // Listing media (BR-11, BR-45)
-$routes->post('/api/v1/listings/(:segment)/media', 'MediaController::upload/$1', ['filter' => 'jwtAuth']);
-$routes->post('/api/v1/listings/(:segment)/media/(:segment)/set-primary', 'MediaController::setPrimary/$1/$2', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/listings/(:segment)/media', 'MediaController::upload/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/listings/(:segment)/media/(:segment)/set-primary', 'MediaController::setPrimary/$1/$2', ['filter' => 'jwtAuth']);
 
 // Settlement (BR-33, BR-39) — Phase 3 of the CI4->REST/JWT migration (D-133)
-$routes->get('/api/v1/settlements/(:segment)', 'SettlementController::show/$1', ['filter' => 'jwtAuth']);
-$routes->post('/api/v1/settlements/(:segment)/confirm-seller-noc', 'SettlementController::confirmSellerNoc/$1', ['filter' => 'jwtAuth']);
-$routes->post('/api/v1/settlements/(:segment)/confirm-buyer-noc', 'SettlementController::confirmBuyerNoc/$1', ['filter' => 'jwtAuth']);
-$routes->post('/api/v1/settlements/(:segment)/rate-as-buyer', 'SettlementController::rateAsBuyer/$1', ['filter' => 'jwtAuth']);
-$routes->post('/api/v1/settlements/(:segment)/rate-as-seller', 'SettlementController::rateAsSeller/$1', ['filter' => 'jwtAuth']);
-$routes->post('/api/v1/settlements/dev-flag-stalled', 'SettlementController::devFlagStalled', ['filter' => 'jwtSuperAdmin']);
-$routes->post('/api/v1/settlements/(:segment)/force-resolve', 'SettlementController::forceResolve/$1', ['filter' => 'jwtTenantAdmin:settlement']);
+$routes->get('/api/v1/app/settlements/(:segment)', 'SettlementController::show/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/settlements/(:segment)/confirm-seller-noc', 'SettlementController::confirmSellerNoc/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/settlements/(:segment)/confirm-buyer-noc', 'SettlementController::confirmBuyerNoc/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/settlements/(:segment)/rate-as-buyer', 'SettlementController::rateAsBuyer/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/settlements/(:segment)/rate-as-seller', 'SettlementController::rateAsSeller/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/settlements/dev-flag-stalled', 'SettlementController::devFlagStalled', ['filter' => 'jwtSuperAdmin']);
+$routes->post('/api/v1/app/settlements/(:segment)/force-resolve', 'SettlementController::forceResolve/$1', ['filter' => 'jwtTenantAdmin:settlement']);
 
 // Dispute Resolution Framework (BR-40)
-$routes->post('/api/v1/sale-events/(:segment)/dispute', 'DisputeController::fileSubmit/$1', ['filter' => 'jwtAuth']);
-$routes->get('/api/v1/disputes/(:segment)', 'DisputeController::show/$1', ['filter' => 'jwtAuth']);
-$routes->post('/api/v1/disputes/(:segment)/evidence', 'DisputeController::submitEvidence/$1', ['filter' => 'jwtAuth']);
-$routes->post('/api/v1/disputes/(:segment)/rule', 'DisputeController::rule/$1', ['filter' => 'jwtAuth']);
-$routes->post('/api/v1/disputes/(:segment)/appeal', 'DisputeController::appeal/$1', ['filter' => 'jwtAuth']);
-$routes->post('/api/v1/disputes/(:segment)/rule-appeal', 'DisputeController::ruleOnAppeal/$1', ['filter' => 'jwtSuperAdmin']);
+$routes->post('/api/v1/app/sale-events/(:segment)/dispute', 'DisputeController::fileSubmit/$1', ['filter' => 'jwtAuth']);
+$routes->get('/api/v1/app/disputes/(:segment)', 'DisputeController::show/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/disputes/(:segment)/evidence', 'DisputeController::submitEvidence/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/disputes/(:segment)/rule', 'DisputeController::rule/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/disputes/(:segment)/appeal', 'DisputeController::appeal/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/disputes/(:segment)/rule-appeal', 'DisputeController::ruleOnAppeal/$1', ['filter' => 'jwtSuperAdmin']);
+
+// Phase 4 of the CI4->REST/JWT migration (D-134): KYC (below, near its
+// old routes), Payout Bank, EMD Consent, Preferences, My Activity/
+// Account, Seller Delisting.
+$routes->post('/api/v1/app/payout-bank/request', 'PayoutBankController::requestSubmit', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/payout-bank/confirm', 'PayoutBankController::confirmSubmit', ['filter' => 'jwtAuth']);
+
+$routes->get('/api/v1/app/sale-events/(:segment)/emd-consent/(:segment)', 'EmdConsentController::terms/$1/$2', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/sale-events/(:segment)/emd-consent/(:segment)/confirm', 'EmdConsentController::confirm/$1/$2', ['filter' => 'jwtAuth']);
+
+$routes->get('/api/v1/app/preferences', 'PreferencesController::show', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/preferences', 'PreferencesController::submit', ['filter' => 'jwtAuth']);
+
+$routes->post('/api/v1/app/admin/delist-seller', 'SellerDelistingController::submit', ['filter' => 'jwtSuperAdmin']);
+
+$routes->get('/api/v1/app/my-listings', 'MyActivityController::myListings', ['filter' => 'jwtAuth']);
+$routes->get('/api/v1/app/my-activity', 'MyActivityController::myActivity', ['filter' => 'jwtAuth']);
+$routes->get('/api/v1/app/profile', 'MyActivityController::profile', ['filter' => 'jwtAuth']);
+$routes->get('/api/v1/app/my-bids', 'MyActivityController::myBids', ['filter' => 'jwtAuth']);
+$routes->get('/api/v1/app/my-offers', 'MyActivityController::myOffers', ['filter' => 'jwtAuth']);
+$routes->get('/api/v1/app/my-purchases', 'MyActivityController::myPurchases', ['filter' => 'jwtAuth']);
+$routes->get('/api/v1/app/my-purchases/export', 'MyActivityController::myPurchasesExport', ['filter' => 'jwtAuth']);
+$routes->get('/api/v1/app/my-sales', 'MyActivityController::mySales', ['filter' => 'jwtAuth']);
+$routes->get('/api/v1/app/my-sales/export', 'MyActivityController::mySalesExport', ['filter' => 'jwtAuth']);
+$routes->get('/api/v1/app/my-messages', 'MyActivityController::messages', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/my-messages/(:segment)/read', 'MyActivityController::markMessageRead/$1', ['filter' => 'jwtAuth']);
+$routes->get('/api/v1/app/my-star-ratings', 'MyActivityController::starRatings', ['filter' => 'jwtAuth']);
+$routes->get('/api/v1/app/my-rating-history', 'MyActivityController::ratingHistory', ['filter' => 'jwtAuth']);
+$routes->get('/api/v1/app/my-buyer-dashboard', 'MyActivityController::buyerDashboard', ['filter' => 'jwtAuth']);
+$routes->get('/api/v1/app/my-seller-dashboard', 'MyActivityController::sellerDashboard', ['filter' => 'jwtAuth']);
+
+$routes->get('/api/v1/app/account', 'MyActivityController::profile', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/account/edit', 'AccountController::editSubmit', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/account/change-mpin/request-otp', 'AccountController::changeMpinRequestOtp', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/account/change-mpin/confirm', 'AccountController::changeMpinConfirm', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/account/delete/request', 'AccountController::deleteRequestSubmit', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/account/delete/cancel', 'AccountController::deleteCancelSubmit', ['filter' => 'jwtAuth']);
+$routes->get('/api/v1/app/account/earnings', 'AccountController::earnings', ['filter' => 'jwtAuth']);
 
 // Super Admin real auth (BR-04)
 $routes->get('/admin/setup-totp', 'SuperAdminAuthController::setupTotpForm');
@@ -107,11 +145,11 @@ $routes->get('/admin/users/(:segment)', 'UserController::detail/$1', ['filter' =
 $routes->post('/admin/users/(:segment)/promote-tenant-admin', 'UserController::promoteTenantAdmin/$1', ['filter' => 'superAdmin']);
 
 // Seller Application (BR-09)
-$routes->get('/tenants/(:segment)/apply-to-sell', 'SellerApplicationController::applyForm/$1');
-$routes->post('/tenants/(:segment)/apply-to-sell', 'SellerApplicationController::applySubmit/$1');
-$routes->get('/tenants/(:segment)/pending-sellers', 'SellerApplicationController::pendingList/$1', ['filter' => 'tenantAdmin:tenant']);
-$routes->post('/seller-applications/(:segment)/approve', 'SellerApplicationController::approve/$1', ['filter' => 'tenantAdmin:sellerApplication']);
-$routes->post('/seller-applications/(:segment)/reject', 'SellerApplicationController::reject/$1', ['filter' => 'tenantAdmin:sellerApplication']);
+$routes->get('/api/v1/app/tenants/(:segment)/apply-to-sell', 'SellerApplicationController::applyStatus/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/tenants/(:segment)/apply-to-sell', 'SellerApplicationController::applySubmit/$1', ['filter' => 'jwtAuth']);
+$routes->get('/api/v1/app/tenants/(:segment)/pending-sellers', 'SellerApplicationController::pendingList/$1', ['filter' => 'jwtTenantAdmin:tenant']);
+$routes->post('/api/v1/app/seller-applications/(:segment)/approve', 'SellerApplicationController::approve/$1', ['filter' => 'jwtTenantAdmin:sellerApplication']);
+$routes->post('/api/v1/app/seller-applications/(:segment)/reject', 'SellerApplicationController::reject/$1', ['filter' => 'jwtTenantAdmin:sellerApplication']);
 $routes->get('/tenants/(:segment)/dashboard', 'TenantAdminController::dashboard/$1', ['filter' => 'tenantAdmin:tenant']);
 $routes->get('/tenants/(:segment)/verification', 'TenantAdminController::verification/$1', ['filter' => 'tenantAdmin:tenant']);
 
@@ -128,15 +166,10 @@ $routes->post('/sale-events/(:segment)/tender/close-bidding', 'TenderController:
 $routes->post('/tender-reviews/(:segment)/action', 'TenderController::reviewAction/$1');
 $routes->get('/sale-events/(:segment)/tender/report', 'TenderController::auctionReport/$1');
 
-// Navigation gaps closed — logout, My Listings/Activity/Profile, browse
+// Navigation gaps closed — logout, browse
 $routes->get('/logout', 'AuthController::logout');
 $routes->get('/browse', 'Home::browse');
 $routes->get('/listings', 'Home::browse');
-$routes->get('/my-listings', 'MyActivityController::myListings');
-$routes->get('/my-activity', 'MyActivityController::myActivity');
-$routes->get('/profile', 'MyActivityController::profile');
-$routes->post('/listings/(:segment)/edit', 'ListingController::editSubmit/$1');
-$routes->post('/sale-events/(:segment)/emergency-stop', 'SaleEventController::emergencyStop/$1', ['filter' => 'tenantAdmin:saleEvent']);
 $routes->get('/admin/audit-log', 'AuditLogController::index', ['filter' => 'superAdmin']);
 $routes->get('/admin/audit-log/verify', 'AuditLogController::verifyIntegrity', ['filter' => 'superAdmin']);
 $routes->get('/admin/audit-log/export', 'AuditLogController::exportForm', ['filter' => 'superAdmin']);
@@ -146,18 +179,11 @@ $routes->post('/tenants/(:segment)/media-waiver', 'TenantMediaWaiverController::
 $routes->get('/admin/media-waivers', 'TenantMediaWaiverController::pendingList', ['filter' => 'superAdmin']);
 $routes->post('/admin/media-waivers/(:segment)/decide', 'TenantMediaWaiverController::decide/$1', ['filter' => 'superAdmin']);
 $routes->post('/admin/media-waivers/(:segment)/revoke', 'TenantMediaWaiverController::revoke/$1', ['filter' => 'superAdmin']);
-$routes->post('/listings/(:segment)/flag-cbs-violation', 'ListingController::flagCbsViolation/$1');
 $routes->get('/admin/standing-review/(:segment)', 'StandingReviewController::show/$1');
 $routes->post('/admin/standing-review/(:segment)/rule', 'StandingReviewController::rule/$1');
-$routes->get('/admin/delist-seller', 'SellerDelistingController::form', ['filter' => 'superAdmin']);
-$routes->post('/admin/delist-seller', 'SellerDelistingController::submit', ['filter' => 'superAdmin']);
-$routes->get('/preferences', 'PreferencesController::form');
-$routes->post('/preferences', 'PreferencesController::submit');
+// SellerDelistingController, PreferencesController, EmdConsentController:
+// migrated to /api/v1 with jwtSuperAdmin/jwtAuth below (Phase 4, D-134).
 $routes->get('/ticker-feed', 'LiveTickerController::feed');
-$routes->get('/sale-events/(:segment)/emd-consent/(:segment)', 'EmdConsentController::form/$1/$2');
-$routes->post('/sale-events/(:segment)/emd-consent/(:segment)/confirm', 'EmdConsentController::confirm/$1/$2');
-$routes->get('/sale-events/(:segment)/defect-disclosure', 'SaleEventController::defectDisclosureForm/$1');
-$routes->post('/sale-events/(:segment)/defect-disclosure', 'SaleEventController::defectDisclosureSubmit/$1');
 $routes->get('/admin/tenants/(:segment)', 'TenantController::view/$1', ['filter' => 'superAdmin']);
 $routes->post('/admin/tenants/(:segment)/edit', 'TenantController::editSubmit/$1', ['filter' => 'superAdmin']);
 $routes->get('/tenants', 'TenantController::directory');
@@ -166,10 +192,8 @@ $routes->get('/tenants', 'TenantController::directory');
 $routes->get('/admin/aml', 'AmlController::index', ['filter' => 'superAdmin']);
 $routes->post('/admin/aml/(:segment)/review', 'AmlController::review/$1', ['filter' => 'superAdmin']);
 
-// Payout Account Change Control (BR-50/PR-28)
-$routes->get('/payout-bank', 'PayoutBankController::requestForm');
-$routes->post('/payout-bank/request', 'PayoutBankController::requestSubmit');
-$routes->post('/payout-bank/confirm', 'PayoutBankController::confirmSubmit');
+// Payout Account Change Control (BR-50/PR-28) — migrated to /api/v1
+// below (Phase 4, D-134).
 $routes->get('/admin/payout-reviews', 'PayoutReviewController::index');
 $routes->post('/admin/payout-reviews/(:segment)/decide', 'PayoutReviewController::decide/$1');
 
@@ -192,17 +216,7 @@ $routes->get('/admin/consent-audit', 'ConsentAuditController::index', ['filter' 
 $routes->get('/admin/consent-audit/export', 'ConsentAuditController::exportForm', ['filter' => 'superAdmin']);
 $routes->get('/admin/consent-audit/export/download', 'ConsentAuditController::export', ['filter' => 'superAdmin']);
 
-// Phase 3A: account management
-$routes->get('/account', 'MyActivityController::profile');
-$routes->get('/account/edit', 'AccountController::editForm');
-$routes->post('/account/edit', 'AccountController::editSubmit');
-$routes->get('/account/change-mpin', 'AccountController::changeMpinForm');
-$routes->post('/account/change-mpin/request-otp', 'AccountController::changeMpinRequestOtp');
-$routes->post('/account/change-mpin/confirm', 'AccountController::changeMpinConfirm');
-$routes->get('/account/delete', 'AccountController::deleteForm');
-$routes->post('/account/delete/request', 'AccountController::deleteRequestSubmit');
-$routes->post('/account/delete/cancel', 'AccountController::deleteCancelSubmit');
-$routes->get('/account/earnings', 'AccountController::earnings');
+// Phase 3A: account management — migrated to /api/v1 below (Phase 4, D-134).
 
 // Phase 3D remainder: BR-56 invoice history + PDF (D-72)
 $routes->get('/account/invoices', 'InvoiceController::index');
@@ -217,17 +231,11 @@ $routes->get('/chronicles/(:segment)/download', 'ChronicleController::download/$
 $routes->get('/chronicle/verify/(:segment)', 'ChronicleController::verify/$1');
 $routes->get('/chronicle/verify/(:segment)/pdf', 'ChronicleController::verifyPdf/$1');
 
-// Phase 3A: real, dedicated, paginated/filterable transaction pages
-$routes->get('/my-bids', 'MyActivityController::myBids');
-$routes->get('/my-offers', 'MyActivityController::myOffers');
-$routes->get('/my-purchases', 'MyActivityController::myPurchases');
-$routes->get('/my-purchases/export', 'MyActivityController::myPurchasesExport');
-$routes->get('/my-sales', 'MyActivityController::mySales');
-$routes->get('/my-sales/export', 'MyActivityController::mySalesExport');
+// Phase 3A: real, dedicated, paginated/filterable transaction pages —
+// migrated to /api/v1 below (Phase 4, D-134).
 
-// Phase 3C+: favorites, saved searches, search history, recommendations
-$routes->post('/listings/(:segment)/favorite', 'ListingController::favorite/$1');
-$routes->post('/listings/(:segment)/unfavorite', 'ListingController::unfavorite/$1');
+// Phase 3C+: favorites (migrated above), saved searches, search
+// history, recommendations
 $routes->get('/my-favorites', 'DiscoveryController::myFavorites');
 $routes->get('/my-searches', 'DiscoveryController::mySearches');
 $routes->post('/my-searches', 'DiscoveryController::saveSearchSubmit');
@@ -239,15 +247,8 @@ $routes->get('/recommendations', 'DiscoveryController::recommendations');
 // in-app bulk messaging to matched buyers.
 $routes->get('/my-listings/reach', 'LotReachController::index');
 $routes->post('/listings/(:segment)/reach/message', 'LotReachController::sendMessage/$1');
-$routes->get('/my-messages', 'MyActivityController::messages');
-$routes->post('/my-messages/(:segment)/read', 'MyActivityController::markMessageRead/$1');
-
-// D-106: the 6 screens flagged in the design handoff as having neither
-// a design nor a consolidated backend (docs/design/CLAUDE_DESIGN_HANDOFF.md §2).
-$routes->get('/my-star-ratings', 'MyActivityController::starRatings');
-$routes->get('/my-rating-history', 'MyActivityController::ratingHistory');
-$routes->get('/my-buyer-dashboard', 'MyActivityController::buyerDashboard');
-$routes->get('/my-seller-dashboard', 'MyActivityController::sellerDashboard');
+// MyActivityController's messages/star-ratings/rating-history/dashboards:
+// migrated to /api/v1 below (Phase 4, D-134).
 $routes->get('/admin/lots', 'AdminController::lotDirectory', ['filter' => 'superAdmin']);
 $routes->get('/admin/trading-sessions', 'AdminController::tradingSessionDirectory', ['filter' => 'superAdmin']);
 
@@ -276,13 +277,14 @@ $routes->post('/admin/rules/new', 'SovereignRuleController::createSubmit', ['fil
 $routes->get('/admin/rules/(:segment)', 'SovereignRuleController::editForm/$1', ['filter' => 'superAdmin']);
 $routes->post('/admin/rules/(:segment)/edit', 'SovereignRuleController::editSubmit/$1', ['filter' => 'superAdmin']);
 
-// KYC Verification (BR-17/BR-18/BR-55/PR-15) — patron-facing onboarding
-$routes->get('/kyc', 'KycController::form');
-$routes->post('/kyc/questionnaire', 'KycController::saveQuestionnaire');
-$routes->post('/kyc/documents', 'KycController::uploadDocument');
-$routes->post('/kyc/addresses', 'KycController::saveAddress');
-$routes->post('/kyc/banking', 'KycController::saveBanking');
-$routes->post('/kyc/submit', 'KycController::submit');
+// KYC Verification (BR-17/BR-18/BR-55/PR-15) — patron-facing onboarding.
+// Phase 4 of the CI4->REST/JWT migration (D-134).
+$routes->get('/api/v1/app/kyc', 'KycController::form', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/kyc/questionnaire', 'KycController::saveQuestionnaire', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/kyc/documents', 'KycController::uploadDocument', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/kyc/addresses', 'KycController::saveAddress', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/kyc/banking', 'KycController::saveBanking', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/kyc/submit', 'KycController::submit', ['filter' => 'jwtAuth']);
 
 // KYC review — Super Admin (SaaS Admin) side, see KycReviewController's
 // class doc block for why this is Super Admin rather than Tenant Admin.
@@ -318,15 +320,15 @@ $routes->get('/api/v1/sale-events/(:segment)', 'TenantApiController::getSaleEven
 // Tenant API above: this issues a user-scoped JWT (jwtAuth filter), not a
 // PHP session cookie or a Tenant API credential token.
 // 1) request OTP  2) verify OTP -> otp_ticket  3) submit profile -> JWT
-$routes->post('/api/v1/auth/otp/request', 'UserAuthApiController::requestOtp');
-$routes->post('/api/v1/auth/otp/verify', 'UserAuthApiController::verifyOtp');
-$routes->post('/api/v1/auth/submit', 'UserAuthApiController::submit');
-$routes->get('/api/v1/auth/me', 'UserAuthApiController::me', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/auth/otp/request', 'UserAuthApiController::requestOtp');
+$routes->post('/api/v1/app/auth/otp/verify', 'UserAuthApiController::verifyOtp');
+$routes->post('/api/v1/app/auth/submit', 'UserAuthApiController::submit');
+$routes->get('/api/v1/app/auth/me', 'UserAuthApiController::me', ['filter' => 'jwtAuth']);
 
 // Super Admin REST/JWT login (BR-04) — JWT counterpart of
 // SuperAdminAuthController::loginSubmit/loginVerifyEmailSubmit. See
 // SuperAdminAuthApiController's docblock re: the session dual-write this
 // still does until every superAdmin-filtered controller below is itself
 // migrated to the jwtSuperAdmin filter.
-$routes->post('/api/v1/admin/auth/login', 'SuperAdminAuthApiController::login');
-$routes->post('/api/v1/admin/auth/login/verify-email', 'SuperAdminAuthApiController::verifyEmail');
+$routes->post('/api/v1/app/admin/auth/login', 'SuperAdminAuthApiController::login');
+$routes->post('/api/v1/app/admin/auth/login/verify-email', 'SuperAdminAuthApiController::verifyEmail');

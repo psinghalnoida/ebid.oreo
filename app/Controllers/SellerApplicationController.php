@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Libraries\SellerApplicationService;
+use App\Libraries\UserAuthContext;
 use App\Models\TenantModel;
 use App\Models\SellerApplicationModel;
 
@@ -19,65 +20,55 @@ class SellerApplicationController extends BaseController
         $this->applicationModel = new SellerApplicationModel();
     }
 
-    private function requireLogin()
+    public function applyStatus(string $tenantId)
     {
-        return session()->get('logged_in_party_id');
-    }
-
-    public function applyForm(string $tenantId)
-    {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
-
+        $partyId = UserAuthContext::partyId();
         $tenant = $this->tenantModel->find($tenantId);
         $existing = $this->applicationModel->findForPartyAndTenant($partyId, $tenantId);
 
-        return view('seller/apply', ['title' => 'Apply to Sell — AdwitiX', 'tenant' => $tenant, 'existing' => $existing]);
+        return $this->response->setJSON(['tenant' => $tenant, 'existing' => $existing]);
     }
 
     public function applySubmit(string $tenantId)
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
+        $partyId = UserAuthContext::partyId();
 
         try {
-            $this->service->apply($partyId, $tenantId);
+            $application = $this->service->apply($partyId, $tenantId);
         } catch (\RuntimeException $e) {
-            return redirect()->to("/tenants/{$tenantId}/apply-to-sell")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'apply_failed', $e->getMessage());
         }
 
-        return redirect()->to("/tenants/{$tenantId}/apply-to-sell")->with('error', 'Application submitted — awaiting Tenant Admin review.');
+        return $this->response->setStatusCode(201)->setJSON(['application' => $application, 'message' => 'Application submitted — awaiting Tenant Admin review.']);
     }
 
+    // jwtTenantAdmin-gated (resource type 'tenant').
     public function pendingList(string $tenantId)
     {
         $applications = $this->applicationModel->findPendingForTenant($tenantId);
         $tenant = $this->tenantModel->find($tenantId);
-        return view('seller/pending', ['title' => 'Pending Seller Applications — AdwitiX', 'applications' => $applications, 'tenant' => $tenant]);
+        return $this->response->setJSON(['applications' => $applications, 'tenant' => $tenant]);
     }
 
+    // jwtTenantAdmin-gated (resource type 'sellerApplication').
     public function approve(string $applicationId)
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
         try {
-            $app = $this->service->approve($applicationId, $partyId);
+            $app = $this->service->approve($applicationId, UserAuthContext::partyId());
         } catch (\RuntimeException $e) {
-            return redirect()->back()->with('error', $e->getMessage());
+            return $this->jsonError(422, 'approve_failed', $e->getMessage());
         }
-        return redirect()->to("/tenants/{$app['tenant_id']}/pending-sellers");
+        return $this->response->setJSON(['application' => $app]);
     }
 
     public function reject(string $applicationId)
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
-        $reason = $this->request->getPost('reason') ?: 'Not specified';
+        $reason = $this->input('reason') ?: 'Not specified';
         try {
-            $app = $this->service->reject($applicationId, $partyId, $reason);
+            $app = $this->service->reject($applicationId, UserAuthContext::partyId(), $reason);
         } catch (\RuntimeException $e) {
-            return redirect()->back()->with('error', $e->getMessage());
+            return $this->jsonError(422, 'reject_failed', $e->getMessage());
         }
-        return redirect()->to("/tenants/{$app['tenant_id']}/pending-sellers");
+        return $this->response->setJSON(['application' => $app]);
     }
 }

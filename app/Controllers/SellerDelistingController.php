@@ -3,38 +3,37 @@
 namespace App\Controllers;
 
 use App\Libraries\RatingService;
+use App\Libraries\UserAuthContext;
 use App\Models\PartyModel;
 
+// jwtSuperAdmin-gated — pulled forward from Phase 5 since it's a single
+// small action, same migration as the rest of this phase (D-134).
 class SellerDelistingController extends BaseController
 {
-    public function form()
-    {
-        return view('admin/delist_seller', ['title' => 'Delist Seller — AdwitiX']);
-    }
-
     public function submit()
     {
-        $superAdminId = session()->get('logged_in_party_id');
-        $mobile = $this->request->getPost('mobile_number');
-        $reason = $this->request->getPost('confirmed_fraud_reason');
+        $superAdminId = UserAuthContext::partyId();
+        $mobile = $this->input('mobile_number');
+        $reason = $this->input('confirmed_fraud_reason');
 
         if (!$mobile || !$reason) {
-            return redirect()->back()->with('error', 'Both the seller\'s mobile number and a confirmed-fraud reason are required.');
+            return $this->jsonError(422, 'missing_fields', 'Both the seller\'s mobile number and a confirmed-fraud reason are required.');
         }
 
         $party = (new PartyModel())->findByMobile($mobile);
         if (!$party) {
-            return redirect()->back()->with('error', 'No registered party found with that mobile number.');
+            return $this->jsonError(404, 'not_found', 'No registered party found with that mobile number.');
         }
 
         try {
             $result = (new RatingService())->delistSellerForFraud($party['id'], $superAdminId, $reason);
         } catch (\RuntimeException $e) {
-            return redirect()->back()->with('error', $e->getMessage());
+            return $this->jsonError(422, 'delist_failed', $e->getMessage());
         }
 
-        return redirect()->to('/admin')->with('error',
-            "Seller delisted. {$result['listingsSuspended']} active listing(s) suspended across every tenant."
-        );
+        return $this->response->setJSON([
+            'listingsSuspended' => $result['listingsSuspended'],
+            'message' => "Seller delisted. {$result['listingsSuspended']} active listing(s) suspended across every tenant.",
+        ]);
     }
 }
