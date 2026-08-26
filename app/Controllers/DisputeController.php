@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Libraries\DisputeService;
+use App\Libraries\UserAuthContext;
 use App\Models\DisputeModel;
 use App\Models\SaleEventModel;
 
@@ -19,98 +20,80 @@ class DisputeController extends BaseController
         $this->saleEventModel = new SaleEventModel();
     }
 
-    private function requireLogin()
-    {
-        return session()->get('logged_in_party_id');
-    }
-
-    public function fileForm(string $saleEventId)
-    {
-        if (!$this->requireLogin()) return redirect()->to('/login');
-        return view('dispute/file', ['title' => 'File a Dispute — AdwitiX', 'saleEventId' => $saleEventId]);
-    }
-
     public function fileSubmit(string $saleEventId)
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
-
-        $category = $this->request->getPost('category');
-        $description = $this->request->getPost('description');
+        $partyId = UserAuthContext::partyId();
+        $category = $this->input('category');
+        $description = $this->input('description');
 
         try {
             $d = $this->dispute->fileDispute($saleEventId, $partyId, $category, $description);
         } catch (\RuntimeException $e) {
-            return redirect()->to("/sale-events/{$saleEventId}/dispute")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'file_failed', $e->getMessage());
         }
 
-        return redirect()->to("/disputes/{$d['id']}");
+        return $this->response->setStatusCode(201)->setJSON(['dispute' => $d]);
     }
 
     public function show(string $disputeId)
     {
-        $partyId = $this->requireLogin();
         $d = $this->disputeModel->find($disputeId);
-        if (!$d) throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        if (!$d) {
+            return $this->jsonError(404, 'not_found', 'Dispute not found.');
+        }
 
-        return view('dispute/show', [
-            'title' => 'Dispute — AdwitiX', 'dispute' => $d,
+        return $this->response->setJSON([
+            'dispute' => $d,
             'evidence' => $this->dispute->getEvidence($disputeId),
-            'callerId' => $partyId,
+            'callerId' => UserAuthContext::partyId(),
         ]);
     }
 
     public function submitEvidence(string $disputeId)
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
         try {
-            $this->dispute->submitEvidence($disputeId, $partyId, $this->request->getPost('content'));
+            $this->dispute->submitEvidence($disputeId, UserAuthContext::partyId(), $this->input('content'));
         } catch (\RuntimeException $e) {
-            return redirect()->to("/disputes/{$disputeId}")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'evidence_failed', $e->getMessage());
         }
-        return redirect()->to("/disputes/{$disputeId}");
+        return $this->response->setJSON(['dispute' => $this->disputeModel->find($disputeId)]);
     }
 
     // Authorization is checked inside DisputeService itself (category-aware
     // — Tenant Admin vs Super Admin), not by a route filter, since a single
-    // route filter can't branch by the dispute's own category.
+    // route filter can't branch by the dispute's own category. Runs behind
+    // jwtAuth (any authenticated party) for that reason.
     public function rule(string $disputeId)
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
         try {
             $this->dispute->ruleOnDispute(
-                $disputeId, $partyId, $this->request->getPost('outcome'),
-                $this->request->getPost('rationale'), $this->request->getPost('at_fault_party_id') ?: null
+                $disputeId, UserAuthContext::partyId(), $this->input('outcome'),
+                $this->input('rationale'), $this->input('at_fault_party_id') ?: null
             );
         } catch (\RuntimeException $e) {
-            return redirect()->to("/disputes/{$disputeId}")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'rule_failed', $e->getMessage());
         }
-        return redirect()->to("/disputes/{$disputeId}");
+        return $this->response->setJSON(['dispute' => $this->disputeModel->find($disputeId)]);
     }
 
     public function appeal(string $disputeId)
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
         try {
-            $this->dispute->fileAppeal($disputeId, $partyId);
+            $this->dispute->fileAppeal($disputeId, UserAuthContext::partyId());
         } catch (\RuntimeException $e) {
-            return redirect()->to("/disputes/{$disputeId}")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'appeal_failed', $e->getMessage());
         }
-        return redirect()->to("/disputes/{$disputeId}");
+        return $this->response->setJSON(['dispute' => $this->disputeModel->find($disputeId)]);
     }
 
+    // Access enforced by the jwtSuperAdmin route filter.
     public function ruleOnAppeal(string $disputeId)
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
         try {
-            $this->dispute->ruleOnAppeal($disputeId, $partyId, $this->request->getPost('rationale'));
+            $this->dispute->ruleOnAppeal($disputeId, UserAuthContext::partyId(), $this->input('rationale'));
         } catch (\RuntimeException $e) {
-            return redirect()->to("/disputes/{$disputeId}")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'rule_appeal_failed', $e->getMessage());
         }
-        return redirect()->to("/disputes/{$disputeId}");
+        return $this->response->setJSON(['dispute' => $this->disputeModel->find($disputeId)]);
     }
 }

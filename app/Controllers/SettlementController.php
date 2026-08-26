@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Libraries\SettlementService;
+use App\Libraries\UserAuthContext;
 use App\Models\SettlementModel;
 use App\Models\SaleEventModel;
 
@@ -19,16 +20,11 @@ class SettlementController extends BaseController
         $this->saleEventModel = new SaleEventModel();
     }
 
-    private function requireLogin()
-    {
-        return session()->get('logged_in_party_id');
-    }
-
     public function show(string $settlementId)
     {
         $s = $this->settlementModel->find($settlementId);
         if (!$s) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->jsonError(404, 'not_found', 'Settlement not found.');
         }
         $saleEvent = $this->saleEventModel->find($s['sale_event_id']);
         $invoices = (new \App\Libraries\InvoiceService())->findForSettlement($settlementId);
@@ -48,67 +44,60 @@ class SettlementController extends BaseController
             ->orderBy('sequence_number', 'ASC')
             ->get()->getResultArray();
 
-        return view('settlement/show', [
-            'title' => 'Settlement — AdwitiX', 'settlement' => $s, 'saleEvent' => $saleEvent,
-            'callerId' => $this->requireLogin(), 'invoices' => $invoices,
+        return $this->response->setJSON([
+            'settlement' => $s, 'saleEvent' => $saleEvent,
+            'callerId' => UserAuthContext::partyId(), 'invoices' => $invoices,
             'dispute' => $dispute, 'auditEvents' => $auditEvents, 'chronicle' => $chronicle,
         ]);
     }
 
     public function confirmSellerNoc(string $settlementId)
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
         try {
-            $this->settlement->confirmSellerNoc($settlementId, $partyId);
+            $this->settlement->confirmSellerNoc($settlementId, UserAuthContext::partyId());
         } catch (\RuntimeException $e) {
-            return redirect()->to("/settlements/{$settlementId}")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'confirm_failed', $e->getMessage());
         }
-        return redirect()->to("/settlements/{$settlementId}");
+        return $this->response->setJSON(['settlement' => $this->settlementModel->find($settlementId)]);
     }
 
     public function confirmBuyerNoc(string $settlementId)
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
         try {
-            $this->settlement->confirmBuyerNoc($settlementId, $partyId);
+            $this->settlement->confirmBuyerNoc($settlementId, UserAuthContext::partyId());
         } catch (\RuntimeException $e) {
-            return redirect()->to("/settlements/{$settlementId}")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'confirm_failed', $e->getMessage());
         }
-        return redirect()->to("/settlements/{$settlementId}");
+        return $this->response->setJSON(['settlement' => $this->settlementModel->find($settlementId)]);
     }
 
     public function rateAsBuyer(string $settlementId)
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
-        $outcome = $this->request->getPost('outcome');
-        $reason = $this->request->getPost('reason') ?: null;
+        $outcome = $this->input('outcome');
+        $reason = $this->input('reason') ?: null;
         try {
-            $this->settlement->submitRating($settlementId, $partyId, 'buyer', $outcome, $reason);
+            $this->settlement->submitRating($settlementId, UserAuthContext::partyId(), 'buyer', $outcome, $reason);
         } catch (\RuntimeException $e) {
-            return redirect()->to("/settlements/{$settlementId}")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'rating_failed', $e->getMessage());
         }
-        return redirect()->to("/settlements/{$settlementId}");
+        return $this->response->setJSON(['settlement' => $this->settlementModel->find($settlementId)]);
     }
 
     public function rateAsSeller(string $settlementId)
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
-        $outcome = $this->request->getPost('outcome');
-        $reason = $this->request->getPost('reason') ?: null;
+        $outcome = $this->input('outcome');
+        $reason = $this->input('reason') ?: null;
         try {
-            $this->settlement->submitRating($settlementId, $partyId, 'seller', $outcome, $reason);
+            $this->settlement->submitRating($settlementId, UserAuthContext::partyId(), 'seller', $outcome, $reason);
         } catch (\RuntimeException $e) {
-            return redirect()->to("/settlements/{$settlementId}")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'rating_failed', $e->getMessage());
         }
-        return redirect()->to("/settlements/{$settlementId}");
+        return $this->response->setJSON(['settlement' => $this->settlementModel->find($settlementId)]);
     }
 
     // ⚠️ DEV-ONLY: BR-39's real 7-day stall wait can't be tested live —
-    // forces the flag check to run immediately. Gated behind tenantAdmin.
+    // forces the flag check to run immediately. Gated behind jwtSuperAdmin
+    // (platform-wide sweep, not scoped to one tenant).
     public function devFlagStalled()
     {
         $flagged = $this->settlement->flagStalledSettlements();
@@ -116,14 +105,15 @@ class SettlementController extends BaseController
     }
 
     // Real admin action (once flagged), not a time-skip — genuinely
-    // gated behind tenantAdmin since force-resolving is an administrative act.
+    // gated behind jwtTenantAdmin since force-resolving is an
+    // administrative act.
     public function forceResolve(string $settlementId)
     {
         try {
             $this->settlement->forceResolveStalled($settlementId);
         } catch (\RuntimeException $e) {
-            return redirect()->to("/settlements/{$settlementId}")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'force_resolve_failed', $e->getMessage());
         }
-        return redirect()->to("/settlements/{$settlementId}");
+        return $this->response->setJSON(['settlement' => $this->settlementModel->find($settlementId)]);
     }
 }

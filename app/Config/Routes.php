@@ -64,23 +64,22 @@ $routes->post('/api/v1/sale-events/(:segment)/dev-force-close-bidding', 'Express
 $routes->post('/api/v1/listings/(:segment)/media', 'MediaController::upload/$1', ['filter' => 'jwtAuth']);
 $routes->post('/api/v1/listings/(:segment)/media/(:segment)/set-primary', 'MediaController::setPrimary/$1/$2', ['filter' => 'jwtAuth']);
 
-// Settlement (BR-33, BR-39)
-$routes->get('/settlements/(:segment)', 'SettlementController::show/$1');
-$routes->post('/settlements/(:segment)/confirm-seller-noc', 'SettlementController::confirmSellerNoc/$1');
-$routes->post('/settlements/(:segment)/confirm-buyer-noc', 'SettlementController::confirmBuyerNoc/$1');
-$routes->post('/settlements/(:segment)/rate-as-buyer', 'SettlementController::rateAsBuyer/$1');
-$routes->post('/settlements/(:segment)/rate-as-seller', 'SettlementController::rateAsSeller/$1');
-$routes->post('/settlements/dev-flag-stalled', 'SettlementController::devFlagStalled');
-$routes->post('/settlements/(:segment)/force-resolve', 'SettlementController::forceResolve/$1', ['filter' => 'tenantAdmin:settlement']);
+// Settlement (BR-33, BR-39) — Phase 3 of the CI4->REST/JWT migration (D-133)
+$routes->get('/api/v1/settlements/(:segment)', 'SettlementController::show/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/settlements/(:segment)/confirm-seller-noc', 'SettlementController::confirmSellerNoc/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/settlements/(:segment)/confirm-buyer-noc', 'SettlementController::confirmBuyerNoc/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/settlements/(:segment)/rate-as-buyer', 'SettlementController::rateAsBuyer/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/settlements/(:segment)/rate-as-seller', 'SettlementController::rateAsSeller/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/settlements/dev-flag-stalled', 'SettlementController::devFlagStalled', ['filter' => 'jwtSuperAdmin']);
+$routes->post('/api/v1/settlements/(:segment)/force-resolve', 'SettlementController::forceResolve/$1', ['filter' => 'jwtTenantAdmin:settlement']);
 
 // Dispute Resolution Framework (BR-40)
-$routes->get('/sale-events/(:segment)/dispute', 'DisputeController::fileForm/$1');
-$routes->post('/sale-events/(:segment)/dispute', 'DisputeController::fileSubmit/$1');
-$routes->get('/disputes/(:segment)', 'DisputeController::show/$1');
-$routes->post('/disputes/(:segment)/evidence', 'DisputeController::submitEvidence/$1');
-$routes->post('/disputes/(:segment)/rule', 'DisputeController::rule/$1');
-$routes->post('/disputes/(:segment)/appeal', 'DisputeController::appeal/$1');
-$routes->post('/disputes/(:segment)/rule-appeal', 'DisputeController::ruleOnAppeal/$1', ['filter' => 'superAdmin']);
+$routes->post('/api/v1/sale-events/(:segment)/dispute', 'DisputeController::fileSubmit/$1', ['filter' => 'jwtAuth']);
+$routes->get('/api/v1/disputes/(:segment)', 'DisputeController::show/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/disputes/(:segment)/evidence', 'DisputeController::submitEvidence/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/disputes/(:segment)/rule', 'DisputeController::rule/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/disputes/(:segment)/appeal', 'DisputeController::appeal/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/disputes/(:segment)/rule-appeal', 'DisputeController::ruleOnAppeal/$1', ['filter' => 'jwtSuperAdmin']);
 
 // Super Admin real auth (BR-04)
 $routes->get('/admin/setup-totp', 'SuperAdminAuthController::setupTotpForm');

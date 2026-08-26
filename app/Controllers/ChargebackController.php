@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Libraries\ChargebackService;
+use App\Libraries\UserAuthContext;
 use App\Models\ChargebackCaseModel;
 use App\Models\EmdHoldModel;
 
@@ -13,30 +14,32 @@ class ChargebackController extends BaseController
     // not yet integrated, same accepted external dependency as
     // BidController::devFundEmd. Filed by the buyer against their own
     // held/forfeited EMD deposit, standing in for the card network's
-    // notice the gateway would otherwise deliver.
+    // notice the gateway would otherwise deliver. Migrated to JWT
+    // (jwtAuth route filter) — D-133.
     public function devFile(string $saleEventId)
     {
-        $partyId = session()->get('logged_in_party_id');
-        if (!$partyId) {
-            return redirect()->to('/login');
-        }
+        $partyId = UserAuthContext::partyId();
 
         $hold = (new EmdHoldModel())->findBySaleEventAndParty($saleEventId, $partyId);
         if (!$hold) {
-            return redirect()->back()->with('error', 'You have no EMD deposit on this sale event to dispute.');
+            return $this->jsonError(422, 'no_emd_hold', 'You have no EMD deposit on this sale event to dispute.');
         }
 
-        $reason = trim((string) $this->request->getPost('reason')) ?: 'Buyer-initiated chargeback (dev simulation)';
+        $reason = trim((string) $this->input('reason')) ?: 'Buyer-initiated chargeback (dev simulation)';
 
         try {
-            (new ChargebackService())->fileChargeback($hold['id'], $reason);
+            $case = (new ChargebackService())->fileChargeback($hold['id'], $reason);
         } catch (\RuntimeException $e) {
-            return redirect()->back()->with('error', $e->getMessage());
+            return $this->jsonError(422, 'file_failed', $e->getMessage());
         }
 
-        return redirect()->back()->with('error', 'Chargeback filed. The evidence package has been assembled automatically.');
+        return $this->response->setStatusCode(201)->setJSON([
+            'case' => $case,
+            'message' => 'Chargeback filed. The evidence package has been assembled automatically.',
+        ]);
     }
 
+    // ── Below: admin review screens, still session-based — Phase 5 ──
     public function index()
     {
         $caseModel = new ChargebackCaseModel();
