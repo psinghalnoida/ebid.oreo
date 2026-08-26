@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Libraries\ExpressAuctionService;
+use App\Libraries\UserAuthContext;
 use App\Models\SaleEventModel;
 
 class ExpressController extends BaseController
@@ -16,11 +17,6 @@ class ExpressController extends BaseController
         $this->saleEventModel = new SaleEventModel();
     }
 
-    private function requireLogin()
-    {
-        return session()->get('logged_in_party_id');
-    }
-
     // BR-27/PR-11: pledging = funding EMD. Real payment gateway not yet
     // integrated (same stand-in category as BidController::devFundEmd,
     // OfferController::devFundEmd) — this simulates a cleared payment,
@@ -28,51 +24,41 @@ class ExpressController extends BaseController
     // bidding), which is NOT a stand-in — that part is real.
     public function pledge(string $saleEventId)
     {
-        $buyerId = $this->requireLogin();
-        if (!$buyerId) {
-            return redirect()->to('/login');
-        }
+        $buyerId = UserAuthContext::partyId();
 
-        $saleEvent = $this->saleEventModel->find($saleEventId);
         try {
             $this->express->pledgeReserve($saleEventId, $buyerId);
         } catch (\RuntimeException $e) {
-            return redirect()->to("/listings/{$saleEvent['listing_id']}")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'pledge_failed', $e->getMessage());
         }
 
-        return redirect()->to("/listings/{$saleEvent['listing_id']}");
+        return $this->response->setJSON(['saleEvent' => $this->saleEventModel->find($saleEventId)]);
     }
 
     public function placeBid(string $saleEventId)
     {
-        $bidderId = $this->requireLogin();
-        if (!$bidderId) {
-            return redirect()->to('/login');
-        }
-
-        $saleEvent = $this->saleEventModel->find($saleEventId);
-        $amount = (float) $this->request->getPost('amount');
+        $bidderId = UserAuthContext::partyId();
+        $amount = (float) $this->input('amount');
 
         try {
             $this->express->placeBid($saleEventId, $bidderId, $amount);
         } catch (\RuntimeException $e) {
-            return redirect()->to("/listings/{$saleEvent['listing_id']}")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'bid_failed', $e->getMessage());
         }
 
-        return redirect()->to("/listings/{$saleEvent['listing_id']}");
+        return $this->response->setJSON(['saleEvent' => $this->saleEventModel->find($saleEventId)]);
     }
 
     // ⚠️ DEV-ONLY: forces the 1-hour bidding countdown to expire
-    // immediately. Gated behind the same tenantAdmin filter as other
+    // immediately. Gated behind jwtTenantAdmin, same as other
     // administrative time-skips (see D-17/D-19 pattern).
     public function devForceCloseBidding(string $saleEventId)
     {
-        $saleEvent = $this->saleEventModel->find($saleEventId);
         try {
             $this->express->devForceCloseBidding($saleEventId);
         } catch (\RuntimeException $e) {
-            return redirect()->to("/listings/{$saleEvent['listing_id']}")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'force_close_failed', $e->getMessage());
         }
-        return redirect()->to("/listings/{$saleEvent['listing_id']}");
+        return $this->response->setJSON(['saleEvent' => $this->saleEventModel->find($saleEventId)]);
     }
 }

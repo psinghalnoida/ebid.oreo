@@ -3,48 +3,35 @@
 namespace App\Controllers;
 
 use App\Libraries\TenantMediaWaiverService;
-use App\Models\TenantMediaWaiverModel;
+use App\Libraries\UserAuthContext;
 use App\Models\TenantModel;
 
 class TenantMediaWaiverController extends BaseController
 {
-    public function requestForm(string $tenantId)
-    {
-        $partyId = session()->get('logged_in_party_id');
-        if (!$partyId) return redirect()->to('/login');
-
-        $tenant = (new TenantModel())->find($tenantId);
-        if (!$tenant) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
-        }
-        if (!(new \App\Libraries\AuthorizationService())->isTenantAdminFor($partyId, $tenantId)) {
-            return redirect()->to('/')->with('error', 'Only this tenant\'s Tenant Admin may request a media waiver.');
-        }
-
-        return view('tenant_admin/media_waiver_request', ['title' => 'Request Media Waiver — AdwitiX', 'tenant' => $tenant]);
-    }
-
+    // jwtAuth-gated; the Tenant Admin check is inline since it's scoped
+    // to the URL's own tenantId, same shape as ListingController's own
+    // inline Tenant Admin checks.
     public function requestSubmit(string $tenantId)
     {
-        $partyId = session()->get('logged_in_party_id');
-        if (!$partyId) return redirect()->to('/login');
+        $partyId = UserAuthContext::partyId();
 
         if (!(new \App\Libraries\AuthorizationService())->isTenantAdminFor($partyId, $tenantId)) {
-            return redirect()->to('/')->with('error', 'Only this tenant\'s Tenant Admin may request a media waiver.');
+            return $this->jsonError(403, 'forbidden', 'Only this tenant\'s Tenant Admin may request a media waiver.');
         }
 
         try {
-            (new TenantMediaWaiverService())->requestWaiver(
+            $waiver = (new TenantMediaWaiverService())->requestWaiver(
                 $tenantId, $partyId,
-                $this->request->getPost('category'), $this->request->getPost('business_justification')
+                $this->input('category'), $this->input('business_justification')
             );
         } catch (\RuntimeException $e) {
-            return redirect()->back()->with('error', $e->getMessage());
+            return $this->jsonError(422, 'request_failed', $e->getMessage());
         }
 
-        return redirect()->to("/tenants/{$tenantId}/dashboard")->with('error', 'Waiver request submitted for SaaS Admin review.');
+        return $this->response->setStatusCode(201)->setJSON(['waiver' => $waiver, 'message' => 'Waiver request submitted for SaaS Admin review.']);
     }
 
+    // jwtSuperAdmin-gated below.
     public function pendingList()
     {
         $db = \Config\Database::connect();
@@ -62,35 +49,35 @@ class TenantMediaWaiverController extends BaseController
             ->orderBy('tmw.expires_at', 'ASC')
             ->get()->getResultArray();
 
-        return view('admin/media_waivers', ['title' => 'Tenant Media Waivers — AdwitiX', 'pending' => $pending, 'active' => $active]);
+        return $this->response->setJSON(['pending' => $pending, 'active' => $active]);
     }
 
     public function decide(string $waiverId)
     {
-        $superAdminId = session()->get('logged_in_party_id');
-        $approve = $this->request->getPost('decision') === 'approve';
-        $rationale = $this->request->getPost('rationale');
+        $superAdminId = UserAuthContext::partyId();
+        $approve = $this->input('decision') === 'approve';
+        $rationale = $this->input('rationale');
 
         try {
-            (new TenantMediaWaiverService())->decide($waiverId, $superAdminId, $approve, $rationale);
+            $waiver = (new TenantMediaWaiverService())->decide($waiverId, $superAdminId, $approve, $rationale);
         } catch (\RuntimeException $e) {
-            return redirect()->to('/admin/media-waivers')->with('error', $e->getMessage());
+            return $this->jsonError(422, 'decide_failed', $e->getMessage());
         }
 
-        return redirect()->to('/admin/media-waivers');
+        return $this->response->setJSON(['waiver' => $waiver]);
     }
 
     public function revoke(string $waiverId)
     {
-        $superAdminId = session()->get('logged_in_party_id');
-        $reason = $this->request->getPost('reason');
+        $superAdminId = UserAuthContext::partyId();
+        $reason = $this->input('reason');
 
         try {
-            (new TenantMediaWaiverService())->revoke($waiverId, $superAdminId, $reason);
+            $waiver = (new TenantMediaWaiverService())->revoke($waiverId, $superAdminId, $reason);
         } catch (\RuntimeException $e) {
-            return redirect()->to('/admin/media-waivers')->with('error', $e->getMessage());
+            return $this->jsonError(422, 'revoke_failed', $e->getMessage());
         }
 
-        return redirect()->to('/admin/media-waivers');
+        return $this->response->setJSON(['waiver' => $waiver]);
     }
 }

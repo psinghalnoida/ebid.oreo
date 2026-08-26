@@ -3,18 +3,17 @@
 namespace App\Controllers;
 
 use App\Libraries\AmlMonitoringService;
+use App\Libraries\UserAuthContext;
 use App\Models\AmlFlagModel;
 
-// BR-54/PR-31: gated entirely behind the superAdmin filter at the route
-// level — PR-31 is explicit that AML flags are visible only to SaaS
-// Admin, never a Tenant Admin or the flagged User.
+// BR-54/PR-31: jwtSuperAdmin-gated — PR-31 is explicit that AML flags
+// are visible only to SaaS Admin, never a Tenant Admin or the flagged User.
 class AmlController extends BaseController
 {
     public function index()
     {
         $flagModel = new AmlFlagModel();
-        return view('admin/aml', [
-            'title' => 'AML Monitoring — AdwitiX',
+        return $this->response->setJSON([
             'open' => $flagModel->findOpen(),
             'reviewed' => $flagModel->findReviewed(),
         ]);
@@ -22,17 +21,17 @@ class AmlController extends BaseController
 
     public function review(string $flagId)
     {
-        $superAdminId = session()->get('super_admin_party_id');
-        $decision = $this->request->getPost('decision');
-        $strReference = $this->request->getPost('str_reference') ?: null;
-        $notes = $this->request->getPost('notes');
+        $superAdminId = UserAuthContext::partyId();
+        $decision = $this->input('decision');
+        $strReference = $this->input('str_reference') ?: null;
+        $notes = $this->input('notes');
 
         try {
             (new AmlMonitoringService())->reviewFlag($flagId, $superAdminId, $decision, $strReference, $notes);
         } catch (\RuntimeException $e) {
-            return redirect()->to('/admin/aml')->with('error', $e->getMessage());
+            return $this->jsonError(422, 'review_failed', $e->getMessage());
         }
 
-        return redirect()->to('/admin/aml');
+        return $this->response->setJSON(['flag' => (new AmlFlagModel())->find($flagId)]);
     }
 }

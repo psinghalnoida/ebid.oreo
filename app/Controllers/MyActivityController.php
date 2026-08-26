@@ -3,21 +3,14 @@
 namespace App\Controllers;
 
 use App\Libraries\Paginator;
+use App\Libraries\UserAuthContext;
 
 class MyActivityController extends BaseController
 {
-    private function requireLogin()
-    {
-        return session()->get('logged_in_party_id');
-    }
-
-    // Phase 3A: a real, dedicated, paginated/filterable bid history —
-    // /my-activity's combined bids list stays as-is for backward
-    // compatibility, this is the real "My Bids" page.
+    // Phase 3A: a real, dedicated, paginated/filterable bid history.
     public function myBids()
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
+        $partyId = UserAuthContext::partyId();
 
         $db = \Config\Database::connect();
         $format = $this->request->getGet('format');
@@ -45,16 +38,15 @@ class MyActivityController extends BaseController
         };
         $bids = $query->limit($pg['perPage'], $pg['offset'])->get()->getResultArray();
 
-        return view('my/bids', [
-            'title' => 'My Bids — AdwitiX', 'bids' => $bids, 'format' => $format, 'status' => $status, 'sort' => $sort,
+        return $this->response->setJSON([
+            'bids' => $bids, 'format' => $format, 'status' => $status, 'sort' => $sort,
             'page' => $pg['page'], 'perPage' => $pg['perPage'], 'totalPages' => Paginator::totalPages($total, $pg['perPage']), 'total' => $total,
         ]);
     }
 
     public function myOffers()
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
+        $partyId = UserAuthContext::partyId();
 
         $db = \Config\Database::connect();
         $status = $this->request->getGet('status');
@@ -73,8 +65,8 @@ class MyActivityController extends BaseController
         $offers = $filtered()->select('o.id, o.amount, o.status, o.created_at, se.id as sale_event_id, l.id as listing_id, l.category')
             ->orderBy('o.created_at', 'DESC')->limit($pg['perPage'], $pg['offset'])->get()->getResultArray();
 
-        return view('my/offers', [
-            'title' => 'My Offers — AdwitiX', 'offers' => $offers, 'status' => $status,
+        return $this->response->setJSON([
+            'offers' => $offers, 'status' => $status,
             'page' => $pg['page'], 'perPage' => $pg['perPage'], 'totalPages' => Paginator::totalPages($total, $pg['perPage']), 'total' => $total,
         ]);
     }
@@ -86,8 +78,7 @@ class MyActivityController extends BaseController
     // text, not an over-exposure.
     public function myPurchases()
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
+        $partyId = UserAuthContext::partyId();
 
         $db = \Config\Database::connect();
         $format = $this->request->getGet('format');
@@ -126,17 +117,21 @@ class MyActivityController extends BaseController
         }
         unset($p);
 
-        return view('my/purchases', [
-            'title' => 'My Purchases — AdwitiX', 'purchases' => $purchases,
+        return $this->response->setJSON([
+            'purchases' => $purchases,
             'format' => $format, 'status' => $status, 'from' => $from, 'to' => $to,
             'page' => $pg['page'], 'perPage' => $pg['perPage'], 'totalPages' => Paginator::totalPages($total, $pg['perPage']), 'total' => $total,
         ]);
     }
 
+    // CSV download — deliberately kept as a raw file response, not JSON;
+    // React triggers this with a fetch() + Bearer header, turning the
+    // response body into a Blob for the browser to save (a plain <a
+    // href> can't carry an Authorization header the way a query-param
+    // token would, so this is not a plain-link download).
     public function myPurchasesExport()
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
+        $partyId = UserAuthContext::partyId();
 
         $db = \Config\Database::connect();
         $rows = $db->table('settlement s')
@@ -153,8 +148,7 @@ class MyActivityController extends BaseController
 
     public function mySales()
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
+        $partyId = UserAuthContext::partyId();
 
         $db = \Config\Database::connect();
         $format = $this->request->getGet('format');
@@ -184,8 +178,8 @@ class MyActivityController extends BaseController
                       COALESCE(s.tds_amount, 0) as tds_amount')
             ->orderBy('s.created_at', 'DESC')->limit($pg['perPage'], $pg['offset'])->get()->getResultArray();
 
-        return view('my/sales', [
-            'title' => 'My Sales — AdwitiX', 'sales' => $sales,
+        return $this->response->setJSON([
+            'sales' => $sales,
             'format' => $format, 'status' => $status, 'from' => $from, 'to' => $to,
             'page' => $pg['page'], 'perPage' => $pg['perPage'], 'totalPages' => Paginator::totalPages($total, $pg['perPage']), 'total' => $total,
         ]);
@@ -193,8 +187,7 @@ class MyActivityController extends BaseController
 
     public function mySalesExport()
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
+        $partyId = UserAuthContext::partyId();
 
         $db = \Config\Database::connect();
         $rows = $db->table('settlement s')
@@ -229,8 +222,7 @@ class MyActivityController extends BaseController
 
     public function myListings()
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
+        $partyId = UserAuthContext::partyId();
 
         $db = \Config\Database::connect();
         $listings = $db->table('listing l')
@@ -241,13 +233,12 @@ class MyActivityController extends BaseController
             ->orderBy('l.created_at', 'DESC')
             ->get()->getResultArray();
 
-        return view('my/listings', ['title' => 'My Listings — AdwitiX', 'listings' => $listings]);
+        return $this->response->setJSON(['listings' => $listings]);
     }
 
     public function myActivity()
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
+        $partyId = UserAuthContext::partyId();
 
         $db = \Config\Database::connect();
 
@@ -275,18 +266,13 @@ class MyActivityController extends BaseController
             ->orderBy('s.created_at', 'DESC')
             ->get()->getResultArray();
 
-        return view('my/activity', [
-            'title' => 'My Activity — AdwitiX', 'bids' => $bids, 'offers' => $offers, 'settlements' => $settlements,
-        ]);
+        return $this->response->setJSON(['bids' => $bids, 'offers' => $offers, 'settlements' => $settlements]);
     }
 
     public function profile()
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
-
-        $party = (new \App\Models\PartyModel())->find($partyId);
-        return view('my/profile', ['title' => 'My Profile — AdwitiX', 'party' => $party]);
+        $party = (new \App\Models\PartyModel())->find(UserAuthContext::partyId());
+        return $this->response->setJSON(['party' => $party]);
     }
 
     // D-105: the buyer-side half of Lot Reach & Interest — a real inbox
@@ -294,68 +280,43 @@ class MyActivityController extends BaseController
     // their listings.
     public function messages()
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
-
         $recipientModel = new \App\Models\SellerMessageRecipientModel();
-        $messages = $recipientModel->findForBuyer($partyId);
-        return view('my/messages', ['title' => 'Messages — AdwitiX', 'messages' => $messages]);
+        $messages = $recipientModel->findForBuyer(UserAuthContext::partyId());
+        return $this->response->setJSON(['messages' => $messages]);
     }
 
     public function markMessageRead(string $recipientId)
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
-
-        (new \App\Models\SellerMessageRecipientModel())->markRead($recipientId, $partyId);
-        return redirect()->to('/my-messages');
+        (new \App\Models\SellerMessageRecipientModel())->markRead($recipientId, UserAuthContext::partyId());
+        return $this->response->setJSON(['marked' => true]);
     }
 
-    // D-106: "Star Ratings" -- a party's current standing in both roles,
-    // previously only ever shown as a bare number on other pages (the
-    // listing page's seller_star_rating, the settlement page's rating
-    // form) with no page of its own explaining what it means.
+    // D-106: "Star Ratings" -- a party's current standing in both roles.
     public function starRatings()
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
-
-        $party = (new \App\Models\PartyModel())->find($partyId);
-        return view('my/star_ratings', ['title' => 'Star Ratings — AdwitiX', 'party' => $party]);
+        $party = (new \App\Models\PartyModel())->find(UserAuthContext::partyId());
+        return $this->response->setJSON(['party' => $party]);
     }
 
-    // D-106: "Rating History" -- the real rating_event audit trail
-    // (built for BR-35/BR-36's approval workflow) had no page reading it
-    // back for the party it actually happened to.
+    // D-106: "Rating History" -- the real rating_event audit trail.
     public function ratingHistory()
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
-
-        $events = (new \App\Models\RatingEventModel())->findForParty($partyId);
-        return view('my/rating_history', ['title' => 'Rating History — AdwitiX', 'events' => $events]);
+        $events = (new \App\Models\RatingEventModel())->findForParty(UserAuthContext::partyId());
+        return $this->response->setJSON(['events' => $events]);
     }
 
     // D-106: "Buyer Dashboard" -- a real consolidation of My Bids/
-    // Offers/Purchases-to-rate/Favorites into one summary screen, each
-    // section linking out to its own already-working full page.
+    // Offers/Purchases-to-rate/Favorites into one summary.
     public function buyerDashboard()
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
-
-        $summary = (new \App\Libraries\DashboardService())->buyerSummary($partyId);
-        return view('my/buyer_dashboard', ['title' => 'Buyer Dashboard — AdwitiX', 'summary' => $summary]);
+        $summary = (new \App\Libraries\DashboardService())->buyerSummary(UserAuthContext::partyId());
+        return $this->response->setJSON(['summary' => $summary]);
     }
 
-    // D-106: "Seller Dashboard" -- same consolidation, seller side (My
-    // Listings/Sales/Earnings/Payout Bank/Invoices).
+    // D-106: "Seller Dashboard" -- same consolidation, seller side.
     public function sellerDashboard()
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
-
-        $summary = (new \App\Libraries\DashboardService())->sellerSummary($partyId);
-        return view('my/seller_dashboard', ['title' => 'Seller Dashboard — AdwitiX', 'summary' => $summary]);
+        $summary = (new \App\Libraries\DashboardService())->sellerSummary(UserAuthContext::partyId());
+        return $this->response->setJSON(['summary' => $summary]);
     }
 }

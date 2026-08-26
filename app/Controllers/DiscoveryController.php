@@ -10,7 +10,7 @@ class DiscoveryController extends BaseController
 {
     private function requireLogin(): ?string
     {
-        return session()->get('logged_in_party_id');
+        return \App\Libraries\UserAuthContext::partyId();
     }
 
     public function myFavorites()

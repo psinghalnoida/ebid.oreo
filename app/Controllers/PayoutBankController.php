@@ -3,66 +3,62 @@
 namespace App\Controllers;
 
 use App\Libraries\PayoutControlService;
+use App\Libraries\UserAuthContext;
 use App\Models\PartyModel;
 
 // BR-50: a party requesting to change their own payout bank details —
 // OTP re-verification, then a 24-hour cooling-off before it takes effect.
+// The "pending change" step is now a stateless JWT ticket (like
+// UserAuthApiService's otp_ticket) instead of a PHP session value, so it
+// survives a stateless REST client with no cookie jar.
 class PayoutBankController extends BaseController
 {
-    public function requestForm()
-    {
-        $partyId = session()->get('logged_in_party_id');
-        if (!$partyId) return redirect()->to('/login');
-
-        $party = (new PartyModel())->find($partyId);
-        return view('payout_bank/request', ['title' => 'Payout Bank Details — AdwitiX', 'party' => $party]);
-    }
+    private const PENDING_TICKET_TYP = 'payout_bank_change_pending';
 
     public function requestSubmit()
     {
-        $partyId = session()->get('logged_in_party_id');
-        if (!$partyId) return redirect()->to('/login');
-
+        $partyId = UserAuthContext::partyId();
         $party = (new PartyModel())->find($partyId);
-        $accountNumber = trim($this->request->getPost('account_number'));
-        $ifsc = trim($this->request->getPost('ifsc'));
+        $accountNumber = trim((string) $this->input('account_number'));
+        $ifsc = trim((string) $this->input('ifsc'));
 
         try {
             $otp = (new PayoutControlService())->requestBankChange($partyId, $party['mobile_number'], $accountNumber, $ifsc);
         } catch (\RuntimeException $e) {
-            return view('payout_bank/request', ['title' => 'Payout Bank Details — AdwitiX', 'party' => $party, 'error' => $e->getMessage()]);
+            return $this->jsonError(422, 'request_failed', $e->getMessage());
         }
 
-        session()->set('pending_payout_bank_change', ['account_number' => $accountNumber, 'ifsc' => $ifsc]);
+        $pendingTicket = \App\Libraries\UserAuthApiService::issuePendingTicket(self::PENDING_TICKET_TYP, [
+            'sub' => $partyId, 'account_number' => $accountNumber, 'ifsc' => $ifsc,
+        ]);
 
         // Dev-only convenience: OTP shown on-screen since the SMS
         // provider is stubbed, same pattern as every other OTP flow on
         // this platform.
-        return view('payout_bank/confirm', ['title' => 'Confirm Bank Change — AdwitiX', 'devOtp' => $otp]);
+        return $this->response->setJSON(['pending_ticket' => $pendingTicket, 'dev_otp' => $otp]);
     }
 
     public function confirmSubmit()
     {
-        $partyId = session()->get('logged_in_party_id');
-        if (!$partyId) return redirect()->to('/login');
-
-        $pending = session()->get('pending_payout_bank_change');
-        if (!$pending) {
-            return redirect()->to('/payout-bank');
+        $partyId = UserAuthContext::partyId();
+        $pending = \App\Libraries\UserAuthApiService::decodePendingTicket((string) $this->input('pending_ticket'), self::PENDING_TICKET_TYP);
+        if (!$pending || $pending['sub'] !== $partyId) {
+            return $this->jsonError(401, 'invalid_ticket', 'Invalid or expired pending_ticket — start the bank change request again.');
         }
 
         $party = (new PartyModel())->find($partyId);
-        $otp = trim($this->request->getPost('otp'));
+        $otp = trim((string) $this->input('otp'));
 
         try {
             (new PayoutControlService())->confirmBankChange(
                 $partyId, $party['mobile_number'], $pending['account_number'], $pending['ifsc'], $otp
             );
         } catch (\RuntimeException $e) {
-            return view('payout_bank/confirm', ['title' => 'Confirm Bank Change — AdwitiX', 'error' => $e->getMessage()]);
+            return $this->jsonError(422, 'confirm_failed', $e->getMessage());
         }
 
-        session()->remove('pending_payout_bank_change');
-        return redirect()->to('/payout-bank')->with('error', 'Bank details updated — active in 24 hours (BR-50 cooling-off). Your current details keep being used for any payout until then.');
+        return $this->response->setJSON([
+            'message' => 'Bank details updated — active in 24 hours (BR-50 cooling-off). Your current details keep being used for any payout until then.',
+        ]);
     }
 }

@@ -6,11 +6,8 @@ use App\Models\PartyModel;
 use App\Models\PartyRoleModel;
 use App\Models\TenantModel;
 
-// Phase 3D: platform-wide Super Admin user directory — was previously
-// only reachable per-tenant (SellerManagementController) or not at all
-// for buyers/inspectors/tenant admins. Search + detail only; no write
-// actions here that don't already exist elsewhere (delisting, rating
-// review, standing review all keep their own governed controllers).
+// Phase 3D: platform-wide Super Admin user directory. All routes
+// jwtSuperAdmin-gated.
 class UserController extends BaseController
 {
     public function index()
@@ -29,25 +26,19 @@ class UserController extends BaseController
         }
         $users = $builder->findAll(100);
 
-        return view('admin/users_list', [
-            'title' => 'Users — AdwitiX',
-            'users' => $users,
-            'q' => $q,
-        ]);
+        return $this->response->setJSON(['users' => $users, 'q' => $q]);
     }
 
     public function detail(string $partyId)
     {
         $party = (new PartyModel())->find($partyId);
         if (!$party) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->jsonError(404, 'not_found', 'Party not found.');
         }
 
         $roles = (new PartyRoleModel())->findActiveRolesForParty($partyId);
 
         $db = \Config\Database::connect();
-        // tenant names for any tenant-scoped roles, so the view doesn't
-        // have to show bare UUIDs
         $tenantIds = array_filter(array_column($roles, 'tenant_id'));
         $tenantNames = [];
         if (!empty($tenantIds)) {
@@ -80,35 +71,28 @@ class UserController extends BaseController
             ->orderBy('created_at', 'DESC')
             ->limit(20)->get()->getResultArray();
 
-        return view('admin/user_detail', [
-            'title' => 'User — AdwitiX',
-            'party' => $party,
-            'roles' => $roles,
-            'tenantNames' => $tenantNames,
-            'purchases' => $purchases,
-            'sales' => $sales,
-            'disputes' => $disputes,
-            'ratingEvents' => $ratingEvents,
-            'tenants' => (new TenantModel())->findAll(),
+        return $this->response->setJSON([
+            'party' => $party, 'roles' => $roles, 'tenantNames' => $tenantNames,
+            'purchases' => $purchases, 'sales' => $sales, 'disputes' => $disputes,
+            'ratingEvents' => $ratingEvents, 'tenants' => (new TenantModel())->findAll(),
         ]);
     }
 
-    // PR-08: Super Admin web UI to promote a Tenant Admin — previously
-    // only reachable via the grant:tenant-admin CLI command. Wraps the
-    // same PartyRoleModel::promoteTenantAdmin() logic (BR-44 auto-demotion
-    // of whoever previously held the role for that tenant included).
+    // PR-08: Super Admin web UI to promote a Tenant Admin. Wraps the same
+    // PartyRoleModel::promoteTenantAdmin() logic (BR-44 auto-demotion of
+    // whoever previously held the role for that tenant included).
     public function promoteTenantAdmin(string $partyId)
     {
         $partyModel = new PartyModel();
         $party = $partyModel->find($partyId);
         if (!$party) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->jsonError(404, 'not_found', 'Party not found.');
         }
 
-        $tenantId = (string) $this->request->getPost('tenant_id');
+        $tenantId = (string) $this->input('tenant_id');
         $tenant = (new TenantModel())->find($tenantId);
         if (!$tenant) {
-            return redirect()->to("/admin/users/{$partyId}")->with('error', 'A valid tenant must be selected.');
+            return $this->jsonError(422, 'invalid_tenant', 'A valid tenant must be selected.');
         }
 
         $roleModel = new PartyRoleModel();
@@ -120,6 +104,6 @@ class UserController extends BaseController
             'demotedPreviousAdminId' => $existing['party_id'] ?? null, 'grantedViaCli' => false,
         ], $this->request->getIPAddress(), (string) $this->request->getUserAgent());
 
-        return redirect()->to("/admin/users/{$partyId}")->with('error', "Granted Tenant Admin for \"{$tenant['name']}\".");
+        return $this->response->setJSON(['message' => "Granted Tenant Admin for \"{$tenant['name']}\"."]);
     }
 }

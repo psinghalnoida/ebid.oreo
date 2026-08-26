@@ -14,30 +14,22 @@ class TenantController extends BaseController
     }
 
     // BR-06: tenant creation IS the whitelisting act — a tenant only
-    // exists once a Super Admin has whitelisted it. Gated behind the
-    // real TOTP-verified Super Admin session (superAdmin filter).
-    public function createForm()
-    {
-        return view('admin/tenant_create', ['title' => 'Whitelist a Tenant — AdwitiX']);
-    }
-
+    // exists once a Super Admin has whitelisted it. jwtSuperAdmin-gated.
     public function createSubmit()
     {
-        $name = $this->request->getPost('name');
-        $tenantClass = $this->request->getPost('tenant_class') ?: 'general';
-        $subdomain = $this->request->getPost('subdomain');
-        $subscriptionTier = $this->request->getPost('subscription_tier') ?: 'coco_starter';
+        $name = $this->input('name');
+        $tenantClass = $this->input('tenant_class') ?: 'general';
+        $subdomain = $this->input('subdomain');
+        $subscriptionTier = $this->input('subscription_tier') ?: 'coco_starter';
         if (!in_array($subscriptionTier, TenantModel::SUBSCRIPTION_TIERS, true)) {
-            return redirect()->to('/admin/tenants/create')->with('error', 'Invalid subscription tier.');
+            return $this->jsonError(422, 'invalid_tier', 'Invalid subscription tier.');
         }
         // BR-06: "a dedicated subdomain ... or custom domain" — optional,
-        // set once at whitelisting time like subdomain itself (see
-        // tenant_view.php's own note on why domain fields aren't casually
-        // edited later — a routing-affecting decision, not a quick tweak).
-        $customDomain = trim((string) $this->request->getPost('custom_domain')) ?: null;
+        // set once at whitelisting time like subdomain itself.
+        $customDomain = trim((string) $this->input('custom_domain')) ?: null;
 
         if (!$name || !$subdomain) {
-            return redirect()->to('/admin/tenants/create')->with('error', 'Name and subdomain are required.');
+            return $this->jsonError(422, 'missing_fields', 'Name and subdomain are required.');
         }
 
         try {
@@ -46,14 +38,13 @@ class TenantController extends BaseController
                 'subdomain' => $subdomain, 'custom_domain' => $customDomain, 'subscription_tier' => $subscriptionTier,
             ]);
         } catch (\Throwable $e) {
-            return redirect()->to('/admin/tenants/create')->with('error', 'Could not create tenant — subdomain or custom domain may already be in use.');
+            return $this->jsonError(422, 'create_failed', 'Could not create tenant — subdomain or custom domain may already be in use.');
         }
 
-        return redirect()->to('/admin')->with('error', "Tenant \"{$tenant['name']}\" whitelisted successfully.");
+        return $this->response->setStatusCode(201)->setJSON(['tenant' => $tenant, 'message' => "Tenant \"{$tenant['name']}\" whitelisted successfully."]);
     }
 
-    // Was missing entirely — the dashboard embedded a tenant table but
-    // there was no dedicated, searchable list page.
+    // jwtSuperAdmin-gated.
     public function list()
     {
         $q = trim((string) $this->request->getGet('q'));
@@ -61,37 +52,37 @@ class TenantController extends BaseController
         if ($q !== '') {
             $builder = $builder->groupStart()->like('name', $q)->orLike('subdomain', $q)->groupEnd();
         }
-        return view('admin/tenants_list', ['title' => 'Tenants — AdwitiX', 'tenants' => $builder->findAll(), 'q' => $q]);
+        return $this->response->setJSON(['tenants' => $builder->findAll(), 'q' => $q]);
     }
 
-    // Was missing entirely — Super Admin could only create tenants, not
-    // view or correct one afterward.
+    // jwtSuperAdmin-gated.
     public function view(string $tenantId)
     {
         $tenant = $this->tenantModel->find($tenantId);
         if (!$tenant) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->jsonError(404, 'not_found', 'Tenant not found.');
         }
-        return view('admin/tenant_view', ['title' => 'Tenant — AdwitiX', 'tenant' => $tenant]);
+        return $this->response->setJSON(['tenant' => $tenant]);
     }
 
-    // BR-06: tenant branding (logo + primary color) — the columns have
-    // existed since Phase 0 but nothing ever wrote to them.
+    // BR-06: tenant branding (logo + primary color). jwtSuperAdmin-gated.
+    // Multipart/form-data (branding_logo upload), same reasoning as
+    // MediaController::upload.
     public function editSubmit(string $tenantId)
     {
         $tenant = $this->tenantModel->find($tenantId);
         if (!$tenant) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->jsonError(404, 'not_found', 'Tenant not found.');
         }
 
         $postedColor = $this->request->getPost('branding_primary_color');
         if ($postedColor && !preg_match('/^#[0-9a-fA-F]{6}$/', $postedColor)) {
-            return redirect()->to("/admin/tenants/{$tenantId}")->with('error', 'Brand color must be a 6-digit hex code, e.g. #0F6E4E.');
+            return $this->jsonError(422, 'invalid_color', 'Brand color must be a 6-digit hex code, e.g. #0F6E4E.');
         }
 
         $subscriptionTier = $this->request->getPost('subscription_tier') ?: $tenant['subscription_tier'];
         if (!in_array($subscriptionTier, TenantModel::SUBSCRIPTION_TIERS, true)) {
-            return redirect()->to("/admin/tenants/{$tenantId}")->with('error', 'Invalid subscription tier.');
+            return $this->jsonError(422, 'invalid_tier', 'Invalid subscription tier.');
         }
 
         $update = [
@@ -105,7 +96,7 @@ class TenantController extends BaseController
         if ($logo && $logo->isValid() && !$logo->hasMoved()) {
             $allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
             if (!in_array($logo->getMimeType(), $allowed, true)) {
-                return redirect()->to("/admin/tenants/{$tenantId}")->with('error', 'Logo must be JPEG, PNG, WebP, or SVG.');
+                return $this->jsonError(422, 'invalid_logo_type', 'Logo must be JPEG, PNG, WebP, or SVG.');
             }
             $uploadDir = WRITEPATH . '../public/uploads/tenants/' . $tenantId;
             if (!is_dir($uploadDir)) {
@@ -117,14 +108,14 @@ class TenantController extends BaseController
         }
 
         $this->tenantModel->update($tenantId, $update);
-        return redirect()->to("/admin/tenants/{$tenantId}")->with('error', 'Tenant updated.');
+        return $this->response->setJSON(['tenant' => $this->tenantModel->find($tenantId), 'message' => 'Tenant updated.']);
     }
 
-    // Was missing entirely — a seller had no way to discover which
-    // tenants exist without already knowing a tenant ID.
+    // Public — a seller browsing which tenants exist without already
+    // knowing a tenant ID.
     public function directory()
     {
         $tenants = $this->tenantModel->orderBy('name', 'ASC')->findAll();
-        return view('tenants_directory', ['title' => 'Browse Tenants — AdwitiX', 'tenants' => $tenants]);
+        return $this->response->setJSON(['tenants' => $tenants]);
     }
 }

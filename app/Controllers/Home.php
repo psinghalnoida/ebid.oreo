@@ -75,7 +75,7 @@ class Home extends BaseController
         // identified AND genuinely searched for something (at least one
         // real filter set), not on every bare page load.
         $activeFilters = array_filter(compact('category', 'format', 'priceMin', 'priceMax', 'location', 'minRating', 'condition', 'posted', 'q'));
-        $searchingPartyId = session()->get('logged_in_party_id');
+        $searchingPartyId = \App\Libraries\UserAuthContext::partyId();
         if ($searchingPartyId && !empty($activeFilters)) {
             (new \App\Models\SearchHistoryModel())->record($searchingPartyId, $activeFilters);
         }
@@ -151,7 +151,7 @@ class Home extends BaseController
         // buyer's saved CLV preferences — reuses ClvMatchingService's
         // own match set rather than re-deriving separate logic.
         $matchedSaleEventIds = [];
-        $buyerId = session()->get('logged_in_party_id');
+        $buyerId = \App\Libraries\UserAuthContext::partyId();
         if ($buyerId) {
             $matches = (new \App\Libraries\ClvMatchingService())->findMatches($buyerId, 200);
             $matchedSaleEventIds = array_column($matches, 'sale_event_id');

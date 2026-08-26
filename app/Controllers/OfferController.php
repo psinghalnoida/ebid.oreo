@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Libraries\OfferService;
 use App\Libraries\EmdService;
+use App\Libraries\UserAuthContext;
 use App\Models\SaleEventModel;
 use App\Models\EmdHoldModel;
 use App\Models\ListingModel;
@@ -23,23 +24,15 @@ class OfferController extends BaseController
         $this->listingModel = new ListingModel();
     }
 
-    private function requireLogin()
-    {
-        return session()->get('logged_in_party_id');
-    }
-
     public function devFundEmd(string $saleEventId)
     {
-        $buyerId = $this->requireLogin();
-        if (!$buyerId) {
-            return redirect()->to('/login');
-        }
+        $buyerId = UserAuthContext::partyId();
 
         // BR-15: structurally barred from pledging under any
         // circumstance — checked before the EMD is ever held, not just
         // at the later offer.
         if ((new \App\Libraries\AuthorizationService())->isSuperAdmin($buyerId)) {
-            return redirect()->to('/')->with('error', 'BR-15: the Super Admin holds a non-participatory regulatory role and may never pledge an EMD deposit.');
+            return $this->jsonError(403, 'br15_super_admin_barred', 'BR-15: the Super Admin holds a non-participatory regulatory role and may never pledge an EMD deposit.');
         }
 
         // BR-55: full KYC verification is mandatory before a User's
@@ -47,7 +40,7 @@ class OfferController extends BaseController
         try {
             (new \App\Libraries\KycService())->requireVerifiedKyc($buyerId, 'pledging an EMD deposit');
         } catch (\RuntimeException $e) {
-            return redirect()->to('/kyc')->with('error', $e->getMessage());
+            return $this->jsonError(403, 'kyc_required', $e->getMessage());
         }
 
         $saleEvent = $this->saleEventModel->find($saleEventId);
@@ -60,7 +53,7 @@ class OfferController extends BaseController
             try {
                 (new \App\Libraries\KycService())->checkEnhancedDueDiligence($buyerId, $baseline);
             } catch (\RuntimeException $e) {
-                return redirect()->to("/listings/{$saleEvent['listing_id']}")->with('error', $e->getMessage());
+                return $this->jsonError(403, 'edd_required', $e->getMessage());
             }
             $this->emdHoldModel->createHold($saleEventId, $buyerId, 'van', $baseline);
             (new \App\Libraries\AuditLogService())->log('emd.held', $buyerId, [
@@ -68,77 +61,62 @@ class OfferController extends BaseController
             ], $this->request->getIPAddress(), (string) $this->request->getUserAgent());
         }
 
-        return redirect()->to("/listings/{$saleEvent['listing_id']}");
+        return $this->response->setJSON(['emdHold' => $this->emdHoldModel->findBySaleEventAndParty($saleEventId, $buyerId)]);
     }
 
     public function submit(string $saleEventId)
     {
-        $buyerId = $this->requireLogin();
-        if (!$buyerId) {
-            return redirect()->to('/login');
-        }
+        $buyerId = UserAuthContext::partyId();
 
         $saleEvent = $this->saleEventModel->find($saleEventId);
-        $amount = (float) $this->request->getPost('amount');
+        $amount = (float) $this->input('amount');
 
         try {
-            $this->offers->submitOffer($saleEventId, $buyerId, $amount);
+            $offer = $this->offers->submitOffer($saleEventId, $buyerId, $amount);
         } catch (\RuntimeException $e) {
-            return redirect()->to("/listings/{$saleEvent['listing_id']}")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'offer_failed', $e->getMessage());
         }
 
-        return redirect()->to("/listings/{$saleEvent['listing_id']}");
+        return $this->response->setStatusCode(201)->setJSON(['offer' => $offer]);
     }
 
     public function withdraw(string $offerId)
     {
-        $buyerId = $this->requireLogin();
-        if (!$buyerId) {
-            return redirect()->to('/login');
-        }
-        $reason = $this->request->getPost('reason') ?: 'Buyer withdrew';
+        $reason = $this->input('reason') ?: 'Buyer withdrew';
 
         try {
             $offer = $this->offers->withdrawOffer($offerId, $reason);
         } catch (\RuntimeException $e) {
-            return redirect()->back()->with('error', $e->getMessage());
+            return $this->jsonError(422, 'withdraw_failed', $e->getMessage());
         }
 
-        $saleEvent = $this->saleEventModel->find($offer['sale_event_id']);
-        return redirect()->to("/listings/{$saleEvent['listing_id']}");
+        return $this->response->setJSON(['offer' => $offer]);
     }
 
-    // BR-09: this decision belongs to the SELLER, not the Tenant Admin
-    // (unlike listing/sale-event approval elsewhere). Currently gated only
-    // by login, not by seller-identity — a check that this party actually
-    // owns the listing should be added before production use.
-    // BR-42: this decision belongs to the SELLER specifically — now
-    // enforced, not just gated by login (closes the gap flagged in D-19).
+    // BR-09/BR-42: this decision belongs to the SELLER specifically, not
+    // the Tenant Admin (unlike listing/sale-event approval elsewhere) —
+    // enforced here by re-checking listing ownership against the caller.
     public function accept(string $saleEventId, string $offerId)
     {
-        $sellerId = $this->requireLogin();
-        if (!$sellerId) {
-            return redirect()->to('/login');
-        }
+        $sellerId = UserAuthContext::partyId();
 
         $saleEvent = $this->saleEventModel->find($saleEventId);
         if (!$saleEvent) {
-            return redirect()->to('/');
+            return $this->jsonError(404, 'not_found', 'Sale event not found.');
         }
         $listing = $this->listingModel->find($saleEvent['listing_id']);
         if (!$listing || $listing['seller_party_id'] !== $sellerId) {
-            return service('response')->setStatusCode(403)
-                ->setBody('BR-42: only the listing\'s seller may accept an offer on it.');
+            return $this->jsonError(403, 'forbidden', 'BR-42: only the listing\'s seller may accept an offer on it.');
         }
 
-        $reason = $this->request->getPost('reason') ?: null;
+        $reason = $this->input('reason') ?: null;
 
         try {
-            $this->offers->acceptOffer($saleEventId, $offerId, $reason, $sellerId);
+            $offer = $this->offers->acceptOffer($saleEventId, $offerId, $reason, $sellerId);
         } catch (\RuntimeException $e) {
-            return redirect()->to("/listings/{$listing['id']}")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'accept_failed', $e->getMessage());
         }
 
-        return redirect()->to("/listings/{$listing['id']}");
+        return $this->response->setJSON(['offer' => $offer]);
     }
 }

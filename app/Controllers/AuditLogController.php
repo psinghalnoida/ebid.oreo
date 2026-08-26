@@ -3,7 +3,9 @@
 namespace App\Controllers;
 
 use App\Libraries\AuditLogService;
+use App\Libraries\UserAuthContext;
 
+// jwtSuperAdmin-gated.
 class AuditLogController extends BaseController
 {
     public function index()
@@ -25,41 +27,30 @@ class AuditLogController extends BaseController
             $query->where('p.mobile_number', $actorMobile);
         }
 
-        $entries = $query->get()->getResultArray();
-
-        return view('admin/audit_log', [
-            'title' => 'Audit Log — AdwitiX', 'entries' => $entries,
+        return $this->response->setJSON([
+            'entries' => $query->get()->getResultArray(),
             'eventType' => $eventType, 'actorMobile' => $actorMobile,
         ]);
     }
 
     public function verifyIntegrity()
     {
-        $audit = new AuditLogService();
-        $brokenAt = $audit->verifyChainIntegrity();
-
-        return view('admin/audit_verify', [
-            'title' => 'Audit Log Integrity — AdwitiX', 'brokenAt' => $brokenAt,
-        ]);
+        $brokenAt = (new AuditLogService())->verifyChainIntegrity();
+        return $this->response->setJSON(['brokenAt' => $brokenAt]);
     }
 
     // BR-58: "a reporting/export capability layered on the existing
     // audit trail, not a separate data-capture requirement" — the hash
     // chain itself (D-45) already exists; this is purely the extraction
-    // layer for the finance function. Scoped honestly to the hot tier
-    // only — cold-tier archival remains blocked on real Google Cloud
-    // credentials (flagged since D-45, unchanged here).
-    public function exportForm()
-    {
-        return view('admin/audit_export', ['title' => 'Statutory Export — AdwitiX']);
-    }
-
+    // layer for the finance function. CSV download, same reasoning as
+    // MyActivityController's exports: React fetches with a Bearer
+    // header and saves the response as a Blob.
     public function export()
     {
         $from = $this->request->getGet('from');
         $to = $this->request->getGet('to');
         if (!$from || !$to) {
-            return redirect()->to('/admin/audit-log/export')->with('error', 'Both a start and end date are required.');
+            return $this->jsonError(422, 'missing_range', 'Both a start and end date are required.');
         }
 
         $db = \Config\Database::connect();
@@ -72,7 +63,7 @@ class AuditLogController extends BaseController
             ->orderBy('al.sequence_number', 'ASC')
             ->get()->getResultArray();
 
-        (new AuditLogService())->log('audit_log.statutory_export_generated', session()->get('logged_in_party_id'), [
+        (new AuditLogService())->log('audit_log.statutory_export_generated', UserAuthContext::partyId(), [
             'from' => $from, 'to' => $to, 'recordCount' => count($entries),
         ]);
 

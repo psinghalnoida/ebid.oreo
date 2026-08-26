@@ -8,7 +8,7 @@ class LiveTickerController extends BaseController
 {
     public function feed()
     {
-        $partyId = session()->get('logged_in_party_id');
+        $partyId = \App\Libraries\UserAuthContext::partyId();
         if (!$partyId) {
             return $this->response->setJSON(['ownBids' => [], 'interestMatches' => []]);
         }

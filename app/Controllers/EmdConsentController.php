@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Libraries\EmdService;
 use App\Libraries\ConsentService;
+use App\Libraries\UserAuthContext;
 use App\Models\SaleEventModel;
 use App\Models\EmdHoldModel;
 
@@ -16,14 +17,11 @@ class EmdConsentController extends BaseController
         $this->saleEventModel = new SaleEventModel();
     }
 
-    public function form(string $saleEventId, string $action)
+    public function terms(string $saleEventId, string $action)
     {
-        $partyId = session()->get('logged_in_party_id');
-        if (!$partyId) return redirect()->to('/login');
-
         $saleEvent = $this->saleEventModel->find($saleEventId);
         if (!$saleEvent) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->jsonError(404, 'not_found', 'Sale event not found.');
         }
 
         $baseline = EmdService::calculateBaselineEmd(
@@ -32,21 +30,17 @@ class EmdConsentController extends BaseController
             $saleEvent['reserve_value'] !== null ? (float) $saleEvent['reserve_value'] : null
         );
 
-        return view('emd/consent', [
-            'title' => 'Confirm Your Deposit — AdwitiX',
-            'saleEvent' => $saleEvent, 'amount' => $baseline, 'action' => $action,
-        ]);
+        return $this->response->setJSON(['saleEvent' => $saleEvent, 'amount' => $baseline, 'action' => $action]);
     }
 
     public function confirm(string $saleEventId, string $action)
     {
-        $partyId = session()->get('logged_in_party_id');
-        if (!$partyId) return redirect()->to('/login');
+        $partyId = UserAuthContext::partyId();
 
         // BR-15: structurally barred from pledging under any
         // circumstance — checked before the EMD is ever held.
         if ((new \App\Libraries\AuthorizationService())->isSuperAdmin($partyId)) {
-            return redirect()->to('/')->with('error', 'BR-15: the Super Admin holds a non-participatory regulatory role and may never pledge an EMD deposit.');
+            return $this->jsonError(403, 'br15_super_admin_barred', 'BR-15: the Super Admin holds a non-participatory regulatory role and may never pledge an EMD deposit.');
         }
 
         // BR-55: full KYC verification is mandatory before a User's
@@ -54,12 +48,11 @@ class EmdConsentController extends BaseController
         try {
             (new \App\Libraries\KycService())->requireVerifiedKyc($partyId, 'pledging an EMD deposit');
         } catch (\RuntimeException $e) {
-            return redirect()->to('/kyc')->with('error', $e->getMessage());
+            return $this->jsonError(403, 'kyc_required', $e->getMessage());
         }
 
-        if ($this->request->getPost('confirmed') !== '1') {
-            return redirect()->to("/sale-events/{$saleEventId}/emd-consent/{$action}")
-                ->with('error', 'You must explicitly confirm before your deposit is pledged.');
+        if ((string) $this->input('confirmed') !== '1') {
+            return $this->jsonError(422, 'confirmation_required', 'You must explicitly confirm before your deposit is pledged.');
         }
 
         $saleEvent = $this->saleEventModel->find($saleEventId);
@@ -74,7 +67,7 @@ class EmdConsentController extends BaseController
         try {
             (new \App\Libraries\KycService())->checkEnhancedDueDiligence($partyId, $baseline);
         } catch (\RuntimeException $e) {
-            return redirect()->to("/listings/{$saleEvent['listing_id']}")->with('error', $e->getMessage());
+            return $this->jsonError(403, 'edd_required', $e->getMessage());
         }
 
         $forfeitureText = 'if the auction closes and you fail to complete your obligation, this deposit is forfeited — allocated to the Tenant, SaaS, and (where applicable) the seller per the platform\'s standard forfeiture rules.';
@@ -83,14 +76,18 @@ class EmdConsentController extends BaseController
             $partyId, $saleEventId, $baseline, $forfeitureText, $this->request->getIPAddress()
         );
 
-        match ($action) {
-            'easy_or_tender' => $this->fundStandard($saleEventId, $partyId, $baseline),
-            'buy_now' => $this->fundOffer($saleEventId, $partyId, $baseline),
-            'express' => $this->fundExpress($saleEventId, $partyId),
-            default => throw new \RuntimeException("Unknown consent action: {$action}"),
-        };
+        try {
+            match ($action) {
+                'easy_or_tender' => $this->fundStandard($saleEventId, $partyId, $baseline),
+                'buy_now' => $this->fundOffer($saleEventId, $partyId, $baseline),
+                'express' => $this->fundExpress($saleEventId, $partyId),
+                default => throw new \RuntimeException("Unknown consent action: {$action}"),
+            };
+        } catch (\RuntimeException $e) {
+            return $this->jsonError(422, 'consent_action_failed', $e->getMessage());
+        }
 
-        return redirect()->to("/listings/{$saleEvent['listing_id']}");
+        return $this->response->setJSON(['saleEvent' => $this->saleEventModel->find($saleEventId)]);
     }
 
     private function fundStandard(string $saleEventId, string $partyId, float $baseline): void
