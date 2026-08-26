@@ -314,3 +314,11 @@ $routes->post('/api/v1/auth/otp/request', 'UserAuthApiController::requestOtp');
 $routes->post('/api/v1/auth/otp/verify', 'UserAuthApiController::verifyOtp');
 $routes->post('/api/v1/auth/submit', 'UserAuthApiController::submit');
 $routes->get('/api/v1/auth/me', 'UserAuthApiController::me', ['filter' => 'jwtAuth']);
+
+// Super Admin REST/JWT login (BR-04) — JWT counterpart of
+// SuperAdminAuthController::loginSubmit/loginVerifyEmailSubmit. See
+// SuperAdminAuthApiController's docblock re: the session dual-write this
+// still does until every superAdmin-filtered controller below is itself
+// migrated to the jwtSuperAdmin filter.
+$routes->post('/api/v1/admin/auth/login', 'SuperAdminAuthApiController::login');
+$routes->post('/api/v1/admin/auth/login/verify-email', 'SuperAdminAuthApiController::verifyEmail');

@@ -123,12 +123,18 @@ class UserAuthApiService
         ];
     }
 
-    public function issueAccessToken(array $party): string
+    // $roles defaults to the plain party role. SuperAdminAuthApiController
+    // passes ['party', 'super_admin'] after its own, separate TOTP/email-
+    // OTP-verified login — mirrors the "distinct session marker" boundary
+    // SuperAdminFilter enforces today (holding the super_admin DB role
+    // alone was never enough; the same holds for this claim).
+    public function issueAccessToken(array $party, array $roles = ['party']): string
     {
         return JwtService::encode([
             'typ' => 'access',
             'sub' => $party['id'],
             'mobile' => $party['mobile_number'],
+            'roles' => $roles,
             'iat' => time(),
             'exp' => time() + self::ACCESS_TOKEN_TTL_SECONDS,
         ], self::ACCESS_TOKEN_SECRET_ENV, self::ACCESS_TOKEN_DEV_SECRET);
@@ -139,6 +145,29 @@ class UserAuthApiService
     {
         $claims = JwtService::decode($token, self::ACCESS_TOKEN_SECRET_ENV, self::ACCESS_TOKEN_DEV_SECRET);
         if (!$claims || ($claims['typ'] ?? null) !== 'access' || !isset($claims['sub'])) {
+            return null;
+        }
+        return $claims;
+    }
+
+    // Generic short-lived "step N needs step N-1's proof" ticket, on the
+    // same OTP-ticket secret as verifyLoginOtp()'s ticket — used for any
+    // multi-request flow that needs a stateless stand-in for a PHP
+    // session (e.g. SuperAdminAuthApiController's email-OTP login stage).
+    // $typ scopes tickets from different flows apart from each other, the
+    // same way OTP purposes already scope otp_verification rows apart.
+    public static function issuePendingTicket(string $typ, array $claims, int $ttlSeconds = self::OTP_TICKET_TTL_SECONDS): string
+    {
+        return JwtService::encode(
+            ['typ' => $typ, 'iat' => time(), 'exp' => time() + $ttlSeconds] + $claims,
+            self::OTP_TICKET_SECRET_ENV, self::OTP_TICKET_DEV_SECRET
+        );
+    }
+
+    public static function decodePendingTicket(string $token, string $expectedTyp): ?array
+    {
+        $claims = JwtService::decode($token, self::OTP_TICKET_SECRET_ENV, self::OTP_TICKET_DEV_SECRET);
+        if (!$claims || ($claims['typ'] ?? null) !== $expectedTyp) {
             return null;
         }
         return $claims;
