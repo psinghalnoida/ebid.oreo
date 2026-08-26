@@ -44,7 +44,7 @@ class JwtSuperAdminFilter implements FilterInterface
             ]);
         }
 
-        UserAuthContext::set($party);
+        UserAuthContext::set($party, $claims['roles']);
     }
 
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)

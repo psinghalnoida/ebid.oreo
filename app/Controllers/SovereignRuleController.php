@@ -3,11 +3,11 @@
 namespace App\Controllers;
 
 use App\Libraries\SovereignRuleService;
+use App\Libraries\UserAuthContext;
 
-// PR-04: the Super Admin's "Rules & Specifications module" — gated
-// behind the superAdmin filter, i.e. only reachable after the real
-// TOTP-verified Super Admin login (BR-04), same access boundary as
-// every other admin surface in this codebase.
+// PR-04: the Super Admin's "Rules & Specifications module" — jwtSuperAdmin
+// -gated, i.e. only reachable after the real TOTP-verified Super Admin
+// login (BR-04), same access boundary as every other admin surface.
 class SovereignRuleController extends BaseController
 {
     private SovereignRuleService $rules;
@@ -19,64 +19,52 @@ class SovereignRuleController extends BaseController
 
     public function index()
     {
-        return view('admin/rules_list', [
-            'title' => 'Rules & Specifications — AdwitiX',
-            'rules' => $this->rules->listAll(),
-        ]);
+        return $this->response->setJSON(['rules' => $this->rules->listAll()]);
     }
 
-    public function editForm(string $ruleId)
+    public function show(string $ruleId)
     {
         $rule = $this->rules->find($ruleId);
         if (!$rule) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->jsonError(404, 'not_found', 'Rule not found.');
         }
-        return view('admin/rules_edit', [
-            'title' => 'Edit Rule — AdwitiX',
-            'rule' => $rule,
-            'revisions' => $this->rules->revisions($ruleId),
-        ]);
+        return $this->response->setJSON(['rule' => $rule, 'revisions' => $this->rules->revisions($ruleId)]);
     }
 
     public function editSubmit(string $ruleId)
     {
-        $numericValue = $this->request->getPost('numeric_value');
+        $numericValue = $this->input('numeric_value');
         try {
             $this->rules->update(
                 $ruleId,
-                (string) $this->request->getPost('title'),
-                (string) $this->request->getPost('statement'),
-                (string) $this->request->getPost('logic'),
+                (string) $this->input('title'),
+                (string) $this->input('statement'),
+                (string) $this->input('logic'),
                 $numericValue !== null && $numericValue !== '' ? (float) $numericValue : null,
-                (string) $this->request->getPost('reason_for_modification'),
-                session()->get('super_admin_party_id')
+                (string) $this->input('reason_for_modification'),
+                UserAuthContext::partyId()
             );
         } catch (\RuntimeException $e) {
-            return redirect()->to("/admin/rules/{$ruleId}")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'update_failed', $e->getMessage());
         }
 
-        return redirect()->to("/admin/rules/{$ruleId}")->with('error', 'Rule updated and versioned.');
-    }
-
-    public function createForm()
-    {
-        return view('admin/rules_create', ['title' => 'Define a New Rule — AdwitiX']);
+        return $this->response->setJSON(['rule' => $this->rules->find($ruleId), 'message' => 'Rule updated and versioned.']);
     }
 
     public function createSubmit()
     {
         try {
             $rule = $this->rules->createFreeform(
-                (string) $this->request->getPost('title'),
-                (string) $this->request->getPost('statement'),
-                (string) $this->request->getPost('logic'),
-                (string) $this->request->getPost('reason_for_modification'),
-                session()->get('super_admin_party_id')
+                (string) $this->input('title'),
+                (string) $this->input('statement'),
+                (string) $this->input('logic'),
+                (string) $this->input('reason_for_modification'),
+                UserAuthContext::partyId()
             );
         } catch (\RuntimeException $e) {
-            return redirect()->to('/admin/rules/new')->with('error', $e->getMessage());
+            return $this->jsonError(422, 'create_failed', $e->getMessage());
         }
 
-        return redirect()->to("/admin/rules/{$rule['id']}")->with('error', 'Rule created.');
+        return $this->response->setStatusCode(201)->setJSON(['rule' => $rule]);
     }
 }

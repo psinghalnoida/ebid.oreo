@@ -21,14 +21,6 @@ class ListingController extends BaseController
         $this->tenantModel = new TenantModel();
     }
 
-    // GET /api/v1/tenants — for the React "list an asset" form's tenant
-    // picker. Dev convenience: for now, list any tenant to attach to.
-    // Tenant selection/scoping by seller role (BR-09) is not yet built.
-    public function tenants()
-    {
-        return $this->response->setJSON(['tenants' => $this->tenantModel->findAll()]);
-    }
-
     // Phase 3C+: favorites/watchlist — a plain toggle, no approval or
     // ownership check needed beyond being logged in (favoriting is
     // purely personal, unlike bidding/offering). Auth enforced by the

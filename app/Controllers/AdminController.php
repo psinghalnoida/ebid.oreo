@@ -2,11 +2,13 @@
 
 namespace App\Controllers;
 
+use App\Libraries\UserAuthContext;
 use App\Models\TenantModel;
 use App\Models\DisputeModel;
 use App\Models\SettlementModel;
 use App\Models\AmlFlagModel;
 
+// All routes behind jwtSuperAdmin.
 class AdminController extends BaseController
 {
     public function dashboard()
@@ -47,8 +49,7 @@ class AdminController extends BaseController
             ->limit(20)
             ->get()->getResultArray();
 
-        return view('admin/dashboard', [
-            'title' => 'Super Admin — AdwitiX',
+        return $this->response->setJSON([
             'tenants' => $tenantModel->findAll(),
             'openDisputes' => $disputeModel->whereIn('status', ['filed', 'evidence_window', 'appealed'])->countAllResults(),
             'stalledSettlements' => $settlementModel->where('status', 'stalled')->countAllResults(),
@@ -90,8 +91,7 @@ class AdminController extends BaseController
         // Tech Stack §3.10: unacknowledged server-time drift alerts.
         $driftAlerts = (new \App\Models\ServerTimeCheckModel())->findUnacknowledgedDriftAlerts();
 
-        return view('admin/alerts', [
-            'title' => 'Alerts — AdwitiX',
+        return $this->response->setJSON([
             'amlFlags' => $amlFlags,
             'stalledSettlements' => $stalledSettlements,
             'openDisputes' => $openDisputes,
@@ -105,19 +105,17 @@ class AdminController extends BaseController
     // alert, clearing it from the Alerts list.
     public function acknowledgeServerTimeDrift(string $checkId)
     {
-        $superAdminId = session()->get('super_admin_party_id');
         try {
-            (new \App\Libraries\ServerTimeIntegrityService())->acknowledge($checkId, $superAdminId);
+            (new \App\Libraries\ServerTimeIntegrityService())->acknowledge($checkId, UserAuthContext::partyId());
         } catch (\RuntimeException $e) {
-            return redirect()->to('/admin/alerts')->with('error', $e->getMessage());
+            return $this->jsonError(422, 'acknowledge_failed', $e->getMessage());
         }
-        return redirect()->to('/admin/alerts')->with('error', 'Drift alert acknowledged.');
+        return $this->response->setJSON(['message' => 'Drift alert acknowledged.']);
     }
 
     // D-106: "Lot Directory" -- the Custodian had no way to browse every
     // listing platform-wide across every Tenant; only per-tenant pending
-    // queues existed. Real filters, real pagination, same shape as
-    // TenantController::list()'s existing filterable-admin pattern.
+    // queues existed.
     public function lotDirectory()
     {
         $q = trim((string) $this->request->getGet('q'));
@@ -132,8 +130,8 @@ class AdminController extends BaseController
         $listings = $svc->findListings($qOrNull, $tenantId, $format, $status, $pg['perPage'], $pg['offset']);
         $tenants = (new TenantModel())->orderBy('name', 'ASC')->findAll();
 
-        return view('admin/lot_directory', [
-            'title' => 'Lot Directory — AdwitiX', 'listings' => $listings, 'tenants' => $tenants,
+        return $this->response->setJSON([
+            'listings' => $listings, 'tenants' => $tenants,
             'q' => $q, 'tenantId' => $tenantId, 'format' => $format, 'status' => $status,
             'page' => $pg['page'], 'perPage' => $pg['perPage'],
             'totalPages' => \App\Libraries\Paginator::totalPages($total, $pg['perPage']), 'total' => $total,
@@ -154,8 +152,8 @@ class AdminController extends BaseController
         $saleEvents = $svc->findSaleEvents($tenantId, $format, $status, $pg['perPage'], $pg['offset']);
         $tenants = (new TenantModel())->orderBy('name', 'ASC')->findAll();
 
-        return view('admin/trading_session_directory', [
-            'title' => 'Trading Session Directory — AdwitiX', 'saleEvents' => $saleEvents, 'tenants' => $tenants,
+        return $this->response->setJSON([
+            'saleEvents' => $saleEvents, 'tenants' => $tenants,
             'tenantId' => $tenantId, 'format' => $format, 'status' => $status,
             'page' => $pg['page'], 'perPage' => $pg['perPage'],
             'totalPages' => \App\Libraries\Paginator::totalPages($total, $pg['perPage']), 'total' => $total,

@@ -3,18 +3,20 @@
 namespace App\Controllers;
 
 use App\Libraries\StandingReviewService;
+use App\Libraries\UserAuthContext;
 use App\Models\DisputeModel;
 
+// Authorization (Tenant Admin for one of the seller's tenants, or Super
+// Admin) is checked inside StandingReviewService itself — same pattern
+// as DisputeController::rule — so this runs behind jwtAuth, not a
+// role-specific filter.
 class StandingReviewController extends BaseController
 {
     public function show(string $disputeId)
     {
-        $partyId = session()->get('logged_in_party_id');
-        if (!$partyId) return redirect()->to('/login');
-
         $dispute = (new DisputeModel())->find($disputeId);
         if (!$dispute || $dispute['category'] !== 'standing_review') {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->jsonError(404, 'not_found', 'Standing Review case not found.');
         }
 
         $db = \Config\Database::connect();
@@ -26,28 +28,23 @@ class StandingReviewController extends BaseController
             ->where('ta.status', 'approved')
             ->get()->getResultArray();
 
-        return view('admin/standing_review_case', [
-            'title' => 'Standing Review Case — AdwitiX', 'dispute' => $dispute,
-            'seller' => $seller, 'tenants' => $tenants,
-        ]);
+        return $this->response->setJSON(['dispute' => $dispute, 'seller' => $seller, 'tenants' => $tenants]);
     }
 
     public function rule(string $disputeId)
     {
-        $partyId = session()->get('logged_in_party_id');
-        if (!$partyId) return redirect()->to('/login');
-
-        $tenantId = $this->request->getPost('tenant_id');
-        $outcome = $this->request->getPost('outcome');
-        $rationale = $this->request->getPost('rationale');
-        $ratingConsequence = $this->request->getPost('rating_consequence') !== '' ? (float) $this->request->getPost('rating_consequence') : null;
+        $partyId = UserAuthContext::partyId();
+        $tenantId = $this->input('tenant_id');
+        $outcome = $this->input('outcome');
+        $rationale = $this->input('rationale');
+        $ratingConsequence = $this->input('rating_consequence') !== null && $this->input('rating_consequence') !== '' ? (float) $this->input('rating_consequence') : null;
 
         try {
             (new StandingReviewService())->ruleOnCase($disputeId, $partyId, $tenantId, $outcome, $rationale, $ratingConsequence);
         } catch (\RuntimeException $e) {
-            return redirect()->back()->with('error', $e->getMessage());
+            return $this->jsonError(422, 'rule_failed', $e->getMessage());
         }
 
-        return redirect()->to("/admin/standing-review/{$disputeId}")->with('error', 'Standing Review case ruled.');
+        return $this->response->setJSON(['dispute' => (new DisputeModel())->find($disputeId), 'message' => 'Standing Review case ruled.']);
     }
 }

@@ -65,7 +65,7 @@ class JwtTenantAdminFilter implements FilterInterface
             ]);
         }
 
-        UserAuthContext::set($party);
+        UserAuthContext::set($party, $claims['roles'] ?? ['party']);
     }
 
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)

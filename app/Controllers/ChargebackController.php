@@ -39,12 +39,11 @@ class ChargebackController extends BaseController
         ]);
     }
 
-    // ── Below: admin review screens, still session-based — Phase 5 ──
+    // ── Below: admin review screens, jwtSuperAdmin-gated (Phase 5, D-135) ──
     public function index()
     {
         $caseModel = new ChargebackCaseModel();
-        return view('admin/chargebacks', [
-            'title' => 'Chargeback Handling — AdwitiX',
+        return $this->response->setJSON([
             'openRepresentment' => $caseModel->findOpenRepresentment(),
             'pendingIntegrityReview' => $caseModel->findPendingIntegrityReview(),
             'resolved' => $caseModel->findResolved(),
@@ -53,31 +52,31 @@ class ChargebackController extends BaseController
 
     public function decide(string $caseId)
     {
-        $adminId = session()->get('super_admin_party_id');
-        $outcome = $this->request->getPost('outcome');
-        $notes = (string) $this->request->getPost('notes');
+        $adminId = UserAuthContext::partyId();
+        $outcome = $this->input('outcome');
+        $notes = (string) $this->input('notes');
 
         try {
             (new ChargebackService())->recordRepresentmentOutcome($caseId, $adminId, $outcome, $notes);
         } catch (\RuntimeException $e) {
-            return redirect()->to('/admin/chargebacks')->with('error', $e->getMessage());
+            return $this->jsonError(422, 'decide_failed', $e->getMessage());
         }
 
-        return redirect()->to('/admin/chargebacks')->with('error', 'Representment outcome recorded.');
+        return $this->response->setJSON(['message' => 'Representment outcome recorded.']);
     }
 
     public function reviewIntegrity(string $caseId)
     {
-        $adminId = session()->get('super_admin_party_id');
-        $applyRatingConsequence = $this->request->getPost('apply_rating_consequence') === '1';
-        $notes = (string) $this->request->getPost('notes');
+        $adminId = UserAuthContext::partyId();
+        $applyRatingConsequence = (string) $this->input('apply_rating_consequence') === '1';
+        $notes = (string) $this->input('notes');
 
         try {
             (new ChargebackService())->reviewIntegrityFlag($caseId, $adminId, $applyRatingConsequence, $notes);
         } catch (\RuntimeException $e) {
-            return redirect()->to('/admin/chargebacks')->with('error', $e->getMessage());
+            return $this->jsonError(422, 'review_failed', $e->getMessage());
         }
 
-        return redirect()->to('/admin/chargebacks')->with('error', 'Chargeback integrity review recorded.');
+        return $this->response->setJSON(['message' => 'Chargeback integrity review recorded.']);
     }
 }

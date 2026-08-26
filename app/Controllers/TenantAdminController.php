@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\TenantModel;
 use App\Models\SellerApplicationModel;
 
+// All routes jwtTenantAdmin-gated (resource type 'tenant').
 class TenantAdminController extends BaseController
 {
     public function dashboard(string $tenantId)
@@ -12,7 +13,7 @@ class TenantAdminController extends BaseController
         $tenantModel = new TenantModel();
         $tenant = $tenantModel->find($tenantId);
         if (!$tenant) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->jsonError(404, 'not_found', 'Tenant not found.');
         }
 
         $db = \Config\Database::connect();
@@ -47,8 +48,7 @@ class TenantAdminController extends BaseController
             ->orderBy('created_at', 'DESC')
             ->get()->getResultArray();
 
-        return view('tenant_admin/dashboard', [
-            'title' => 'Tenant Admin — ' . $tenant['name'],
+        return $this->response->setJSON([
             'tenant' => $tenant,
             'pendingListings' => $pendingListings,
             'pendingSaleEvents' => $pendingSaleEvents,
@@ -59,26 +59,15 @@ class TenantAdminController extends BaseController
         ]);
     }
 
-    // PR-09 step 7: "the Tenant Admin reviews the authentic media
-    // catalog and thumbnail in the Verification Console" — previously
-    // the only pending-listings view was a bare text link with no
-    // thumbnail or media counts at all. Review/approve/reject itself
-    // still happens on the existing listing detail page (already fully
-    // built, including the closed-list reject reason) — this is the
-    // entry point with real visual context, not a duplicate workflow.
-    //
-    // D-118 (Screen Completeness Audit Tier 1): also carries pending
-    // Sale Event approvals now, so this is the one consolidated "Lot &
-    // Trading Session Approval" queue the design package's Lot Approval
-    // mockup depicts — previously the same information was split
-    // between the Tenant Admin dashboard's bare-count tiles and the
-    // inline approve/reject buttons on each individual listing page.
+    // PR-09 step 7 / D-118: the consolidated "Lot & Trading Session
+    // Approval" queue — pending listings with real media context, plus
+    // pending Sale Event approvals.
     public function verification(string $tenantId)
     {
         $tenantModel = new TenantModel();
         $tenant = $tenantModel->find($tenantId);
         if (!$tenant) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->jsonError(404, 'not_found', 'Tenant not found.');
         }
 
         $db = \Config\Database::connect();
@@ -107,9 +96,6 @@ class TenantAdminController extends BaseController
             ->orderBy('se.created_at', 'ASC')
             ->get()->getResultArray();
 
-        return view('tenant_admin/verification', [
-            'title' => 'Verification Console — ' . $tenant['name'],
-            'tenant' => $tenant, 'pending' => $pending, 'pendingSaleEvents' => $pendingSaleEvents,
-        ]);
+        return $this->response->setJSON(['tenant' => $tenant, 'pending' => $pending, 'pendingSaleEvents' => $pendingSaleEvents]);
     }
 }

@@ -20,7 +20,10 @@ $routes->post('/login/reset-verify-otp', 'AuthController::resetVerifyOtpSubmit')
 // CI4->REST/JWT migration (D-132). Party-facing actions run behind
 // jwtAuth; Tenant-Admin actions behind jwtTenantAdmin (the JWT
 // counterpart of the old session-based tenantAdmin filter).
-$routes->get('/api/v1/app/tenants', 'ListingController::tenants');
+// GET /api/v1/app/tenants (TenantController::directory, below) is the
+// tenant picker for the React "list an asset" form. Dev convenience:
+// for now, lists any tenant to attach to — tenant selection/scoping by
+// seller role (BR-09) is not yet built.
 $routes->post('/api/v1/app/listings/pre-audit', 'ListingController::preAudit', ['filter' => 'jwtAuth']);
 $routes->post('/api/v1/app/listings', 'ListingController::createSubmit', ['filter' => 'jwtAuth']);
 $routes->get('/api/v1/app/listings/(:segment)', 'ListingController::show/$1');
@@ -45,9 +48,9 @@ $routes->post('/api/v1/app/sale-events/(:segment)/dev-pay-topup', 'BidController
 
 // D-117: BR-52/PR-30 Chargeback Handling & Representment.
 $routes->post('/api/v1/app/sale-events/(:segment)/dev-file-chargeback', 'ChargebackController::devFile/$1', ['filter' => 'jwtAuth']);
-$routes->get('/admin/chargebacks', 'ChargebackController::index', ['filter' => 'superAdmin']);
-$routes->post('/admin/chargebacks/(:segment)/decide', 'ChargebackController::decide/$1', ['filter' => 'superAdmin']);
-$routes->post('/admin/chargebacks/(:segment)/review-integrity', 'ChargebackController::reviewIntegrity/$1', ['filter' => 'superAdmin']);
+$routes->get('/api/v1/app/admin/chargebacks', 'ChargebackController::index', ['filter' => 'jwtSuperAdmin']);
+$routes->post('/api/v1/app/admin/chargebacks/(:segment)/decide', 'ChargebackController::decide/$1', ['filter' => 'jwtSuperAdmin']);
+$routes->post('/api/v1/app/admin/chargebacks/(:segment)/review-integrity', 'ChargebackController::reviewIntegrity/$1', ['filter' => 'jwtSuperAdmin']);
 
 // Buy-Now offers (BR-27/BR-42/BR-29)
 $routes->post('/api/v1/app/sale-events/(:segment)/dev-fund-emd-offer', 'OfferController::devFundEmd/$1', ['filter' => 'jwtAuth']);
@@ -134,15 +137,16 @@ $routes->post('/admin/forgot-mpin', 'SuperAdminAuthController::forgotMpinSubmit'
 $routes->post('/admin/forgot-mpin/verify', 'SuperAdminAuthController::forgotMpinVerifySubmit');
 $routes->post('/admin/forgot-mpin/set-mpin', 'SuperAdminAuthController::forgotMpinSetMpinSubmit');
 
-$routes->get('/admin', 'AdminController::dashboard', ['filter' => 'superAdmin']);
-$routes->get('/admin/alerts', 'AdminController::alerts', ['filter' => 'superAdmin']);
-$routes->post('/admin/alerts/server-time-drift/(:segment)/acknowledge', 'AdminController::acknowledgeServerTimeDrift/$1', ['filter' => 'superAdmin']);
-$routes->get('/admin/tenants', 'TenantController::list', ['filter' => 'superAdmin']);
-$routes->get('/admin/tenants/create', 'TenantController::createForm', ['filter' => 'superAdmin']);
-$routes->post('/admin/tenants', 'TenantController::createSubmit', ['filter' => 'superAdmin']);
-$routes->get('/admin/users', 'UserController::index', ['filter' => 'superAdmin']);
-$routes->get('/admin/users/(:segment)', 'UserController::detail/$1', ['filter' => 'superAdmin']);
-$routes->post('/admin/users/(:segment)/promote-tenant-admin', 'UserController::promoteTenantAdmin/$1', ['filter' => 'superAdmin']);
+// Phase 5 of the CI4->REST/JWT migration (D-135): Admin dashboard,
+// Tenant/User management — jwtSuperAdmin-gated.
+$routes->get('/api/v1/app/admin', 'AdminController::dashboard', ['filter' => 'jwtSuperAdmin']);
+$routes->get('/api/v1/app/admin/alerts', 'AdminController::alerts', ['filter' => 'jwtSuperAdmin']);
+$routes->post('/api/v1/app/admin/alerts/server-time-drift/(:segment)/acknowledge', 'AdminController::acknowledgeServerTimeDrift/$1', ['filter' => 'jwtSuperAdmin']);
+$routes->get('/api/v1/app/admin/tenants', 'TenantController::list', ['filter' => 'jwtSuperAdmin']);
+$routes->post('/api/v1/app/admin/tenants', 'TenantController::createSubmit', ['filter' => 'jwtSuperAdmin']);
+$routes->get('/api/v1/app/admin/users', 'UserController::index', ['filter' => 'jwtSuperAdmin']);
+$routes->get('/api/v1/app/admin/users/(:segment)', 'UserController::detail/$1', ['filter' => 'jwtSuperAdmin']);
+$routes->post('/api/v1/app/admin/users/(:segment)/promote-tenant-admin', 'UserController::promoteTenantAdmin/$1', ['filter' => 'jwtSuperAdmin']);
 
 // Seller Application (BR-09)
 $routes->get('/api/v1/app/tenants/(:segment)/apply-to-sell', 'SellerApplicationController::applyStatus/$1', ['filter' => 'jwtAuth']);
@@ -150,8 +154,8 @@ $routes->post('/api/v1/app/tenants/(:segment)/apply-to-sell', 'SellerApplication
 $routes->get('/api/v1/app/tenants/(:segment)/pending-sellers', 'SellerApplicationController::pendingList/$1', ['filter' => 'jwtTenantAdmin:tenant']);
 $routes->post('/api/v1/app/seller-applications/(:segment)/approve', 'SellerApplicationController::approve/$1', ['filter' => 'jwtTenantAdmin:sellerApplication']);
 $routes->post('/api/v1/app/seller-applications/(:segment)/reject', 'SellerApplicationController::reject/$1', ['filter' => 'jwtTenantAdmin:sellerApplication']);
-$routes->get('/tenants/(:segment)/dashboard', 'TenantAdminController::dashboard/$1', ['filter' => 'tenantAdmin:tenant']);
-$routes->get('/tenants/(:segment)/verification', 'TenantAdminController::verification/$1', ['filter' => 'tenantAdmin:tenant']);
+$routes->get('/api/v1/app/tenants/(:segment)/dashboard', 'TenantAdminController::dashboard/$1', ['filter' => 'jwtTenantAdmin:tenant']);
+$routes->get('/api/v1/app/tenants/(:segment)/verification', 'TenantAdminController::verification/$1', ['filter' => 'jwtTenantAdmin:tenant']);
 
 // Tender Auction — real HTTP routes
 $routes->post('/sale-events/(:segment)/tender/interest', 'TenderController::registerInterest/$1');
@@ -174,19 +178,18 @@ $routes->get('/admin/audit-log', 'AuditLogController::index', ['filter' => 'supe
 $routes->get('/admin/audit-log/verify', 'AuditLogController::verifyIntegrity', ['filter' => 'superAdmin']);
 $routes->get('/admin/audit-log/export', 'AuditLogController::exportForm', ['filter' => 'superAdmin']);
 $routes->get('/admin/audit-log/export/download', 'AuditLogController::export', ['filter' => 'superAdmin']);
-$routes->get('/tenants/(:segment)/media-waiver', 'TenantMediaWaiverController::requestForm/$1');
-$routes->post('/tenants/(:segment)/media-waiver', 'TenantMediaWaiverController::requestSubmit/$1');
-$routes->get('/admin/media-waivers', 'TenantMediaWaiverController::pendingList', ['filter' => 'superAdmin']);
-$routes->post('/admin/media-waivers/(:segment)/decide', 'TenantMediaWaiverController::decide/$1', ['filter' => 'superAdmin']);
-$routes->post('/admin/media-waivers/(:segment)/revoke', 'TenantMediaWaiverController::revoke/$1', ['filter' => 'superAdmin']);
-$routes->get('/admin/standing-review/(:segment)', 'StandingReviewController::show/$1');
-$routes->post('/admin/standing-review/(:segment)/rule', 'StandingReviewController::rule/$1');
+$routes->post('/api/v1/app/tenants/(:segment)/media-waiver', 'TenantMediaWaiverController::requestSubmit/$1', ['filter' => 'jwtAuth']);
+$routes->get('/api/v1/app/admin/media-waivers', 'TenantMediaWaiverController::pendingList', ['filter' => 'jwtSuperAdmin']);
+$routes->post('/api/v1/app/admin/media-waivers/(:segment)/decide', 'TenantMediaWaiverController::decide/$1', ['filter' => 'jwtSuperAdmin']);
+$routes->post('/api/v1/app/admin/media-waivers/(:segment)/revoke', 'TenantMediaWaiverController::revoke/$1', ['filter' => 'jwtSuperAdmin']);
+$routes->get('/api/v1/app/admin/standing-review/(:segment)', 'StandingReviewController::show/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/admin/standing-review/(:segment)/rule', 'StandingReviewController::rule/$1', ['filter' => 'jwtAuth']);
 // SellerDelistingController, PreferencesController, EmdConsentController:
 // migrated to /api/v1 with jwtSuperAdmin/jwtAuth below (Phase 4, D-134).
 $routes->get('/ticker-feed', 'LiveTickerController::feed');
-$routes->get('/admin/tenants/(:segment)', 'TenantController::view/$1', ['filter' => 'superAdmin']);
-$routes->post('/admin/tenants/(:segment)/edit', 'TenantController::editSubmit/$1', ['filter' => 'superAdmin']);
-$routes->get('/tenants', 'TenantController::directory');
+$routes->get('/api/v1/app/admin/tenants/(:segment)', 'TenantController::view/$1', ['filter' => 'jwtSuperAdmin']);
+$routes->post('/api/v1/app/admin/tenants/(:segment)/edit', 'TenantController::editSubmit/$1', ['filter' => 'jwtSuperAdmin']);
+$routes->get('/api/v1/app/tenants', 'TenantController::directory');
 
 // AML Monitoring (BR-54/PR-31) — SaaS Admin only
 $routes->get('/admin/aml', 'AmlController::index', ['filter' => 'superAdmin']);
@@ -194,22 +197,22 @@ $routes->post('/admin/aml/(:segment)/review', 'AmlController::review/$1', ['filt
 
 // Payout Account Change Control (BR-50/PR-28) — migrated to /api/v1
 // below (Phase 4, D-134).
-$routes->get('/admin/payout-reviews', 'PayoutReviewController::index');
-$routes->post('/admin/payout-reviews/(:segment)/decide', 'PayoutReviewController::decide/$1');
+$routes->get('/api/v1/app/admin/payout-reviews', 'PayoutReviewController::index', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/admin/payout-reviews/(:segment)/decide', 'PayoutReviewController::decide/$1', ['filter' => 'jwtAuth']);
 
 // Pending rating downgrade reviews (BR-35/BR-36)
-$routes->get('/admin/rating-reviews', 'RatingReviewController::index');
-$routes->post('/admin/rating-reviews/(:segment)/approve', 'RatingReviewController::approve/$1');
+$routes->get('/api/v1/app/admin/rating-reviews', 'RatingReviewController::index', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/app/admin/rating-reviews/(:segment)/approve', 'RatingReviewController::approve/$1', ['filter' => 'jwtAuth']);
 
 // Tenant monthly billing for Seller-Pays Success Fees (BR-32/33, D-88)
-$routes->get('/tenants/(:segment)/billing', 'TenantBillingController::forTenant/$1', ['filter' => 'tenantAdmin:tenant']);
-$routes->get('/admin/tenant-invoices', 'TenantBillingController::index', ['filter' => 'superAdmin']);
-$routes->post('/admin/tenant-invoices/(:segment)/mark-paid', 'TenantBillingController::markPaid/$1', ['filter' => 'superAdmin']);
+$routes->get('/api/v1/app/tenants/(:segment)/billing', 'TenantBillingController::forTenant/$1', ['filter' => 'jwtTenantAdmin:tenant']);
+$routes->get('/api/v1/app/admin/tenant-invoices', 'TenantBillingController::index', ['filter' => 'jwtSuperAdmin']);
+$routes->post('/api/v1/app/admin/tenant-invoices/(:segment)/mark-paid', 'TenantBillingController::markPaid/$1', ['filter' => 'jwtSuperAdmin']);
 
 // Seller Management for Tenant Admin (BR-61, built on the real Standing Review system)
-$routes->get('/tenants/(:segment)/sellers', 'SellerManagementController::list/$1', ['filter' => 'tenantAdmin:tenant']);
-$routes->get('/tenants/(:segment)/sellers/(:segment)', 'SellerManagementController::detail/$1/$2', ['filter' => 'tenantAdmin:tenant']);
-$routes->post('/tenants/(:segment)/sellers/(:segment)/initiate-review', 'SellerManagementController::initiateReview/$1/$2', ['filter' => 'tenantAdmin:tenant']);
+$routes->get('/api/v1/app/tenants/(:segment)/sellers', 'SellerManagementController::list/$1', ['filter' => 'jwtTenantAdmin:tenant']);
+$routes->get('/api/v1/app/tenants/(:segment)/sellers/(:segment)', 'SellerManagementController::detail/$1/$2', ['filter' => 'jwtTenantAdmin:tenant']);
+$routes->post('/api/v1/app/tenants/(:segment)/sellers/(:segment)/initiate-review', 'SellerManagementController::initiateReview/$1/$2', ['filter' => 'jwtAuth']);
 
 // Consent Audit viewer (BR-51)
 $routes->get('/admin/consent-audit', 'ConsentAuditController::index', ['filter' => 'superAdmin']);
@@ -249,8 +252,8 @@ $routes->get('/my-listings/reach', 'LotReachController::index');
 $routes->post('/listings/(:segment)/reach/message', 'LotReachController::sendMessage/$1');
 // MyActivityController's messages/star-ratings/rating-history/dashboards:
 // migrated to /api/v1 below (Phase 4, D-134).
-$routes->get('/admin/lots', 'AdminController::lotDirectory', ['filter' => 'superAdmin']);
-$routes->get('/admin/trading-sessions', 'AdminController::tradingSessionDirectory', ['filter' => 'superAdmin']);
+$routes->get('/api/v1/app/admin/lots', 'AdminController::lotDirectory', ['filter' => 'jwtSuperAdmin']);
+$routes->get('/api/v1/app/admin/trading-sessions', 'AdminController::tradingSessionDirectory', ['filter' => 'jwtSuperAdmin']);
 
 // Legal documents (BR-01/D-15: reviewed structural content, pending fields flagged)
 $routes->get('/terms', 'LegalController::termsOfUsage');
@@ -271,11 +274,10 @@ $routes->get('/terminology', 'InfoController::terminology');
 // Sovereign Rule Revision (PR-04/BR-01/BR-04) — Rules & Specifications
 // module. /new must be registered before the generic (:segment) edit
 // route below it, same ordering pattern as /admin/tenants/create.
-$routes->get('/admin/rules', 'SovereignRuleController::index', ['filter' => 'superAdmin']);
-$routes->get('/admin/rules/new', 'SovereignRuleController::createForm', ['filter' => 'superAdmin']);
-$routes->post('/admin/rules/new', 'SovereignRuleController::createSubmit', ['filter' => 'superAdmin']);
-$routes->get('/admin/rules/(:segment)', 'SovereignRuleController::editForm/$1', ['filter' => 'superAdmin']);
-$routes->post('/admin/rules/(:segment)/edit', 'SovereignRuleController::editSubmit/$1', ['filter' => 'superAdmin']);
+$routes->get('/api/v1/app/admin/rules', 'SovereignRuleController::index', ['filter' => 'jwtSuperAdmin']);
+$routes->post('/api/v1/app/admin/rules', 'SovereignRuleController::createSubmit', ['filter' => 'jwtSuperAdmin']);
+$routes->get('/api/v1/app/admin/rules/(:segment)', 'SovereignRuleController::show/$1', ['filter' => 'jwtSuperAdmin']);
+$routes->post('/api/v1/app/admin/rules/(:segment)/edit', 'SovereignRuleController::editSubmit/$1', ['filter' => 'jwtSuperAdmin']);
 
 // KYC Verification (BR-17/BR-18/BR-55/PR-15) — patron-facing onboarding.
 // Phase 4 of the CI4->REST/JWT migration (D-134).

@@ -3,20 +3,23 @@
 namespace App\Controllers;
 
 use App\Libraries\StandingReviewService;
+use App\Libraries\UserAuthContext;
 use App\Models\TenantModel;
 use App\Models\PartyModel;
 
 // BR-61: a real Seller Management view for the Tenant Admin, built on
-// top of the ACTUAL Standing Review system (StandingReviewService,
-// D-60) — the complaint/CBS counters and dispute-table-backed cases
-// that already exist, not a new parallel violations/reviews schema.
+// top of the ACTUAL Standing Review system. list/detail are
+// jwtTenantAdmin-gated (resource type 'tenant'); initiateReview runs
+// behind plain jwtAuth (any authenticated party) with the same
+// service-internal Tenant-Admin-or-Super-Admin check StandingReviewService
+// already enforces.
 class SellerManagementController extends BaseController
 {
     public function list(string $tenantId)
     {
         $tenant = (new TenantModel())->find($tenantId);
         if (!$tenant) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->jsonError(404, 'not_found', 'Tenant not found.');
         }
 
         $db = \Config\Database::connect();
@@ -44,7 +47,7 @@ class SellerManagementController extends BaseController
         }
         unset($seller);
 
-        return view('tenant_admin/sellers_list', ['title' => 'Seller Management — ' . $tenant['name'], 'tenant' => $tenant, 'sellers' => $sellers]);
+        return $this->response->setJSON(['tenant' => $tenant, 'sellers' => $sellers]);
     }
 
     public function detail(string $tenantId, string $sellerId)
@@ -52,7 +55,7 @@ class SellerManagementController extends BaseController
         $tenant = (new TenantModel())->find($tenantId);
         $seller = (new PartyModel())->find($sellerId);
         if (!$tenant || !$seller) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->jsonError(404, 'not_found', 'Tenant or seller not found.');
         }
 
         $db = \Config\Database::connect();
@@ -67,9 +70,7 @@ class SellerManagementController extends BaseController
             ->get()->getResultArray();
 
         // BR-35: every real named rating consequence this seller has
-        // received — CBS violations, dispute rulings, confirmed fraud —
-        // genuinely queryable from the same table BR-35 wired, not a
-        // separate violations log.
+        // received — CBS violations, dispute rulings, confirmed fraud.
         $violations = $db->table('rating_event')
             ->where('party_id', $sellerId)
             ->where('rating_role', 'seller_star_rating')
@@ -83,8 +84,7 @@ class SellerManagementController extends BaseController
             ->whereIn('status', ['filed', 'evidence_window', 'appealed'])
             ->get()->getRowArray();
 
-        return view('tenant_admin/seller_detail', [
-            'title' => 'Seller — ' . $seller['mobile_number'],
+        return $this->response->setJSON([
             'tenant' => $tenant, 'seller' => $seller, 'sales' => $sales,
             'violations' => $violations, 'openCase' => $openCase,
         ]);
@@ -92,20 +92,19 @@ class SellerManagementController extends BaseController
 
     public function initiateReview(string $tenantId, string $sellerId)
     {
-        $partyId = session()->get('logged_in_party_id');
-        if (!$partyId) return redirect()->to('/login');
+        $partyId = UserAuthContext::partyId();
 
-        $reason = $this->request->getPost('reason');
+        $reason = $this->input('reason');
         if (!$reason) {
-            return redirect()->back()->with('error', 'A reason is required to initiate a Standing Review case.');
+            return $this->jsonError(422, 'reason_required', 'A reason is required to initiate a Standing Review case.');
         }
 
         try {
             $case = (new StandingReviewService())->openCase($sellerId, $reason, $partyId);
         } catch (\RuntimeException $e) {
-            return redirect()->to("/tenants/{$tenantId}/sellers/{$sellerId}")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'initiate_failed', $e->getMessage());
         }
 
-        return redirect()->to("/admin/standing-review/{$case['id']}");
+        return $this->response->setStatusCode(201)->setJSON(['case' => $case]);
     }
 }
