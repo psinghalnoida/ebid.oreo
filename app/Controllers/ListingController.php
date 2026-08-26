@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Libraries\GeminiPreAuditService;
 use App\Libraries\ListingLifecycleService;
+use App\Libraries\UserAuthContext;
 use App\Models\ListingModel;
 use App\Models\TenantModel;
 
@@ -20,70 +21,48 @@ class ListingController extends BaseController
         $this->tenantModel = new TenantModel();
     }
 
-    private function requireLogin()
+    // GET /api/v1/tenants — for the React "list an asset" form's tenant
+    // picker. Dev convenience: for now, list any tenant to attach to.
+    // Tenant selection/scoping by seller role (BR-09) is not yet built.
+    public function tenants()
     {
-        $partyId = session()->get('logged_in_party_id');
-        if (!$partyId) {
-            return null;
-        }
-        return $partyId;
+        return $this->response->setJSON(['tenants' => $this->tenantModel->findAll()]);
     }
 
     // Phase 3C+: favorites/watchlist — a plain toggle, no approval or
     // ownership check needed beyond being logged in (favoriting is
-    // purely personal, unlike bidding/offering).
+    // purely personal, unlike bidding/offering). Auth enforced by the
+    // jwtAuth route filter.
     public function favorite(string $listingId)
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
+        $partyId = UserAuthContext::partyId();
 
         if (!$this->listingModel->find($listingId)) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->jsonError(404, 'not_found', 'Listing not found.');
         }
 
         (new \App\Models\ListingFavoriteModel())->add($partyId, $listingId);
-        return redirect()->back();
+        return $this->response->setJSON(['favorited' => true]);
     }
 
     public function unfavorite(string $listingId)
     {
-        $partyId = $this->requireLogin();
-        if (!$partyId) return redirect()->to('/login');
-
+        $partyId = UserAuthContext::partyId();
         (new \App\Models\ListingFavoriteModel())->remove($partyId, $listingId);
-        return redirect()->back();
-    }
-
-    public function createForm()
-    {
-        $sellerId = $this->requireLogin();
-        if (!$sellerId) {
-            return redirect()->to('/login');
-        }
-        // Dev convenience: for now, list any tenant to attach to.
-        // Tenant selection/scoping by seller role (BR-09) is not yet built.
-        $tenants = $this->tenantModel->findAll();
-        return view('listing/create', ['title' => 'List an Asset — AdwitiX', 'tenants' => $tenants]);
+        return $this->response->setJSON(['favorited' => false]);
     }
 
     // BR-46: a seller may trigger this before submitting -- purely
-    // advisory, never gates or auto-approves anything. Session-gated
-    // like the rest of listing creation, not tied to a listing ID
-    // (the draft hasn't been saved yet when a seller would use this).
+    // advisory, never gates or auto-approves anything.
     public function preAudit()
     {
-        $sellerId = $this->requireLogin();
-        if (!$sellerId) {
-            return $this->response->setStatusCode(401)->setJSON(['error' => 'unauthenticated']);
-        }
-
         $draft = [
-            'category' => $this->request->getPost('category'),
-            'subcategory' => $this->request->getPost('subcategory'),
-            'physicalCondition' => $this->request->getPost('physical_condition'),
-            'quantity' => $this->request->getPost('quantity'),
-            'quantityBasis' => $this->request->getPost('quantity_basis') ?? 'unit',
-            'makeModel' => $this->request->getPost('make_model'),
+            'category' => $this->input('category'),
+            'subcategory' => $this->input('subcategory'),
+            'physicalCondition' => $this->input('physical_condition'),
+            'quantity' => $this->input('quantity'),
+            'quantityBasis' => $this->input('quantity_basis') ?? 'unit',
+            'makeModel' => $this->input('make_model'),
         ];
 
         try {
@@ -97,15 +76,12 @@ class ListingController extends BaseController
 
     public function createSubmit()
     {
-        $sellerId = $this->requireLogin();
-        if (!$sellerId) {
-            return redirect()->to('/login');
-        }
+        $sellerId = UserAuthContext::partyId();
 
         // BR-15: "structurally barred from listing assets... under any
         // circumstance." Checked first, ahead of every other gate.
         if ((new \App\Libraries\AuthorizationService())->isSuperAdmin($sellerId)) {
-            return redirect()->to('/')->with('error', 'BR-15: the Super Admin holds a non-participatory regulatory role and may never list an asset.');
+            return $this->jsonError(403, 'br15_super_admin_barred', 'BR-15: the Super Admin holds a non-participatory regulatory role and may never list an asset.');
         }
 
         // BR-55: full KYC verification is mandatory before a User's
@@ -113,44 +89,40 @@ class ListingController extends BaseController
         try {
             (new \App\Libraries\KycService())->requireVerifiedKyc($sellerId, 'creating a Listing');
         } catch (\RuntimeException $e) {
-            return redirect()->to('/kyc')->with('error', $e->getMessage());
+            return $this->jsonError(403, 'kyc_required', $e->getMessage());
         }
 
-        $tenantId = $this->request->getPost('tenant_id');
+        $tenantId = $this->input('tenant_id');
 
         // BR-38: a delisted seller (confirmed fraud) cannot list on ANY
         // tenant — checked before the tenant-specific BR-09 gate below,
         // since this is a platform-wide restriction, not per-tenant.
         if ((new \App\Libraries\RatingService())->isDelisted($sellerId)) {
-            return redirect()->to('/')->with('error', 'BR-38: this account has been delisted from selling on AdwitiX due to a confirmed fraud finding.');
+            return $this->jsonError(403, 'br38_delisted', 'BR-38: this account has been delisted from selling on AdwitiX due to a confirmed fraud finding.');
         }
 
         // BR-09: only a party the Tenant Admin has explicitly upgraded to
         // Seller on THIS specific tenant may list here.
         $sellerApp = new \App\Libraries\SellerApplicationService();
         if (!$sellerApp->isApprovedSeller($sellerId, $tenantId)) {
-            return redirect()->to("/tenants/{$tenantId}/apply-to-sell")
-                ->with('error', 'BR-09: you must be an approved Seller on this specific tenant before listing here.');
+            return $this->jsonError(403, 'br09_not_approved_seller', 'BR-09: you must be an approved Seller on this specific tenant before listing here.');
         }
 
         // BR-11/BR-21: bind up to three inspection-authority roles, each
-        // by mobile number (resolved to a party ID) — all optional, per
-        // BR-11's minimal case ("for direct owner listings, the owner's
-        // own contact"). Was never actually captured through any form
-        // until now — found during a full BR/PR audit.
+        // by mobile number (resolved to a party ID) — all optional.
         $partyModel = new \App\Models\PartyModel();
         $inspectorPartyId = null;
         $surveyorPartyId = null;
         $custodianPartyId = null;
-        if ($mobile = $this->request->getPost('inspector_mobile')) {
+        if ($mobile = $this->input('inspector_mobile')) {
             $party = $partyModel->findByMobile($mobile);
             $inspectorPartyId = $party['id'] ?? null;
         }
-        if ($mobile = $this->request->getPost('surveyor_mobile')) {
+        if ($mobile = $this->input('surveyor_mobile')) {
             $party = $partyModel->findByMobile($mobile);
             $surveyorPartyId = $party['id'] ?? null;
         }
-        if ($mobile = $this->request->getPost('custodian_mobile')) {
+        if ($mobile = $this->input('custodian_mobile')) {
             $party = $partyModel->findByMobile($mobile);
             $custodianPartyId = $party['id'] ?? null;
         }
@@ -161,7 +133,7 @@ class ListingController extends BaseController
         // the SAME seller (a shared label from a different seller is a
         // coincidence, not the same origin lot).
         $relatedGroupId = null;
-        $relatedGroupLabel = trim((string) $this->request->getPost('related_group_label'));
+        $relatedGroupLabel = trim((string) $this->input('related_group_label'));
         if ($relatedGroupLabel !== '') {
             $existingGroupMember = $this->listingModel
                 ->where('seller_party_id', $sellerId)
@@ -172,43 +144,30 @@ class ListingController extends BaseController
 
         // BR-24: shipping is always optional for the buyer regardless
         // of this setting — a self-collection path is never removed.
-        $shippingEnabled = $this->request->getPost('shipping_enabled') === '1';
-        $shippingCostType = $shippingEnabled ? $this->request->getPost('shipping_cost_type') : null;
+        $shippingEnabled = (string) $this->input('shipping_enabled') === '1';
+        $shippingCostType = $shippingEnabled ? $this->input('shipping_cost_type') : null;
         if ($shippingEnabled && !in_array($shippingCostType, ['fixed', 'variable'], true)) {
-            return view('listing/create', [
-                'title' => 'List an Asset — AdwitiX',
-                'tenants' => $this->tenantModel->findAll(),
-                'error' => 'BR-24: choose either a Fixed or Variable shipping cost if shipping is enabled.',
-            ]);
+            return $this->jsonError(422, 'br24_invalid_shipping', 'BR-24: choose either a Fixed or Variable shipping cost if shipping is enabled.');
         }
 
         // BR-07: the listing category must come from the platform's own
         // closed list — new retail-consumer goods are explicitly
         // prohibited by the same rule. Checked server-side, not trusted
-        // from the form (the dropdown already constrains it client-side,
-        // but a raw POST could bypass that).
-        $category = $this->request->getPost('category');
+        // from the request body.
+        $category = $this->input('category');
         if (!in_array($category, ListingLifecycleService::PERMITTED_CATEGORIES, true)) {
-            return view('listing/create', [
-                'title' => 'List an Asset — AdwitiX',
-                'tenants' => $this->tenantModel->findAll(),
-                'error' => 'BR-07: category must be one of the platform\'s permitted categories.',
-            ]);
+            return $this->jsonError(422, 'br07_invalid_category', 'BR-07: category must be one of the platform\'s permitted categories.');
         }
 
         // BR-60: representative imagery can only be selected under a
         // genuinely active, approved waiver for this tenant+category —
-        // checked server-side, not trusted from the form.
-        $wantsRepresentativeMedia = $this->request->getPost('media_is_representative_under_waiver') === '1';
+        // checked server-side, not trusted from the request body.
+        $wantsRepresentativeMedia = (string) $this->input('media_is_representative_under_waiver') === '1';
         $representativeMediaFlag = false;
         if ($wantsRepresentativeMedia) {
             $hasWaiver = (new \App\Libraries\TenantMediaWaiverService())->isCbsProhibitionWaived($tenantId, $category);
             if (!$hasWaiver) {
-                return view('listing/create', [
-                    'title' => 'List an Asset — AdwitiX',
-                    'tenants' => $this->tenantModel->findAll(),
-                    'error' => 'BR-60: this tenant has no active media waiver for this category — representative imagery cannot be used.',
-                ]);
+                return $this->jsonError(403, 'br60_no_waiver', 'BR-60: this tenant has no active media waiver for this category — representative imagery cannot be used.');
             }
             $representativeMediaFlag = true;
         }
@@ -217,16 +176,16 @@ class ListingController extends BaseController
             $listing = $this->listingModel->createListing([
                 'tenant_id' => $tenantId,
                 'seller_party_id' => $sellerId,
-                'title' => $this->request->getPost('title') ?: null,
-                'physical_condition' => $this->request->getPost('physical_condition'),
-                'category' => $this->request->getPost('category'),
-                'subcategory' => $this->request->getPost('subcategory') ?: null,
-                'quantity' => $this->request->getPost('quantity'),
+                'title' => $this->input('title') ?: null,
+                'physical_condition' => $this->input('physical_condition'),
+                'category' => $category,
+                'subcategory' => $this->input('subcategory') ?: null,
+                'quantity' => $this->input('quantity'),
                 'quantity_basis' => 'unit',
-                'make_model' => $this->request->getPost('make_model'),
-                'yard_location_address' => $this->request->getPost('yard_location_address'),
-                'yard_location_pin' => $this->request->getPost('yard_location_pin'),
-                'media_tier' => $this->request->getPost('media_tier') ?: 'certified_by_seller',
+                'make_model' => $this->input('make_model'),
+                'yard_location_address' => $this->input('yard_location_address'),
+                'yard_location_pin' => $this->input('yard_location_pin'),
+                'media_tier' => $this->input('media_tier') ?: 'certified_by_seller',
                 'inspector_party_id' => $inspectorPartyId,
                 'surveyor_party_id' => $surveyorPartyId,
                 'custodian_party_id' => $custodianPartyId,
@@ -234,26 +193,22 @@ class ListingController extends BaseController
                 'related_group_label' => $relatedGroupLabel !== '' ? $relatedGroupLabel : null,
                 'shipping_enabled' => $shippingEnabled,
                 'shipping_cost_type' => $shippingCostType,
-                'shipping_fixed_cost' => $shippingCostType === 'fixed' ? (float) $this->request->getPost('shipping_fixed_cost') : null,
-                'shipping_variable_rate_per_km' => $shippingCostType === 'variable' ? (float) $this->request->getPost('shipping_variable_rate_per_km') : null,
+                'shipping_fixed_cost' => $shippingCostType === 'fixed' ? (float) $this->input('shipping_fixed_cost') : null,
+                'shipping_variable_rate_per_km' => $shippingCostType === 'variable' ? (float) $this->input('shipping_variable_rate_per_km') : null,
                 'media_is_representative_under_waiver' => $representativeMediaFlag,
             ]);
         } catch (\Throwable $e) {
-            return view('listing/create', [
-                'title' => 'List an Asset — AdwitiX',
-                'tenants' => $this->tenantModel->findAll(),
-                'error' => $e->getMessage(),
-            ]);
+            return $this->jsonError(422, 'listing_create_failed', $e->getMessage());
         }
 
-        return redirect()->to("/listings/{$listing['id']}");
+        return $this->response->setStatusCode(201)->setJSON(['listing' => $listing]);
     }
 
     public function show(string $listingId)
     {
         $listing = $this->listingModel->findActiveById($listingId);
         if (!$listing) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->jsonError(404, 'not_found', 'Listing not found.');
         }
 
         $db = \Config\Database::connect();
@@ -274,17 +229,14 @@ class ListingController extends BaseController
         if ($saleEvent && $saleEvent['status'] === 'closed_sold') {
             $settlementRecord = (new \App\Models\SettlementModel())->findBySaleEvent($saleEvent['id']);
         }
+
+        $viewerId = UserAuthContext::partyId();
+
         // D-116: BR-42 (seller-discretion acceptance) presumes the seller
         // is the one reviewing offers — every real amount and per-buyer
-        // status was previously rendered to ANY visitor of this page,
-        // not just the seller. Found while designing D-108's WebSocket
-        // broadcasts (which already got this boundary right — the real
-        // amount only ever reaches the seller's own channel) but left
-        // unfixed at the time as a separate decision. Gated here to
-        // match that same precedent exactly, so the static page and the
-        // live WS updates now agree on who may see an offer's amount.
-        if ($saleEvent && $saleEvent['sale_format'] === 'buy_now'
-            && session()->get('logged_in_party_id') === $listing['seller_party_id']) {
+        // status is only ever returned to the seller, never any other
+        // viewer (matches the WS broadcast boundary in D-108).
+        if ($saleEvent && $saleEvent['sale_format'] === 'buy_now' && $viewerId === $listing['seller_party_id']) {
             $offerModel = new \App\Models\OfferModel();
             $offers = $offerModel->findForSaleEvent($saleEvent['id']);
         }
@@ -298,12 +250,11 @@ class ListingController extends BaseController
 
         $tenderState = null;
         if ($saleEvent && $saleEvent['sale_format'] === 'tender') {
-            $callerId = session()->get('logged_in_party_id');
             $tenderService = new \App\Libraries\TenderService();
             $tenderBidding = new \App\Libraries\TenderBiddingService();
             $tenderReview = new \App\Libraries\TenderReviewService();
             $tenderState = [
-                'isEligible' => $callerId ? $tenderService->isEligible($saleEvent['id'], $callerId) : false,
+                'isEligible' => $viewerId ? $tenderService->isEligible($saleEvent['id'], $viewerId) : false,
                 'biddingOpen' => $tenderBidding->isBiddingOpen($saleEvent),
                 'documents' => $tenderService->getDocuments($saleEvent['id']),
                 'currentReview' => $tenderReview->getCurrentReview($saleEvent['id']),
@@ -315,7 +266,6 @@ class ListingController extends BaseController
         // independent bidding/EMD/settlement.
         $relatedListings = [];
         if (!empty($listing['related_group_id'])) {
-            $db = \Config\Database::connect();
             $relatedListings = $db->table('listing l')
                 ->select('l.id, l.category, l.subcategory, se.current_price, se.reserve_value, se.expected_value, se.status, se.sale_format, lm.file_path as photo_path')
                 ->join('sale_event se', 'se.listing_id = l.id', 'left')
@@ -333,11 +283,9 @@ class ListingController extends BaseController
         $seller = (new \App\Models\PartyModel())->find($listing['seller_party_id']);
         $sellerStarRating = $seller ? (float) $seller['seller_star_rating'] : null;
 
-        $viewerId = session()->get('logged_in_party_id');
-
         // D-105: real per-listing view tracking, feeding the Market
         // Maker's own Lot Reach & Interest dashboard. Fire-and-forget —
-        // never blocks or affects the page render either way.
+        // never blocks or affects the response either way.
         (new \App\Libraries\ListingReachService())->recordView($listingId, $viewerId, $listing['seller_party_id']);
 
         // BR-32 (D-87/D-88): gates whether the Fee Payer Election's
@@ -371,8 +319,8 @@ class ListingController extends BaseController
             ? (new \App\Models\EmdHoldModel())->findBySaleEventAndParty($saleEvent['id'], $viewerId)
             : null;
 
-        return view('listing/show', [
-            'title' => 'Listing — AdwitiX', 'listing' => $listing, 'saleEvent' => $saleEvent, 'tenant' => $tenant,
+        return $this->response->setJSON([
+            'listing' => $listing, 'saleEvent' => $saleEvent, 'tenant' => $tenant,
             'offers' => $offers, 'expressState' => $expressState, 'tenderState' => $tenderState, 'media' => $media,
             'queuedMediaJobs' => $queuedMediaJobs, 'myOpenTopup' => $myOpenTopup, 'myOpenTopupOwed' => $myOpenTopupOwed,
             'myEmdHold' => $myEmdHold,
@@ -394,70 +342,71 @@ class ListingController extends BaseController
         try {
             $this->lifecycle->submitForApproval($listingId);
         } catch (\RuntimeException $e) {
-            return redirect()->to("/listings/{$listingId}")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'submit_for_approval_failed', $e->getMessage());
         }
-        return redirect()->to("/listings/{$listingId}");
+        return $this->response->setJSON(['listing' => $this->listingModel->find($listingId)]);
     }
 
-    // BR-09: Tenant Admin approval — access enforced by the tenantAdmin
-    // route filter, not by this method. If execution reaches here, the
-    // caller has already been confirmed as the Tenant Admin for this
-    // listing's tenant.
+    // BR-09: Tenant Admin approval — access enforced by the
+    // jwtTenantAdmin route filter, not by this method. If execution
+    // reaches here, the caller has already been confirmed as the Tenant
+    // Admin for this listing's tenant.
     public function approve(string $listingId)
     {
-        $this->lifecycle->approve($listingId, session()->get('logged_in_party_id'));
-        return redirect()->to("/listings/{$listingId}");
+        $this->lifecycle->approve($listingId, UserAuthContext::partyId());
+        return $this->response->setJSON(['listing' => $this->listingModel->find($listingId)]);
     }
 
     public function reject(string $listingId)
     {
-        $reasonKey = (string) $this->request->getPost('reason_key');
-        $detail = $this->request->getPost('detail') ?: null;
+        $reasonKey = (string) $this->input('reason_key');
+        $detail = $this->input('detail') ?: null;
         try {
-            $this->lifecycle->reject($listingId, $reasonKey, $detail, session()->get('logged_in_party_id'));
+            $this->lifecycle->reject($listingId, $reasonKey, $detail, UserAuthContext::partyId());
         } catch (\RuntimeException $e) {
-            return redirect()->to("/listings/{$listingId}")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'reject_failed', $e->getMessage());
         }
-        return redirect()->to("/listings/{$listingId}");
+        return $this->response->setJSON(['listing' => $this->listingModel->find($listingId)]);
     }
 
-    // Was fully built and tested (archive-and-recreate, refunds active
-    // bids) but had no HTTP route at all until now.
     public function editSubmit(string $listingId)
     {
-        $partyId = session()->get('logged_in_party_id');
-        if (!$partyId) return redirect()->to('/login');
+        $partyId = UserAuthContext::partyId();
 
         $listing = $this->listingModel->find($listingId);
         if (!$listing || $listing['seller_party_id'] !== $partyId) {
-            return service('response')->setStatusCode(403)->setBody('Only the listing\'s seller may edit it.');
+            return $this->jsonError(403, 'forbidden', 'Only the listing\'s seller may edit it.');
         }
 
         // BR-07: same closed-list enforcement as creation — an edit can't
         // move a listing into a prohibited category either.
-        $newCategory = $this->request->getPost('category') ?: $listing['category'];
+        $newCategory = $this->input('category') ?: $listing['category'];
         if (!in_array($newCategory, ListingLifecycleService::PERMITTED_CATEGORIES, true)) {
-            return redirect()->to("/listings/{$listingId}")->with('error', 'BR-07: category must be one of the platform\'s permitted categories.');
+            return $this->jsonError(422, 'br07_invalid_category', 'BR-07: category must be one of the platform\'s permitted categories.');
         }
 
         $newData = [
-            'title' => $this->request->getPost('title') ?: $listing['title'],
-            'physical_condition' => $this->request->getPost('physical_condition') ?: $listing['physical_condition'],
+            'title' => $this->input('title') ?: $listing['title'],
+            'physical_condition' => $this->input('physical_condition') ?: $listing['physical_condition'],
             'category' => $newCategory,
-            'subcategory' => $this->request->getPost('subcategory') ?: $listing['subcategory'],
-            'quantity' => $this->request->getPost('quantity') ?: $listing['quantity'],
+            'subcategory' => $this->input('subcategory') ?: $listing['subcategory'],
+            'quantity' => $this->input('quantity') ?: $listing['quantity'],
             'quantity_basis' => $listing['quantity_basis'],
             'seller_party_id' => $partyId,
-            'yard_location_address' => $this->request->getPost('yard_location_address') ?: $listing['yard_location_address'],
-            'yard_location_pin' => $this->request->getPost('yard_location_pin') ?: $listing['yard_location_pin'],
+            'yard_location_address' => $this->input('yard_location_address') ?: $listing['yard_location_address'],
+            'yard_location_pin' => $this->input('yard_location_pin') ?: $listing['yard_location_pin'],
         ];
 
         try {
             $result = $this->lifecycle->requestMaterialEdit($listingId, $newData);
         } catch (\RuntimeException $e) {
-            return redirect()->to("/listings/{$listingId}")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'edit_failed', $e->getMessage());
         }
-        return redirect()->to("/listings/{$result['newListing']['id']}")->with('error', 'Listing updated — this is a new listing record (archive-and-recreate per BR-13); any active bids on the old one were withdrawn and EMD released.');
+
+        return $this->response->setJSON([
+            'listing' => $result['newListing'],
+            'message' => 'Listing updated — this is a new listing record (archive-and-recreate per BR-13); any active bids on the old one were withdrawn and EMD released.',
+        ]);
     }
 
     // BR-59/BR-61: CBS violations require manual flagging — automated
@@ -465,23 +414,24 @@ class ListingController extends BaseController
     // to the Tenant Admin for the listing's own tenant, or Super Admin.
     public function flagCbsViolation(string $listingId)
     {
-        $partyId = session()->get('logged_in_party_id');
-        if (!$partyId) return redirect()->to('/login');
+        $partyId = UserAuthContext::partyId();
 
         $listing = $this->listingModel->find($listingId);
         if (!$listing) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->jsonError(404, 'not_found', 'Listing not found.');
         }
 
         $authz = new \App\Libraries\AuthorizationService();
         if (!$authz->isTenantAdminFor($partyId, $listing['tenant_id']) && !$authz->isSuperAdmin($partyId)) {
-            return redirect()->to("/listings/{$listingId}")->with('error', 'Only this listing\'s Tenant Admin or Super Admin may flag a CBS violation.');
+            return $this->jsonError(403, 'forbidden', 'Only this listing\'s Tenant Admin or Super Admin may flag a CBS violation.');
         }
 
         $result = (new \App\Libraries\StandingReviewService())->recordCbsViolation($listing['seller_party_id'], $partyId, $listingId);
 
-        return redirect()->to("/listings/{$listingId}")->with('error',
-            "CBS violation logged — offense #{$result['offenseNumber']}, tier: {$result['tier']}."
-        );
+        return $this->response->setJSON([
+            'offenseNumber' => $result['offenseNumber'],
+            'tier' => $result['tier'],
+            'message' => "CBS violation logged — offense #{$result['offenseNumber']}, tier: {$result['tier']}.",
+        ]);
     }
 }

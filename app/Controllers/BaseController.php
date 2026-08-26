@@ -42,4 +42,26 @@ abstract class BaseController extends Controller
         // Preload any models, libraries, etc, here.
         // $this->session = service('session');
     }
+
+    // REST/JWT API migration helper: JSON-body-first request-field reader.
+    // The React frontend sends `application/json` bodies; getJsonVar()
+    // reads those. Falling back to getPost() lets a converted controller
+    // keep accepting classic form-encoded posts too (e.g. from `curl -d`
+    // during manual testing) without every call site needing its own
+    // null-coalescing boilerplate.
+    protected function input(string $key)
+    {
+        $value = $this->request->getJsonVar($key);
+        return $value !== null ? $value : $this->request->getPost($key);
+    }
+
+    // Standard JSON error envelope, used by every migrated controller so
+    // API error shapes stay consistent (matches UserAuthApiController's
+    // {error, error_description} shape).
+    protected function jsonError(int $status, string $error, string $description)
+    {
+        return $this->response->setStatusCode($status)->setJSON([
+            'error' => $error, 'error_description' => $description,
+        ]);
+    }
 }

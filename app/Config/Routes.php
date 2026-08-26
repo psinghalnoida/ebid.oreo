@@ -16,44 +16,53 @@ $routes->get('/login', 'AuthController::loginForm');
 $routes->post('/login', 'AuthController::loginSubmit');
 $routes->post('/login/reset-verify-otp', 'AuthController::resetVerifyOtpSubmit');
 
-// BR-11/BR-13 listing lifecycle + BR-12 Easy Auction (dev-testable, real routes)
-$routes->get('/listings/create', 'ListingController::createForm');
-$routes->post('/listings/pre-audit', 'ListingController::preAudit');
-$routes->post('/listings', 'ListingController::createSubmit');
-$routes->get('/listings/(:segment)', 'ListingController::show/$1');
-$routes->post('/listings/(:segment)/submit-for-approval', 'ListingController::submitForApproval/$1');
-$routes->post('/listings/(:segment)/approve', 'ListingController::approve/$1', ['filter' => 'tenantAdmin:listing']);
-$routes->post('/listings/(:segment)/reject', 'ListingController::reject/$1', ['filter' => 'tenantAdmin:listing']);
-$routes->post('/listings/(:segment)/sale-events', 'SaleEventController::createSubmit/$1');
+// BR-11/BR-13 listing lifecycle + BR-12 Easy Auction — Phase 2 of the
+// CI4->REST/JWT migration (D-132). Party-facing actions run behind
+// jwtAuth; Tenant-Admin actions behind jwtTenantAdmin (the JWT
+// counterpart of the old session-based tenantAdmin filter).
+$routes->get('/api/v1/tenants', 'ListingController::tenants');
+$routes->post('/api/v1/listings/pre-audit', 'ListingController::preAudit', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/listings', 'ListingController::createSubmit', ['filter' => 'jwtAuth']);
+$routes->get('/api/v1/listings/(:segment)', 'ListingController::show/$1');
+$routes->post('/api/v1/listings/(:segment)/edit', 'ListingController::editSubmit/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/listings/(:segment)/favorite', 'ListingController::favorite/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/listings/(:segment)/unfavorite', 'ListingController::unfavorite/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/listings/(:segment)/flag-cbs-violation', 'ListingController::flagCbsViolation/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/listings/(:segment)/submit-for-approval', 'ListingController::submitForApproval/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/listings/(:segment)/approve', 'ListingController::approve/$1', ['filter' => 'jwtTenantAdmin:listing']);
+$routes->post('/api/v1/listings/(:segment)/reject', 'ListingController::reject/$1', ['filter' => 'jwtTenantAdmin:listing']);
+$routes->post('/api/v1/listings/(:segment)/sale-events', 'SaleEventController::createSubmit/$1', ['filter' => 'jwtAuth']);
 
-$routes->post('/sale-events/(:segment)/approve', 'SaleEventController::approve/$1', ['filter' => 'tenantAdmin:saleEvent']);
-$routes->post('/sale-events/(:segment)/dev-force-freeze', 'SaleEventController::devForceFreeze/$1', ['filter' => 'tenantAdmin:saleEvent']);
-$routes->post('/sale-events/(:segment)/dev-fund-emd', 'BidController::devFundEmd/$1');
-$routes->post('/sale-events/(:segment)/bid', 'BidController::placeBid/$1');
+$routes->post('/api/v1/sale-events/(:segment)/approve', 'SaleEventController::approve/$1', ['filter' => 'jwtTenantAdmin:saleEvent']);
+$routes->post('/api/v1/sale-events/(:segment)/defect-disclosure', 'SaleEventController::defectDisclosureSubmit/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/sale-events/(:segment)/dev-force-freeze', 'SaleEventController::devForceFreeze/$1', ['filter' => 'jwtTenantAdmin:saleEvent']);
+$routes->post('/api/v1/sale-events/(:segment)/emergency-stop', 'SaleEventController::emergencyStop/$1', ['filter' => 'jwtTenantAdmin:saleEvent']);
+$routes->post('/api/v1/sale-events/(:segment)/dev-fund-emd', 'BidController::devFundEmd/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/sale-events/(:segment)/bid', 'BidController::placeBid/$1', ['filter' => 'jwtAuth']);
 // D-113: BR-28 cascade top-up payment — closes the gap CascadeService::
 // processTopupPaid() had no real route to reach.
-$routes->post('/sale-events/(:segment)/dev-pay-topup', 'BidController::devPayTopup/$1');
+$routes->post('/api/v1/sale-events/(:segment)/dev-pay-topup', 'BidController::devPayTopup/$1', ['filter' => 'jwtAuth']);
 
 // D-117: BR-52/PR-30 Chargeback Handling & Representment.
-$routes->post('/sale-events/(:segment)/dev-file-chargeback', 'ChargebackController::devFile/$1');
+$routes->post('/api/v1/sale-events/(:segment)/dev-file-chargeback', 'ChargebackController::devFile/$1', ['filter' => 'jwtAuth']);
 $routes->get('/admin/chargebacks', 'ChargebackController::index', ['filter' => 'superAdmin']);
 $routes->post('/admin/chargebacks/(:segment)/decide', 'ChargebackController::decide/$1', ['filter' => 'superAdmin']);
 $routes->post('/admin/chargebacks/(:segment)/review-integrity', 'ChargebackController::reviewIntegrity/$1', ['filter' => 'superAdmin']);
 
 // Buy-Now offers (BR-27/BR-42/BR-29)
-$routes->post('/sale-events/(:segment)/dev-fund-emd-offer', 'OfferController::devFundEmd/$1');
-$routes->post('/sale-events/(:segment)/offers', 'OfferController::submit/$1');
-$routes->post('/sale-events/(:segment)/offers/(:segment)/accept', 'OfferController::accept/$1/$2');
-$routes->post('/offers/(:segment)/withdraw', 'OfferController::withdraw/$1');
+$routes->post('/api/v1/sale-events/(:segment)/dev-fund-emd-offer', 'OfferController::devFundEmd/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/sale-events/(:segment)/offers', 'OfferController::submit/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/sale-events/(:segment)/offers/(:segment)/accept', 'OfferController::accept/$1/$2', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/offers/(:segment)/withdraw', 'OfferController::withdraw/$1', ['filter' => 'jwtAuth']);
 
 // Express Auction (BR-12/PR-11)
-$routes->post('/sale-events/(:segment)/pledge', 'ExpressController::pledge/$1');
-$routes->post('/sale-events/(:segment)/express-bid', 'ExpressController::placeBid/$1');
-$routes->post('/sale-events/(:segment)/dev-force-close-bidding', 'ExpressController::devForceCloseBidding/$1', ['filter' => 'tenantAdmin:saleEvent']);
+$routes->post('/api/v1/sale-events/(:segment)/pledge', 'ExpressController::pledge/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/sale-events/(:segment)/express-bid', 'ExpressController::placeBid/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/sale-events/(:segment)/dev-force-close-bidding', 'ExpressController::devForceCloseBidding/$1', ['filter' => 'jwtTenantAdmin:saleEvent']);
 
 // Listing media (BR-11, BR-45)
-$routes->post('/listings/(:segment)/media', 'MediaController::upload/$1');
-$routes->post('/listings/(:segment)/media/(:segment)/set-primary', 'MediaController::setPrimary/$1/$2');
+$routes->post('/api/v1/listings/(:segment)/media', 'MediaController::upload/$1', ['filter' => 'jwtAuth']);
+$routes->post('/api/v1/listings/(:segment)/media/(:segment)/set-primary', 'MediaController::setPrimary/$1/$2', ['filter' => 'jwtAuth']);
 
 // Settlement (BR-33, BR-39)
 $routes->get('/settlements/(:segment)', 'SettlementController::show/$1');

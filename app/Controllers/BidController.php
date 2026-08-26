@@ -5,10 +5,10 @@ namespace App\Controllers;
 use App\Libraries\BiddingService;
 use App\Libraries\CascadeService;
 use App\Libraries\EmdService;
+use App\Libraries\UserAuthContext;
 use App\Models\SaleEventModel;
 use App\Models\EmdHoldModel;
 use App\Models\BidModel;
-use App\Libraries\Uuid;
 
 class BidController extends BaseController
 {
@@ -27,11 +27,6 @@ class BidController extends BaseController
         $this->bidModel = new BidModel();
     }
 
-    private function requireLogin()
-    {
-        return session()->get('logged_in_party_id');
-    }
-
     // ⚠️ DEV-ONLY: simulates a cleared EMD payment. The real flow (BR-26)
     // routes through a payment gateway (VAN/credit card) — not yet
     // integrated (tech-stack open item, provider TBD). This exists purely
@@ -39,16 +34,13 @@ class BidController extends BaseController
     // real payment gateway connected.
     public function devFundEmd(string $saleEventId)
     {
-        $bidderId = $this->requireLogin();
-        if (!$bidderId) {
-            return redirect()->to('/login');
-        }
+        $bidderId = UserAuthContext::partyId();
 
         // BR-15: structurally barred from pledging under any
         // circumstance — checked before the EMD is ever held, not just
         // at the later bid.
         if ((new \App\Libraries\AuthorizationService())->isSuperAdmin($bidderId)) {
-            return redirect()->to('/')->with('error', 'BR-15: the Super Admin holds a non-participatory regulatory role and may never pledge an EMD deposit.');
+            return $this->jsonError(403, 'br15_super_admin_barred', 'BR-15: the Super Admin holds a non-participatory regulatory role and may never pledge an EMD deposit.');
         }
 
         // BR-55: full KYC verification is mandatory before a User's
@@ -56,7 +48,7 @@ class BidController extends BaseController
         try {
             (new \App\Libraries\KycService())->requireVerifiedKyc($bidderId, 'pledging an EMD deposit');
         } catch (\RuntimeException $e) {
-            return redirect()->to('/kyc')->with('error', $e->getMessage());
+            return $this->jsonError(403, 'kyc_required', $e->getMessage());
         }
 
         $saleEvent = $this->saleEventModel->find($saleEventId);
@@ -73,7 +65,7 @@ class BidController extends BaseController
             try {
                 (new \App\Libraries\KycService())->checkEnhancedDueDiligence($bidderId, $baseline);
             } catch (\RuntimeException $e) {
-                return redirect()->to("/listings/{$saleEvent['listing_id']}")->with('error', $e->getMessage());
+                return $this->jsonError(403, 'edd_required', $e->getMessage());
             }
             $this->emdHoldModel->createHold($saleEventId, $bidderId, 'van', $baseline);
             (new \App\Libraries\AuditLogService())->log('emd.held', $bidderId, [
@@ -81,25 +73,19 @@ class BidController extends BaseController
             ], $this->request->getIPAddress(), (string) $this->request->getUserAgent());
         }
 
-        return redirect()->to("/listings/{$saleEvent['listing_id']}");
+        return $this->response->setJSON(['emdHold' => $this->emdHoldModel->findBySaleEventAndParty($saleEventId, $bidderId)]);
     }
 
     // ⚠️ DEV-ONLY: simulates a cleared cascade top-up payment (BR-28),
     // same convention as devFundEmd above — the real flow routes
-    // through the same not-yet-integrated payment gateway. D-113:
-    // closes the other half of a real, previously-undiscovered gap —
-    // CascadeService::processTopupPaid() was fully correct but no
-    // route anywhere let a bidder actually reach it.
+    // through the same not-yet-integrated payment gateway.
     public function devPayTopup(string $saleEventId)
     {
-        $bidderId = $this->requireLogin();
-        if (!$bidderId) {
-            return redirect()->to('/login');
-        }
+        $bidderId = UserAuthContext::partyId();
 
         $saleEvent = $this->saleEventModel->find($saleEventId);
         if (!$saleEvent) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->jsonError(404, 'not_found', 'Sale event not found.');
         }
 
         // Only the specific bidder actually holding this sale event's
@@ -107,40 +93,35 @@ class BidController extends BaseController
         // own identity, never trusted from client input.
         $bid = $this->bidModel->findOpenTopupForBidder($saleEventId, $bidderId);
         if (!$bid) {
-            return redirect()->to("/listings/{$saleEvent['listing_id']}")
-                ->with('error', 'BR-28: you have no open top-up window on this sale event.');
+            return $this->jsonError(422, 'no_open_topup', 'BR-28: you have no open top-up window on this sale event.');
         }
 
         if (strtotime($bid['topup_required_by']) < time()) {
-            return redirect()->to("/listings/{$saleEvent['listing_id']}")
-                ->with('error', 'BR-28: this top-up window has already expired.');
+            return $this->jsonError(422, 'topup_expired', 'BR-28: this top-up window has already expired.');
         }
 
         try {
             $this->cascade->processTopupPaid($bid['id']);
         } catch (\RuntimeException $e) {
-            return redirect()->to("/listings/{$saleEvent['listing_id']}")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'topup_failed', $e->getMessage());
         }
 
-        return redirect()->to("/listings/{$saleEvent['listing_id']}");
+        return $this->response->setJSON(['bid' => $this->bidModel->find($bid['id'])]);
     }
 
     public function placeBid(string $saleEventId)
     {
-        $bidderId = $this->requireLogin();
-        if (!$bidderId) {
-            return redirect()->to('/login');
-        }
+        $bidderId = UserAuthContext::partyId();
 
         $saleEvent = $this->saleEventModel->find($saleEventId);
-        $amount = (float) $this->request->getPost('amount');
+        $amount = (float) $this->input('amount');
 
         try {
             (new \App\Libraries\EasyAuctionService())->placeBid($saleEventId, $bidderId, $amount);
         } catch (\RuntimeException $e) {
-            return redirect()->to("/listings/{$saleEvent['listing_id']}")->with('error', $e->getMessage());
+            return $this->jsonError(422, 'bid_failed', $e->getMessage());
         }
 
-        return redirect()->to("/listings/{$saleEvent['listing_id']}");
+        return $this->response->setJSON(['saleEvent' => $this->saleEventModel->find($saleEventId)]);
     }
 }
