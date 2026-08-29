@@ -3,6 +3,7 @@
 namespace App\Libraries;
 
 use App\Models\PartyModel;
+use App\Libraries\EmailNotificationService;
 
 // REST/JWT login flow for mobile clients, distinct from the browser
 // session flow in AuthController (BR-02) and the server-to-server Tenant
@@ -245,6 +246,44 @@ class UserAuthApiService
 
         // 'invalid_mpin'
         return ['status' => 'invalid_mpin', 'attemptsRemaining' => $result['attemptsRemaining']];
+    }
+
+    // ── Forgot password (mPIN), unauthenticated ───────────────────────
+    //
+    // Standalone counterpart of SuperAdminAuthApiController::
+    // forgotMpinRequest() for regular users/Bidders: a user who forgot
+    // their mPIN shouldn't have to deliberately fail login 3 times to
+    // reach loginWithMpin()'s 'otp_required' branch. Produces the same
+    // 'mpin_reset_otp_pending' ticket type that branch does, so it
+    // converges on the very same verifyMpinResetOtp()/completeMpinSetup()
+    // steps as the lockout-triggered reset. Always returns the same
+    // generic message whether or not the mobile number is registered —
+    // this endpoint is reachable unauthenticated and must not become an
+    // oracle for which mobile numbers hold an account.
+    public function requestForgotPassword(string $mobileNumber): array
+    {
+        $genericMessage = 'If that number belongs to a registered account, a reset code has just been sent to it (and to the recovery email on file, if one is set).';
+
+        $party = $this->partyModel->findByMobile($mobileNumber);
+        if (!$party || empty($party['mpin_hash'])) {
+            return ['message' => $genericMessage];
+        }
+
+        $otp = $this->auth->requestOtp($mobileNumber, 'mpin_reset');
+        $ticketClaims = ['sub' => $party['id'], 'mobile' => $mobileNumber];
+
+        $response = ['message' => $genericMessage, 'dev_otp' => $otp];
+        // Dual-channel: both mobile and email OTP required together, same
+        // as the lockout-triggered reset and Custodian forgot-password.
+        if (!empty($party['recovery_email'])) {
+            $ticketClaims['email'] = $party['recovery_email'];
+            $response['dev_email_otp'] = $this->auth->requestEmailOtp($party['recovery_email']);
+            $response['email_sent'] = (new EmailNotificationService())->sendOtp($party['recovery_email'], $response['dev_email_otp'], 'mpin_reset_email');
+            $response['email'] = $party['recovery_email'];
+        }
+
+        $response['pending_ticket'] = self::issuePendingTicket('mpin_reset_otp_pending', $ticketClaims);
+        return $response;
     }
 
     // Login step 2 (only reached via the 'otp_required' branch above).

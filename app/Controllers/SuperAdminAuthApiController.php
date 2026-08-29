@@ -151,7 +151,7 @@ class SuperAdminAuthApiController extends BaseController
         ]);
     }
 
-    // ── Forgot mPIN — dual-channel recovery, unauthenticated ──────
+    // ── Forgot mPIN — email-only recovery, unauthenticated ────────
     //
     // Deliberately separate from the regular login-lockout reset path
     // (UserAuthApiController::loginWithMpin's 'otp_required' branch): a
@@ -163,39 +163,46 @@ class SuperAdminAuthApiController extends BaseController
     // not the number is a real Custodian account — this endpoint is
     // reachable unauthenticated and must not become an oracle for which
     // mobile numbers hold the super_admin role.
+    //
+    // Project owner's explicit request: Custodian recovery is
+    // email-only, not mobile SMS — no requestOtp()/SMS call here at
+    // all. Sent via EmailNotificationService (CI4's Email service,
+    // office@vpsinghal.com / Google Workspace SMTP — see app/Config/
+    // Email.php + env's `email.*` settings). A Custodian account with
+    // no recovery_email on file has no way to self-recover this way —
+    // same generic response either way, since this must not become an
+    // oracle for which accounts exist.
 
     public function forgotMpinRequest()
     {
         $mobile = trim((string) $this->input('mobile_number'));
-        $genericMessage = 'If that number belongs to a registered Custodian account, a reset code has just been sent to it (and to the recovery email on file, if one is set).';
+        $genericMessage = 'If that number belongs to a registered Custodian account with a recovery email on file, a reset code has just been emailed to it.';
 
         $party = (new PartyModel())->findByMobile($mobile);
-        if (!$party || !(new AuthorizationService())->isSuperAdmin($party['id'])) {
+        if (!$party || !(new AuthorizationService())->isSuperAdmin($party['id']) || empty($party['recovery_email'])) {
             return $this->response->setJSON(['message' => $genericMessage]);
         }
 
-        $mobileOtp = $this->accountAuth->requestOtp($mobile, 'mpin_reset');
-        $ticketClaims = ['sub' => $party['id'], 'mobile' => $mobile];
+        $emailOtp = $this->accountAuth->requestEmailOtp($party['recovery_email'], 'mpin_reset_email');
+        $emailSent = (new EmailNotificationService())->sendOtp($party['recovery_email'], $emailOtp, 'mpin_reset_email');
+        $ticketClaims = ['sub' => $party['id'], 'email' => $party['recovery_email']];
 
-        $response = ['message' => $genericMessage, 'dev_otp' => $mobileOtp];
-        if (!empty($party['recovery_email'])) {
-            $emailOtp = $this->accountAuth->requestEmailOtp($party['recovery_email']);
-            $emailSent = (new EmailNotificationService())->sendOtp($party['recovery_email'], $emailOtp, 'mpin_reset_email');
-            $ticketClaims['email'] = $party['recovery_email'];
-            $response['dev_email_otp'] = $emailOtp;
-            $response['email_sent'] = $emailSent;
-            $response['email'] = $party['recovery_email'];
-        }
+        $response = [
+            'message' => $genericMessage,
+            'dev_email_otp' => $emailOtp,
+            'email_sent' => $emailSent,
+            'email' => $party['recovery_email'],
+        ];
 
         (new AuditLogService())->log('admin.mpin_reset_requested', $party['id'], [
-            'mobile' => $mobile, 'hasRecoveryEmail' => !empty($party['recovery_email']), 'emailDeliveredForReal' => $response['email_sent'] ?? false,
+            'mobile' => $mobile, 'channel' => 'email', 'emailDeliveredForReal' => $emailSent,
         ], $this->request->getIPAddress(), (string) $this->request->getUserAgent());
 
         $response['pending_ticket'] = UserAuthApiService::issuePendingTicket('admin_mpin_reset_pending', $ticketClaims);
         return $this->response->setJSON($response);
     }
 
-    // POST /api/v1/admin/auth/forgot-mpin/verify  { pending_ticket, otp, email_otp? }
+    // POST /api/v1/admin/auth/forgot-mpin/verify  { pending_ticket, email_otp }
     // -> pending_ticket for /api/v1/auth/mpin/complete (UserAuthApiController)
     public function forgotMpinVerify()
     {
@@ -205,15 +212,9 @@ class SuperAdminAuthApiController extends BaseController
             return $this->jsonError(401, 'invalid_ticket', 'Invalid or expired pending_ticket. Start the reset again.');
         }
 
-        $otp = trim((string) $this->input('otp'));
-        if (!$this->accountAuth->verifyOtp($claims['mobile'], 'mpin_reset', $otp)) {
-            return $this->jsonError(401, 'invalid_otp', 'Incorrect or expired mobile code.');
-        }
-        if (!empty($claims['email'])) {
-            $emailOtp = trim((string) $this->input('email_otp'));
-            if (!$this->accountAuth->verifyEmailOtp($claims['email'], $emailOtp)) {
-                return $this->jsonError(401, 'invalid_email_otp', 'Mobile code correct, but the email code was incorrect or expired. Both are required together.');
-            }
+        $emailOtp = trim((string) ($this->input('email_otp') ?? $this->input('otp')));
+        if (!$this->accountAuth->verifyEmailOtp($claims['email'], $emailOtp, 'mpin_reset_email')) {
+            return $this->jsonError(401, 'invalid_email_otp', 'Incorrect or expired email code.');
         }
 
         $mpinSetupTicket = UserAuthApiService::issuePendingTicket('mpin_setup_pending', ['sub' => $claims['sub']]);

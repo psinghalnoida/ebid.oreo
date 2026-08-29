@@ -317,6 +317,13 @@ $routes->post('/api/v1/app/auth/login', 'UserAuthApiController::loginWithMpin');
 $routes->post('/api/v1/app/auth/login/verify-reset-otp', 'UserAuthApiController::loginVerifyResetOtp');
 $routes->post('/api/v1/app/auth/mpin/complete', 'UserAuthApiController::completeMpinSetup');
 
+// User forgot-password (mPIN reset), unauthenticated. Standalone
+// entry point — reuses the same pending_ticket verify/complete steps
+// as the lockout-triggered reset above (loginVerifyResetOtp/
+// completeMpinSetup), see UserAuthApiService::requestForgotPassword().
+$routes->post('/api/v1/app/auth/forgot-password', 'UserAuthApiController::forgotPassword');
+$routes->post('/api/v1/app/auth/forgot-password/verify', 'UserAuthApiController::loginVerifyResetOtp');
+
 // Super Admin REST/JWT login (BR-04) — JWT counterpart of the former
 // SuperAdminAuthController. forgotMpinVerify's resulting ticket is
 // completed via the same shared UserAuthApiController::mpin/complete
@@ -327,3 +334,7 @@ $routes->post('/api/v1/app/admin/auth/setup-totp', 'SuperAdminAuthApiController:
 $routes->post('/api/v1/app/admin/auth/setup-totp/confirm', 'SuperAdminAuthApiController::confirmSetupTotp', ['filter' => 'jwtAuth']);
 $routes->post('/api/v1/app/admin/auth/forgot-mpin', 'SuperAdminAuthApiController::forgotMpinRequest');
 $routes->post('/api/v1/app/admin/auth/forgot-mpin/verify', 'SuperAdminAuthApiController::forgotMpinVerify');
+// "forgot-password" aliases (Custodian-facing naming) for the same two
+// endpoints above.
+$routes->post('/api/v1/app/admin/auth/forgot-password', 'SuperAdminAuthApiController::forgotMpinRequest');
+$routes->post('/api/v1/app/admin/auth/forgot-password/verify', 'SuperAdminAuthApiController::forgotMpinVerify');

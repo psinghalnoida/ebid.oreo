@@ -159,6 +159,22 @@ class UserAuthApiController extends BaseController
         return $this->response->setJSON($result);
     }
 
+    // POST /api/v1/auth/forgot-password  { mobile_number }
+    // Standalone forgot-mPIN entry point (no failed-login lockout
+    // needed first) — see UserAuthApiService::requestForgotPassword().
+    // -> pending_ticket for loginVerifyResetOtp() below (same ticket
+    // type as the lockout-triggered reset), then mpin/complete.
+    public function forgotPassword()
+    {
+        $mobile = trim((string) $this->input('mobile_number'));
+        if (!AuthService::isValidIndianMobile($mobile)) {
+            return $this->jsonError(422, 'invalid_mobile_number', 'Expected a 10-digit Indian mobile number in +91XXXXXXXXXX format.');
+        }
+
+        $result = $this->service->requestForgotPassword($mobile);
+        return $this->response->setJSON($result);
+    }
+
     // POST /api/v1/auth/login/verify-reset-otp  { pending_ticket, otp, email_otp? }
     // -> pending_ticket for /api/v1/auth/mpin/complete
     public function loginVerifyResetOtp()
