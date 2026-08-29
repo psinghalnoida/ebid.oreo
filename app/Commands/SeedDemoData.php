@@ -17,7 +17,7 @@ use App\Libraries\BiddingService;
 use App\Libraries\OfferService;
 use App\Libraries\ExpressAuctionService;
 
-// Real, working demo/test data for manual end-to-end testing against a
+// Real, working dummy/test data for manual end-to-end testing against a
 // non-empty marketplace -- built at the project owner's explicit
 // request, not a throwaway script. Every business-rule interaction
 // here goes through the SAME real service classes the app itself uses
@@ -27,26 +27,26 @@ use App\Libraries\ExpressAuctionService;
 // the real app wouldn't actually produce.
 //
 // Every created row is identifiable and reversible:
-//   - All demo parties share the +9195000000XX mobile-number range
+//   - All dummy parties share the +9195000000XX mobile-number range
 //     (2-digit suffix 01-20), never used by any test:* fixture.
-//   - All demo party/tenant/listing names carry a "DEMO — " prefix.
+//   - All dummy party/tenant/listing names carry a "DUMMY — " prefix.
 // `php spark seed:demo-data --undo` removes everything this command
 // created, by querying those same two markers -- no ID bookkeeping
 // needed, safe to run on a database this has already seeded before.
 //
 // Uses the platform's real BR-07 closed category list (not made-up
-// categories) and a shared demo mPIN so every seeded account is
+// categories) and a shared dummy mPIN so every seeded account is
 // actually usable for manual testing, not just present in the DB.
 class SeedDemoData extends BaseCommand
 {
-    protected $group       = 'Demo';
+    protected $group       = 'Dummy';
     protected $name        = 'seed:demo-data';
-    protected $description = 'Seeds a demo tenant, ~20 demo users (buyers/sellers/tenant admin), and 8 listings across all 3 self-service sale formats. Pass --undo to remove.';
+    protected $description = 'Seeds a dummy tenant, ~20 dummy users (buyers/sellers/tenant admin), and 8 listings across all 3 self-service sale formats. Pass --undo to remove.';
     protected $usage       = 'seed:demo-data [--undo]';
 
-    public const DEMO_MPIN = '9999';
+    public const DUMMY_MPIN = '9999';
     private const MOBILE_PREFIX = '+9195000000'; // + 2-digit suffix 01-20
-    private const NAME_TAG = 'DEMO — ';
+    private const NAME_TAG = 'DUMMY — ';
     private const TENANT_SUBDOMAIN = 'tradespherex';
 
     public function run(array $params)
@@ -69,7 +69,7 @@ class SeedDemoData extends BaseCommand
 
         $existing = $tenantModel->where('subdomain', self::TENANT_SUBDOMAIN)->first();
         if ($existing) {
-            CLI::error('Demo data already exists (tenant "' . self::TENANT_SUBDOMAIN . '" found). Run with --undo first if you want to reseed.');
+            CLI::error('dummy data already exists (tenant "' . self::TENANT_SUBDOMAIN . '" found). Run with --undo first if you want to reseed.');
             return;
         }
 
@@ -82,7 +82,7 @@ class SeedDemoData extends BaseCommand
         ]);
         CLI::write("  Tenant created: {$tenant['id']}");
 
-        CLI::write('=== 20 demo parties (1 Tenant Admin, 6 Sellers, 13 Buyers) ===', 'yellow');
+        CLI::write('=== 20 dummy parties (1 Tenant Admin, 6 Sellers, 13 Buyers) ===', 'yellow');
         $names = [
             'Ravi Kumar', 'Priya Sharma', 'Arjun Nair', 'Sneha Iyer', 'Vikram Singh',
             'Ananya Reddy', 'Karthik Menon', 'Divya Pillai', 'Rohan Gupta', 'Meera Krishnan',
@@ -107,9 +107,9 @@ class SeedDemoData extends BaseCommand
             $partyModel->update($party['id'], [
                 'full_name' => self::NAME_TAG . $name,
                 'kyc_status' => 'verified',
-                'recovery_email' => 'demo+' . $suffix . '@adwitix.example',
+                'recovery_email' => 'dummy+' . $suffix . '@adwitix.example',
             ]);
-            $auth->setMpin($party['id'], self::DEMO_MPIN);
+            $auth->setMpin($party['id'], self::DUMMY_MPIN);
             $parties[] = $partyModel->find($party['id']);
         }
         $tenantAdmin = $parties[0];
@@ -118,7 +118,7 @@ class SeedDemoData extends BaseCommand
 
         $roleModel->promoteTenantAdmin($tenantAdmin['id'], $tenant['id']);
         CLI::write("  {$tenantAdmin['full_name']} ({$tenantAdmin['mobile_number']}) granted Tenant Admin for TradeSphereX");
-        CLI::write('  6 sellers, 13 buyers created — all mPIN ' . self::DEMO_MPIN . ', KYC pre-verified');
+        CLI::write('  6 sellers, 13 buyers created — all mPIN ' . self::DUMMY_MPIN . ', KYC pre-verified');
 
         CLI::write('=== 8 listings across Easy / Express / Buy-Now (BR-07 real categories) ===', 'yellow');
 
@@ -128,7 +128,7 @@ class SeedDemoData extends BaseCommand
                 'title' => self::NAME_TAG . $makeModel,
                 'physical_condition' => 'Used', 'category' => $category,
                 'quantity' => 1, 'quantity_basis' => 'unit', 'make_model' => $makeModel,
-                'yard_location_address' => 'AdwitiX Demo Yard', 'yard_location_pin' => $pin,
+                'yard_location_address' => 'AdwitiX Dummy Yard', 'yard_location_pin' => $pin,
             ]);
         };
 
@@ -145,7 +145,7 @@ class SeedDemoData extends BaseCommand
             $listing = $mkListing($seller, $spec['category'], $spec['model'], '600' . (100 + $listingIndex));
             $saleEvent = $saleEventModel->createSaleEvent([
                 'listing_id' => $listing['id'], 'tenant_id' => $tenant['id'],
-                'ern' => 'DEMO-EASY-' . str_pad((string) $listingIndex, 3, '0', STR_PAD_LEFT),
+                'ern' => 'DUMMY-EASY-' . str_pad((string) $listingIndex, 3, '0', STR_PAD_LEFT),
                 'sale_format' => 'easy', 'reserve_value' => $spec['rv'], 'result_mode' => 'instant_close',
                 'status' => 'active',
             ]);
@@ -170,7 +170,7 @@ class SeedDemoData extends BaseCommand
             $listing = $mkListing($seller, $spec['category'], $spec['model'], '600' . (100 + $listingIndex));
             $saleEvent = $saleEventModel->createSaleEvent([
                 'listing_id' => $listing['id'], 'tenant_id' => $tenant['id'],
-                'ern' => 'DEMO-EXPRESS-' . str_pad((string) $listingIndex, 3, '0', STR_PAD_LEFT),
+                'ern' => 'DUMMY-EXPRESS-' . str_pad((string) $listingIndex, 3, '0', STR_PAD_LEFT),
                 'sale_format' => 'express', 'reserve_value' => $spec['rv'], 'status' => 'active',
             ]);
             foreach ($spec['pledgers'] as $bIdx) {
@@ -191,7 +191,7 @@ class SeedDemoData extends BaseCommand
             $listing = $mkListing($seller, $spec['category'], $spec['model'], '600' . (100 + $listingIndex));
             $saleEvent = $saleEventModel->createSaleEvent([
                 'listing_id' => $listing['id'], 'tenant_id' => $tenant['id'],
-                'ern' => 'DEMO-BUYNOW-' . str_pad((string) $listingIndex, 3, '0', STR_PAD_LEFT),
+                'ern' => 'DUMMY-BUYNOW-' . str_pad((string) $listingIndex, 3, '0', STR_PAD_LEFT),
                 'sale_format' => 'buy_now', 'expected_value' => $spec['ev'], 'status' => 'active',
             ]);
             $emdBaseline = round($spec['ev'] * 0.10, 2);
@@ -210,8 +210,8 @@ class SeedDemoData extends BaseCommand
         $listingModel->transitionStatus($pendingListing['id'], 'pending_approval');
         CLI::write('  [Pending approval] Unclaimed Freight Lot — no photos attached, listed here for real; Lot Approval will show it without a thumbnail.');
 
-        CLI::write("\n✓ Demo data seeded: 1 tenant, 20 parties, 8 listings (3 Easy / 2 Express / 2 Buy-Now / 1 pending approval).", 'green');
-        CLI::write('  Log in as any demo party: mobile ' . self::MOBILE_PREFIX . '01' . '..' . self::MOBILE_PREFIX . '20 (2-digit suffix), mPIN ' . self::DEMO_MPIN . '.');
+        CLI::write("\n✓ dummy data seeded: 1 tenant, 20 parties, 8 listings (3 Easy / 2 Express / 2 Buy-Now / 1 pending approval).", 'green');
+        CLI::write('  Log in as any dummy party: mobile ' . self::MOBILE_PREFIX . '01' . '..' . self::MOBILE_PREFIX . '20 (2-digit suffix), mPIN ' . self::DUMMY_MPIN . '.');
         CLI::write("  Tenant Admin: {$tenantAdmin['mobile_number']} — visit /tenants/{$tenant['id']}/dashboard once logged in.");
         CLI::write('  Run `php spark seed:demo-data --undo` to remove all of this later.');
     }
@@ -223,7 +223,7 @@ class SeedDemoData extends BaseCommand
 
         $tenant = $tenantModel->where('subdomain', self::TENANT_SUBDOMAIN)->first();
         if (!$tenant) {
-            CLI::write('No demo tenant found — nothing to undo.', 'yellow');
+            CLI::write('No dummy tenant found — nothing to undo.', 'yellow');
         } else {
             $listingIds = array_column(
                 $db->table('listing')->select('id')->where('tenant_id', $tenant['id'])->get()->getResultArray(),
@@ -244,7 +244,7 @@ class SeedDemoData extends BaseCommand
             }
             $db->table('party_role')->where('tenant_id', $tenant['id'])->delete();
             $db->table('tenant')->where('id', $tenant['id'])->delete();
-            CLI::write('  Removed demo tenant, its listings, sale events, bids/offers, and EMD holds.', 'green');
+            CLI::write('  Removed dummy tenant, its listings, sale events, bids/offers, and EMD holds.', 'green');
         }
 
         // Archived, not hard-deleted: party is a real FK target of the
@@ -256,18 +256,18 @@ class SeedDemoData extends BaseCommand
         // this ran (a real FK constraint failure), not assumed.
         // archived_at is the same soft-delete convention findByMobile()/
         // findActiveById() already filter on everywhere else in this
-        // app, so an archived demo party is functionally gone (can't
+        // app, so an archived dummy party is functionally gone (can't
         // log in, doesn't appear in listings) without touching the
         // audit trail at all.
-        $demoParties = $db->table('party')->select('id')->like('mobile_number', self::MOBILE_PREFIX, 'after')->where('archived_at', null)->get()->getResultArray();
-        if ($demoParties) {
-            $ids = array_column($demoParties, 'id');
+        $dummyParties = $db->table('party')->select('id')->like('mobile_number', self::MOBILE_PREFIX, 'after')->where('archived_at', null)->get()->getResultArray();
+        if ($dummyParties) {
+            $ids = array_column($dummyParties, 'id');
             $db->table('party')->whereIn('id', $ids)->update(['archived_at' => date('Y-m-d H:i:s')]);
-            CLI::write('  Archived ' . count($ids) . ' demo parties (soft-deleted — the immutable audit_log keeps a real FK to these, so they can\'t be hard-deleted; this is the same pattern used everywhere else in the app).', 'green');
+            CLI::write('  Archived ' . count($ids) . ' dummy parties (soft-deleted — the immutable audit_log keeps a real FK to these, so they can\'t be hard-deleted; this is the same pattern used everywhere else in the app).', 'green');
         } else {
-            CLI::write('  No demo parties found.', 'yellow');
+            CLI::write('  No dummy parties found.', 'yellow');
         }
 
-        CLI::write("\n✓ Demo data removed.", 'green');
+        CLI::write("\n✓ dummy data removed.", 'green');
     }
 }
