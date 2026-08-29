@@ -10,6 +10,7 @@ use App\Libraries\UserAuthApiService;
 use App\Libraries\UserAuthContext;
 use App\Libraries\AuditLogService;
 use App\Models\PartyModel;
+use App\Models\SuperAdminCredentialModel;
 
 // JWT counterpart of the former SuperAdminAuthController (BR-04's
 // separate, TOTP/email-OTP-verified Super Admin login, plus 2FA
@@ -72,18 +73,18 @@ class SuperAdminAuthApiController extends BaseController
 
     // ── Login (BR-04) ────────────────────────────────────────────────
 
-    // POST /api/v1/admin/auth/login  { mobile_number, mpin, totp_code? }
+    // POST /api/v1/admin/auth/login  { email, password, totp_code? }
     public function login()
     {
-        $mobile = trim((string) $this->input('mobile_number'));
-        $mpin = trim((string) $this->input('mpin'));
+        $email = trim((string) $this->input('email'));
+        $password = (string) $this->input('password');
         $audit = new AuditLogService();
         $ip = $this->request->getIPAddress();
         $userAgent = (string) $this->request->getUserAgent();
 
         if (SuperAdminAuthService::twoFactorMode() === 'email_otp') {
             try {
-                $result = $this->auth->requestLoginEmailOtp($mobile, $mpin);
+                $result = $this->auth->requestLoginEmailOtp($email, $password);
             } catch (\RuntimeException $e) {
                 return $this->jsonError(401, 'login_failed', $e->getMessage());
             }
@@ -102,7 +103,7 @@ class SuperAdminAuthApiController extends BaseController
 
         $totpCode = trim((string) $this->input('totp_code'));
         try {
-            $party = $this->auth->login($mobile, $mpin, $totpCode);
+            $party = $this->auth->login($email, $password, $totpCode);
         } catch (\RuntimeException $e) {
             return $this->jsonError(401, 'login_failed', $e->getMessage());
         }
@@ -151,63 +152,57 @@ class SuperAdminAuthApiController extends BaseController
         ]);
     }
 
-    // ── Forgot mPIN — email-only recovery, unauthenticated ────────
+    // ── Forgot password — email-only recovery, unauthenticated ────
     //
-    // Deliberately separate from the regular login-lockout reset path
-    // (UserAuthApiController::loginWithMpin's 'otp_required' branch): a
-    // Custodian who genuinely forgot their mPIN shouldn't have to
-    // deliberately fail their own login 3 times first. Converges on the
-    // same 'mpin_setup_pending' ticket + UserAuthApiController::
-    // completeMpinSetup used by every other "prove identity, then set
-    // mPIN" flow. Always returns the same generic response whether or
-    // not the number is a real Custodian account — this endpoint is
-    // reachable unauthenticated and must not become an oracle for which
-    // mobile numbers hold the super_admin role.
+    // Now that Custodian login is email + password (super_admin_credential
+    // table, not mPIN), recovery keys off the same login email rather
+    // than a mobile number. Always returns the same generic response
+    // whether or not the email belongs to a real Custodian account —
+    // this endpoint is reachable unauthenticated and must not become an
+    // oracle for which emails hold the super_admin role.
     //
-    // Project owner's explicit request: Custodian recovery is
-    // email-only, not mobile SMS — no requestOtp()/SMS call here at
-    // all. Sent via EmailNotificationService (CI4's Email service,
-    // office@vpsinghal.com / Google Workspace SMTP — see app/Config/
-    // Email.php + env's `email.*` settings). A Custodian account with
-    // no recovery_email on file has no way to self-recover this way —
-    // same generic response either way, since this must not become an
-    // oracle for which accounts exist.
+    // Sent via EmailNotificationService (CI4's Email service — see
+    // app/Config/Email.php + env's `email.*` settings). Reuses the
+    // existing 'mpin_reset_email' otp_verification purpose (a generic
+    // "OTP emailed to prove account ownership" purpose) rather than
+    // adding a new enum value for what is functionally the same check.
 
     public function forgotMpinRequest()
     {
-        $mobile = trim((string) $this->input('mobile_number'));
-        $genericMessage = 'If that number belongs to a registered Custodian account with a recovery email on file, a reset code has just been emailed to it.';
+        $email = trim((string) $this->input('email'));
+        $genericMessage = 'If that email belongs to a registered Custodian account, a reset code has just been emailed to it.';
 
-        $party = (new PartyModel())->findByMobile($mobile);
-        if (!$party || !(new AuthorizationService())->isSuperAdmin($party['id']) || empty($party['recovery_email'])) {
+        $credential = (new SuperAdminCredentialModel())->findByEmail($email);
+        $party = $credential ? (new PartyModel())->findActiveById($credential['party_id']) : null;
+        if (!$party || !(new AuthorizationService())->isSuperAdmin($party['id'])) {
             return $this->response->setJSON(['message' => $genericMessage]);
         }
 
-        $emailOtp = $this->accountAuth->requestEmailOtp($party['recovery_email'], 'mpin_reset_email');
-        $emailSent = (new EmailNotificationService())->sendOtp($party['recovery_email'], $emailOtp, 'mpin_reset_email');
-        $ticketClaims = ['sub' => $party['id'], 'email' => $party['recovery_email']];
+        $emailOtp = $this->accountAuth->requestEmailOtp($credential['email'], 'mpin_reset_email');
+        $emailSent = (new EmailNotificationService())->sendOtp($credential['email'], $emailOtp, 'mpin_reset_email');
+        $ticketClaims = ['sub' => $party['id'], 'email' => $credential['email']];
 
         $response = [
             'message' => $genericMessage,
             'dev_email_otp' => $emailOtp,
             'email_sent' => $emailSent,
-            'email' => $party['recovery_email'],
+            'email' => $credential['email'],
         ];
 
-        (new AuditLogService())->log('admin.mpin_reset_requested', $party['id'], [
-            'mobile' => $mobile, 'channel' => 'email', 'emailDeliveredForReal' => $emailSent,
+        (new AuditLogService())->log('admin.password_reset_requested', $party['id'], [
+            'channel' => 'email', 'emailDeliveredForReal' => $emailSent,
         ], $this->request->getIPAddress(), (string) $this->request->getUserAgent());
 
-        $response['pending_ticket'] = UserAuthApiService::issuePendingTicket('admin_mpin_reset_pending', $ticketClaims);
+        $response['pending_ticket'] = UserAuthApiService::issuePendingTicket('admin_password_reset_pending', $ticketClaims);
         return $this->response->setJSON($response);
     }
 
-    // POST /api/v1/admin/auth/forgot-mpin/verify  { pending_ticket, email_otp }
-    // -> pending_ticket for /api/v1/auth/mpin/complete (UserAuthApiController)
+    // POST /api/v1/admin/auth/forgot-password/verify  { pending_ticket, email_otp }
+    // -> pending_ticket for setNewPassword(), below
     public function forgotMpinVerify()
     {
         $ticket = (string) $this->input('pending_ticket');
-        $claims = UserAuthApiService::decodePendingTicket($ticket, 'admin_mpin_reset_pending');
+        $claims = UserAuthApiService::decodePendingTicket($ticket, 'admin_password_reset_pending');
         if (!$claims) {
             return $this->jsonError(401, 'invalid_ticket', 'Invalid or expired pending_ticket. Start the reset again.');
         }
@@ -217,7 +212,25 @@ class SuperAdminAuthApiController extends BaseController
             return $this->jsonError(401, 'invalid_email_otp', 'Incorrect or expired email code.');
         }
 
-        $mpinSetupTicket = UserAuthApiService::issuePendingTicket('mpin_setup_pending', ['sub' => $claims['sub']]);
-        return $this->response->setJSON(['pending_ticket' => $mpinSetupTicket]);
+        $passwordSetupTicket = UserAuthApiService::issuePendingTicket('admin_password_setup_pending', ['sub' => $claims['sub']]);
+        return $this->response->setJSON(['pending_ticket' => $passwordSetupTicket]);
+    }
+
+    // POST /api/v1/admin/auth/forgot-password/complete  { pending_ticket, new_password }
+    public function setNewPassword()
+    {
+        $ticket = (string) $this->input('pending_ticket');
+        $claims = UserAuthApiService::decodePendingTicket($ticket, 'admin_password_setup_pending');
+        if (!$claims) {
+            return $this->jsonError(401, 'invalid_ticket', 'Invalid or expired pending_ticket. Start the reset again.');
+        }
+
+        $newPassword = (string) $this->input('new_password');
+        if (strlen($newPassword) < 8) {
+            return $this->jsonError(422, 'weak_password', 'Password must be at least 8 characters.');
+        }
+
+        $this->auth->resetPassword($claims['sub'], $newPassword);
+        return $this->response->setJSON(['message' => 'Password updated. You can now log in with your new password.']);
     }
 }
