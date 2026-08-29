@@ -4,18 +4,21 @@ namespace App\Libraries;
 
 use App\Models\PartyModel;
 use App\Models\SuperAdminBackupCodeModel;
+use App\Models\SuperAdminCredentialModel;
 
 class SuperAdminAuthService
 {
     private PartyModel $partyModel;
     private AuthorizationService $authz;
     private SuperAdminBackupCodeModel $backupCodeModel;
+    private SuperAdminCredentialModel $credentialModel;
 
     public function __construct()
     {
         $this->partyModel = new PartyModel();
         $this->authz = new AuthorizationService();
         $this->backupCodeModel = new SuperAdminBackupCodeModel();
+        $this->credentialModel = new SuperAdminCredentialModel();
     }
 
     // Only a party already granted the super_admin role (via
@@ -100,33 +103,33 @@ class SuperAdminAuthService
     }
 
     // Shared by both the TOTP path (login(), below) and the email-OTP
-    // path (requestLoginEmailOtp()/completeLoginWithEmailOtp()) — mobile
-    // + mPIN + super_admin role is the common first stage regardless of
-    // which second factor is active.
-    private function verifyMobileAndMpin(string $mobileNumber, string $mpin): array
+    // path (requestLoginEmailOtp()/completeLoginWithEmailOtp()) — email
+    // + password + super_admin role is the common first stage regardless
+    // of which second factor is active. Custodian login uses its own
+    // super_admin_credential table (email + bcrypt password), separate
+    // from the shared party.mpin_hash used by every other role — see
+    // CreateSuperAdminCredential migration.
+    private function verifyEmailAndPassword(string $email, string $password): array
     {
-        $party = $this->partyModel->findByMobile($mobileNumber);
-        if (!$party || !$party['mpin_hash']) {
-            throw new \RuntimeException('No registered account with a set mPIN for this mobile number.');
+        $credential = $this->credentialModel->findByEmail($email);
+        if (!$credential || !password_verify($password, $credential['password_hash'])) {
+            throw new \RuntimeException('Incorrect email or password.');
         }
-        if (!password_verify($mpin, $party['mpin_hash'])) {
-            throw new \RuntimeException('Incorrect mPIN.');
-        }
-        if (!$this->authz->isSuperAdmin($party['id'])) {
+        $party = $this->partyModel->findActiveById($credential['party_id']);
+        if (!$party || !$this->authz->isSuperAdmin($party['id'])) {
             throw new \RuntimeException('This account does not have Super Admin access.');
         }
         return $party;
     }
 
-    // BR-04: the real separate Super Admin login — mobile + mPIN (same
-    // credential mechanism as regular users, per the existing schema) +
+    // BR-04: the real separate Super Admin login — email + password +
     // a genuinely-verified TOTP code, all three required. Only used when
     // twoFactorMode() === 'totp' (the default) — the controller branches
     // to requestLoginEmailOtp()/completeLoginWithEmailOtp() instead when
     // the D-128 toggle is set to 'email_otp'.
-    public function login(string $mobileNumber, string $mpin, string $totpCode): array
+    public function login(string $email, string $password, string $totpCode): array
     {
-        $party = $this->verifyMobileAndMpin($mobileNumber, $mpin);
+        $party = $this->verifyEmailAndPassword($email, $password);
         if (!$party['totp_enabled_at'] || !$party['totp_secret']) {
             throw new \RuntimeException('TOTP has not been set up for this account yet.');
         }
@@ -141,15 +144,15 @@ class SuperAdminAuthService
         return $party;
     }
 
-    // D-128: stage 1 of the email-OTP login path — validates mobile +
-    // mPIN + super_admin role (same as login()'s first stage), then
+    // D-128: stage 1 of the email-OTP login path — validates email +
+    // password + super_admin role (same as login()'s first stage), then
     // sends a real OTP to the account's recovery_email. Throws if no
     // recovery_email is on file, rather than silently failing to send
     // anything — bootstrap:custodian sets one by default, but an older
     // or differently-provisioned account might not have one.
-    public function requestLoginEmailOtp(string $mobileNumber, string $mpin): array
+    public function requestLoginEmailOtp(string $email, string $password): array
     {
-        $party = $this->verifyMobileAndMpin($mobileNumber, $mpin);
+        $party = $this->verifyEmailAndPassword($email, $password);
         if (empty($party['recovery_email'])) {
             throw new \RuntimeException('No recovery email is on file for this account — email-based login cannot proceed. Set one (e.g. via bootstrap:custodian) or switch admin.twoFactorMode back to totp.');
         }
@@ -176,5 +179,16 @@ class SuperAdminAuthService
             throw new \RuntimeException('Incorrect or expired code.');
         }
         return $party;
+    }
+
+    // Forgot-password: sets a brand new bcrypt password hash on the
+    // Custodian's super_admin_credential row. Only ever called after the
+    // caller has already proven ownership of the account's recovery
+    // email via a verified OTP (SuperAdminAuthApiController's
+    // forgot-password flow) — this method itself does no verification.
+    public function resetPassword(string $partyId, string $newPassword): void
+    {
+        $this->credentialModel->setPasswordHash($partyId, password_hash($newPassword, PASSWORD_BCRYPT));
+        (new \App\Libraries\AuditLogService())->log('admin.password_reset', $partyId, []);
     }
 }

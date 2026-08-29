@@ -325,9 +325,8 @@ $routes->post('/api/v1/app/auth/forgot-password', 'UserAuthApiController::forgot
 $routes->post('/api/v1/app/auth/forgot-password/verify', 'UserAuthApiController::loginVerifyResetOtp');
 
 // Super Admin REST/JWT login (BR-04) — JWT counterpart of the former
-// SuperAdminAuthController. forgotMpinVerify's resulting ticket is
-// completed via the same shared UserAuthApiController::mpin/complete
-// endpoint above.
+// SuperAdminAuthController. Custodian login is email + password
+// (super_admin_credential table) + TOTP/email-OTP second factor.
 $routes->post('/api/v1/app/admin/auth/login', 'SuperAdminAuthApiController::login');
 $routes->post('/api/v1/app/admin/auth/login/verify-email', 'SuperAdminAuthApiController::verifyEmail');
 $routes->post('/api/v1/app/admin/auth/setup-totp', 'SuperAdminAuthApiController::setupTotp', ['filter' => 'jwtAuth']);
@@ -335,6 +334,8 @@ $routes->post('/api/v1/app/admin/auth/setup-totp/confirm', 'SuperAdminAuthApiCon
 $routes->post('/api/v1/app/admin/auth/forgot-mpin', 'SuperAdminAuthApiController::forgotMpinRequest');
 $routes->post('/api/v1/app/admin/auth/forgot-mpin/verify', 'SuperAdminAuthApiController::forgotMpinVerify');
 // "forgot-password" aliases (Custodian-facing naming) for the same two
-// endpoints above.
+// endpoints above, plus the completion step that actually sets the new
+// password on super_admin_credential.
 $routes->post('/api/v1/app/admin/auth/forgot-password', 'SuperAdminAuthApiController::forgotMpinRequest');
 $routes->post('/api/v1/app/admin/auth/forgot-password/verify', 'SuperAdminAuthApiController::forgotMpinVerify');
+$routes->post('/api/v1/app/admin/auth/forgot-password/complete', 'SuperAdminAuthApiController::setNewPassword');
