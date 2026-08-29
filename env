@@ -79,6 +79,21 @@
 # GEMINI_API_KEY =
 # GEMINI_MODEL = gemini-2.0-flash
 
+# Custodian (Super Admin) forgot-password/mPIN-reset OTP is email-only
+# (project owner's explicit request — no mobile SMS for this flow), sent
+# via CI4's own Email service (EmailNotificationService) through this
+# Google Workspace account. Get an "App Password" for office@vpsinghal.com
+# from https://myaccount.google.com/apppasswords (regular account
+# password will NOT work with SMTP AUTH) and set it below.
+# email.fromEmail = office@vpsinghal.com
+# email.fromName = AdwitiX Custodian
+# email.protocol = smtp
+# email.SMTPHost = smtp.gmail.com
+# email.SMTPUser = office@vpsinghal.com
+# email.SMTPPass =
+# email.SMTPPort = 465
+# email.SMTPCrypto = ssl
+
 # SMS OTP delivery (2Factor.in "SMS with your own OTP" API), used for
 # every mobile-OTP purpose (registration, login, mPIN reset, payout-bank
 # change, forgot-password) via AuthService::requestOtp() ->
