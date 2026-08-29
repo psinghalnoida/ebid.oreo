@@ -15,11 +15,13 @@ class AuthService
 
     private PartyModel $partyModel;
     private OtpVerificationModel $otpModel;
+    private SmsNotificationService $sms;
 
     public function __construct()
     {
         $this->partyModel = new PartyModel();
         $this->otpModel = new OtpVerificationModel();
+        $this->sms = new SmsNotificationService();
     }
 
     // BR-03: 10-digit Indian mobile numbers with +91
@@ -28,11 +30,15 @@ class AuthService
         return (bool) preg_match('/^\+91[6-9]\d{9}$/', $mobileNumber);
     }
 
-    // Generates and stores an OTP. Returns the PLAIN OTP — this is a
-    // development/testing convenience only, since the SMS provider is
-    // stubbed (SMS_PROVIDER=stub in .env per the tech-stack open item).
-    // In production this return value would instead be handed to the SMS
-    // provider and never surfaced to the caller.
+    // Generates and stores an OTP, and sends it via the real SMS provider
+    // (SmsNotificationService, 2Factor.in). Still returns the PLAIN OTP —
+    // kept as a dev/testing on-screen fallback (dev_otp in every
+    // controller response) since SmsNotificationService fails closed
+    // rather than throwing when delivery fails (no network route,
+    // provider outage, invalid number, ...). Every OTP purpose in the
+    // app (registration, api_login, mpin_reset, payout_bank_change, and
+    // the Custodian/User forgot-password flows) shares this one method,
+    // so wiring the real send here covers all of them at once.
     public function requestOtp(string $mobileNumber, string $purpose): string
     {
         if (!self::isValidIndianMobile($mobileNumber)) {
@@ -53,6 +59,8 @@ class AuthService
             Uuid::v4(), $mobileNumber, password_hash($otp, PASSWORD_BCRYPT),
             $purpose, $expiresAt->format('Y-m-d H:i:s')
         );
+
+        $this->sms->sendOtp($mobileNumber, $otp, $purpose);
 
         return $otp;
     }

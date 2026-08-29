@@ -79,6 +79,14 @@
 # GEMINI_API_KEY =
 # GEMINI_MODEL = gemini-2.0-flash
 
+# SMS OTP delivery (2Factor.in "SMS with your own OTP" API), used for
+# every mobile-OTP purpose (registration, login, mPIN reset, payout-bank
+# change, forgot-password) via AuthService::requestOtp() ->
+# SmsNotificationService. Defaults to the project owner's own key if
+# left unset -- override here for a different 2Factor.in account/deploy.
+# SMS.twoFactorApiKey = e05e2067-06ec-11eb-9fa5-0200cd936042
+# SMS.twoFactorTemplate = 'Claimsmitra Phone Verification'
+
 #--------------------------------------------------------------------
 # SUPER ADMIN (CUSTODIAN) LOGIN -- D-128
 #--------------------------------------------------------------------
