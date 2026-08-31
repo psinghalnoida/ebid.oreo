@@ -1,0 +1,5 @@
+RewriteEngine On
+
+# Send all requests to the CodeIgniter public directory
+RewriteRule ^$ public/ [L]
+RewriteRule ^(.+)$ public/$1 [L]
