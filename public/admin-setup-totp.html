@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Set Up Authenticator</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    min-height: 100vh;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+  }
+  .card {
+    width: 100%;
+    max-width: 420px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 32px;
+  }
+  h1 { font-size: 1.25rem; margin: 0 0 4px; }
+  p.sub { color: #94a3b8; font-size: 0.85rem; margin: 0 0 20px; }
+  label { display: block; font-size: 0.8rem; color: #cbd5e1; margin: 16px 0 6px; }
+  input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #475569;
+    background: #0f172a;
+    color: #e2e8f0;
+    font-size: 0.95rem;
+  }
+  input:focus { outline: 2px solid #6366f1; border-color: #6366f1; }
+  button {
+    width: 100%;
+    margin-top: 20px;
+    padding: 11px;
+    border-radius: 8px;
+    border: none;
+    background: #6366f1;
+    color: white;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  button:hover:not(:disabled) { background: #4f46e5; }
+  .msg { font-size: 0.85rem; margin-top: 16px; padding: 10px 12px; border-radius: 8px; display: none; }
+  .msg.error { display: block; background: #450a0a; color: #fca5a5; border: 1px solid #7f1d1d; }
+  .msg.success { display: block; background: #052e16; color: #86efac; border: 1px solid #14532d; }
+  .qr-wrap { text-align: center; margin: 16px 0; }
+  .qr-wrap img { width: 220px; height: 220px; border-radius: 8px; background: white; padding: 8px; }
+  .secret {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 8px 10px;
+    word-break: break-all;
+    text-align: center;
+    margin-top: 6px;
+  }
+  .backup-codes {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.85rem;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 12px;
+    line-height: 1.8;
+  }
+  .hint { font-size: 0.75rem; color: #64748b; margin-top: 6px; }
+  #step-token { }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div id="step-token">
+      <h1>Set Up Authenticator</h1>
+      <p class="sub">Paste the access token you got from logging in (mPIN login or, for re-enrollment, your existing TOTP-verified admin login).</p>
+      <label for="token">Access token</label>
+      <input id="token" type="text" placeholder="eyJ...">
+      <button id="begin-btn">Get QR code</button>
+      <div id="token-msg" class="msg"></div>
+    </div>
+
+    <div id="step-qr" style="display:none;">
+      <h1>Scan this code</h1>
+      <p class="sub">Open Google Authenticator, Authy, or 1Password and scan.</p>
+      <div class="qr-wrap"><img id="qr-img" alt="TOTP QR code"></div>
+      <p class="hint">Can't scan? Enter this key manually instead:</p>
+      <div class="secret" id="secret-text"></div>
+
+      <label for="code">Enter the 6-digit code the app now shows</label>
+      <input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" required>
+      <button id="confirm-btn">Confirm and enable</button>
+      <div id="qr-msg" class="msg"></div>
+    </div>
+
+    <div id="step-done" style="display:none;">
+      <h1>2FA enabled</h1>
+      <p class="sub">Save these backup codes somewhere safe — shown only once. Each works as a one-time substitute for the authenticator app.</p>
+      <div class="backup-codes" id="backup-codes"></div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const API_BASE = '/api/v1/app/admin/auth';
+
+  const stepToken = document.getElementById('step-token');
+  const stepQr = document.getElementById('step-qr');
+  const stepDone = document.getElementById('step-done');
+
+  const beginBtn = document.getElementById('begin-btn');
+  const tokenMsg = document.getElementById('token-msg');
+  const confirmBtn = document.getElementById('confirm-btn');
+  const qrMsg = document.getElementById('qr-msg');
+
+  let accessToken = null;
+
+  function showMsg(el, text, kind) {
+    el.textContent = text;
+    el.className = 'msg ' + kind;
+  }
+
+  beginBtn.addEventListener('click', async function () {
+    accessToken = document.getElementById('token').value.trim();
+    if (!accessToken) return;
+
+    beginBtn.disabled = true;
+    beginBtn.textContent = 'Loading…';
+    tokenMsg.className = 'msg';
+
+    try {
+      const res = await fetch(API_BASE + '/setup-totp', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + accessToken },
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        showMsg(tokenMsg, data.error_description || 'Could not start setup.', 'error');
+        return;
+      }
+
+      document.getElementById('qr-img').src = data.setup.qrCodeDataUri;
+      document.getElementById('secret-text').textContent = data.setup.secret;
+      stepToken.style.display = 'none';
+      stepQr.style.display = 'block';
+    } catch (e) {
+      showMsg(tokenMsg, 'Could not reach the server. Please try again.', 'error');
+    } finally {
+      beginBtn.disabled = false;
+      beginBtn.textContent = 'Get QR code';
+    }
+  });
+
+  confirmBtn.addEventListener('click', async function () {
+    const code = document.getElementById('code').value.trim();
+    if (!code) return;
+
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Confirming…';
+    qrMsg.className = 'msg';
+
+    try {
+      const res = await fetch(API_BASE + '/setup-totp/confirm', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + accessToken,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code: code }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        showMsg(qrMsg, data.error_description || 'Invalid code.', 'error');
+        return;
+      }
+
+      document.getElementById('backup-codes').textContent = (data.backupCodes || []).join('\n');
+      stepQr.style.display = 'none';
+      stepDone.style.display = 'block';
+    } catch (e) {
+      showMsg(qrMsg, 'Could not reach the server. Please try again.', 'error');
+    } finally {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = 'Confirm and enable';
+    }
+  });
+})();
+</script>
+</body>
+</html>
