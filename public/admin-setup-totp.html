@@ -144,7 +144,6 @@
 
 <script>
 (function () {
-  const AUTH_BASE = '/api/v1/app/auth';
   const ADMIN_BASE = '/api/v1/app/admin/auth';
 
   const els = {};
@@ -159,8 +158,7 @@
   }
 
   let mobileNumber = null;
-  let pendingTicket = null; // mpin_setup_pending, then reused as a variable name for whichever ticket is current
-  let accessToken = null;
+  let pendingTicket = null; // admin_totp_setup_pending — scoped to finishing THIS enrollment, nothing else
 
   const mobileBtn = document.getElementById('mobile-btn');
   const mobileMsg = document.getElementById('mobile-msg');
@@ -173,7 +171,7 @@
     mobileMsg.className = 'msg';
 
     try {
-      const res = await fetch(AUTH_BASE + '/register/otp/request', {
+      const res = await fetch(ADMIN_BASE + '/setup-totp/request-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mobile_number: mobileNumber }),
@@ -201,52 +199,22 @@
     otpBtn.disabled = true;
     otpBtn.textContent = 'Checking…';
     otpMsg.className = 'msg';
+    showStep('step-loading');
 
     try {
-      // Verify the mobile OTP -> mpin_setup_pending ticket.
-      let res = await fetch(AUTH_BASE + '/register/otp/verify', {
+      const res = await fetch(ADMIN_BASE + '/setup-totp/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mobile_number: mobileNumber, otp: otp }),
       });
-      let data = await res.json();
+      const data = await res.json();
       if (!res.ok) {
+        showStep('step-otp');
         showMsg(otpMsg, data.error_description || 'Incorrect or expired code.', 'error');
         return;
       }
+
       pendingTicket = data.pending_ticket;
-
-      showStep('step-loading');
-
-      // Silently set a throwaway mPIN just to obtain an access token —
-      // the admin never sees or needs to remember this; day-to-day login
-      // stays email + password + authenticator code.
-      const throwawayMpin = String(Math.floor(1000 + Math.random() * 9000));
-      res = await fetch(AUTH_BASE + '/mpin/complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pending_ticket: pendingTicket, mpin: throwawayMpin }),
-      });
-      data = await res.json();
-      if (!res.ok) {
-        showStep('step-otp');
-        showMsg(otpMsg, data.error_description || 'Could not verify your account.', 'error');
-        return;
-      }
-      accessToken = data.access_token;
-
-      // Now get the QR straight away.
-      res = await fetch(ADMIN_BASE + '/setup-totp', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + accessToken },
-      });
-      data = await res.json();
-      if (!res.ok) {
-        showStep('step-otp');
-        showMsg(otpMsg, data.error_description || 'Could not start authenticator setup — is this account a registered Super Admin?', 'error');
-        return;
-      }
-
       document.getElementById('qr-img').src = data.setup.qrCodeDataUri;
       document.getElementById('secret-text').textContent = data.setup.secret;
       showStep('step-qr');
@@ -270,13 +238,10 @@
     qrMsg.className = 'msg';
 
     try {
-      const res = await fetch(ADMIN_BASE + '/setup-totp/confirm', {
+      const res = await fetch(ADMIN_BASE + '/setup-totp/confirm-mobile', {
         method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + accessToken,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ code: code }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pending_ticket: pendingTicket, code: code }),
       });
       const data = await res.json();
       if (!res.ok) {

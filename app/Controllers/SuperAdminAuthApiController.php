@@ -49,19 +49,7 @@ class SuperAdminAuthApiController extends BaseController
             return $this->jsonError(403, 'setup_failed', $e->getMessage());
         }
 
-        // Render the provisioning URI as a scannable QR code here, server
-        // side, rather than leaving callers to find their own way to turn
-        // an otpauth:// URI into an image — same endroid/qr-code usage as
-        // ChronicleController's verification QR. Purely a display
-        // convenience: the secret/provisioningUri are still returned
-        // as-is for manual entry or a caller that wants to render its own.
-        $qrResult = (new \Endroid\QrCode\Builder\Builder(
-            writer: new \Endroid\QrCode\Writer\PngWriter(),
-            data: $setup['provisioningUri'], size: 240, margin: 8,
-        ))->build();
-        $setup['qrCodeDataUri'] = $qrResult->getDataUri();
-
-        return $this->response->setJSON(['setup' => $setup]);
+        return $this->response->setJSON(['setup' => $this->withQrCode($setup)]);
     }
 
     // POST /api/v1/admin/auth/setup-totp/confirm  { code }
@@ -82,6 +70,105 @@ class SuperAdminAuthApiController extends BaseController
         // Shown exactly once — the plain codes are never persisted,
         // only their bcrypt hashes (in super_admin_backup_code).
         return $this->response->setJSON(['backupCodes' => $confirmed]);
+    }
+
+    // ── 2FA enrollment, mobile-OTP entry point ────────────────────────
+    //
+    // The jwtAuth pair above assumes the caller already has SOME access
+    // token, which for a Custodian created via bootstrap:custodian (email
+    // + password only, no mPIN) meant first minting one through the
+    // unrelated mPIN-registration flow just to reach setup-totp — a
+    // roundabout, technical prerequisite for what should be a "prove you
+    // own this phone, then scan a QR" flow. These three endpoints do that
+    // directly: mobile + OTP is the proof, and a narrowly-scoped
+    // 'admin_totp_setup_pending' ticket (NOT a full access token —
+    // usable for nothing but confirming this specific enrollment) carries
+    // the party from OTP verification to confirmation.
+
+    // POST /api/v1/admin/auth/setup-totp/request-otp  { mobile_number }
+    public function setupTotpRequestOtp()
+    {
+        $mobile = trim((string) $this->input('mobile_number'));
+
+        try {
+            $otp = $this->accountAuth->requestOtp($mobile, 'registration');
+        } catch (\RuntimeException $e) {
+            return $this->jsonError(422, 'invalid_mobile', $e->getMessage());
+        }
+
+        return $this->response->setJSON(['dev_otp' => $otp]);
+    }
+
+    // POST /api/v1/admin/auth/setup-totp/verify-otp  { mobile_number, otp }
+    public function setupTotpVerifyOtp()
+    {
+        $mobile = trim((string) $this->input('mobile_number'));
+        $otp = trim((string) $this->input('otp'));
+
+        if (!$this->accountAuth->verifyOtp($mobile, 'registration', $otp)) {
+            return $this->jsonError(401, 'invalid_otp', 'Incorrect or expired code.');
+        }
+
+        $party = (new PartyModel())->findByMobile($mobile);
+        if (!$party || !(new AuthorizationService())->isSuperAdmin($party['id'])) {
+            return $this->jsonError(403, 'not_super_admin', 'This mobile number is not registered to a Super Admin account.');
+        }
+
+        // Same first-time-only rule as setupTotp() above (isolatedVerified
+        // = false) — re-enrolling over an already-confirmed secret still
+        // requires PR-17's isolated TOTP-verified session, not just phone
+        // ownership, and beginTotpSetup() enforces that on its own.
+        try {
+            $setup = $this->auth->beginTotpSetup($party['id'], false);
+        } catch (\RuntimeException $e) {
+            return $this->jsonError(403, 'setup_failed', $e->getMessage());
+        }
+
+        $pendingTicket = UserAuthApiService::issuePendingTicket('admin_totp_setup_pending', ['sub' => $party['id']]);
+
+        return $this->response->setJSON([
+            'pending_ticket' => $pendingTicket,
+            'setup' => $this->withQrCode($setup),
+        ]);
+    }
+
+    // POST /api/v1/admin/auth/setup-totp/confirm-mobile  { pending_ticket, code }
+    public function confirmSetupTotpByMobile()
+    {
+        $claims = UserAuthApiService::decodePendingTicket(
+            (string) $this->input('pending_ticket'),
+            'admin_totp_setup_pending'
+        );
+        if (!$claims) {
+            return $this->jsonError(401, 'invalid_ticket', 'Invalid or expired pending_ticket. Start setup again.');
+        }
+
+        try {
+            $confirmed = $this->auth->confirmTotpSetup($claims['sub'], (string) $this->input('code'));
+        } catch (\RuntimeException $e) {
+            return $this->jsonError(422, 'confirm_failed', $e->getMessage());
+        }
+        if (!$confirmed) {
+            return $this->jsonError(401, 'invalid_code', 'Invalid code — check your authenticator app and try again.');
+        }
+
+        return $this->response->setJSON(['backupCodes' => $confirmed]);
+    }
+
+    // Renders the provisioning URI as a scannable QR code, server side,
+    // rather than leaving callers to find their own way to turn an
+    // otpauth:// URI into an image — same endroid/qr-code usage as
+    // ChronicleController's verification QR. Purely a display
+    // convenience: the secret/provisioningUri stay in the response as-is
+    // for manual entry or a caller that wants to render its own.
+    private function withQrCode(array $setup): array
+    {
+        $qrResult = (new \Endroid\QrCode\Builder\Builder(
+            writer: new \Endroid\QrCode\Writer\PngWriter(),
+            data: $setup['provisioningUri'], size: 240, margin: 8,
+        ))->build();
+        $setup['qrCodeDataUri'] = $qrResult->getDataUri();
+        return $setup;
     }
 
     // ── Login (BR-04) ────────────────────────────────────────────────
