@@ -30,7 +30,8 @@ class Filters extends BaseFilters
         'honeypot'      => Honeypot::class,
         'invalidchars'  => InvalidChars::class,
         'secureheaders' => SecureHeaders::class,
-        'cors'          => Cors::class,
+        // 'cors'          => Cors::class,
+        'cors'          => \App\Filters\Cors::class,
         'forcehttps'    => ForceHTTPS::class,
         'pagecache'     => PageCache::class,
         'performance'   => PerformanceMetrics::class,
@@ -81,6 +82,7 @@ class Filters extends BaseFilters
      */
     public array $globals = [
         'before' => [
+            'cors',
             // 'honeypot',
             // Real CSRF protection, enabled on every browser-session POST.
             // Excluded: api/* — the Tenant API is server-to-server OAuth2

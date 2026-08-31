@@ -2,6 +2,14 @@
 
 use CodeIgniter\Router\RouteCollection;
 
+
+$routes->options(
+    'api/(:any)',
+    static function () {
+        return service('response')->setStatusCode(204);
+    }
+);
+
 /** @var RouteCollection $routes */
 $routes->get('/', 'Home::index');
 $routes->get('/trust-support', 'TrustSupport::index');
