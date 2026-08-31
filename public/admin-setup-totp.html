@@ -57,6 +57,8 @@
   .msg { font-size: 0.85rem; margin-top: 16px; padding: 10px 12px; border-radius: 8px; display: none; }
   .msg.error { display: block; background: #450a0a; color: #fca5a5; border: 1px solid #7f1d1d; }
   .msg.success { display: block; background: #052e16; color: #86efac; border: 1px solid #14532d; }
+  .msg.info { display: block; background: #172554; color: #93c5fd; border: 1px solid #1e3a8a; }
+  .spinner { text-align: center; padding: 40px 0; color: #94a3b8; font-size: 0.9rem; }
   .qr-wrap { text-align: center; margin: 16px 0; }
   .qr-wrap img { width: 220px; height: 220px; border-radius: 8px; background: white; padding: 8px; }
   .secret {
@@ -82,92 +84,183 @@
     line-height: 1.8;
   }
   .hint { font-size: 0.75rem; color: #64748b; margin-top: 6px; }
-  #step-token { }
+  details { margin-top: 10px; }
+  details summary { font-size: 0.75rem; color: #818cf8; cursor: pointer; }
 </style>
 </head>
 <body>
   <div class="card">
-    <div id="step-token">
-      <h1>Set Up Authenticator</h1>
-      <p class="sub">Paste the access token you got from logging in (mPIN login or, for re-enrollment, your existing TOTP-verified admin login).</p>
-      <label for="token">Access token</label>
-      <input id="token" type="text" placeholder="eyJ...">
-      <button id="begin-btn">Get QR code</button>
-      <div id="token-msg" class="msg"></div>
+    <!-- Step 1: just a mobile number, nothing technical -->
+    <div id="step-mobile">
+      <h1>Set Up Your Login Code</h1>
+      <p class="sub">Enter your registered mobile number. We'll text you a code to confirm it's you, then show your QR code.</p>
+      <label for="mobile">Mobile number</label>
+      <input id="mobile" type="tel" placeholder="+91XXXXXXXXXX">
+      <button id="mobile-btn">Send code</button>
+      <div id="mobile-msg" class="msg"></div>
     </div>
 
+    <!-- Step 2: OTP just sent -->
+    <div id="step-otp" style="display:none;">
+      <h1>Enter the code we sent</h1>
+      <p class="sub" id="otp-sub">Check your phone for a 6-digit code.</p>
+      <label for="otp">Code</label>
+      <input id="otp" type="text" inputmode="numeric" autocomplete="one-time-code">
+      <button id="otp-btn">Continue</button>
+      <div id="otp-msg" class="msg"></div>
+    </div>
+
+    <!-- Step 3: loading -->
+    <div id="step-loading" style="display:none;">
+      <div class="spinner">Preparing your QR code…</div>
+    </div>
+
+    <!-- Step 4: scan the QR -->
     <div id="step-qr" style="display:none;">
       <h1>Scan this code</h1>
-      <p class="sub">Open Google Authenticator, Authy, or 1Password and scan.</p>
-      <div class="qr-wrap"><img id="qr-img" alt="TOTP QR code"></div>
-      <p class="hint">Can't scan? Enter this key manually instead:</p>
-      <div class="secret" id="secret-text"></div>
+      <p class="sub">Open Google Authenticator, Authy, or 1Password on your phone and scan this.</p>
+      <div class="qr-wrap"><img id="qr-img" alt="QR code — scan with your authenticator app"></div>
 
-      <label for="code">Enter the 6-digit code the app now shows</label>
-      <input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" required>
-      <button id="confirm-btn">Confirm and enable</button>
+      <label for="code">Then type the 6-digit code it shows</label>
+      <input id="code" type="text" inputmode="numeric" autocomplete="one-time-code">
+      <button id="confirm-btn">Confirm and finish</button>
       <div id="qr-msg" class="msg"></div>
+
+      <details>
+        <summary>Can't scan the code?</summary>
+        <p class="hint">Enter this key manually in your authenticator app instead:</p>
+        <div class="secret" id="secret-text"></div>
+      </details>
     </div>
 
+    <!-- Step 5: done -->
     <div id="step-done" style="display:none;">
-      <h1>2FA enabled</h1>
-      <p class="sub">Save these backup codes somewhere safe — shown only once. Each works as a one-time substitute for the authenticator app.</p>
+      <h1>You're all set</h1>
+      <p class="sub">From now on, log in with your email, password, and the code your authenticator app shows.</p>
+      <p class="sub" style="margin-top:0;">Save these backup codes somewhere safe — shown only once. Use one if you ever lose your phone.</p>
       <div class="backup-codes" id="backup-codes"></div>
     </div>
   </div>
 
 <script>
 (function () {
-  const API_BASE = '/api/v1/app/admin/auth';
+  const AUTH_BASE = '/api/v1/app/auth';
+  const ADMIN_BASE = '/api/v1/app/admin/auth';
 
-  const stepToken = document.getElementById('step-token');
-  const stepQr = document.getElementById('step-qr');
-  const stepDone = document.getElementById('step-done');
+  const els = {};
+  ['step-mobile', 'step-otp', 'step-loading', 'step-qr', 'step-done'].forEach(id => els[id] = document.getElementById(id));
 
-  const beginBtn = document.getElementById('begin-btn');
-  const tokenMsg = document.getElementById('token-msg');
-  const confirmBtn = document.getElementById('confirm-btn');
-  const qrMsg = document.getElementById('qr-msg');
-
-  let accessToken = null;
-
+  function showStep(id) {
+    Object.keys(els).forEach(k => els[k].style.display = (k === id ? 'block' : 'none'));
+  }
   function showMsg(el, text, kind) {
     el.textContent = text;
     el.className = 'msg ' + kind;
   }
 
-  beginBtn.addEventListener('click', async function () {
-    accessToken = document.getElementById('token').value.trim();
-    if (!accessToken) return;
+  let mobileNumber = null;
+  let pendingTicket = null; // mpin_setup_pending, then reused as a variable name for whichever ticket is current
+  let accessToken = null;
 
-    beginBtn.disabled = true;
-    beginBtn.textContent = 'Loading…';
-    tokenMsg.className = 'msg';
+  const mobileBtn = document.getElementById('mobile-btn');
+  const mobileMsg = document.getElementById('mobile-msg');
+  mobileBtn.addEventListener('click', async function () {
+    mobileNumber = document.getElementById('mobile').value.trim();
+    if (!mobileNumber) return;
+
+    mobileBtn.disabled = true;
+    mobileBtn.textContent = 'Sending…';
+    mobileMsg.className = 'msg';
 
     try {
-      const res = await fetch(API_BASE + '/setup-totp', {
+      const res = await fetch(AUTH_BASE + '/register/otp/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobile_number: mobileNumber }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showMsg(mobileMsg, data.error_description || 'Could not send a code to that number.', 'error');
+        return;
+      }
+      showStep('step-otp');
+    } catch (e) {
+      showMsg(mobileMsg, 'Could not reach the server. Please try again.', 'error');
+    } finally {
+      mobileBtn.disabled = false;
+      mobileBtn.textContent = 'Send code';
+    }
+  });
+
+  const otpBtn = document.getElementById('otp-btn');
+  const otpMsg = document.getElementById('otp-msg');
+  otpBtn.addEventListener('click', async function () {
+    const otp = document.getElementById('otp').value.trim();
+    if (!otp) return;
+
+    otpBtn.disabled = true;
+    otpBtn.textContent = 'Checking…';
+    otpMsg.className = 'msg';
+
+    try {
+      // Verify the mobile OTP -> mpin_setup_pending ticket.
+      let res = await fetch(AUTH_BASE + '/register/otp/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobile_number: mobileNumber, otp: otp }),
+      });
+      let data = await res.json();
+      if (!res.ok) {
+        showMsg(otpMsg, data.error_description || 'Incorrect or expired code.', 'error');
+        return;
+      }
+      pendingTicket = data.pending_ticket;
+
+      showStep('step-loading');
+
+      // Silently set a throwaway mPIN just to obtain an access token —
+      // the admin never sees or needs to remember this; day-to-day login
+      // stays email + password + authenticator code.
+      const throwawayMpin = String(Math.floor(1000 + Math.random() * 9000));
+      res = await fetch(AUTH_BASE + '/mpin/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pending_ticket: pendingTicket, mpin: throwawayMpin }),
+      });
+      data = await res.json();
+      if (!res.ok) {
+        showStep('step-otp');
+        showMsg(otpMsg, data.error_description || 'Could not verify your account.', 'error');
+        return;
+      }
+      accessToken = data.access_token;
+
+      // Now get the QR straight away.
+      res = await fetch(ADMIN_BASE + '/setup-totp', {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + accessToken },
       });
-      const data = await res.json();
-
+      data = await res.json();
       if (!res.ok) {
-        showMsg(tokenMsg, data.error_description || 'Could not start setup.', 'error');
+        showStep('step-otp');
+        showMsg(otpMsg, data.error_description || 'Could not start authenticator setup — is this account a registered Super Admin?', 'error');
         return;
       }
 
       document.getElementById('qr-img').src = data.setup.qrCodeDataUri;
       document.getElementById('secret-text').textContent = data.setup.secret;
-      stepToken.style.display = 'none';
-      stepQr.style.display = 'block';
+      showStep('step-qr');
     } catch (e) {
-      showMsg(tokenMsg, 'Could not reach the server. Please try again.', 'error');
+      showStep('step-otp');
+      showMsg(otpMsg, 'Could not reach the server. Please try again.', 'error');
     } finally {
-      beginBtn.disabled = false;
-      beginBtn.textContent = 'Get QR code';
+      otpBtn.disabled = false;
+      otpBtn.textContent = 'Continue';
     }
   });
 
+  const confirmBtn = document.getElementById('confirm-btn');
+  const qrMsg = document.getElementById('qr-msg');
   confirmBtn.addEventListener('click', async function () {
     const code = document.getElementById('code').value.trim();
     if (!code) return;
@@ -177,7 +270,7 @@
     qrMsg.className = 'msg';
 
     try {
-      const res = await fetch(API_BASE + '/setup-totp/confirm', {
+      const res = await fetch(ADMIN_BASE + '/setup-totp/confirm', {
         method: 'POST',
         headers: {
           'Authorization': 'Bearer ' + accessToken,
@@ -186,22 +279,22 @@
         body: JSON.stringify({ code: code }),
       });
       const data = await res.json();
-
       if (!res.ok) {
-        showMsg(qrMsg, data.error_description || 'Invalid code.', 'error');
+        showMsg(qrMsg, data.error_description || 'Invalid code — check your app and try again.', 'error');
         return;
       }
 
       document.getElementById('backup-codes').textContent = (data.backupCodes || []).join('\n');
-      stepQr.style.display = 'none';
-      stepDone.style.display = 'block';
+      showStep('step-done');
     } catch (e) {
       showMsg(qrMsg, 'Could not reach the server. Please try again.', 'error');
     } finally {
       confirmBtn.disabled = false;
-      confirmBtn.textContent = 'Confirm and enable';
+      confirmBtn.textContent = 'Confirm and finish';
     }
   });
+
+  showStep('step-mobile');
 })();
 </script>
 </body>
