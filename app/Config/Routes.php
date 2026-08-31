@@ -339,6 +339,12 @@ $routes->post('/api/v1/app/admin/auth/login', 'SuperAdminAuthApiController::logi
 $routes->post('/api/v1/app/admin/auth/login/verify-email', 'SuperAdminAuthApiController::verifyEmail');
 $routes->post('/api/v1/app/admin/auth/setup-totp', 'SuperAdminAuthApiController::setupTotp', ['filter' => 'jwtAuth']);
 $routes->post('/api/v1/app/admin/auth/setup-totp/confirm', 'SuperAdminAuthApiController::confirmSetupTotp', ['filter' => 'jwtAuth']);
+// Mobile-OTP entry point for 2FA enrollment — no jwtAuth token needed,
+// mobile+OTP is itself the proof (see SuperAdminAuthApiController's
+// docblock on these three methods).
+$routes->post('/api/v1/app/admin/auth/setup-totp/request-otp', 'SuperAdminAuthApiController::setupTotpRequestOtp');
+$routes->post('/api/v1/app/admin/auth/setup-totp/verify-otp', 'SuperAdminAuthApiController::setupTotpVerifyOtp');
+$routes->post('/api/v1/app/admin/auth/setup-totp/confirm-mobile', 'SuperAdminAuthApiController::confirmSetupTotpByMobile');
 $routes->post('/api/v1/app/admin/auth/forgot-mpin', 'SuperAdminAuthApiController::forgotMpinRequest');
 $routes->post('/api/v1/app/admin/auth/forgot-mpin/verify', 'SuperAdminAuthApiController::forgotMpinVerify');
 // "forgot-password" aliases (Custodian-facing naming) for the same two
