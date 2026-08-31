@@ -48,6 +48,19 @@ class SuperAdminAuthApiController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(403, 'setup_failed', $e->getMessage());
         }
+
+        // Render the provisioning URI as a scannable QR code here, server
+        // side, rather than leaving callers to find their own way to turn
+        // an otpauth:// URI into an image — same endroid/qr-code usage as
+        // ChronicleController's verification QR. Purely a display
+        // convenience: the secret/provisioningUri are still returned
+        // as-is for manual entry or a caller that wants to render its own.
+        $qrResult = (new \Endroid\QrCode\Builder\Builder(
+            writer: new \Endroid\QrCode\Writer\PngWriter(),
+            data: $setup['provisioningUri'], size: 240, margin: 8,
+        ))->build();
+        $setup['qrCodeDataUri'] = $qrResult->getDataUri();
+
         return $this->response->setJSON(['setup' => $setup]);
     }
 
