@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Custodian Login</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    min-height: 100vh;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+  }
+  .card {
+    width: 100%;
+    max-width: 380px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 32px;
+  }
+  h1 { font-size: 1.25rem; margin: 0 0 4px; }
+  p.sub { color: #94a3b8; font-size: 0.85rem; margin: 0 0 24px; }
+  label { display: block; font-size: 0.8rem; color: #cbd5e1; margin: 16px 0 6px; }
+  input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #475569;
+    background: #0f172a;
+    color: #e2e8f0;
+    font-size: 0.95rem;
+  }
+  input:focus { outline: 2px solid #6366f1; border-color: #6366f1; }
+  button {
+    width: 100%;
+    margin-top: 24px;
+    padding: 11px;
+    border-radius: 8px;
+    border: none;
+    background: #6366f1;
+    color: white;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  button:hover:not(:disabled) { background: #4f46e5; }
+  .msg { font-size: 0.85rem; margin-top: 16px; padding: 10px 12px; border-radius: 8px; display: none; }
+  .msg.error { display: block; background: #450a0a; color: #fca5a5; border: 1px solid #7f1d1d; }
+  .msg.info { display: block; background: #172554; color: #93c5fd; border: 1px solid #1e3a8a; }
+  .msg.success { display: block; background: #052e16; color: #86efac; border: 1px solid #14532d; }
+  .hint { font-size: 0.75rem; color: #64748b; margin-top: 4px; }
+  a.link { color: #818cf8; text-decoration: none; font-size: 0.8rem; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div id="stage-credentials">
+      <h1>Custodian Login</h1>
+      <p class="sub">Email + password + your authenticator code.</p>
+
+      <form id="login-form">
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="username" required>
+
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" required>
+
+        <label for="totp">Authenticator code</label>
+        <input id="totp" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="6-digit code, or leave blank">
+        <div class="hint">Leave blank if this account sends codes by email instead — you'll be prompted next.</div>
+
+        <button type="submit" id="login-btn">Sign in</button>
+      </form>
+
+      <div style="margin-top:16px;">
+        <a class="link" href="/api/v1/app/admin/auth/forgot-password">Forgot password?</a>
+      </div>
+
+      <div id="login-msg" class="msg"></div>
+    </div>
+
+    <div id="stage-otp" style="display:none;">
+      <h1>Check your email</h1>
+      <p class="sub" id="otp-sub">We emailed you a code.</p>
+
+      <form id="otp-form">
+        <label for="otp">Code</label>
+        <input id="otp" type="text" inputmode="numeric" autocomplete="one-time-code" required>
+        <button type="submit" id="otp-btn">Verify</button>
+      </form>
+
+      <div id="otp-msg" class="msg"></div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const API_BASE = '/api/v1/app/admin/auth';
+
+  const loginForm = document.getElementById('login-form');
+  const loginBtn = document.getElementById('login-btn');
+  const loginMsg = document.getElementById('login-msg');
+
+  const stageCredentials = document.getElementById('stage-credentials');
+  const stageOtp = document.getElementById('stage-otp');
+  const otpForm = document.getElementById('otp-form');
+  const otpBtn = document.getElementById('otp-btn');
+  const otpMsg = document.getElementById('otp-msg');
+  const otpSub = document.getElementById('otp-sub');
+
+  let pendingTicket = null;
+
+  function showMsg(el, text, kind) {
+    el.textContent = text;
+    el.className = 'msg ' + kind;
+  }
+
+  function clearMsg(el) {
+    el.textContent = '';
+    el.className = 'msg';
+  }
+
+  function onSuccess(payload) {
+    // access_token is the caller's to store/use however their app does —
+    // this page just hands it back rather than assuming a storage strategy.
+    try {
+      sessionStorage.setItem('custodian_access_token', payload.access_token);
+    } catch (e) { /* storage unavailable — token is still in `payload` */ }
+    showMsg(loginMsg, 'Signed in as ' + (payload.party && payload.party.email ? payload.party.email : 'Custodian') + '.', 'success');
+  }
+
+  loginForm.addEventListener('submit', async function (ev) {
+    ev.preventDefault();
+    clearMsg(loginMsg);
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'Signing in…';
+
+    const body = {
+      email: document.getElementById('email').value.trim(),
+      password: document.getElementById('password').value,
+      totp_code: document.getElementById('totp').value.trim(),
+    };
+
+    try {
+      const res = await fetch(API_BASE + '/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        showMsg(loginMsg, data.error_description || 'Login failed.', 'error');
+        return;
+      }
+
+      if (data.stage === 'email_otp_required') {
+        pendingTicket = data.pending_ticket;
+        otpSub.textContent = 'We emailed a code to ' + (data.email || 'your recovery email') + '.';
+        stageCredentials.style.display = 'none';
+        stageOtp.style.display = 'block';
+        return;
+      }
+
+      onSuccess(data);
+    } catch (e) {
+      showMsg(loginMsg, 'Could not reach the server. Please try again.', 'error');
+    } finally {
+      loginBtn.disabled = false;
+      loginBtn.textContent = 'Sign in';
+    }
+  });
+
+  otpForm.addEventListener('submit', async function (ev) {
+    ev.preventDefault();
+    clearMsg(otpMsg);
+    otpBtn.disabled = true;
+    otpBtn.textContent = 'Verifying…';
+
+    try {
+      const res = await fetch(API_BASE + '/login/verify-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pending_ticket: pendingTicket,
+          otp: document.getElementById('otp').value.trim(),
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        showMsg(otpMsg, data.error_description || 'Verification failed.', 'error');
+        return;
+      }
+
+      onSuccess(data);
+    } catch (e) {
+      showMsg(otpMsg, 'Could not reach the server. Please try again.', 'error');
+    } finally {
+      otpBtn.disabled = false;
+      otpBtn.textContent = 'Verify';
+    }
+  });
+})();
+</script>
+</body>
+</html>
