@@ -17,8 +17,37 @@ use App\Models\PartyModel;
 // super_admin role alone was never enough, and stays not-enough here.
 class JwtSuperAdminFilter implements FilterInterface
 {
+    // TEMPORARY testing bypass, project owner's explicit request: the
+    // Custodian login method is being replaced and nobody can currently
+    // get into the admin area to test it. Gated behind an env flag that
+    // defaults OFF — env('admin.authBypass') must be explicitly set to
+    // 'true' in .env for this to do anything, so a deploy that doesn't
+    // touch that key stays exactly as locked down as before. When on,
+    // EVERY request through this filter is treated as the first party
+    // holding the super_admin role, with no token at all.
+    //
+    // DELETE THIS BLOCK (and the matching one in
+    // SuperAdminAuthApiController::devBypassLogin()) once the real
+    // Custodian login method is implemented — do not ship a production
+    // deploy with admin.authBypass=true.
+    private function isBypassEnabled(): bool
+    {
+        return env('admin.authBypass', false) === true || env('admin.authBypass') === 'true';
+    }
+
     public function before(RequestInterface $request, $arguments = null)
     {
+        if ($this->isBypassEnabled()) {
+            $party = (new AuthorizationService())->firstSuperAdminParty();
+            if (!$party) {
+                return service('response')->setStatusCode(500)->setJSON([
+                    'error' => 'no_super_admin', 'error_description' => 'admin.authBypass is on but no party holds the super_admin role yet — run php spark bootstrap:custodian first.',
+                ]);
+            }
+            UserAuthContext::set($party, ['party', 'super_admin']);
+            return;
+        }
+
         $authHeader = $request->getHeaderLine('Authorization');
         if (!preg_match('/^Bearer\s+(.+)$/i', trim($authHeader), $matches)) {
             return service('response')->setStatusCode(401)->setJSON([

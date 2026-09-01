@@ -171,6 +171,35 @@ class SuperAdminAuthApiController extends BaseController
         return $setup;
     }
 
+    // ── TEMPORARY testing bypass ──────────────────────────────────────
+    //
+    // Project owner's explicit request: the Custodian login method is
+    // being replaced and nobody can currently get into the admin area to
+    // test it. Mirrors JwtSuperAdminFilter's admin.authBypass gate — see
+    // that class's docblock for the full rationale. Off (404) unless
+    // admin.authBypass=true is explicitly set in .env; issues a real
+    // access token for the first super_admin party, no credentials of
+    // any kind checked. DELETE THIS METHOD (and the matching block in
+    // JwtSuperAdminFilter) once the real Custodian login is built.
+
+    // POST /api/v1/app/admin/auth/dev-bypass-login
+    public function devBypassLogin()
+    {
+        if (env('admin.authBypass', false) !== true && env('admin.authBypass') !== 'true') {
+            return $this->jsonError(404, 'not_found', 'Not found.');
+        }
+
+        $party = (new AuthorizationService())->firstSuperAdminParty();
+        if (!$party) {
+            return $this->jsonError(500, 'no_super_admin', 'admin.authBypass is on but no party holds the super_admin role yet — run php spark bootstrap:custodian first.');
+        }
+
+        $audit = new AuditLogService();
+        $audit->log('admin.login.success', $party['id'], ['method' => 'DEV_BYPASS — no credentials checked'], $this->request->getIPAddress(), (string) $this->request->getUserAgent());
+
+        return $this->completeLogin($party, $audit, $this->request->getIPAddress(), (string) $this->request->getUserAgent(), false);
+    }
+
     // ── Login (default: mobile + mPIN, alternative: Google Authenticator) ──
     //
     // The Custodian login redesign's real login path. Both methods are

@@ -205,6 +205,15 @@
         <button type="submit" id="mobile-btn">Continue</button>
       </form>
       <div id="mobile-msg" class="msg"></div>
+
+      <!-- TEMPORARY testing bypass — only works while the backend's
+           admin.authBypass env flag is on; otherwise this button 404s
+           and the message below explains why. Delete this block (and
+           /api/v1/app/admin/auth/dev-bypass-login) once the real
+           Custodian login method is implemented. -->
+      <div class="back-row" style="margin-top:22px; border-top:1px solid #334155; padding-top:14px;">
+        <a id="bypass-link">Skip login (testing mode)</a>
+      </div>
     </div>
 
     <!-- ── Step 2: choose method + enter credential ──────────────── -->
@@ -750,6 +759,29 @@
       postJson('/login-methods', { mobile_number: currentMobile }).then(function (r) {
         if (r.ok) { loginMethods = r.data; if (document.getElementById('scr-method').style.display !== 'none') enterMethodScreen(); }
       });
+    }
+  });
+
+  // TEMPORARY testing bypass — see the matching backend docblocks in
+  // JwtSuperAdminFilter / SuperAdminAuthApiController::devBypassLogin().
+  // Delete this block once the real Custodian login method ships.
+  const bypassLink = document.getElementById('bypass-link');
+  bypassLink.addEventListener('click', async function () {
+    clearMsg(mobileMsg);
+    setBusy(bypassLink, true, 'Skip login (testing mode)', 'Skip login (testing mode)');
+    try {
+      const { ok, status, data } = await postJson('/dev-bypass-login', {});
+      if (!ok) {
+        showMsg(mobileMsg, status === 404
+          ? 'Testing bypass is off (admin.authBypass is not set in .env on the server).'
+          : ((data && data.error_description) || 'Bypass login failed.'), 'error');
+        return;
+      }
+      onSignedIn(data);
+    } catch (err) {
+      showMsg(mobileMsg, 'Could not reach the server. Please try again.', 'error');
+    } finally {
+      bypassLink.disabled = false;
     }
   });
 

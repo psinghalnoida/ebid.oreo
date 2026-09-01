@@ -332,6 +332,12 @@ $routes->post('/api/v1/app/auth/mpin/complete', 'UserAuthApiController::complete
 $routes->post('/api/v1/app/auth/forgot-password', 'UserAuthApiController::forgotPassword');
 $routes->post('/api/v1/app/auth/forgot-password/verify', 'UserAuthApiController::loginVerifyResetOtp');
 
+// TEMPORARY testing bypass (admin.authBypass env flag — off by default,
+// 404s unless explicitly enabled). See SuperAdminAuthApiController::
+// devBypassLogin()/JwtSuperAdminFilter docblocks. DELETE once the real
+// Custodian login method is implemented.
+$routes->post('/api/v1/app/admin/auth/dev-bypass-login', 'SuperAdminAuthApiController::devBypassLogin');
+
 // Custodian login redesign: mobile + mPIN is the DEFAULT login method,
 // with Google Authenticator (TOTP) as an equal alternative once enabled.
 // login-methods tells the login page which to offer for a given mobile

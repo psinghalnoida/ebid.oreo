@@ -31,6 +31,20 @@ class PartyRoleModel extends Model
         return $builder->countAllResults() > 0;
     }
 
+    // TEMPORARY: backs JwtSuperAdminFilter's admin.authBypass testing
+    // mode — see that class's docblock. Picks the earliest-granted
+    // active holder of a global (tenant_id NULL) role, deterministically,
+    // so a bypass session always resolves to the same account.
+    public function findFirstActivePartyIdWithRole(string $role): ?string
+    {
+        $row = $this->where('role', $role)
+            ->where('tenant_id', null)
+            ->where('revoked_at', null)
+            ->orderBy('id', 'ASC')
+            ->first();
+        return $row['party_id'] ?? null;
+    }
+
     // BR-44: exactly one active Tenant Admin per tenant — find who currently holds it
     public function findActiveTenantAdmin(string $tenantId): ?array
     {
