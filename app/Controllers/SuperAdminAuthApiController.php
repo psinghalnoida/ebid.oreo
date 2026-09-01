@@ -171,7 +171,130 @@ class SuperAdminAuthApiController extends BaseController
         return $setup;
     }
 
-    // ── Login (BR-04) ────────────────────────────────────────────────
+    // ── Login (default: mobile + mPIN, alternative: Google Authenticator) ──
+    //
+    // The Custodian login redesign's real login path. Both methods are
+    // equal, standalone single factors — see SuperAdminAuthService's
+    // docblocks on authenticateWithMpin()/loginWithTotpCode() for why.
+    // The legacy email+password+2FA flow further below stays in place,
+    // unused by the login UI, as a fallback.
+
+    // POST /api/v1/app/admin/auth/login-methods  { mobile_number }
+    // Tells the login page which method(s) to offer for this mobile
+    // number — by default only mobile+mPIN is shown; Google Authenticator
+    // only appears once it's been enabled. Always returns a shape (never
+    // a 404/error) so this can't be used to probe which numbers exist
+    // any more precisely than the login attempts themselves already do.
+    public function loginMethods()
+    {
+        $mobile = trim((string) $this->input('mobile_number'));
+        return $this->response->setJSON($this->auth->loginMethods($mobile));
+    }
+
+    // POST /api/v1/app/admin/auth/login-mpin  { mobile_number, mpin }
+    // Three shapes back, mirroring SuperAdminAuthService::authenticateWithMpin():
+    // {status:"ok", access_token, ...}, {status:"otp_required",
+    // pending_ticket, ...}, or {status:"invalid_mpin", attemptsRemaining}.
+    public function loginMpin()
+    {
+        $mobile = trim((string) $this->input('mobile_number'));
+        $mpin = trim((string) $this->input('mpin'));
+        $audit = new AuditLogService();
+        $ip = $this->request->getIPAddress();
+        $userAgent = (string) $this->request->getUserAgent();
+
+        try {
+            $result = $this->auth->authenticateWithMpin($mobile, $mpin);
+        } catch (\RuntimeException $e) {
+            $audit->log('admin.login.failed', null, ['mobile' => $mobile, 'reason' => $e->getMessage()], $ip, $userAgent);
+            return $this->jsonError(401, 'login_failed', $e->getMessage());
+        }
+
+        if ($result['status'] === 'ok') {
+            $audit->log('admin.login.success', $result['party']['id'], ['method' => 'mpin'], $ip, $userAgent);
+            return $this->completeLogin($result['party'], $audit, $ip, $userAgent, false);
+        }
+
+        if ($result['status'] === 'otp_required') {
+            $audit->log('admin.login.otp_required', $result['partyId'], ['mobile' => $mobile], $ip, $userAgent);
+            $reset = $this->auth->requestMpinReset($mobile);
+            return $this->response->setJSON(['status' => 'otp_required'] + $reset);
+        }
+
+        // 'invalid_mpin'
+        $audit->log('admin.login.invalid_mpin', null, ['mobile' => $mobile], $ip, $userAgent);
+        return $this->jsonError(401, 'invalid_mpin', "Incorrect mPIN. {$result['attemptsRemaining']} attempt(s) remaining before OTP verification is required.");
+    }
+
+    // POST /api/v1/app/admin/auth/login-totp  { mobile_number, totp_code }
+    public function loginTotp()
+    {
+        $mobile = trim((string) $this->input('mobile_number'));
+        $totpCode = trim((string) $this->input('totp_code'));
+        $audit = new AuditLogService();
+        $ip = $this->request->getIPAddress();
+        $userAgent = (string) $this->request->getUserAgent();
+
+        try {
+            $party = $this->auth->loginWithTotpCode($mobile, $totpCode);
+        } catch (\RuntimeException $e) {
+            $audit->log('admin.login.failed', null, ['mobile' => $mobile, 'method' => 'totp', 'reason' => $e->getMessage()], $ip, $userAgent);
+            return $this->jsonError(401, 'login_failed', $e->getMessage());
+        }
+
+        $audit->log('admin.login.success', $party['id'], ['method' => 'totp'], $ip, $userAgent);
+        return $this->completeLogin($party, $audit, $ip, $userAgent, false);
+    }
+
+    // ── Forgot mPIN — mobile (+ email, if on file) OTP recovery ──────
+
+    // POST /api/v1/app/admin/auth/mpin/forgot  { mobile_number }
+    public function mpinForgotRequest()
+    {
+        $mobile = trim((string) $this->input('mobile_number'));
+        if (!AuthService::isValidIndianMobile($mobile)) {
+            return $this->jsonError(422, 'invalid_mobile_number', 'Expected a 10-digit Indian mobile number in +91XXXXXXXXXX format.');
+        }
+        return $this->response->setJSON($this->auth->requestMpinReset($mobile));
+    }
+
+    // POST /api/v1/app/admin/auth/mpin/forgot/verify  { pending_ticket, otp, email_otp? }
+    // -> pending_ticket for mpinForgotComplete(), below
+    public function mpinForgotVerify()
+    {
+        $ticket = (string) $this->input('pending_ticket');
+        $otp = trim((string) $this->input('otp'));
+        $emailOtp = $this->input('email_otp') !== null ? trim((string) $this->input('email_otp')) : null;
+
+        try {
+            $setupTicket = $this->auth->verifyMpinResetOtp($ticket, $otp, $emailOtp);
+        } catch (\RuntimeException $e) {
+            return $this->jsonError(401, 'invalid_otp', $e->getMessage());
+        }
+        return $this->response->setJSON(['pending_ticket' => $setupTicket]);
+    }
+
+    // POST /api/v1/app/admin/auth/mpin/forgot/complete  { pending_ticket, mpin }
+    public function mpinForgotComplete()
+    {
+        $ticket = (string) $this->input('pending_ticket');
+        $mpin = trim((string) $this->input('mpin'));
+
+        try {
+            $party = $this->auth->completeMpinReset($ticket, $mpin);
+        } catch (\RuntimeException $e) {
+            return $this->jsonError(422, 'mpin_setup_failed', $e->getMessage());
+        }
+
+        (new AuditLogService())->log('admin.login.success', $party['id'], ['method' => 'mpin_reset'], $this->request->getIPAddress(), (string) $this->request->getUserAgent());
+        return $this->completeLogin($party, new AuditLogService(), $this->request->getIPAddress(), (string) $this->request->getUserAgent(), false);
+    }
+
+    // ── Legacy login (BR-04, email + password + TOTP/email-OTP) ──────
+    //
+    // Kept in place as an unused fallback per the login redesign — the
+    // login page no longer offers this path, but the backend and
+    // super_admin_credential.password_hash stay intact.
 
     // POST /api/v1/admin/auth/login  { email, password, totp_code? }
     public function login()
@@ -234,9 +357,14 @@ class SuperAdminAuthApiController extends BaseController
         return $this->completeLogin($party, $audit, $ip, $userAgent);
     }
 
-    private function completeLogin(array $party, AuditLogService $audit, string $ip, string $userAgent)
+    // $logAudit = false when the caller already logged its own, more
+    // specific 'admin.login.success' event (e.g. with a 'method' tag) —
+    // avoids a duplicate generic entry right next to it.
+    private function completeLogin(array $party, AuditLogService $audit, string $ip, string $userAgent, bool $logAudit = true)
     {
-        $audit->log('admin.login.success', $party['id'], [], $ip, $userAgent);
+        if ($logAudit) {
+            $audit->log('admin.login.success', $party['id'], [], $ip, $userAgent);
+        }
         $accessToken = $this->tokens->issueAccessToken($party, ['party', 'super_admin']);
 
         return $this->response->setJSON([
