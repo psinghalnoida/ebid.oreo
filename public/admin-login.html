@@ -6,6 +6,7 @@
 <title>Custodian Login</title>
 <style>
   :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: #0f172a;
@@ -16,23 +17,22 @@
     align-items: center;
     justify-content: center;
     padding: 24px;
-    box-sizing: border-box;
   }
   .card {
     width: 100%;
-    max-width: 380px;
+    max-width: 400px;
     background: #1e293b;
     border: 1px solid #334155;
-    border-radius: 12px;
+    border-radius: 14px;
     padding: 32px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.35);
   }
-  h1 { font-size: 1.25rem; margin: 0 0 4px; }
-  p.sub { color: #94a3b8; font-size: 0.85rem; margin: 0 0 24px; }
+  h1 { font-size: 1.3rem; margin: 0 0 4px; }
+  p.sub { color: #94a3b8; font-size: 0.85rem; margin: 0 0 22px; line-height: 1.4; }
   label { display: block; font-size: 0.8rem; color: #cbd5e1; margin: 16px 0 6px; }
   input {
     width: 100%;
-    box-sizing: border-box;
-    padding: 10px 12px;
+    padding: 11px 12px;
     border-radius: 8px;
     border: 1px solid #475569;
     background: #0f172a;
@@ -40,9 +40,10 @@
     font-size: 0.95rem;
   }
   input:focus { outline: 2px solid #6366f1; border-color: #6366f1; }
+  input.mpin-input { letter-spacing: 6px; font-size: 1.2rem; text-align: center; }
   button {
     width: 100%;
-    margin-top: 24px;
+    margin-top: 22px;
     padding: 11px;
     border-radius: 8px;
     border: none;
@@ -51,166 +52,740 @@
     font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
+    transition: background .15s;
   }
-  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  button:disabled { opacity: 0.55; cursor: not-allowed; }
   button:hover:not(:disabled) { background: #4f46e5; }
-  .msg { font-size: 0.85rem; margin-top: 16px; padding: 10px 12px; border-radius: 8px; display: none; }
+  button.secondary {
+    background: transparent;
+    border: 1px solid #475569;
+    color: #cbd5e1;
+  }
+  button.secondary:hover:not(:disabled) { background: #334155; }
+  button.link-btn {
+    width: auto;
+    background: none;
+    color: #818cf8;
+    padding: 0;
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-decoration: none;
+  }
+  button.link-btn:hover { color: #a5b4fc; background: none; }
+  .msg { font-size: 0.85rem; margin-top: 16px; padding: 10px 12px; border-radius: 8px; display: none; line-height: 1.4; }
   .msg.error { display: block; background: #450a0a; color: #fca5a5; border: 1px solid #7f1d1d; }
   .msg.info { display: block; background: #172554; color: #93c5fd; border: 1px solid #1e3a8a; }
   .msg.success { display: block; background: #052e16; color: #86efac; border: 1px solid #14532d; }
-  .hint { font-size: 0.75rem; color: #64748b; margin-top: 4px; }
-  a.link { color: #818cf8; text-decoration: none; font-size: 0.8rem; }
+  .hint { font-size: 0.75rem; color: #64748b; margin-top: 6px; }
+
+  .tabs { display: flex; gap: 6px; margin-top: 18px; background: #0f172a; border: 1px solid #334155; border-radius: 9px; padding: 3px; }
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 8px 6px;
+    border-radius: 7px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #94a3b8;
+    cursor: pointer;
+    user-select: none;
+  }
+  .tab.active { background: #6366f1; color: white; }
+
+  .footer-links { margin-top: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+
+  .badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    color: #4ade80;
+    background: #052e16;
+    border: 1px solid #14532d;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  .spinner-row { text-align: center; padding: 30px 0; color: #94a3b8; font-size: 0.9rem; }
+
+  .mpin-boxes { display: flex; gap: 10px; margin-top: 8px; }
+  .mpin-boxes input {
+    text-align: center;
+    font-size: 1.4rem;
+    padding: 12px 0;
+    letter-spacing: 0;
+  }
+
+  a.plain-link { color: #818cf8; text-decoration: none; font-size: 0.8rem; cursor: pointer; }
+  a.plain-link:hover { text-decoration: underline; }
+
+  .back-row { margin-top: 18px; }
+  .back-row a { color: #64748b; font-size: 0.78rem; text-decoration: none; cursor: pointer; }
+  .back-row a:hover { color: #94a3b8; }
+
+  /* Modal (Enable Google Authenticator / QR setup) */
+  .modal-backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(2,6,23,0.72);
+    align-items: center; justify-content: center;
+    padding: 20px;
+    z-index: 50;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    width: 100%;
+    max-width: 380px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 14px;
+    padding: 28px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+  }
+  .modal-close {
+    position: absolute; top: 14px; right: 14px;
+    width: 28px; height: 28px;
+    border-radius: 999px;
+    border: none;
+    background: #334155;
+    color: #cbd5e1;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    margin: 0;
+  }
+  .modal-close:hover { background: #475569; }
+  .qr-wrap { text-align: center; margin: 16px 0; }
+  .qr-wrap img { width: 200px; height: 200px; border-radius: 8px; background: white; padding: 8px; }
+  .secret-text {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.82rem;
+    letter-spacing: 1px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 8px 10px;
+    word-break: break-all;
+    text-align: center;
+    margin-top: 6px;
+  }
+  .backup-codes {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.85rem;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 12px;
+    line-height: 1.8;
+    white-space: pre-line;
+  }
+  details { margin-top: 10px; }
+  details summary { font-size: 0.75rem; color: #818cf8; cursor: pointer; }
 </style>
 </head>
 <body>
-  <div class="card">
-    <div id="stage-credentials">
+
+  <div class="card" id="login-card">
+
+    <!-- ── Step 1: mobile number ─────────────────────────────────── -->
+    <div id="scr-mobile">
       <h1>Custodian Login</h1>
-      <p class="sub">Email + password + your authenticator code.</p>
+      <p class="sub">Enter your registered mobile number to continue.</p>
 
-      <form id="login-form">
-        <label for="email">Email</label>
-        <input id="email" type="email" autocomplete="username" required>
-
-        <label for="password">Password</label>
-        <input id="password" type="password" autocomplete="current-password" required>
-
-        <label for="totp">Authenticator code</label>
-        <input id="totp" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="6-digit code, or leave blank">
-        <div class="hint">Leave blank if this account sends codes by email instead — you'll be prompted next.</div>
-
-        <button type="submit" id="login-btn">Sign in</button>
+      <form id="mobile-form">
+        <label for="mobile">Mobile number</label>
+        <input id="mobile" type="tel" inputmode="tel" placeholder="+91XXXXXXXXXX" autocomplete="username" required>
+        <button type="submit" id="mobile-btn">Continue</button>
       </form>
+      <div id="mobile-msg" class="msg"></div>
 
-      <div style="margin-top:16px;">
-        <a class="link" href="/api/v1/app/admin/auth/forgot-password">Forgot password?</a>
+      <!-- TEMPORARY testing bypass — only works while the backend's
+           admin.authBypass env flag is on; otherwise this button 404s
+           and the message below explains why. Delete this block (and
+           /api/v1/app/admin/auth/dev-bypass-login) once the real
+           Custodian login method is implemented. -->
+      <div class="back-row" style="margin-top:22px; border-top:1px solid #334155; padding-top:14px;">
+        <a id="bypass-link">Skip login (testing mode)</a>
       </div>
-
-      <div id="login-msg" class="msg"></div>
     </div>
 
-    <div id="stage-otp" style="display:none;">
-      <h1>Check your email</h1>
-      <p class="sub" id="otp-sub">We emailed you a code.</p>
+    <!-- ── Step 2: choose method + enter credential ──────────────── -->
+    <div id="scr-method" style="display:none;">
+      <h1>Sign in</h1>
+      <p class="sub" id="method-sub">Signing in as <strong id="method-mobile"></strong></p>
 
-      <form id="otp-form">
-        <label for="otp">Code</label>
-        <input id="otp" type="text" inputmode="numeric" autocomplete="one-time-code" required>
-        <button type="submit" id="otp-btn">Verify</button>
+      <div class="tabs" id="method-tabs" style="display:none;">
+        <div class="tab active" id="tab-mpin" data-method="mpin">Mobile + MPIN</div>
+        <div class="tab" id="tab-totp" data-method="totp">Google Authenticator</div>
+      </div>
+
+      <!-- MPIN pane -->
+      <div id="pane-mpin">
+        <form id="mpin-form">
+          <label for="mpin">4-digit MPIN</label>
+          <input id="mpin" class="mpin-input" type="password" inputmode="numeric" maxlength="4" pattern="\d{4}" autocomplete="current-password" required>
+          <button type="submit" id="mpin-btn">Sign in</button>
+        </form>
+        <div class="footer-links">
+          <a class="plain-link" id="forgot-mpin-link">Forgot MPIN?</a>
+        </div>
+      </div>
+
+      <!-- TOTP pane -->
+      <div id="pane-totp" style="display:none;">
+        <form id="totp-form">
+          <label for="totp-code">Authenticator code</label>
+          <input id="totp-code" type="text" inputmode="numeric" maxlength="8" placeholder="6-digit code" autocomplete="one-time-code" required>
+          <button type="submit" id="totp-btn">Sign in</button>
+        </form>
+        <p class="hint">Lost your device? A saved backup code also works here.</p>
+      </div>
+
+      <div id="method-msg" class="msg"></div>
+
+      <div class="back-row"><a id="back-to-mobile">&larr; Use a different number</a></div>
+      <div class="footer-links" style="margin-top:14px;">
+        <a class="plain-link" id="enable-2fa-link">Enable Google Authenticator</a>
+      </div>
+    </div>
+
+    <!-- ── Step: OTP-required lockout / forgot-MPIN flow ─────────── -->
+    <div id="scr-reset-mobile" style="display:none;">
+      <h1>Reset your MPIN</h1>
+      <p class="sub">Enter your registered mobile number and we'll send a code to verify it's you.</p>
+      <form id="reset-mobile-form">
+        <label for="reset-mobile">Mobile number</label>
+        <input id="reset-mobile" type="tel" inputmode="tel" placeholder="+91XXXXXXXXXX" required>
+        <button type="submit" id="reset-mobile-btn">Send OTP</button>
       </form>
+      <div id="reset-mobile-msg" class="msg"></div>
+      <div class="back-row"><a id="back-from-reset-mobile">&larr; Back to login</a></div>
+    </div>
 
-      <div id="otp-msg" class="msg"></div>
+    <div id="scr-reset-otp" style="display:none;">
+      <h1>Enter the OTP</h1>
+      <p class="sub" id="reset-otp-sub">A code was sent to your mobile number.</p>
+      <form id="reset-otp-form">
+        <label for="reset-otp">Mobile OTP</label>
+        <input id="reset-otp" type="text" inputmode="numeric" autocomplete="one-time-code" required>
+        <div id="reset-email-otp-wrap" style="display:none;">
+          <label for="reset-email-otp">Email OTP</label>
+          <input id="reset-email-otp" type="text" inputmode="numeric" autocomplete="one-time-code">
+          <div class="hint">Both codes are required together for account recovery.</div>
+        </div>
+        <button type="submit" id="reset-otp-btn">Verify</button>
+      </form>
+      <div id="reset-otp-msg" class="msg"></div>
+      <div class="back-row"><a id="back-from-reset-otp">&larr; Back to login</a></div>
+    </div>
+
+    <div id="scr-reset-newmpin" style="display:none;">
+      <h1>Create a new MPIN</h1>
+      <p class="sub">Choose a 4-digit MPIN you'll use to sign in from now on.</p>
+      <form id="reset-newmpin-form">
+        <label for="new-mpin">New MPIN</label>
+        <input id="new-mpin" class="mpin-input" type="password" inputmode="numeric" maxlength="4" pattern="\d{4}" required>
+        <label for="confirm-mpin">Confirm new MPIN</label>
+        <input id="confirm-mpin" class="mpin-input" type="password" inputmode="numeric" maxlength="4" pattern="\d{4}" required>
+        <button type="submit" id="reset-newmpin-btn">Set MPIN</button>
+      </form>
+      <div id="reset-newmpin-msg" class="msg"></div>
+    </div>
+
+    <div id="scr-reset-done" style="display:none;">
+      <h1>MPIN updated <span class="badge">Done</span></h1>
+      <p class="sub">Your MPIN has been reset successfully. You can now sign in with it.</p>
+      <button id="reset-done-btn">Return to login</button>
+    </div>
+
+    <!-- ── Step: signed in ────────────────────────────────────────── -->
+    <div id="scr-success" style="display:none;">
+      <h1>Signed in <span class="badge">Success</span></h1>
+      <p class="sub" id="success-sub"></p>
+      <button id="dashboard-btn">Go to Dashboard</button>
+    </div>
+
+  </div>
+
+  <!-- ── Modal: Enable Google Authenticator (QR setup) ─────────────── -->
+  <div class="modal-backdrop" id="totp-modal-backdrop">
+    <div class="modal">
+      <button class="modal-close" id="totp-modal-close" aria-label="Close">&times;</button>
+
+      <div id="totp-step-mobile">
+        <h1>Enable Google Authenticator</h1>
+        <p class="sub">Enter your registered mobile number. We'll text you a code to confirm it's you, then show your QR code.</p>
+        <label for="totp-mobile">Mobile number</label>
+        <input id="totp-mobile" type="tel" placeholder="+91XXXXXXXXXX">
+        <button id="totp-mobile-btn">Send code</button>
+        <div id="totp-mobile-msg" class="msg"></div>
+      </div>
+
+      <div id="totp-step-otp" style="display:none;">
+        <h1>Enter the code we sent</h1>
+        <p class="sub">Check your phone for a 6-digit code.</p>
+        <label for="totp-otp">Code</label>
+        <input id="totp-otp" type="text" inputmode="numeric" autocomplete="one-time-code">
+        <button id="totp-otp-btn">Continue</button>
+        <div id="totp-otp-msg" class="msg"></div>
+      </div>
+
+      <div id="totp-step-loading" style="display:none;">
+        <div class="spinner-row">Preparing your QR code…</div>
+      </div>
+
+      <div id="totp-step-qr" style="display:none;">
+        <h1>Scan this code</h1>
+        <p class="sub">Open Google Authenticator (or any TOTP app) and scan this.</p>
+        <div class="qr-wrap"><img id="totp-qr-img" alt="QR code — scan with your authenticator app"></div>
+        <label for="totp-confirm-code">Then type the 6-digit code it shows</label>
+        <input id="totp-confirm-code" type="text" inputmode="numeric" autocomplete="one-time-code">
+        <button id="totp-confirm-btn">Confirm and enable</button>
+        <div id="totp-qr-msg" class="msg"></div>
+        <details>
+          <summary>Can't scan the code?</summary>
+          <p class="hint">Enter this key manually in your authenticator app instead:</p>
+          <div class="secret-text" id="totp-secret-text"></div>
+        </details>
+      </div>
+
+      <div id="totp-step-done" style="display:none;">
+        <h1>Google Authenticator enabled <span class="badge">Done</span></h1>
+        <p class="sub">From now on you can sign in with either Mobile + MPIN or Google Authenticator.</p>
+        <p class="sub" style="margin-top:0;">Save these backup codes somewhere safe — shown only once. Use one if you ever lose your phone.</p>
+        <div class="backup-codes" id="totp-backup-codes"></div>
+        <button id="totp-done-btn">Close</button>
+      </div>
     </div>
   </div>
 
 <script>
 (function () {
-  const API_BASE = '/api/v1/app/admin/auth';
+  const BASE = '/api/v1/app/admin/auth';
 
-  const loginForm = document.getElementById('login-form');
-  const loginBtn = document.getElementById('login-btn');
-  const loginMsg = document.getElementById('login-msg');
-
-  const stageCredentials = document.getElementById('stage-credentials');
-  const stageOtp = document.getElementById('stage-otp');
-  const otpForm = document.getElementById('otp-form');
-  const otpBtn = document.getElementById('otp-btn');
-  const otpMsg = document.getElementById('otp-msg');
-  const otpSub = document.getElementById('otp-sub');
-
-  let pendingTicket = null;
-
+  // ── generic helpers ────────────────────────────────────────────
+  const screens = ['scr-mobile', 'scr-method', 'scr-reset-mobile', 'scr-reset-otp', 'scr-reset-newmpin', 'scr-reset-done', 'scr-success'];
+  function showScreen(id) {
+    screens.forEach(s => document.getElementById(s).style.display = (s === id ? 'block' : 'none'));
+  }
   function showMsg(el, text, kind) {
     el.textContent = text;
     el.className = 'msg ' + kind;
   }
-
-  function clearMsg(el) {
-    el.textContent = '';
-    el.className = 'msg';
+  function clearMsg(el) { el.textContent = ''; el.className = 'msg'; }
+  async function postJson(path, body) {
+    const res = await fetch(BASE + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}),
+    });
+    let data = {};
+    try { data = await res.json(); } catch (e) { /* no body */ }
+    return { ok: res.ok, status: res.status, data };
+  }
+  function setBusy(btn, busy, busyText, idleText) {
+    btn.disabled = busy;
+    btn.textContent = busy ? busyText : idleText;
   }
 
-  function onSuccess(payload) {
-    // access_token is the caller's to store/use however their app does —
-    // this page just hands it back rather than assuming a storage strategy.
-    try {
-      sessionStorage.setItem('custodian_access_token', payload.access_token);
-    } catch (e) { /* storage unavailable — token is still in `payload` */ }
-    showMsg(loginMsg, 'Signed in as ' + (payload.party && payload.party.email ? payload.party.email : 'Custodian') + '.', 'success');
+  let currentMobile = '';
+  let loginMethods = { mpin_enabled: false, totp_enabled: false };
+  let activeMethod = 'mpin';
+
+  function storeSession(payload) {
+    sessionStorage.setItem('custodian_access_token', payload.access_token);
+    sessionStorage.setItem('custodian_party', JSON.stringify(payload.party || {}));
   }
 
-  loginForm.addEventListener('submit', async function (ev) {
-    ev.preventDefault();
-    clearMsg(loginMsg);
-    loginBtn.disabled = true;
-    loginBtn.textContent = 'Signing in…';
+  function onSignedIn(payload) {
+    storeSession(payload);
+    const name = (payload.party && (payload.party.full_name || payload.party.mobile_number)) || 'Custodian';
+    document.getElementById('success-sub').textContent = 'Welcome back, ' + name + '.';
+    showScreen('scr-success');
+  }
 
-    const body = {
-      email: document.getElementById('email').value.trim(),
-      password: document.getElementById('password').value,
-      totp_code: document.getElementById('totp').value.trim(),
-    };
-
+  // ── Step 1: mobile number ─────────────────────────────────────
+  const mobileForm = document.getElementById('mobile-form');
+  const mobileBtn = document.getElementById('mobile-btn');
+  const mobileMsg = document.getElementById('mobile-msg');
+  mobileForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const mobile = document.getElementById('mobile').value.trim();
+    if (!mobile) return;
+    currentMobile = mobile;
+    clearMsg(mobileMsg);
+    setBusy(mobileBtn, true, 'Checking…', 'Continue');
     try {
-      const res = await fetch(API_BASE + '/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        showMsg(loginMsg, data.error_description || 'Login failed.', 'error');
-        return;
-      }
-
-      if (data.stage === 'email_otp_required') {
-        pendingTicket = data.pending_ticket;
-        otpSub.textContent = 'We emailed a code to ' + (data.email || 'your recovery email') + '.';
-        stageCredentials.style.display = 'none';
-        stageOtp.style.display = 'block';
-        return;
-      }
-
-      onSuccess(data);
-    } catch (e) {
-      showMsg(loginMsg, 'Could not reach the server. Please try again.', 'error');
+      const { ok, data } = await postJson('/login-methods', { mobile_number: mobile });
+      loginMethods = ok ? data : { mpin_enabled: false, totp_enabled: false };
+      enterMethodScreen();
+    } catch (err) {
+      showMsg(mobileMsg, 'Could not reach the server. Please try again.', 'error');
     } finally {
-      loginBtn.disabled = false;
-      loginBtn.textContent = 'Sign in';
+      setBusy(mobileBtn, false, 'Checking…', 'Continue');
     }
   });
 
-  otpForm.addEventListener('submit', async function (ev) {
-    ev.preventDefault();
-    clearMsg(otpMsg);
-    otpBtn.disabled = true;
-    otpBtn.textContent = 'Verifying…';
+  // ── Step 2: method screen ───────────────────────────────────────
+  const methodTabs = document.getElementById('method-tabs');
+  const tabMpin = document.getElementById('tab-mpin');
+  const tabTotp = document.getElementById('tab-totp');
+  const paneMpin = document.getElementById('pane-mpin');
+  const paneTotp = document.getElementById('pane-totp');
+  const methodMsg = document.getElementById('method-msg');
 
+  function enterMethodScreen() {
+    document.getElementById('method-mobile').textContent = currentMobile;
+    clearMsg(methodMsg);
+    // Default: mobile+MPIN only, unless Google Authenticator is enabled
+    // for this account — then show both as equal tabs (spec: "either
+    // one of the following login methods").
+    if (loginMethods.totp_enabled) {
+      methodTabs.style.display = 'flex';
+      selectMethod('mpin');
+    } else {
+      methodTabs.style.display = 'none';
+      selectMethod('mpin');
+    }
+    showScreen('scr-method');
+    document.getElementById('mpin').value = '';
+    document.getElementById('mpin').focus();
+  }
+
+  function selectMethod(method) {
+    activeMethod = method;
+    tabMpin.classList.toggle('active', method === 'mpin');
+    tabTotp.classList.toggle('active', method === 'totp');
+    paneMpin.style.display = method === 'mpin' ? 'block' : 'none';
+    paneTotp.style.display = method === 'totp' ? 'block' : 'none';
+    clearMsg(methodMsg);
+  }
+  tabMpin.addEventListener('click', () => selectMethod('mpin'));
+  tabTotp.addEventListener('click', () => selectMethod('totp'));
+
+  document.getElementById('back-to-mobile').addEventListener('click', function () {
+    document.getElementById('mobile').value = currentMobile;
+    clearMsg(mobileMsg);
+    showScreen('scr-mobile');
+  });
+
+  // MPIN sign-in
+  const mpinForm = document.getElementById('mpin-form');
+  const mpinBtn = document.getElementById('mpin-btn');
+  mpinForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const mpin = document.getElementById('mpin').value.trim();
+    if (!/^\d{4}$/.test(mpin)) {
+      showMsg(methodMsg, 'Enter your 4-digit MPIN.', 'error');
+      return;
+    }
+    clearMsg(methodMsg);
+    setBusy(mpinBtn, true, 'Signing in…', 'Sign in');
     try {
-      const res = await fetch(API_BASE + '/login/verify-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pending_ticket: pendingTicket,
-          otp: document.getElementById('otp').value.trim(),
-        }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        showMsg(otpMsg, data.error_description || 'Verification failed.', 'error');
+      const { ok, status, data } = await postJson('/login-mpin', { mobile_number: currentMobile, mpin: mpin });
+      if (ok && data.status === 'ok') {
+        onSignedIn(data);
         return;
       }
-
-      onSuccess(data);
-    } catch (e) {
-      showMsg(otpMsg, 'Could not reach the server. Please try again.', 'error');
+      if (status === 200 && data.status === 'otp_required') {
+        // 3-strike lockout — the backend already sent a reset OTP;
+        // hand off straight into the forgot-MPIN verify step.
+        enterResetOtpScreen(data);
+        return;
+      }
+      showMsg(methodMsg, (data && data.error_description) || 'Incorrect MPIN.', 'error');
+    } catch (err) {
+      showMsg(methodMsg, 'Could not reach the server. Please try again.', 'error');
     } finally {
-      otpBtn.disabled = false;
-      otpBtn.textContent = 'Verify';
+      setBusy(mpinBtn, false, 'Signing in…', 'Sign in');
     }
   });
+
+  // TOTP sign-in
+  const totpForm = document.getElementById('totp-form');
+  const totpBtn = document.getElementById('totp-btn');
+  totpForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const code = document.getElementById('totp-code').value.trim();
+    if (!code) return;
+    clearMsg(methodMsg);
+    setBusy(totpBtn, true, 'Signing in…', 'Sign in');
+    try {
+      const { ok, data } = await postJson('/login-totp', { mobile_number: currentMobile, totp_code: code });
+      if (ok) { onSignedIn(data); return; }
+      showMsg(methodMsg, (data && data.error_description) || 'Invalid or expired code.', 'error');
+    } catch (err) {
+      showMsg(methodMsg, 'Could not reach the server. Please try again.', 'error');
+    } finally {
+      setBusy(totpBtn, false, 'Signing in…', 'Sign in');
+    }
+  });
+
+  // ── Forgot-MPIN flow ─────────────────────────────────────────────
+  let resetPendingTicket = null;
+  let resetHasEmailOtp = false;
+  let resetSetupTicket = null;
+
+  document.getElementById('forgot-mpin-link').addEventListener('click', function () {
+    document.getElementById('reset-mobile').value = currentMobile;
+    clearMsg(document.getElementById('reset-mobile-msg'));
+    showScreen('scr-reset-mobile');
+  });
+  document.getElementById('back-from-reset-mobile').addEventListener('click', () => showScreen('scr-mobile'));
+  document.getElementById('back-from-reset-otp').addEventListener('click', () => showScreen('scr-mobile'));
+
+  const resetMobileForm = document.getElementById('reset-mobile-form');
+  const resetMobileBtn = document.getElementById('reset-mobile-btn');
+  const resetMobileMsg = document.getElementById('reset-mobile-msg');
+  resetMobileForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const mobile = document.getElementById('reset-mobile').value.trim();
+    if (!mobile) return;
+    currentMobile = mobile;
+    clearMsg(resetMobileMsg);
+    setBusy(resetMobileBtn, true, 'Sending…', 'Send OTP');
+    try {
+      const { ok, data } = await postJson('/mpin/forgot', { mobile_number: mobile });
+      if (!ok || !data.pending_ticket) {
+        showMsg(resetMobileMsg, (data && data.error_description) || data.message || 'Could not send a code to that number.', 'error');
+        return;
+      }
+      enterResetOtpScreen(data);
+    } catch (err) {
+      showMsg(resetMobileMsg, 'Could not reach the server. Please try again.', 'error');
+    } finally {
+      setBusy(resetMobileBtn, false, 'Sending…', 'Send OTP');
+    }
+  });
+
+  function enterResetOtpScreen(data) {
+    resetPendingTicket = data.pending_ticket;
+    resetHasEmailOtp = !!data.email;
+    document.getElementById('reset-email-otp-wrap').style.display = resetHasEmailOtp ? 'block' : 'none';
+    document.getElementById('reset-otp-sub').textContent = resetHasEmailOtp
+      ? 'Codes were sent to your mobile number and to ' + data.email + '. Both are required.'
+      : 'A code was sent to your mobile number.';
+    document.getElementById('reset-otp').value = '';
+    document.getElementById('reset-email-otp').value = '';
+    clearMsg(document.getElementById('reset-otp-msg'));
+    showScreen('scr-reset-otp');
+  }
+
+  const resetOtpForm = document.getElementById('reset-otp-form');
+  const resetOtpBtn = document.getElementById('reset-otp-btn');
+  const resetOtpMsg = document.getElementById('reset-otp-msg');
+  resetOtpForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const otp = document.getElementById('reset-otp').value.trim();
+    const emailOtp = document.getElementById('reset-email-otp').value.trim();
+    clearMsg(resetOtpMsg);
+    setBusy(resetOtpBtn, true, 'Verifying…', 'Verify');
+    try {
+      const body = { pending_ticket: resetPendingTicket, otp: otp };
+      if (resetHasEmailOtp) body.email_otp = emailOtp;
+      const { ok, data } = await postJson('/mpin/forgot/verify', body);
+      if (!ok || !data.pending_ticket) {
+        showMsg(resetOtpMsg, (data && data.error_description) || 'Incorrect or expired code.', 'error');
+        return;
+      }
+      resetSetupTicket = data.pending_ticket;
+      document.getElementById('new-mpin').value = '';
+      document.getElementById('confirm-mpin').value = '';
+      clearMsg(document.getElementById('reset-newmpin-msg'));
+      showScreen('scr-reset-newmpin');
+    } catch (err) {
+      showMsg(resetOtpMsg, 'Could not reach the server. Please try again.', 'error');
+    } finally {
+      setBusy(resetOtpBtn, false, 'Verifying…', 'Verify');
+    }
+  });
+
+  const resetNewMpinForm = document.getElementById('reset-newmpin-form');
+  const resetNewMpinBtn = document.getElementById('reset-newmpin-btn');
+  const resetNewMpinMsg = document.getElementById('reset-newmpin-msg');
+  resetNewMpinForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const mpin = document.getElementById('new-mpin').value.trim();
+    const confirm = document.getElementById('confirm-mpin').value.trim();
+    clearMsg(resetNewMpinMsg);
+    if (!/^\d{4}$/.test(mpin)) {
+      showMsg(resetNewMpinMsg, 'MPIN must be exactly 4 digits.', 'error');
+      return;
+    }
+    if (mpin !== confirm) {
+      showMsg(resetNewMpinMsg, 'MPINs do not match.', 'error');
+      return;
+    }
+    setBusy(resetNewMpinBtn, true, 'Saving…', 'Set MPIN');
+    try {
+      const { ok, data } = await postJson('/mpin/forgot/complete', { pending_ticket: resetSetupTicket, mpin: mpin });
+      if (!ok) {
+        showMsg(resetNewMpinMsg, (data && data.error_description) || 'Could not set the new MPIN.', 'error');
+        return;
+      }
+      // Backend logs the caller straight in after a successful reset;
+      // still show the confirmation screen the spec asks for first.
+      window.__pendingSignedInPayload = data;
+      showScreen('scr-reset-done');
+    } catch (err) {
+      showMsg(resetNewMpinMsg, 'Could not reach the server. Please try again.', 'error');
+    } finally {
+      setBusy(resetNewMpinBtn, false, 'Saving…', 'Set MPIN');
+    }
+  });
+
+  document.getElementById('reset-done-btn').addEventListener('click', function () {
+    if (window.__pendingSignedInPayload) {
+      onSignedIn(window.__pendingSignedInPayload);
+      window.__pendingSignedInPayload = null;
+    } else {
+      showScreen('scr-mobile');
+    }
+  });
+
+  // ── Dashboard redirect ────────────────────────────────────────────
+  document.getElementById('dashboard-btn').addEventListener('click', function () {
+    window.location.href = '/admin-dashboard.html';
+  });
+
+  // ── Enable Google Authenticator modal ───────────────────────────
+  const totpBackdrop = document.getElementById('totp-modal-backdrop');
+  const totpSteps = ['totp-step-mobile', 'totp-step-otp', 'totp-step-loading', 'totp-step-qr', 'totp-step-done'];
+  function showTotpStep(id) {
+    totpSteps.forEach(s => document.getElementById(s).style.display = (s === id ? 'block' : 'none'));
+  }
+  function openTotpModal() {
+    document.getElementById('totp-mobile').value = currentMobile || '';
+    clearMsg(document.getElementById('totp-mobile-msg'));
+    showTotpStep('totp-step-mobile');
+    totpBackdrop.classList.add('open');
+  }
+  function closeTotpModal() {
+    totpBackdrop.classList.remove('open');
+  }
+  document.getElementById('enable-2fa-link').addEventListener('click', openTotpModal);
+  document.getElementById('totp-modal-close').addEventListener('click', closeTotpModal);
+  totpBackdrop.addEventListener('click', function (e) { if (e.target === totpBackdrop) closeTotpModal(); });
+
+  let totpMobile = '';
+  let totpPendingTicket = null;
+
+  const totpMobileBtn = document.getElementById('totp-mobile-btn');
+  const totpMobileMsg = document.getElementById('totp-mobile-msg');
+  totpMobileBtn.addEventListener('click', async function () {
+    totpMobile = document.getElementById('totp-mobile').value.trim();
+    if (!totpMobile) return;
+    clearMsg(totpMobileMsg);
+    setBusy(totpMobileBtn, true, 'Sending…', 'Send code');
+    try {
+      const { ok, data } = await postJson('/setup-totp/request-otp', { mobile_number: totpMobile });
+      if (!ok) {
+        showMsg(totpMobileMsg, data.error_description || 'Could not send a code to that number.', 'error');
+        return;
+      }
+      document.getElementById('totp-otp').value = '';
+      clearMsg(document.getElementById('totp-otp-msg'));
+      showTotpStep('totp-step-otp');
+    } catch (err) {
+      showMsg(totpMobileMsg, 'Could not reach the server. Please try again.', 'error');
+    } finally {
+      setBusy(totpMobileBtn, false, 'Sending…', 'Send code');
+    }
+  });
+
+  const totpOtpBtn = document.getElementById('totp-otp-btn');
+  const totpOtpMsg = document.getElementById('totp-otp-msg');
+  totpOtpBtn.addEventListener('click', async function () {
+    const otp = document.getElementById('totp-otp').value.trim();
+    if (!otp) return;
+    clearMsg(totpOtpMsg);
+    setBusy(totpOtpBtn, true, 'Checking…', 'Continue');
+    showTotpStep('totp-step-loading');
+    try {
+      const { ok, data } = await postJson('/setup-totp/verify-otp', { mobile_number: totpMobile, otp: otp });
+      if (!ok) {
+        showTotpStep('totp-step-otp');
+        showMsg(totpOtpMsg, data.error_description || 'Incorrect or expired code.', 'error');
+        return;
+      }
+      totpPendingTicket = data.pending_ticket;
+      document.getElementById('totp-qr-img').src = data.setup.qrCodeDataUri;
+      document.getElementById('totp-secret-text').textContent = data.setup.secret;
+      document.getElementById('totp-confirm-code').value = '';
+      clearMsg(document.getElementById('totp-qr-msg'));
+      showTotpStep('totp-step-qr');
+    } catch (err) {
+      showTotpStep('totp-step-otp');
+      showMsg(totpOtpMsg, 'Could not reach the server. Please try again.', 'error');
+    } finally {
+      setBusy(totpOtpBtn, false, 'Checking…', 'Continue');
+    }
+  });
+
+  const totpConfirmBtn = document.getElementById('totp-confirm-btn');
+  const totpQrMsg = document.getElementById('totp-qr-msg');
+  totpConfirmBtn.addEventListener('click', async function () {
+    const code = document.getElementById('totp-confirm-code').value.trim();
+    if (!code) return;
+    clearMsg(totpQrMsg);
+    setBusy(totpConfirmBtn, true, 'Confirming…', 'Confirm and enable');
+    try {
+      const { ok, data } = await postJson('/setup-totp/confirm-mobile', { pending_ticket: totpPendingTicket, code: code });
+      if (!ok) {
+        showMsg(totpQrMsg, data.error_description || 'Invalid code — check your app and try again.', 'error');
+        return;
+      }
+      document.getElementById('totp-backup-codes').textContent = (data.backupCodes || []).join('\n');
+      showTotpStep('totp-step-done');
+    } catch (err) {
+      showMsg(totpQrMsg, 'Could not reach the server. Please try again.', 'error');
+    } finally {
+      setBusy(totpConfirmBtn, false, 'Confirming…', 'Confirm and enable');
+    }
+  });
+
+  document.getElementById('totp-done-btn').addEventListener('click', function () {
+    closeTotpModal();
+    // Refresh the login screen's method list so the new "Google
+    // Authenticator" tab shows up immediately, without a full reload.
+    if (currentMobile) {
+      postJson('/login-methods', { mobile_number: currentMobile }).then(function (r) {
+        if (r.ok) { loginMethods = r.data; if (document.getElementById('scr-method').style.display !== 'none') enterMethodScreen(); }
+      });
+    }
+  });
+
+  // TEMPORARY testing bypass — see the matching backend docblocks in
+  // JwtSuperAdminFilter / SuperAdminAuthApiController::devBypassLogin().
+  // Delete this block once the real Custodian login method ships.
+  const bypassLink = document.getElementById('bypass-link');
+  bypassLink.addEventListener('click', async function () {
+    clearMsg(mobileMsg);
+    setBusy(bypassLink, true, 'Skip login (testing mode)', 'Skip login (testing mode)');
+    try {
+      const { ok, status, data } = await postJson('/dev-bypass-login', {});
+      if (!ok) {
+        showMsg(mobileMsg, status === 404
+          ? 'Testing bypass is off (admin.authBypass is not set in .env on the server).'
+          : ((data && data.error_description) || 'Bypass login failed.'), 'error');
+        return;
+      }
+      onSignedIn(data);
+    } catch (err) {
+      showMsg(mobileMsg, 'Could not reach the server. Please try again.', 'error');
+    } finally {
+      bypassLink.disabled = false;
+    }
+  });
+
+  showScreen('scr-mobile');
 })();
 </script>
 </body>

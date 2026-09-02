@@ -8,6 +8,11 @@ use App\Models\SuperAdminCredentialModel;
 
 class SuperAdminAuthService
 {
+    // Same figure BR-02's regular mPIN lockout uses (AuthService) —
+    // kept independent here since it locks super_admin_credential's own
+    // failed_mpin_attempts counter, not party's.
+    private const MPIN_FAILURE_LOCKOUT_THRESHOLD = 3;
+
     private PartyModel $partyModel;
     private AuthorizationService $authz;
     private SuperAdminBackupCodeModel $backupCodeModel;
@@ -178,6 +183,165 @@ class SuperAdminAuthService
         if (!$auth->verifyEmailOtp($party['recovery_email'], $submittedOtp, 'admin_login_email')) {
             throw new \RuntimeException('Incorrect or expired code.');
         }
+        return $party;
+    }
+
+    // ── Mobile + mPIN login (default Custodian login method) ─────────
+    //
+    // Independent of the legacy email+password path above: a Custodian's
+    // admin mPIN lives on super_admin_credential.mpin_hash (see
+    // AddMpinToSuperAdminCredential), not party.mpin_hash — that column
+    // stays reserved for a Custodian's OTHER roles, if any. Mirrors
+    // AuthService::authenticateWithMpin()'s three-outcome shape so
+    // SuperAdminAuthApiController::loginMpin() can reuse the same
+    // response contract regular users' loginWithMpin() has.
+
+    public function loginMethods(string $mobileNumber): array
+    {
+        $party = $this->partyModel->findByMobile($mobileNumber);
+        if (!$party || !$this->authz->isSuperAdmin($party['id'])) {
+            return ['mpin_enabled' => false, 'totp_enabled' => false];
+        }
+        $credential = $this->credentialModel->findByPartyId($party['id']);
+        return [
+            'mpin_enabled' => !empty($credential['mpin_hash'] ?? null),
+            'totp_enabled' => !empty($party['totp_enabled_at']),
+        ];
+    }
+
+    // Sets/resets the Custodian mPIN. Requires a super_admin_credential
+    // row to already exist (created by bootstrap:custodian, or whatever
+    // grants the super_admin role) — an admin mPIN is layered onto that
+    // record, not a replacement for it.
+    public function setMpin(string $partyId, string $mpin): void
+    {
+        if (!preg_match('/^\d{4}$/', $mpin)) {
+            throw new \RuntimeException('mPIN must be exactly 4 digits.');
+        }
+        $credential = $this->credentialModel->findByPartyId($partyId);
+        if (!$credential) {
+            throw new \RuntimeException('No Custodian credential record exists for this account yet.');
+        }
+        $this->credentialModel->setMpinHash($credential['id'], password_hash($mpin, PASSWORD_BCRYPT));
+    }
+
+    // Same three outcomes as AuthService::authenticateWithMpin():
+    //  - ['status' => 'ok', 'party' => ...]
+    //  - ['status' => 'otp_required', 'partyId' => ...]  (3-strike lockout)
+    //  - ['status' => 'invalid_mpin', 'attemptsRemaining' => n]
+    public function authenticateWithMpin(string $mobileNumber, string $mpin): array
+    {
+        $party = $this->partyModel->findByMobile($mobileNumber);
+        if (!$party || !$this->authz->isSuperAdmin($party['id'])) {
+            throw new \RuntimeException('Incorrect mobile number or mPIN.');
+        }
+        $credential = $this->credentialModel->findByPartyId($party['id']);
+        if (!$credential || empty($credential['mpin_hash'])) {
+            throw new \RuntimeException('mPIN login has not been set up for this account yet — use "Forgot mPIN?" to set one.');
+        }
+
+        if (password_verify($mpin, $credential['mpin_hash'])) {
+            $this->credentialModel->resetFailedMpinAttempts($credential['id']);
+            return ['status' => 'ok', 'party' => $party];
+        }
+
+        $attempts = $this->credentialModel->incrementFailedMpinAttempts($credential['id']);
+        if ($attempts >= self::MPIN_FAILURE_LOCKOUT_THRESHOLD) {
+            return ['status' => 'otp_required', 'partyId' => $party['id']];
+        }
+        return ['status' => 'invalid_mpin', 'attemptsRemaining' => self::MPIN_FAILURE_LOCKOUT_THRESHOLD - $attempts];
+    }
+
+    // ── Google Authenticator login (equal alternative to mPIN) ───────
+    //
+    // A verified TOTP code alone is sufficient — no password, no mPIN —
+    // matching the login page's "either one" requirement. Falls back to
+    // an unused backup code exactly like the legacy login()'s TOTP check.
+    public function loginWithTotpCode(string $mobileNumber, string $totpCode): array
+    {
+        $party = $this->partyModel->findByMobile($mobileNumber);
+        if (!$party || !$this->authz->isSuperAdmin($party['id'])) {
+            throw new \RuntimeException('Incorrect mobile number or code.');
+        }
+        if (empty($party['totp_enabled_at']) || empty($party['totp_secret'])) {
+            throw new \RuntimeException('Google Authenticator is not enabled for this account.');
+        }
+        if (!TotpService::verifyCode($party['totp_secret'], $totpCode)) {
+            if (!$this->backupCodeModel->consumeIfValid($party['id'], $totpCode)) {
+                throw new \RuntimeException('Invalid or expired authenticator code.');
+            }
+            (new \App\Libraries\AuditLogService())->log('admin.totp_backup_code_used', $party['id'], []);
+        }
+        return $party;
+    }
+
+    // ── Forgot mPIN — mobile (+ email, if on file) OTP recovery ───────
+    //
+    // Mirrors UserAuthApiService::requestForgotPassword()'s dual-channel
+    // pattern exactly, but produces admin-scoped ticket types and resets
+    // super_admin_credential.mpin_hash instead of party.mpin_hash.
+    public function requestMpinReset(string $mobileNumber): array
+    {
+        $genericMessage = 'If that number belongs to a registered Custodian account, a reset code has just been sent to it (and to the recovery email on file, if one is set).';
+
+        $party = $this->partyModel->findByMobile($mobileNumber);
+        if (!$party || !$this->authz->isSuperAdmin($party['id'])) {
+            return ['message' => $genericMessage];
+        }
+
+        $accountAuth = new AuthService();
+        $otp = $accountAuth->requestOtp($mobileNumber, 'mpin_reset');
+        $ticketClaims = ['sub' => $party['id'], 'mobile' => $mobileNumber];
+
+        $response = ['message' => $genericMessage, 'dev_otp' => $otp];
+        if (!empty($party['recovery_email'])) {
+            $ticketClaims['email'] = $party['recovery_email'];
+            $emailOtp = $accountAuth->requestEmailOtp($party['recovery_email'], 'mpin_reset_email');
+            $response['dev_email_otp'] = $emailOtp;
+            $response['email_sent'] = (new EmailNotificationService())->sendOtp($party['recovery_email'], $emailOtp, 'mpin_reset_email');
+            $response['email'] = $party['recovery_email'];
+        }
+
+        $response['pending_ticket'] = UserAuthApiService::issuePendingTicket('admin_mpin_reset_otp_pending', $ticketClaims);
+
+        (new \App\Libraries\AuditLogService())->log('admin.mpin_reset_requested', $party['id'], [
+            'emailDeliveredForReal' => $response['email_sent'] ?? null,
+        ]);
+
+        return $response;
+    }
+
+    public function verifyMpinResetOtp(string $pendingTicket, string $otp, ?string $emailOtp): string
+    {
+        $claims = UserAuthApiService::decodePendingTicket($pendingTicket, 'admin_mpin_reset_otp_pending');
+        if (!$claims) {
+            throw new \RuntimeException('Invalid or expired pending_ticket. Start the reset again.');
+        }
+
+        $accountAuth = new AuthService();
+        if (!$accountAuth->verifyOtp($claims['mobile'], 'mpin_reset', $otp)) {
+            throw new \RuntimeException('Incorrect or expired mobile OTP.');
+        }
+        if (!empty($claims['email'])) {
+            if (!$accountAuth->verifyEmailOtp($claims['email'], (string) $emailOtp, 'mpin_reset_email')) {
+                throw new \RuntimeException('Mobile OTP correct, but the email OTP was incorrect or expired. Both are required together.');
+            }
+        }
+
+        return UserAuthApiService::issuePendingTicket('admin_mpin_setup_pending', ['sub' => $claims['sub']]);
+    }
+
+    public function completeMpinReset(string $pendingTicket, string $mpin): array
+    {
+        $claims = UserAuthApiService::decodePendingTicket($pendingTicket, 'admin_mpin_setup_pending');
+        if (!$claims) {
+            throw new \RuntimeException('Invalid or expired pending_ticket. Start the reset again.');
+        }
+
+        $this->setMpin($claims['sub'], $mpin);
+        $party = $this->partyModel->find($claims['sub']);
+        (new \App\Libraries\AuditLogService())->log('admin.mpin_reset', $party['id'], []);
+
         return $party;
     }
 

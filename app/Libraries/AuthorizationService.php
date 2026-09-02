@@ -88,6 +88,19 @@ class AuthorizationService
         return $roleModel->hasActiveRole($partyId, 'super_admin', null);
     }
 
+    // TEMPORARY: backs JwtSuperAdminFilter's admin.authBypass testing
+    // mode and SuperAdminAuthApiController::devBypassLogin() — see
+    // JwtSuperAdminFilter's docblock. Delete alongside those once the
+    // real Custodian login is in place.
+    public function firstSuperAdminParty(): ?array
+    {
+        $partyId = (new \App\Models\PartyRoleModel())->findFirstActivePartyIdWithRole('super_admin');
+        if (!$partyId) {
+            return null;
+        }
+        return (new \App\Models\PartyModel())->findActiveById($partyId);
+    }
+
     public function isTenantAdminForSaleEvent(string $partyId, string $saleEventId): bool
     {
         $saleEvent = $this->saleEventModel->find($saleEventId);

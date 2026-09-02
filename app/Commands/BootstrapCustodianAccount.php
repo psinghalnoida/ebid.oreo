@@ -9,6 +9,7 @@ use App\Models\PartyRoleModel;
 use App\Models\SuperAdminCredentialModel;
 use App\Libraries\AuthService;
 use App\Libraries\AuditLogService;
+use App\Libraries\SuperAdminAuthService;
 
 // Project owner's explicit request: a known, working Custodian (Super
 // Admin) account for the live system, seeded with a specific email and
@@ -45,13 +46,23 @@ class BootstrapCustodianAccount extends BaseCommand
     protected $group       = 'Admin';
     protected $name        = 'bootstrap:custodian';
     protected $description = 'Creates or resets the project owner\'s known Custodian (Super Admin) account.';
-    protected $usage        = 'bootstrap:custodian [email] [password] [mobile_number]';
+    protected $usage        = 'bootstrap:custodian [email] [password] [mobile_number] [mpin]';
 
     public function run(array $params)
     {
         $email = $params[0] ?? 'psinghalnoida@gmail.com';
         $password = $params[1] ?? 'ChangeMe#4148';
         $mobile = $params[2] ?? '+919811047785';
+        // Default admin mPIN, seeded the same "known, overridable" way as
+        // the email/password above — the real login page now defaults to
+        // mobile+mPIN, so a freshly bootstrapped Custodian needs one to
+        // sign in without going through "Forgot mPIN?" first.
+        $mpin = $params[3] ?? '4148';
+
+        if (!preg_match('/^\d{4}$/', $mpin)) {
+            CLI::error("Invalid mpin: {$mpin} (must be exactly 4 digits).");
+            return;
+        }
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             CLI::error("Invalid email: {$email}");
@@ -85,6 +96,8 @@ class BootstrapCustodianAccount extends BaseCommand
 
         $partyModel->update($party['id'], ['recovery_email' => $email]);
         $credentialModel->setCredential($party['id'], $email, password_hash($password, PASSWORD_BCRYPT));
+        (new SuperAdminAuthService())->setMpin($party['id'], $mpin);
+        CLI::write("Set Custodian mPIN: {$mpin}", 'green');
 
         if (!$roleModel->hasActiveRole($party['id'], 'super_admin', null)) {
             $roleModel->grantRole($party['id'], 'super_admin', null);
@@ -97,11 +110,11 @@ class BootstrapCustodianAccount extends BaseCommand
             'email' => $email, 'mobile' => $mobile, 'wasNewParty' => $wasNew,
         ]);
 
-        CLI::write("✓ Custodian account ready: {$email}.", 'green');
+        CLI::write("✓ Custodian account ready: {$mobile}, mPIN {$mpin}.", 'green');
         CLI::write('', 'white');
-        CLI::write('One real step still required (cannot be scripted — needs a physical', 'yellow');
-        CLI::write('authenticator app): log in at /admin/login with this email + password, then', 'yellow');
-        CLI::write('visit /admin/setup-totp to scan the QR code and enable 2FA before', 'yellow');
-        CLI::write('/admin/login will fully work — BR-04 requires TOTP on every Custodian login.', 'yellow');
+        CLI::write("Log in at /admin/login with mobile {$mobile} + this mPIN. Google Authenticator", 'yellow');
+        CLI::write('is optional — enable it from the login page ("Enable Google Authenticator")', 'yellow');
+        CLI::write('for a second login option; it needs a physical authenticator app and cannot', 'yellow');
+        CLI::write('be scripted here. The legacy email+password login still exists as a fallback.', 'yellow');
     }
 }

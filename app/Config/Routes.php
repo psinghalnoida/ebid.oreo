@@ -332,9 +332,26 @@ $routes->post('/api/v1/app/auth/mpin/complete', 'UserAuthApiController::complete
 $routes->post('/api/v1/app/auth/forgot-password', 'UserAuthApiController::forgotPassword');
 $routes->post('/api/v1/app/auth/forgot-password/verify', 'UserAuthApiController::loginVerifyResetOtp');
 
-// Super Admin REST/JWT login (BR-04) — JWT counterpart of the former
-// SuperAdminAuthController. Custodian login is email + password
-// (super_admin_credential table) + TOTP/email-OTP second factor.
+// TEMPORARY testing bypass (admin.authBypass env flag — off by default,
+// 404s unless explicitly enabled). See SuperAdminAuthApiController::
+// devBypassLogin()/JwtSuperAdminFilter docblocks. DELETE once the real
+// Custodian login method is implemented.
+$routes->post('/api/v1/app/admin/auth/dev-bypass-login', 'SuperAdminAuthApiController::devBypassLogin');
+
+// Custodian login redesign: mobile + mPIN is the DEFAULT login method,
+// with Google Authenticator (TOTP) as an equal alternative once enabled.
+// login-methods tells the login page which to offer for a given mobile
+// number (mpin only, by default; both once TOTP is enabled).
+$routes->post('/api/v1/app/admin/auth/login-methods', 'SuperAdminAuthApiController::loginMethods');
+$routes->post('/api/v1/app/admin/auth/login-mpin', 'SuperAdminAuthApiController::loginMpin');
+$routes->post('/api/v1/app/admin/auth/login-totp', 'SuperAdminAuthApiController::loginTotp');
+$routes->post('/api/v1/app/admin/auth/mpin/forgot', 'SuperAdminAuthApiController::mpinForgotRequest');
+$routes->post('/api/v1/app/admin/auth/mpin/forgot/verify', 'SuperAdminAuthApiController::mpinForgotVerify');
+$routes->post('/api/v1/app/admin/auth/mpin/forgot/complete', 'SuperAdminAuthApiController::mpinForgotComplete');
+
+// Legacy Super Admin REST/JWT login (BR-04) — email + password
+// (super_admin_credential table) + TOTP/email-OTP second factor. Kept
+// as an unused fallback; the login UI no longer offers this path.
 $routes->post('/api/v1/app/admin/auth/login', 'SuperAdminAuthApiController::login');
 $routes->post('/api/v1/app/admin/auth/login/verify-email', 'SuperAdminAuthApiController::verifyEmail');
 $routes->post('/api/v1/app/admin/auth/setup-totp', 'SuperAdminAuthApiController::setupTotp', ['filter' => 'jwtAuth']);

@@ -116,3 +116,18 @@
 # behavior. Set to 'email_otp' only deliberately, and revert once
 # testing is done.
 # admin.twoFactorMode = totp
+
+# TEMPORARY, project owner's explicit request: while the Custodian login
+# method is being redesigned, this flag skips ALL credential checks for
+# the entire Custodian/admin area (JwtSuperAdminFilter, and the
+# "Skip login (testing mode)" link on /admin-login.html) -- anyone who
+# reaches the app gets in as the first party holding the super_admin
+# role, no mobile number, MPIN, password, or authenticator code at all.
+# Defaults to OFF (commented out / anything other than 'true') so a
+# normal deploy is completely unaffected. Set to 'true' ONLY on an
+# environment that is not reachable by the public while you test the
+# new login method, and turn it back off (or delete this line and the
+# code paths that check it -- see JwtSuperAdminFilter's docblock) once
+# real Custodian authentication is in place. NEVER set this to 'true' on
+# a deployment the public, or anyone other than your own team, can reach.
+# admin.authBypass = true
