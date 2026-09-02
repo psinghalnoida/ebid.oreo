@@ -19,7 +19,7 @@ class SovereignRuleController extends BaseController
 
     public function index()
     {
-        return $this->response->setJSON(['rules' => $this->rules->listAll()]);
+        return $this->apiResponse(['rules' => $this->rules->listAll()]);
     }
 
     public function show(string $ruleId)
@@ -28,7 +28,7 @@ class SovereignRuleController extends BaseController
         if (!$rule) {
             return $this->jsonError(404, 'not_found', 'Rule not found.');
         }
-        return $this->response->setJSON(['rule' => $rule, 'revisions' => $this->rules->revisions($ruleId)]);
+        return $this->apiResponse(['rule' => $rule, 'revisions' => $this->rules->revisions($ruleId)]);
     }
 
     public function editSubmit(string $ruleId)
@@ -48,7 +48,7 @@ class SovereignRuleController extends BaseController
             return $this->jsonError(422, 'update_failed', $e->getMessage());
         }
 
-        return $this->response->setJSON(['rule' => $this->rules->find($ruleId), 'message' => 'Rule updated and versioned.']);
+        return $this->apiResponse(['rule' => $this->rules->find($ruleId), 'message' => 'Rule updated and versioned.']);
     }
 
     public function createSubmit()
@@ -65,6 +65,6 @@ class SovereignRuleController extends BaseController
             return $this->jsonError(422, 'create_failed', $e->getMessage());
         }
 
-        return $this->response->setStatusCode(201)->setJSON(['rule' => $rule]);
+        return $this->apiResponse(['rule' => $rule], null, 201);
     }
 }

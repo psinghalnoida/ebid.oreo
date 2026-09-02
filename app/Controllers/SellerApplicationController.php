@@ -26,7 +26,7 @@ class SellerApplicationController extends BaseController
         $tenant = $this->tenantModel->find($tenantId);
         $existing = $this->applicationModel->findForPartyAndTenant($partyId, $tenantId);
 
-        return $this->response->setJSON(['tenant' => $tenant, 'existing' => $existing]);
+        return $this->apiResponse(['tenant' => $tenant, 'existing' => $existing]);
     }
 
     public function applySubmit(string $tenantId)
@@ -39,7 +39,7 @@ class SellerApplicationController extends BaseController
             return $this->jsonError(422, 'apply_failed', $e->getMessage());
         }
 
-        return $this->response->setStatusCode(201)->setJSON(['application' => $application, 'message' => 'Application submitted — awaiting Tenant Admin review.']);
+        return $this->apiResponse(['application' => $application, 'message' => 'Application submitted — awaiting Tenant Admin review.'], null, 201);
     }
 
     // jwtTenantAdmin-gated (resource type 'tenant').
@@ -47,7 +47,7 @@ class SellerApplicationController extends BaseController
     {
         $applications = $this->applicationModel->findPendingForTenant($tenantId);
         $tenant = $this->tenantModel->find($tenantId);
-        return $this->response->setJSON(['applications' => $applications, 'tenant' => $tenant]);
+        return $this->apiResponse(['applications' => $applications, 'tenant' => $tenant]);
     }
 
     // jwtTenantAdmin-gated (resource type 'sellerApplication').
@@ -58,7 +58,7 @@ class SellerApplicationController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'approve_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['application' => $app]);
+        return $this->apiResponse(['application' => $app]);
     }
 
     public function reject(string $applicationId)
@@ -69,6 +69,6 @@ class SellerApplicationController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'reject_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['application' => $app]);
+        return $this->apiResponse(['application' => $app]);
     }
 }

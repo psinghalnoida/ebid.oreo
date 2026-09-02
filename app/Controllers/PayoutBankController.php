@@ -35,7 +35,7 @@ class PayoutBankController extends BaseController
         // Dev-only convenience: OTP shown on-screen since the SMS
         // provider is stubbed, same pattern as every other OTP flow on
         // this platform.
-        return $this->response->setJSON(['pending_ticket' => $pendingTicket, 'dev_otp' => $otp]);
+        return $this->apiResponse(['pending_ticket' => $pendingTicket, 'dev_otp' => $otp]);
     }
 
     public function confirmSubmit()
@@ -57,7 +57,7 @@ class PayoutBankController extends BaseController
             return $this->jsonError(422, 'confirm_failed', $e->getMessage());
         }
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'message' => 'Bank details updated — active in 24 hours (BR-50 cooling-off). Your current details keep being used for any payout until then.',
         ]);
     }

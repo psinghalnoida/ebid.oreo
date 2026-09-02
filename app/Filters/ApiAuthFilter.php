@@ -21,23 +21,23 @@ class ApiAuthFilter implements FilterInterface
     {
         $authHeader = $request->getHeaderLine('Authorization');
         if (!preg_match('/^Bearer\s+(.+)$/i', trim($authHeader), $matches)) {
-            return service('response')->setStatusCode(401)->setJSON([
+            return \App\Libraries\ApiResponse::send(service('response'), [
                 'error' => 'invalid_request', 'error_description' => 'Missing or malformed Authorization: Bearer header.',
-            ]);
+            ], null, 401);
         }
 
         $claims = (new ApiCredentialService())->validateToken($matches[1]);
         if (!$claims) {
-            return service('response')->setStatusCode(401)->setJSON([
+            return \App\Libraries\ApiResponse::send(service('response'), [
                 'error' => 'invalid_token', 'error_description' => 'The access token is missing, expired, malformed, or the credential has been revoked.',
-            ]);
+            ], null, 401);
         }
 
         $tenant = (new TenantModel())->find($claims['tenantId']);
         if (!$tenant || !TenantModel::hasApiAccess($tenant['subscription_tier'])) {
-            return service('response')->setStatusCode(403)->setJSON([
+            return \App\Libraries\ApiResponse::send(service('response'), [
                 'error' => 'insufficient_tier', 'error_description' => 'BR-66: this TSX\'s subscription tier does not include API access.',
-            ]);
+            ], null, 403);
         }
 
         ApiRequestContext::set($claims['tenantId'], $claims['clientId'], $claims['credentialId']);

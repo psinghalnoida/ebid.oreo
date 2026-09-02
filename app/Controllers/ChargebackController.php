@@ -33,17 +33,17 @@ class ChargebackController extends BaseController
             return $this->jsonError(422, 'file_failed', $e->getMessage());
         }
 
-        return $this->response->setStatusCode(201)->setJSON([
+        return $this->apiResponse([
             'case' => $case,
             'message' => 'Chargeback filed. The evidence package has been assembled automatically.',
-        ]);
+        ], null, 201);
     }
 
     // ── Below: admin review screens, jwtSuperAdmin-gated (Phase 5, D-135) ──
     public function index()
     {
         $caseModel = new ChargebackCaseModel();
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'openRepresentment' => $caseModel->findOpenRepresentment(),
             'pendingIntegrityReview' => $caseModel->findPendingIntegrityReview(),
             'resolved' => $caseModel->findResolved(),
@@ -62,7 +62,7 @@ class ChargebackController extends BaseController
             return $this->jsonError(422, 'decide_failed', $e->getMessage());
         }
 
-        return $this->response->setJSON(['message' => 'Representment outcome recorded.']);
+        return $this->apiResponse(['message' => 'Representment outcome recorded.']);
     }
 
     public function reviewIntegrity(string $caseId)
@@ -77,6 +77,6 @@ class ChargebackController extends BaseController
             return $this->jsonError(422, 'review_failed', $e->getMessage());
         }
 
-        return $this->response->setJSON(['message' => 'Chargeback integrity review recorded.']);
+        return $this->apiResponse(['message' => 'Chargeback integrity review recorded.']);
     }
 }

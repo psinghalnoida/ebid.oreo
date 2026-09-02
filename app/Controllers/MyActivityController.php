@@ -38,7 +38,7 @@ class MyActivityController extends BaseController
         };
         $bids = $query->limit($pg['perPage'], $pg['offset'])->get()->getResultArray();
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'bids' => $bids, 'format' => $format, 'status' => $status, 'sort' => $sort,
             'page' => $pg['page'], 'perPage' => $pg['perPage'], 'totalPages' => Paginator::totalPages($total, $pg['perPage']), 'total' => $total,
         ]);
@@ -65,7 +65,7 @@ class MyActivityController extends BaseController
         $offers = $filtered()->select('o.id, o.amount, o.status, o.created_at, se.id as sale_event_id, l.id as listing_id, l.category')
             ->orderBy('o.created_at', 'DESC')->limit($pg['perPage'], $pg['offset'])->get()->getResultArray();
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'offers' => $offers, 'status' => $status,
             'page' => $pg['page'], 'perPage' => $pg['perPage'], 'totalPages' => Paginator::totalPages($total, $pg['perPage']), 'total' => $total,
         ]);
@@ -117,7 +117,7 @@ class MyActivityController extends BaseController
         }
         unset($p);
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'purchases' => $purchases,
             'format' => $format, 'status' => $status, 'from' => $from, 'to' => $to,
             'page' => $pg['page'], 'perPage' => $pg['perPage'], 'totalPages' => Paginator::totalPages($total, $pg['perPage']), 'total' => $total,
@@ -178,7 +178,7 @@ class MyActivityController extends BaseController
                       COALESCE(s.tds_amount, 0) as tds_amount')
             ->orderBy('s.created_at', 'DESC')->limit($pg['perPage'], $pg['offset'])->get()->getResultArray();
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'sales' => $sales,
             'format' => $format, 'status' => $status, 'from' => $from, 'to' => $to,
             'page' => $pg['page'], 'perPage' => $pg['perPage'], 'totalPages' => Paginator::totalPages($total, $pg['perPage']), 'total' => $total,
@@ -233,7 +233,7 @@ class MyActivityController extends BaseController
             ->orderBy('l.created_at', 'DESC')
             ->get()->getResultArray();
 
-        return $this->response->setJSON(['listings' => $listings]);
+        return $this->apiResponse(['listings' => $listings]);
     }
 
     public function myActivity()
@@ -266,13 +266,13 @@ class MyActivityController extends BaseController
             ->orderBy('s.created_at', 'DESC')
             ->get()->getResultArray();
 
-        return $this->response->setJSON(['bids' => $bids, 'offers' => $offers, 'settlements' => $settlements]);
+        return $this->apiResponse(['bids' => $bids, 'offers' => $offers, 'settlements' => $settlements]);
     }
 
     public function profile()
     {
         $party = (new \App\Models\PartyModel())->find(UserAuthContext::partyId());
-        return $this->response->setJSON(['party' => $party]);
+        return $this->apiResponse(['party' => $party]);
     }
 
     // D-105: the buyer-side half of Lot Reach & Interest — a real inbox
@@ -282,27 +282,27 @@ class MyActivityController extends BaseController
     {
         $recipientModel = new \App\Models\SellerMessageRecipientModel();
         $messages = $recipientModel->findForBuyer(UserAuthContext::partyId());
-        return $this->response->setJSON(['messages' => $messages]);
+        return $this->apiResponse(['messages' => $messages]);
     }
 
     public function markMessageRead(string $recipientId)
     {
         (new \App\Models\SellerMessageRecipientModel())->markRead($recipientId, UserAuthContext::partyId());
-        return $this->response->setJSON(['marked' => true]);
+        return $this->apiResponse(['marked' => true]);
     }
 
     // D-106: "Star Ratings" -- a party's current standing in both roles.
     public function starRatings()
     {
         $party = (new \App\Models\PartyModel())->find(UserAuthContext::partyId());
-        return $this->response->setJSON(['party' => $party]);
+        return $this->apiResponse(['party' => $party]);
     }
 
     // D-106: "Rating History" -- the real rating_event audit trail.
     public function ratingHistory()
     {
         $events = (new \App\Models\RatingEventModel())->findForParty(UserAuthContext::partyId());
-        return $this->response->setJSON(['events' => $events]);
+        return $this->apiResponse(['events' => $events]);
     }
 
     // D-106: "Buyer Dashboard" -- a real consolidation of My Bids/
@@ -310,13 +310,13 @@ class MyActivityController extends BaseController
     public function buyerDashboard()
     {
         $summary = (new \App\Libraries\DashboardService())->buyerSummary(UserAuthContext::partyId());
-        return $this->response->setJSON(['summary' => $summary]);
+        return $this->apiResponse(['summary' => $summary]);
     }
 
     // D-106: "Seller Dashboard" -- same consolidation, seller side.
     public function sellerDashboard()
     {
         $summary = (new \App\Libraries\DashboardService())->sellerSummary(UserAuthContext::partyId());
-        return $this->response->setJSON(['summary' => $summary]);
+        return $this->apiResponse(['summary' => $summary]);
     }
 }

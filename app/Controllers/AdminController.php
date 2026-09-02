@@ -49,7 +49,7 @@ class AdminController extends BaseController
             ->limit(20)
             ->get()->getResultArray();
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'tenants' => $tenantModel->findAll(),
             'openDisputes' => $disputeModel->whereIn('status', ['filed', 'evidence_window', 'appealed'])->countAllResults(),
             'stalledSettlements' => $settlementModel->where('status', 'stalled')->countAllResults(),
@@ -91,7 +91,7 @@ class AdminController extends BaseController
         // Tech Stack §3.10: unacknowledged server-time drift alerts.
         $driftAlerts = (new \App\Models\ServerTimeCheckModel())->findUnacknowledgedDriftAlerts();
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'amlFlags' => $amlFlags,
             'stalledSettlements' => $stalledSettlements,
             'openDisputes' => $openDisputes,
@@ -110,7 +110,7 @@ class AdminController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'acknowledge_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['message' => 'Drift alert acknowledged.']);
+        return $this->apiResponse(['message' => 'Drift alert acknowledged.']);
     }
 
     // D-106: "Lot Directory" -- the Custodian had no way to browse every
@@ -130,7 +130,7 @@ class AdminController extends BaseController
         $listings = $svc->findListings($qOrNull, $tenantId, $format, $status, $pg['perPage'], $pg['offset']);
         $tenants = (new TenantModel())->orderBy('name', 'ASC')->findAll();
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'listings' => $listings, 'tenants' => $tenants,
             'q' => $q, 'tenantId' => $tenantId, 'format' => $format, 'status' => $status,
             'page' => $pg['page'], 'perPage' => $pg['perPage'],
@@ -152,7 +152,7 @@ class AdminController extends BaseController
         $saleEvents = $svc->findSaleEvents($tenantId, $format, $status, $pg['perPage'], $pg['offset']);
         $tenants = (new TenantModel())->orderBy('name', 'ASC')->findAll();
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'saleEvents' => $saleEvents, 'tenants' => $tenants,
             'tenantId' => $tenantId, 'format' => $format, 'status' => $status,
             'page' => $pg['page'], 'perPage' => $pg['perPage'],

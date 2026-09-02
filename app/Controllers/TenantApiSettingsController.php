@@ -19,7 +19,7 @@ class TenantApiSettingsController extends BaseController
             return $this->jsonError(404, 'not_found', 'Tenant not found.');
         }
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'tenant' => $tenant,
             'hasApiAccess' => TenantModel::hasApiAccess($tenant['subscription_tier']),
             'canPushListings' => TenantModel::canPushListings($tenant['subscription_tier']),
@@ -44,9 +44,9 @@ class TenantApiSettingsController extends BaseController
 
         $issued = (new ApiCredentialService())->issueCredential($tenantId, UserAuthContext::partyId());
 
-        return $this->response->setStatusCode(201)->setJSON([
+        return $this->apiResponse([
             'clientId' => $issued['credential']['client_id'], 'clientSecret' => $issued['clientSecret'],
-        ]);
+        ], null, 201);
     }
 
     public function revokeCredential(string $tenantId, string $credentialId)
@@ -56,7 +56,7 @@ class TenantApiSettingsController extends BaseController
             return $this->jsonError(404, 'not_found', 'Credential not found.');
         }
         (new ApiCredentialService())->revokeCredential($credentialId, UserAuthContext::partyId());
-        return $this->response->setJSON(['message' => 'Credential revoked — any outstanding access token is rejected immediately.']);
+        return $this->apiResponse(['message' => 'Credential revoked — any outstanding access token is rejected immediately.']);
     }
 
     public function updateWebhookUrl(string $tenantId)
@@ -79,6 +79,6 @@ class TenantApiSettingsController extends BaseController
         }
 
         (new TenantModel())->update($tenantId, $update);
-        return $this->response->setJSON(['message' => $url ? 'Webhook URL saved.' : 'Webhook URL cleared — webhook delivery disabled.']);
+        return $this->apiResponse(['message' => $url ? 'Webhook URL saved.' : 'Webhook URL cleared — webhook delivery disabled.']);
     }
 }

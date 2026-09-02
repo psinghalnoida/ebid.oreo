@@ -26,7 +26,7 @@ class UserController extends BaseController
         }
         $users = $builder->findAll(100);
 
-        return $this->response->setJSON(['users' => $users, 'q' => $q]);
+        return $this->apiResponse(['users' => $users, 'q' => $q]);
     }
 
     public function detail(string $partyId)
@@ -71,7 +71,7 @@ class UserController extends BaseController
             ->orderBy('created_at', 'DESC')
             ->limit(20)->get()->getResultArray();
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'party' => $party, 'roles' => $roles, 'tenantNames' => $tenantNames,
             'purchases' => $purchases, 'sales' => $sales, 'disputes' => $disputes,
             'ratingEvents' => $ratingEvents, 'tenants' => (new TenantModel())->findAll(),
@@ -104,6 +104,6 @@ class UserController extends BaseController
             'demotedPreviousAdminId' => $existing['party_id'] ?? null, 'grantedViaCli' => false,
         ], $this->request->getIPAddress(), (string) $this->request->getUserAgent());
 
-        return $this->response->setJSON(['message' => "Granted Tenant Admin for \"{$tenant['name']}\"."]);
+        return $this->apiResponse(['message' => "Granted Tenant Admin for \"{$tenant['name']}\"."]);
     }
 }

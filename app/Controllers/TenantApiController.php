@@ -38,23 +38,23 @@ class TenantApiController extends BaseController
         $clientSecret = $this->request->getPost('client_secret') ?? $this->request->getJsonVar('client_secret');
 
         if ($grantType !== 'client_credentials') {
-            return $this->response->setStatusCode(400)->setJSON([
+            return $this->apiResponse([
                 'error' => 'unsupported_grant_type', 'error_description' => 'Only grant_type=client_credentials is supported.',
-            ]);
+            ], null, 400);
         }
         if (!$clientId || !$clientSecret) {
-            return $this->response->setStatusCode(400)->setJSON([
+            return $this->apiResponse([
                 'error' => 'invalid_request', 'error_description' => 'client_id and client_secret are required.',
-            ]);
+            ], null, 400);
         }
 
         try {
             $token = (new ApiCredentialService())->authenticate($clientId, $clientSecret);
         } catch (\RuntimeException $e) {
-            return $this->response->setStatusCode(401)->setJSON(['error' => 'invalid_client', 'error_description' => $e->getMessage()]);
+            return $this->apiResponse(['error' => 'invalid_client', 'error_description' => $e->getMessage()], null, 401);
         }
 
-        return $this->response->setJSON($token);
+        return $this->apiResponse($token);
     }
 
     // PR-37 step 2: "Tenant's system pushes a Listing, specifying the
@@ -84,9 +84,9 @@ class TenantApiController extends BaseController
         $tenantId = ApiRequestContext::tenantId();
         $tenant = (new TenantModel())->find($tenantId);
         if (!TenantModel::canPushListings($tenant['subscription_tier'])) {
-            return $this->response->setStatusCode(403)->setJSON([
+            return $this->apiResponse([
                 'error' => 'insufficient_tier', 'error_description' => 'BR-66: listing pre-audit requires TSX Growth or TSX Enterprise.',
-            ]);
+            ], null, 403);
         }
 
         $body = $this->request->getJSON(true) ?? [];
@@ -102,10 +102,10 @@ class TenantApiController extends BaseController
         try {
             $result = (new GeminiPreAuditService())->evaluate($draft);
         } catch (\RuntimeException $e) {
-            return $this->response->setStatusCode(503)->setJSON(['available' => false, 'message' => $e->getMessage()]);
+            return $this->apiResponse(['available' => false, 'message' => $e->getMessage()], null, 503);
         }
 
-        return $this->response->setJSON(array_merge(['available' => true], $result));
+        return $this->apiResponse(array_merge(['available' => true], $result));
     }
 
     public function pushListing()
@@ -113,20 +113,20 @@ class TenantApiController extends BaseController
         $tenantId = ApiRequestContext::tenantId();
         $tenant = (new TenantModel())->find($tenantId);
         if (!TenantModel::canPushListings($tenant['subscription_tier'])) {
-            return $this->response->setStatusCode(403)->setJSON([
+            return $this->apiResponse([
                 'error' => 'insufficient_tier', 'error_description' => 'BR-66: listing push requires TSX Growth or TSX Enterprise.',
-            ]);
+            ], null, 403);
         }
 
         $body = $this->request->getJSON(true) ?? [];
         $sellerId = $body['sellerId'] ?? null;
         if (!$sellerId) {
-            return $this->response->setStatusCode(400)->setJSON(['error' => 'invalid_request', 'error_description' => 'sellerId is required.']);
+            return $this->apiResponse(['error' => 'invalid_request', 'error_description' => 'sellerId is required.'], null, 400);
         }
 
         $seller = (new PartyModel())->find($sellerId);
         if (!$seller) {
-            return $this->response->setStatusCode(400)->setJSON(['error' => 'invalid_request', 'error_description' => 'sellerId does not resolve to a known party.']);
+            return $this->apiResponse(['error' => 'invalid_request', 'error_description' => 'sellerId does not resolve to a known party.'], null, 400);
         }
 
         // BR-62: "the platform trusts the Tenant to have already validated
@@ -134,35 +134,35 @@ class TenantApiController extends BaseController
         // "bypasses none" of the portal's own governance, so every gate
         // the portal enforces on listing creation is re-checked here too.
         if ((new AuthorizationService())->isSuperAdmin($sellerId)) {
-            return $this->response->setStatusCode(403)->setJSON(['error' => 'forbidden', 'error_description' => 'BR-15: the Super Admin may never be attributed as a seller.']);
+            return $this->apiResponse(['error' => 'forbidden', 'error_description' => 'BR-15: the Super Admin may never be attributed as a seller.'], null, 403);
         }
         try {
             (new KycService())->requireVerifiedKyc($sellerId, 'creating a Listing via the Tenant API');
         } catch (\RuntimeException $e) {
-            return $this->response->setStatusCode(403)->setJSON(['error' => 'forbidden', 'error_description' => $e->getMessage()]);
+            return $this->apiResponse(['error' => 'forbidden', 'error_description' => $e->getMessage()], null, 403);
         }
         if ((new RatingService())->isDelisted($sellerId)) {
-            return $this->response->setStatusCode(403)->setJSON(['error' => 'forbidden', 'error_description' => 'BR-38: this seller has been delisted from selling on AdwitiX due to a confirmed fraud finding.']);
+            return $this->apiResponse(['error' => 'forbidden', 'error_description' => 'BR-38: this seller has been delisted from selling on AdwitiX due to a confirmed fraud finding.'], null, 403);
         }
         if (!(new SellerApplicationService())->isApprovedSeller($sellerId, $tenantId)) {
-            return $this->response->setStatusCode(403)->setJSON(['error' => 'forbidden', 'error_description' => 'BR-09: sellerId is not an approved Seller on this TSX.']);
+            return $this->apiResponse(['error' => 'forbidden', 'error_description' => 'BR-09: sellerId is not an approved Seller on this TSX.'], null, 403);
         }
 
         $category = $body['category'] ?? null;
         if (!in_array($category, ListingLifecycleService::PERMITTED_CATEGORIES, true)) {
-            return $this->response->setStatusCode(400)->setJSON(['error' => 'invalid_request', 'error_description' => 'BR-07: category must be one of the platform\'s permitted categories.']);
+            return $this->apiResponse(['error' => 'invalid_request', 'error_description' => 'BR-07: category must be one of the platform\'s permitted categories.'], null, 400);
         }
 
         $shippingEnabled = (bool) ($body['shippingEnabled'] ?? false);
         $shippingCostType = $shippingEnabled ? ($body['shippingCostType'] ?? null) : null;
         if ($shippingEnabled && !in_array($shippingCostType, ['fixed', 'variable'], true)) {
-            return $this->response->setStatusCode(400)->setJSON(['error' => 'invalid_request', 'error_description' => 'BR-24: shippingCostType must be "fixed" or "variable" when shippingEnabled is true.']);
+            return $this->apiResponse(['error' => 'invalid_request', 'error_description' => 'BR-24: shippingCostType must be "fixed" or "variable" when shippingEnabled is true.'], null, 400);
         }
 
         $representativeMediaFlag = false;
         if (!empty($body['mediaIsRepresentativeUnderWaiver'])) {
             if (!(new TenantMediaWaiverService())->isCbsProhibitionWaived($tenantId, $category)) {
-                return $this->response->setStatusCode(403)->setJSON(['error' => 'forbidden', 'error_description' => 'BR-60: this TSX has no active media waiver for this category.']);
+                return $this->apiResponse(['error' => 'forbidden', 'error_description' => 'BR-60: this TSX has no active media waiver for this category.'], null, 403);
             }
             $representativeMediaFlag = true;
         }
@@ -190,10 +190,10 @@ class TenantApiController extends BaseController
                 'media_is_representative_under_waiver' => $representativeMediaFlag,
             ]);
         } catch (\Throwable $e) {
-            return $this->response->setStatusCode(400)->setJSON(['error' => 'invalid_request', 'error_description' => $e->getMessage()]);
+            return $this->apiResponse(['error' => 'invalid_request', 'error_description' => $e->getMessage()], null, 400);
         }
 
-        return $this->response->setStatusCode(201)->setJSON($this->listingPayload($listing));
+        return $this->apiResponse($this->listingPayload($listing), null, 201);
     }
 
     public function getListing(string $listingId)
@@ -203,9 +203,9 @@ class TenantApiController extends BaseController
         // credential's own tenant -- a probing client learns nothing
         // about the existence of another tenant's IDs.
         if (!$listing || $listing['tenant_id'] !== ApiRequestContext::tenantId()) {
-            return $this->response->setStatusCode(404)->setJSON(['error' => 'not_found']);
+            return $this->apiResponse(['error' => 'not_found'], null, 404);
         }
-        return $this->response->setJSON($this->listingPayload($listing));
+        return $this->apiResponse($this->listingPayload($listing));
     }
 
     // PR-37 step 5. Tender excluded entirely (Company Shop-managed only,
@@ -215,28 +215,28 @@ class TenantApiController extends BaseController
         $tenantId = ApiRequestContext::tenantId();
         $tenant = (new TenantModel())->find($tenantId);
         if (!TenantModel::canPushSaleEvents($tenant['subscription_tier'])) {
-            return $this->response->setStatusCode(403)->setJSON([
+            return $this->apiResponse([
                 'error' => 'insufficient_tier', 'error_description' => 'BR-66: Sale System push requires TSX Enterprise.',
-            ]);
+            ], null, 403);
         }
 
         $listing = (new ListingModel())->findActiveById($listingId);
         if (!$listing || $listing['tenant_id'] !== $tenantId) {
-            return $this->response->setStatusCode(404)->setJSON(['error' => 'not_found']);
+            return $this->apiResponse(['error' => 'not_found'], null, 404);
         }
         if ($listing['status'] !== 'upcoming') {
-            return $this->response->setStatusCode(409)->setJSON(['error' => 'invalid_state', 'error_description' => 'Listing must be approved (upcoming) before attaching a Sale System.']);
+            return $this->apiResponse(['error' => 'invalid_state', 'error_description' => 'Listing must be approved (upcoming) before attaching a Sale System.'], null, 409);
         }
 
         $body = $this->request->getJSON(true) ?? [];
         $format = $body['saleFormat'] ?? null;
         if (!in_array($format, ['easy', 'buy_now', 'express'], true)) {
-            return $this->response->setStatusCode(400)->setJSON(['error' => 'invalid_request', 'error_description' => 'saleFormat must be one of: easy, buy_now, express. Tender is Company Shop-managed only (BR-12/PR-37).']);
+            return $this->apiResponse(['error' => 'invalid_request', 'error_description' => 'saleFormat must be one of: easy, buy_now, express. Tender is Company Shop-managed only (BR-12/PR-37).'], null, 400);
         }
         // BR-62: sellerId in the payload must match this listing's own
         // seller -- the Tenant attests to the acting party on every call.
         if (($body['sellerId'] ?? null) !== $listing['seller_party_id']) {
-            return $this->response->setStatusCode(403)->setJSON(['error' => 'forbidden', 'error_description' => 'sellerId must match this listing\'s own seller_party_id.']);
+            return $this->apiResponse(['error' => 'forbidden', 'error_description' => 'sellerId must match this listing\'s own seller_party_id.'], null, 403);
         }
 
         $ernPrefix = match ($format) { 'buy_now' => 'BN-', 'express' => 'EX-', default => 'EH-' };
@@ -257,13 +257,13 @@ class TenantApiController extends BaseController
             $startAt = $body['scheduledStartAt'] ?? null;
             $endAt = $body['scheduledEndAt'] ?? null;
             if (!$startAt || !$endAt || strtotime((string) $endAt) <= strtotime((string) $startAt)) {
-                return $this->response->setStatusCode(400)->setJSON(['error' => 'invalid_request', 'error_description' => 'Easy Auction requires scheduledStartAt and scheduledEndAt, with end after start.']);
+                return $this->apiResponse(['error' => 'invalid_request', 'error_description' => 'Easy Auction requires scheduledStartAt and scheduledEndAt, with end after start.'], null, 400);
             }
             $data['scheduled_start_at'] = date('Y-m-d H:i:s', strtotime($startAt));
             $data['scheduled_end_at'] = date('Y-m-d H:i:s', strtotime($endAt));
             $incrementPercent = (float) ($body['incrementPercent'] ?? 2);
             if ($incrementPercent < 2 || $incrementPercent > 5) {
-                return $this->response->setStatusCode(400)->setJSON(['error' => 'invalid_request', 'error_description' => 'incrementPercent must be between 2 and 5.']);
+                return $this->apiResponse(['error' => 'invalid_request', 'error_description' => 'incrementPercent must be between 2 and 5.'], null, 400);
             }
             $data['bid_increment_amount'] = round(((float) $data['reserve_value']) * ($incrementPercent / 100), 2);
         }
@@ -276,36 +276,36 @@ class TenantApiController extends BaseController
         if ($sellerValue !== null) {
             $ceiling = (new RatingService())->getTransactionCeiling($listing['seller_party_id'], 'seller_star_rating', $tenant);
             if ($ceiling !== null && (float) $sellerValue > $ceiling) {
-                return $this->response->setStatusCode(403)->setJSON(['error' => 'forbidden', 'error_description' => "BR-38: this seller is currently restricted to listings valued up to {$ceiling}."]);
+                return $this->apiResponse(['error' => 'forbidden', 'error_description' => "BR-38: this seller is currently restricted to listings valued up to {$ceiling}."], null, 403);
             }
         }
 
         // BR-31/32 (D-87/D-88): Fee Payer Election, same tier gate as the portal.
         $feePayer = ($body['feePayer'] ?? 'buyer_pays') === 'seller_pays' ? 'seller_pays' : 'buyer_pays';
         if ($feePayer === 'seller_pays' && $tenant['subscription_tier'] === 'coco_starter') {
-            return $this->response->setStatusCode(403)->setJSON(['error' => 'forbidden', 'error_description' => 'BR-32: Seller-Pays is not available on a CoCo Starter TSX.']);
+            return $this->apiResponse(['error' => 'forbidden', 'error_description' => 'BR-32: Seller-Pays is not available on a CoCo Starter TSX.'], null, 403);
         }
         $data['fee_payer'] = $feePayer;
 
         try {
             $saleEvent = (new SaleEventModel())->createSaleEvent($data);
         } catch (\Throwable $e) {
-            return $this->response->setStatusCode(400)->setJSON(['error' => 'invalid_request', 'error_description' => $e->getMessage()]);
+            return $this->apiResponse(['error' => 'invalid_request', 'error_description' => $e->getMessage()], null, 400);
         }
 
         // BR-13: listing moves to active once a sale system is attached — identical to the portal.
         (new ListingModel())->transitionStatus($listingId, 'active');
 
-        return $this->response->setStatusCode(201)->setJSON($this->saleEventPayload($saleEvent));
+        return $this->apiResponse($this->saleEventPayload($saleEvent), null, 201);
     }
 
     public function getSaleEvent(string $saleEventId)
     {
         $saleEvent = (new SaleEventModel())->find($saleEventId);
         if (!$saleEvent || $saleEvent['tenant_id'] !== ApiRequestContext::tenantId()) {
-            return $this->response->setStatusCode(404)->setJSON(['error' => 'not_found']);
+            return $this->apiResponse(['error' => 'not_found'], null, 404);
         }
-        return $this->response->setJSON($this->saleEventPayload($saleEvent));
+        return $this->apiResponse($this->saleEventPayload($saleEvent));
     }
 
     // BR-63: exactly the fields a Tenant Admin already sees on the portal

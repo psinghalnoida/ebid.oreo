@@ -50,10 +50,10 @@ class MediaController extends BaseController
             return $this->jsonError(422, 'upload_failed', $e->getMessage());
         }
 
-        return $this->response->setStatusCode(202)->setJSON([
+        return $this->apiResponse([
             'jobs' => $jobs,
             'message' => count($jobs) . ' file(s) queued for processing — they\'ll appear once the background queue finishes compressing them.',
-        ]);
+        ], null, 202);
     }
 
     public function setPrimary(string $listingId, string $mediaId)
@@ -64,6 +64,6 @@ class MediaController extends BaseController
             return $this->jsonError(403, 'forbidden', 'Only the listing\'s seller may change the primary photo.');
         }
         $this->media->setPrimary($mediaId, $listingId);
-        return $this->response->setJSON(['media' => (new \App\Models\ListingMediaModel())->findForListing($listingId)]);
+        return $this->apiResponse(['media' => (new \App\Models\ListingMediaModel())->findForListing($listingId)]);
     }
 }

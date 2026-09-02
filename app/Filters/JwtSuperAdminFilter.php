@@ -40,9 +40,9 @@ class JwtSuperAdminFilter implements FilterInterface
         if ($this->isBypassEnabled()) {
             $party = (new AuthorizationService())->firstSuperAdminParty();
             if (!$party) {
-                return service('response')->setStatusCode(500)->setJSON([
+                return \App\Libraries\ApiResponse::send(service('response'), [
                     'error' => 'no_super_admin', 'error_description' => 'admin.authBypass is on but no party holds the super_admin role yet — run php spark bootstrap:custodian first.',
-                ]);
+                ], null, 500);
             }
             UserAuthContext::set($party, ['party', 'super_admin']);
             return;
@@ -50,16 +50,16 @@ class JwtSuperAdminFilter implements FilterInterface
 
         $authHeader = $request->getHeaderLine('Authorization');
         if (!preg_match('/^Bearer\s+(.+)$/i', trim($authHeader), $matches)) {
-            return service('response')->setStatusCode(401)->setJSON([
+            return \App\Libraries\ApiResponse::send(service('response'), [
                 'error' => 'invalid_request', 'error_description' => 'Missing or malformed Authorization: Bearer header.',
-            ]);
+            ], null, 401);
         }
 
         $claims = UserAuthApiService::validateAccessToken($matches[1]);
         if (!$claims || !in_array('super_admin', $claims['roles'] ?? [], true)) {
-            return service('response')->setStatusCode(403)->setJSON([
+            return \App\Libraries\ApiResponse::send(service('response'), [
                 'error' => 'insufficient_role', 'error_description' => 'This action requires a Super Admin access token.',
-            ]);
+            ], null, 403);
         }
 
         // Defense in depth — the role claim is trusted (it's signed), but
@@ -68,9 +68,9 @@ class JwtSuperAdminFilter implements FilterInterface
         // trusting the session marker alone.
         $party = (new PartyModel())->findActiveById($claims['sub']);
         if (!$party || !(new AuthorizationService())->isSuperAdmin($party['id'])) {
-            return service('response')->setStatusCode(403)->setJSON([
+            return \App\Libraries\ApiResponse::send(service('response'), [
                 'error' => 'insufficient_role', 'error_description' => 'This action requires Super Admin access.',
-            ]);
+            ], null, 403);
         }
 
         UserAuthContext::set($party, $claims['roles']);

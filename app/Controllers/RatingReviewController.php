@@ -34,7 +34,7 @@ class RatingReviewController extends BaseController
             $pending = $eventModel->findPendingForTenants($tenantIds);
         }
 
-        return $this->response->setJSON(['pending' => $pending]);
+        return $this->apiResponse(['pending' => $pending]);
     }
 
     public function approve(string $eventId)
@@ -61,6 +61,6 @@ class RatingReviewController extends BaseController
             return $this->jsonError(422, 'approve_failed', $e->getMessage());
         }
 
-        return $this->response->setJSON(['event' => $eventModel->find($eventId)]);
+        return $this->apiResponse(['event' => $eventModel->find($eventId)]);
     }
 }

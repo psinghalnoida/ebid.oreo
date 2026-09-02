@@ -21,23 +21,23 @@ class JwtAuthFilter implements FilterInterface
     {
         $authHeader = $request->getHeaderLine('Authorization');
         if (!preg_match('/^Bearer\s+(.+)$/i', trim($authHeader), $matches)) {
-            return service('response')->setStatusCode(401)->setJSON([
+            return \App\Libraries\ApiResponse::send(service('response'), [
                 'error' => 'invalid_request', 'error_description' => 'Missing or malformed Authorization: Bearer header.',
-            ]);
+            ], null, 401);
         }
 
         $claims = UserAuthApiService::validateAccessToken($matches[1]);
         if (!$claims) {
-            return service('response')->setStatusCode(401)->setJSON([
+            return \App\Libraries\ApiResponse::send(service('response'), [
                 'error' => 'invalid_token', 'error_description' => 'The access token is missing, expired, or malformed.',
-            ]);
+            ], null, 401);
         }
 
         $party = (new PartyModel())->findActiveById($claims['sub']);
         if (!$party) {
-            return service('response')->setStatusCode(401)->setJSON([
+            return \App\Libraries\ApiResponse::send(service('response'), [
                 'error' => 'invalid_token', 'error_description' => 'The account for this token no longer exists.',
-            ]);
+            ], null, 401);
         }
 
         UserAuthContext::set($party, $claims['roles'] ?? ['party']);

@@ -48,7 +48,7 @@ class TenantAdminController extends BaseController
             ->orderBy('created_at', 'DESC')
             ->get()->getResultArray();
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'tenant' => $tenant,
             'pendingListings' => $pendingListings,
             'pendingSaleEvents' => $pendingSaleEvents,
@@ -96,6 +96,6 @@ class TenantAdminController extends BaseController
             ->orderBy('se.created_at', 'ASC')
             ->get()->getResultArray();
 
-        return $this->response->setJSON(['tenant' => $tenant, 'pending' => $pending, 'pendingSaleEvents' => $pendingSaleEvents]);
+        return $this->apiResponse(['tenant' => $tenant, 'pending' => $pending, 'pendingSaleEvents' => $pendingSaleEvents]);
     }
 }

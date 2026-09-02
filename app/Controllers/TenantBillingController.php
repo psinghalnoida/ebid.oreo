@@ -21,7 +21,7 @@ class TenantBillingController extends BaseController
             return $this->jsonError(404, 'not_found', 'Tenant not found.');
         }
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'tenant' => $tenant,
             'unbilled' => (new TenantFeeLedgerModel())->findUnbilledForTenant($tenantId),
             'invoices' => (new TenantMonthlyInvoiceModel())->findForTenant($tenantId),
@@ -32,7 +32,7 @@ class TenantBillingController extends BaseController
     // jwtSuperAdmin-gated.
     public function index()
     {
-        return $this->response->setJSON(['pending' => (new TenantMonthlyInvoiceModel())->findAllPending()]);
+        return $this->apiResponse(['pending' => (new TenantMonthlyInvoiceModel())->findAllPending()]);
     }
 
     // Marking an invoice paid is a manual SaaS Admin action — no
@@ -44,6 +44,6 @@ class TenantBillingController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'mark_paid_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['message' => 'Invoice marked paid.']);
+        return $this->apiResponse(['message' => 'Invoice marked paid.']);
     }
 }

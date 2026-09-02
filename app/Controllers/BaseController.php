@@ -55,13 +55,29 @@ abstract class BaseController extends Controller
         return $value !== null ? $value : $this->request->getPost($key);
     }
 
+    // Global API response envelope — EVERY controller response, success
+    // or error, goes out shaped {status, message, data}. $status is
+    // derived purely from the HTTP status code (< 400 = true), never
+    // guessed from $data's contents, so callers don't need to classify
+    // their own payload — just pass whatever they already built
+    // (a single record, a list, or nothing) as $data and, optionally,
+    // the HTTP code. $data is returned exactly as given — a single
+    // associative array or a list of them both serialize fine as JSON,
+    // matching "data may be single array or multiple array".
+    protected function apiResponse($data = [], ?string $message = null, int $httpCode = 200)
+    {
+        return \App\Libraries\ApiResponse::send($this->response, $data, $message, $httpCode);
+    }
+
     // Standard JSON error envelope, used by every migrated controller so
-    // API error shapes stay consistent (matches UserAuthApiController's
-    // {error, error_description} shape).
+    // API error shapes stay consistent. Now just a thin, backward-
+    // compatible wrapper over apiResponse() — every existing call site
+    // (jsonError($httpCode, $errorCode, $humanMessage)) keeps working
+    // unchanged, but now emits the global {status, message, data} shape:
+    // $description becomes the top-level message, $error (the short
+    // machine-readable code, e.g. 'invalid_otp') moves into data.
     protected function jsonError(int $status, string $error, string $description)
     {
-        return $this->response->setStatusCode($status)->setJSON([
-            'error' => $error, 'error_description' => $description,
-        ]);
+        return $this->apiResponse(['error' => $error], $description, $status);
     }
 }

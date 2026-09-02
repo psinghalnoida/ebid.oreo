@@ -49,7 +49,7 @@ class SuperAdminAuthApiController extends BaseController
             return $this->jsonError(403, 'setup_failed', $e->getMessage());
         }
 
-        return $this->response->setJSON(['setup' => $this->withQrCode($setup)]);
+        return $this->apiResponse(['setup' => $this->withQrCode($setup)]);
     }
 
     // POST /api/v1/admin/auth/setup-totp/confirm  { code }
@@ -69,7 +69,7 @@ class SuperAdminAuthApiController extends BaseController
 
         // Shown exactly once — the plain codes are never persisted,
         // only their bcrypt hashes (in super_admin_backup_code).
-        return $this->response->setJSON(['backupCodes' => $confirmed]);
+        return $this->apiResponse(['backupCodes' => $confirmed]);
     }
 
     // ── 2FA enrollment, mobile-OTP entry point ────────────────────────
@@ -96,7 +96,7 @@ class SuperAdminAuthApiController extends BaseController
             return $this->jsonError(422, 'invalid_mobile', $e->getMessage());
         }
 
-        return $this->response->setJSON(['dev_otp' => $otp]);
+        return $this->apiResponse(['dev_otp' => $otp]);
     }
 
     // POST /api/v1/admin/auth/setup-totp/verify-otp  { mobile_number, otp }
@@ -126,7 +126,7 @@ class SuperAdminAuthApiController extends BaseController
 
         $pendingTicket = UserAuthApiService::issuePendingTicket('admin_totp_setup_pending', ['sub' => $party['id']]);
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'pending_ticket' => $pendingTicket,
             'setup' => $this->withQrCode($setup),
         ]);
@@ -152,7 +152,7 @@ class SuperAdminAuthApiController extends BaseController
             return $this->jsonError(401, 'invalid_code', 'Invalid code — check your authenticator app and try again.');
         }
 
-        return $this->response->setJSON(['backupCodes' => $confirmed]);
+        return $this->apiResponse(['backupCodes' => $confirmed]);
     }
 
     // Renders the provisioning URI as a scannable QR code, server side,
@@ -217,7 +217,7 @@ class SuperAdminAuthApiController extends BaseController
     public function loginMethods()
     {
         $mobile = trim((string) $this->input('mobile_number'));
-        return $this->response->setJSON($this->auth->loginMethods($mobile));
+        return $this->apiResponse($this->auth->loginMethods($mobile));
     }
 
     // POST /api/v1/app/admin/auth/login-mpin  { mobile_number, mpin }
@@ -247,7 +247,7 @@ class SuperAdminAuthApiController extends BaseController
         if ($result['status'] === 'otp_required') {
             $audit->log('admin.login.otp_required', $result['partyId'], ['mobile' => $mobile], $ip, $userAgent);
             $reset = $this->auth->requestMpinReset($mobile);
-            return $this->response->setJSON(['status' => 'otp_required'] + $reset);
+            return $this->apiResponse(['status' => 'otp_required'] + $reset);
         }
 
         // 'invalid_mpin'
@@ -284,7 +284,7 @@ class SuperAdminAuthApiController extends BaseController
         if (!AuthService::isValidIndianMobile($mobile)) {
             return $this->jsonError(422, 'invalid_mobile_number', 'Expected a 10-digit Indian mobile number in +91XXXXXXXXXX format.');
         }
-        return $this->response->setJSON($this->auth->requestMpinReset($mobile));
+        return $this->apiResponse($this->auth->requestMpinReset($mobile));
     }
 
     // POST /api/v1/app/admin/auth/mpin/forgot/verify  { pending_ticket, otp, email_otp? }
@@ -300,7 +300,7 @@ class SuperAdminAuthApiController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(401, 'invalid_otp', $e->getMessage());
         }
-        return $this->response->setJSON(['pending_ticket' => $setupTicket]);
+        return $this->apiResponse(['pending_ticket' => $setupTicket]);
     }
 
     // POST /api/v1/app/admin/auth/mpin/forgot/complete  { pending_ticket, mpin }
@@ -344,7 +344,7 @@ class SuperAdminAuthApiController extends BaseController
             $audit->log('admin.login_email_otp_requested', $result['party']['id'], ['emailDeliveredForReal' => $result['emailSent']], $ip, $userAgent);
 
             $pendingTicket = UserAuthApiService::issuePendingTicket('admin_login_email_pending', ['sub' => $result['party']['id']]);
-            return $this->response->setJSON([
+            return $this->apiResponse([
                 'stage' => 'email_otp_required',
                 'pending_ticket' => $pendingTicket,
                 'email' => $result['party']['recovery_email'],
@@ -396,7 +396,7 @@ class SuperAdminAuthApiController extends BaseController
         }
         $accessToken = $this->tokens->issueAccessToken($party, ['party', 'super_admin']);
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'access_token' => $accessToken,
             'token_type' => 'Bearer',
             'expires_in' => 86400,
@@ -432,7 +432,7 @@ class SuperAdminAuthApiController extends BaseController
         $credential = (new SuperAdminCredentialModel())->findByEmail($email);
         $party = $credential ? (new PartyModel())->findActiveById($credential['party_id']) : null;
         if (!$party || !(new AuthorizationService())->isSuperAdmin($party['id'])) {
-            return $this->response->setJSON(['message' => $genericMessage]);
+            return $this->apiResponse(['message' => $genericMessage]);
         }
 
         $emailOtp = $this->accountAuth->requestEmailOtp($credential['email'], 'mpin_reset_email');
@@ -451,7 +451,7 @@ class SuperAdminAuthApiController extends BaseController
         ], $this->request->getIPAddress(), (string) $this->request->getUserAgent());
 
         $response['pending_ticket'] = UserAuthApiService::issuePendingTicket('admin_password_reset_pending', $ticketClaims);
-        return $this->response->setJSON($response);
+        return $this->apiResponse($response);
     }
 
     // POST /api/v1/admin/auth/forgot-password/verify  { pending_ticket, email_otp }
@@ -470,7 +470,7 @@ class SuperAdminAuthApiController extends BaseController
         }
 
         $passwordSetupTicket = UserAuthApiService::issuePendingTicket('admin_password_setup_pending', ['sub' => $claims['sub']]);
-        return $this->response->setJSON(['pending_ticket' => $passwordSetupTicket]);
+        return $this->apiResponse(['pending_ticket' => $passwordSetupTicket]);
     }
 
     // POST /api/v1/admin/auth/forgot-password/complete  { pending_ticket, new_password }
@@ -488,6 +488,6 @@ class SuperAdminAuthApiController extends BaseController
         }
 
         $this->auth->resetPassword($claims['sub'], $newPassword);
-        return $this->response->setJSON(['message' => 'Password updated. You can now log in with your new password.']);
+        return $this->apiResponse(['message' => 'Password updated. You can now log in with your new password.']);
     }
 }

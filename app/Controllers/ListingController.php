@@ -34,14 +34,14 @@ class ListingController extends BaseController
         }
 
         (new \App\Models\ListingFavoriteModel())->add($partyId, $listingId);
-        return $this->response->setJSON(['favorited' => true]);
+        return $this->apiResponse(['favorited' => true]);
     }
 
     public function unfavorite(string $listingId)
     {
         $partyId = UserAuthContext::partyId();
         (new \App\Models\ListingFavoriteModel())->remove($partyId, $listingId);
-        return $this->response->setJSON(['favorited' => false]);
+        return $this->apiResponse(['favorited' => false]);
     }
 
     // BR-46: a seller may trigger this before submitting -- purely
@@ -60,10 +60,10 @@ class ListingController extends BaseController
         try {
             $result = (new GeminiPreAuditService())->evaluate($draft);
         } catch (\RuntimeException $e) {
-            return $this->response->setStatusCode(503)->setJSON(['available' => false, 'message' => $e->getMessage()]);
+            return $this->apiResponse(['available' => false, 'message' => $e->getMessage()], null, 503);
         }
 
-        return $this->response->setJSON(array_merge(['available' => true], $result));
+        return $this->apiResponse(array_merge(['available' => true], $result));
     }
 
     public function createSubmit()
@@ -193,7 +193,7 @@ class ListingController extends BaseController
             return $this->jsonError(422, 'listing_create_failed', $e->getMessage());
         }
 
-        return $this->response->setStatusCode(201)->setJSON(['listing' => $listing]);
+        return $this->apiResponse(['listing' => $listing], null, 201);
     }
 
     public function show(string $listingId)
@@ -311,7 +311,7 @@ class ListingController extends BaseController
             ? (new \App\Models\EmdHoldModel())->findBySaleEventAndParty($saleEvent['id'], $viewerId)
             : null;
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'listing' => $listing, 'saleEvent' => $saleEvent, 'tenant' => $tenant,
             'offers' => $offers, 'expressState' => $expressState, 'tenderState' => $tenderState, 'media' => $media,
             'queuedMediaJobs' => $queuedMediaJobs, 'myOpenTopup' => $myOpenTopup, 'myOpenTopupOwed' => $myOpenTopupOwed,
@@ -336,7 +336,7 @@ class ListingController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'submit_for_approval_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['listing' => $this->listingModel->find($listingId)]);
+        return $this->apiResponse(['listing' => $this->listingModel->find($listingId)]);
     }
 
     // BR-09: Tenant Admin approval — access enforced by the
@@ -346,7 +346,7 @@ class ListingController extends BaseController
     public function approve(string $listingId)
     {
         $this->lifecycle->approve($listingId, UserAuthContext::partyId());
-        return $this->response->setJSON(['listing' => $this->listingModel->find($listingId)]);
+        return $this->apiResponse(['listing' => $this->listingModel->find($listingId)]);
     }
 
     public function reject(string $listingId)
@@ -358,7 +358,7 @@ class ListingController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'reject_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['listing' => $this->listingModel->find($listingId)]);
+        return $this->apiResponse(['listing' => $this->listingModel->find($listingId)]);
     }
 
     public function editSubmit(string $listingId)
@@ -395,7 +395,7 @@ class ListingController extends BaseController
             return $this->jsonError(422, 'edit_failed', $e->getMessage());
         }
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'listing' => $result['newListing'],
             'message' => 'Listing updated — this is a new listing record (archive-and-recreate per BR-13); any active bids on the old one were withdrawn and EMD released.',
         ]);
@@ -420,7 +420,7 @@ class ListingController extends BaseController
 
         $result = (new \App\Libraries\StandingReviewService())->recordCbsViolation($listing['seller_party_id'], $partyId, $listingId);
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'offenseNumber' => $result['offenseNumber'],
             'tier' => $result['tier'],
             'message' => "CBS violation logged — offense #{$result['offenseNumber']}, tier: {$result['tier']}.",

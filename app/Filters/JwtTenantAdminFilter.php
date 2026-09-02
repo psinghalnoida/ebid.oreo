@@ -21,23 +21,23 @@ class JwtTenantAdminFilter implements FilterInterface
     {
         $authHeader = $request->getHeaderLine('Authorization');
         if (!preg_match('/^Bearer\s+(.+)$/i', trim($authHeader), $matches)) {
-            return service('response')->setStatusCode(401)->setJSON([
+            return \App\Libraries\ApiResponse::send(service('response'), [
                 'error' => 'invalid_request', 'error_description' => 'Missing or malformed Authorization: Bearer header.',
-            ]);
+            ], null, 401);
         }
 
         $claims = UserAuthApiService::validateAccessToken($matches[1]);
         if (!$claims) {
-            return service('response')->setStatusCode(401)->setJSON([
+            return \App\Libraries\ApiResponse::send(service('response'), [
                 'error' => 'invalid_token', 'error_description' => 'The access token is missing, expired, or malformed.',
-            ]);
+            ], null, 401);
         }
 
         $party = (new PartyModel())->findActiveById($claims['sub']);
         if (!$party) {
-            return service('response')->setStatusCode(401)->setJSON([
+            return \App\Libraries\ApiResponse::send(service('response'), [
                 'error' => 'invalid_token', 'error_description' => 'The account for this token no longer exists.',
-            ]);
+            ], null, 401);
         }
 
         $resourceType = $arguments[0] ?? 'listing';
@@ -47,7 +47,7 @@ class JwtTenantAdminFilter implements FilterInterface
         // session-based TenantAdminFilter's un-prefixed routes had it.
         $resourceId = $segments[3] ?? null;
         if (!$resourceId) {
-            return service('response')->setStatusCode(400)->setJSON(['error' => 'invalid_request', 'error_description' => 'Missing resource ID']);
+            return \App\Libraries\ApiResponse::send(service('response'), ['error' => 'invalid_request', 'error_description' => 'Missing resource ID'], null, 400);
         }
 
         $auth = new AuthorizationService();
@@ -60,9 +60,9 @@ class JwtTenantAdminFilter implements FilterInterface
         };
 
         if (!$authorized) {
-            return service('response')->setStatusCode(403)->setJSON([
+            return \App\Libraries\ApiResponse::send(service('response'), [
                 'error' => 'forbidden', 'error_description' => "You are not the Tenant Admin for this {$resourceType}'s tenant.",
-            ]);
+            ], null, 403);
         }
 
         UserAuthContext::set($party, $claims['roles'] ?? ['party']);

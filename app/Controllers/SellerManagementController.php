@@ -47,7 +47,7 @@ class SellerManagementController extends BaseController
         }
         unset($seller);
 
-        return $this->response->setJSON(['tenant' => $tenant, 'sellers' => $sellers]);
+        return $this->apiResponse(['tenant' => $tenant, 'sellers' => $sellers]);
     }
 
     public function detail(string $tenantId, string $sellerId)
@@ -84,7 +84,7 @@ class SellerManagementController extends BaseController
             ->whereIn('status', ['filed', 'evidence_window', 'appealed'])
             ->get()->getRowArray();
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'tenant' => $tenant, 'seller' => $seller, 'sales' => $sales,
             'violations' => $violations, 'openCase' => $openCase,
         ]);
@@ -105,6 +105,6 @@ class SellerManagementController extends BaseController
             return $this->jsonError(422, 'initiate_failed', $e->getMessage());
         }
 
-        return $this->response->setStatusCode(201)->setJSON(['case' => $case]);
+        return $this->apiResponse(['case' => $case], null, 201);
     }
 }

@@ -28,7 +28,7 @@ class StandingReviewController extends BaseController
             ->where('ta.status', 'approved')
             ->get()->getResultArray();
 
-        return $this->response->setJSON(['dispute' => $dispute, 'seller' => $seller, 'tenants' => $tenants]);
+        return $this->apiResponse(['dispute' => $dispute, 'seller' => $seller, 'tenants' => $tenants]);
     }
 
     public function rule(string $disputeId)
@@ -45,6 +45,6 @@ class StandingReviewController extends BaseController
             return $this->jsonError(422, 'rule_failed', $e->getMessage());
         }
 
-        return $this->response->setJSON(['dispute' => (new DisputeModel())->find($disputeId), 'message' => 'Standing Review case ruled.']);
+        return $this->apiResponse(['dispute' => (new DisputeModel())->find($disputeId), 'message' => 'Standing Review case ruled.']);
     }
 }

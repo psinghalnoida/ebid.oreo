@@ -32,7 +32,7 @@ class ExpressController extends BaseController
             return $this->jsonError(422, 'pledge_failed', $e->getMessage());
         }
 
-        return $this->response->setJSON(['saleEvent' => $this->saleEventModel->find($saleEventId)]);
+        return $this->apiResponse(['saleEvent' => $this->saleEventModel->find($saleEventId)]);
     }
 
     public function placeBid(string $saleEventId)
@@ -46,7 +46,7 @@ class ExpressController extends BaseController
             return $this->jsonError(422, 'bid_failed', $e->getMessage());
         }
 
-        return $this->response->setJSON(['saleEvent' => $this->saleEventModel->find($saleEventId)]);
+        return $this->apiResponse(['saleEvent' => $this->saleEventModel->find($saleEventId)]);
     }
 
     // ⚠️ DEV-ONLY: forces the 1-hour bidding countdown to expire
@@ -59,6 +59,6 @@ class ExpressController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'force_close_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['saleEvent' => $this->saleEventModel->find($saleEventId)]);
+        return $this->apiResponse(['saleEvent' => $this->saleEventModel->find($saleEventId)]);
     }
 }
