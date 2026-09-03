@@ -30,7 +30,7 @@ class EmdConsentController extends BaseController
             $saleEvent['reserve_value'] !== null ? (float) $saleEvent['reserve_value'] : null
         );
 
-        return $this->response->setJSON(['saleEvent' => $saleEvent, 'amount' => $baseline, 'action' => $action]);
+        return $this->apiResponse(['saleEvent' => $saleEvent, 'amount' => $baseline, 'action' => $action]);
     }
 
     public function confirm(string $saleEventId, string $action)
@@ -87,7 +87,7 @@ class EmdConsentController extends BaseController
             return $this->jsonError(422, 'consent_action_failed', $e->getMessage());
         }
 
-        return $this->response->setJSON(['saleEvent' => $this->saleEventModel->find($saleEventId)]);
+        return $this->apiResponse(['saleEvent' => $this->saleEventModel->find($saleEventId)]);
     }
 
     private function fundStandard(string $saleEventId, string $partyId, float $baseline): void

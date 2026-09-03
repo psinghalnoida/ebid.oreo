@@ -36,7 +36,7 @@ class PayoutReviewController extends BaseController
             $reviewed = $reviewModel->findReviewedForTenants($tenantIds);
         }
 
-        return $this->response->setJSON(['pending' => $pending, 'reviewed' => $reviewed]);
+        return $this->apiResponse(['pending' => $pending, 'reviewed' => $reviewed]);
     }
 
     public function decide(string $reviewId)
@@ -65,6 +65,6 @@ class PayoutReviewController extends BaseController
             return $this->jsonError(422, 'decide_failed', $e->getMessage());
         }
 
-        return $this->response->setJSON(['review' => $reviewModel->find($reviewId)]);
+        return $this->apiResponse(['review' => $reviewModel->find($reviewId)]);
     }
 }

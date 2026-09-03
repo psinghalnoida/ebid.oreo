@@ -41,7 +41,7 @@ class TenantController extends BaseController
             return $this->jsonError(422, 'create_failed', 'Could not create tenant — subdomain or custom domain may already be in use.');
         }
 
-        return $this->response->setStatusCode(201)->setJSON(['tenant' => $tenant, 'message' => "Tenant \"{$tenant['name']}\" whitelisted successfully."]);
+        return $this->apiResponse(['tenant' => $tenant, 'message' => "Tenant \"{$tenant['name']}\" whitelisted successfully."], null, 201);
     }
 
     // jwtSuperAdmin-gated.
@@ -52,7 +52,7 @@ class TenantController extends BaseController
         if ($q !== '') {
             $builder = $builder->groupStart()->like('name', $q)->orLike('subdomain', $q)->groupEnd();
         }
-        return $this->response->setJSON(['tenants' => $builder->findAll(), 'q' => $q]);
+        return $this->apiResponse(['tenants' => $builder->findAll(), 'q' => $q]);
     }
 
     // jwtSuperAdmin-gated.
@@ -62,7 +62,7 @@ class TenantController extends BaseController
         if (!$tenant) {
             return $this->jsonError(404, 'not_found', 'Tenant not found.');
         }
-        return $this->response->setJSON(['tenant' => $tenant]);
+        return $this->apiResponse(['tenant' => $tenant]);
     }
 
     // BR-06: tenant branding (logo + primary color). jwtSuperAdmin-gated.
@@ -108,7 +108,7 @@ class TenantController extends BaseController
         }
 
         $this->tenantModel->update($tenantId, $update);
-        return $this->response->setJSON(['tenant' => $this->tenantModel->find($tenantId), 'message' => 'Tenant updated.']);
+        return $this->apiResponse(['tenant' => $this->tenantModel->find($tenantId), 'message' => 'Tenant updated.']);
     }
 
     // Public — a seller browsing which tenants exist without already
@@ -116,6 +116,6 @@ class TenantController extends BaseController
     public function directory()
     {
         $tenants = $this->tenantModel->orderBy('name', 'ASC')->findAll();
-        return $this->response->setJSON(['tenants' => $tenants]);
+        return $this->apiResponse(['tenants' => $tenants]);
     }
 }

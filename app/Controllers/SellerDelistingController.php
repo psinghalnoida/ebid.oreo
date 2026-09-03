@@ -31,7 +31,7 @@ class SellerDelistingController extends BaseController
             return $this->jsonError(422, 'delist_failed', $e->getMessage());
         }
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'listingsSuspended' => $result['listingsSuspended'],
             'message' => "Seller delisted. {$result['listingsSuspended']} active listing(s) suspended across every tenant.",
         ]);

@@ -26,21 +26,21 @@ class UserAuthApiController extends BaseController
         $mobile = trim((string) $this->request->getJsonVar('mobile_number'));
 
         if (!AuthService::isValidIndianMobile($mobile)) {
-            return $this->response->setStatusCode(422)->setJSON([
+            return $this->apiResponse([
                 'error' => 'invalid_mobile_number',
                 'error_description' => 'Expected a 10-digit Indian mobile number in +91XXXXXXXXXX format.',
-            ]);
+            ], null, 422);
         }
 
         $otp = $this->service->requestLoginOtp($mobile);
 
-        return $this->response->setStatusCode(200)->setJSON([
+        return $this->apiResponse([
             'message' => 'OTP sent.',
             // Dev-only convenience: the SMS provider is stubbed (see
             // AuthService::requestOtp docblock) — never returned in
             // production once a real SMS provider is wired up.
             'dev_otp' => $otp,
-        ]);
+        ], null, 200);
     }
 
     // POST /api/v1/auth/otp/verify  { mobile_number, otp }
@@ -52,20 +52,20 @@ class UserAuthApiController extends BaseController
         $otp = trim((string) $this->request->getJsonVar('otp'));
 
         if ($mobile === '' || $otp === '') {
-            return $this->response->setStatusCode(422)->setJSON([
+            return $this->apiResponse([
                 'error' => 'invalid_request', 'error_description' => 'mobile_number and otp are both required.',
-            ]);
+            ], null, 422);
         }
 
         try {
             $result = $this->service->verifyLoginOtp($mobile, $otp);
         } catch (\RuntimeException $e) {
-            return $this->response->setStatusCode(401)->setJSON([
+            return $this->apiResponse([
                 'error' => 'invalid_otp', 'error_description' => $e->getMessage(),
-            ]);
+            ], null, 401);
         }
 
-        return $this->response->setStatusCode(200)->setJSON($result);
+        return $this->apiResponse($result, null, 200);
     }
 
     // POST /api/v1/auth/submit  { otp_ticket, mobile_number, full_name, email }
@@ -79,9 +79,9 @@ class UserAuthApiController extends BaseController
         $entityType = $this->request->getJsonVar('entity_type');
 
         if ($otpTicket === '' || $mobile === '') {
-            return $this->response->setStatusCode(422)->setJSON([
+            return $this->apiResponse([
                 'error' => 'invalid_request', 'error_description' => 'otp_ticket and mobile_number are both required.',
-            ]);
+            ], null, 422);
         }
 
         try {
@@ -91,12 +91,12 @@ class UserAuthApiController extends BaseController
                 'entity_type' => $entityType,
             ]);
         } catch (\RuntimeException $e) {
-            return $this->response->setStatusCode(401)->setJSON([
+            return $this->apiResponse([
                 'error' => 'invalid_otp_ticket', 'error_description' => $e->getMessage(),
-            ]);
+            ], null, 401);
         }
 
-        return $this->response->setStatusCode(200)->setJSON($result);
+        return $this->apiResponse($result, null, 200);
     }
 
     // ── BR-02 mPIN registration/login (D-137, replaces AuthController) ──
@@ -113,7 +113,7 @@ class UserAuthApiController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'request_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['message' => 'OTP sent.', 'dev_otp' => $otp]);
+        return $this->apiResponse(['message' => 'OTP sent.', 'dev_otp' => $otp]);
     }
 
     // POST /api/v1/auth/register/otp/verify  { mobile_number, otp }
@@ -127,7 +127,7 @@ class UserAuthApiController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(401, 'invalid_otp', $e->getMessage());
         }
-        return $this->response->setJSON(['pending_ticket' => $ticket]);
+        return $this->apiResponse(['pending_ticket' => $ticket]);
     }
 
     // POST /api/v1/auth/login  { mobile_number, mpin }
@@ -156,7 +156,7 @@ class UserAuthApiController extends BaseController
             return $this->jsonError(401, 'invalid_mpin', "Incorrect mPIN. {$result['attemptsRemaining']} attempt(s) remaining before OTP verification is required.");
         }
 
-        return $this->response->setJSON($result);
+        return $this->apiResponse($result);
     }
 
     // POST /api/v1/auth/forgot-password  { mobile_number }
@@ -172,7 +172,7 @@ class UserAuthApiController extends BaseController
         }
 
         $result = $this->service->requestForgotPassword($mobile);
-        return $this->response->setJSON($result);
+        return $this->apiResponse($result);
     }
 
     // POST /api/v1/auth/login/verify-reset-otp  { pending_ticket, otp, email_otp? }
@@ -188,7 +188,7 @@ class UserAuthApiController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(401, 'invalid_otp', $e->getMessage());
         }
-        return $this->response->setJSON(['pending_ticket' => $mpinSetupTicket]);
+        return $this->apiResponse(['pending_ticket' => $mpinSetupTicket]);
     }
 
     // POST /api/v1/auth/mpin/complete  { pending_ticket, mpin }
@@ -204,7 +204,7 @@ class UserAuthApiController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'mpin_setup_failed', $e->getMessage());
         }
-        return $this->response->setJSON($result);
+        return $this->apiResponse($result);
     }
 
     // GET /api/v1/auth/me  (filter: jwtAuth)
@@ -214,7 +214,7 @@ class UserAuthApiController extends BaseController
     {
         $party = UserAuthContext::party();
 
-        return $this->response->setStatusCode(200)->setJSON([
+        return $this->apiResponse([
             'party' => [
                 'id' => $party['id'],
                 'mobile_number' => $party['mobile_number'],
@@ -223,6 +223,6 @@ class UserAuthApiController extends BaseController
                 'entity_type' => $party['entity_type'] ?? null,
                 'kyc_status' => $party['kyc_status'] ?? null,
             ],
-        ]);
+        ], null, 200);
     }
 }

@@ -32,7 +32,7 @@ class DisputeController extends BaseController
             return $this->jsonError(422, 'file_failed', $e->getMessage());
         }
 
-        return $this->response->setStatusCode(201)->setJSON(['dispute' => $d]);
+        return $this->apiResponse(['dispute' => $d], null, 201);
     }
 
     public function show(string $disputeId)
@@ -42,7 +42,7 @@ class DisputeController extends BaseController
             return $this->jsonError(404, 'not_found', 'Dispute not found.');
         }
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'dispute' => $d,
             'evidence' => $this->dispute->getEvidence($disputeId),
             'callerId' => UserAuthContext::partyId(),
@@ -56,7 +56,7 @@ class DisputeController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'evidence_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['dispute' => $this->disputeModel->find($disputeId)]);
+        return $this->apiResponse(['dispute' => $this->disputeModel->find($disputeId)]);
     }
 
     // Authorization is checked inside DisputeService itself (category-aware
@@ -73,7 +73,7 @@ class DisputeController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'rule_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['dispute' => $this->disputeModel->find($disputeId)]);
+        return $this->apiResponse(['dispute' => $this->disputeModel->find($disputeId)]);
     }
 
     public function appeal(string $disputeId)
@@ -83,7 +83,7 @@ class DisputeController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'appeal_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['dispute' => $this->disputeModel->find($disputeId)]);
+        return $this->apiResponse(['dispute' => $this->disputeModel->find($disputeId)]);
     }
 
     // Access enforced by the jwtSuperAdmin route filter.
@@ -94,6 +94,6 @@ class DisputeController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'rule_appeal_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['dispute' => $this->disputeModel->find($disputeId)]);
+        return $this->apiResponse(['dispute' => $this->disputeModel->find($disputeId)]);
     }
 }

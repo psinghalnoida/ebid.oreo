@@ -28,7 +28,7 @@ class TenantMediaWaiverController extends BaseController
             return $this->jsonError(422, 'request_failed', $e->getMessage());
         }
 
-        return $this->response->setStatusCode(201)->setJSON(['waiver' => $waiver, 'message' => 'Waiver request submitted for SaaS Admin review.']);
+        return $this->apiResponse(['waiver' => $waiver, 'message' => 'Waiver request submitted for SaaS Admin review.'], null, 201);
     }
 
     // jwtSuperAdmin-gated below.
@@ -49,7 +49,7 @@ class TenantMediaWaiverController extends BaseController
             ->orderBy('tmw.expires_at', 'ASC')
             ->get()->getResultArray();
 
-        return $this->response->setJSON(['pending' => $pending, 'active' => $active]);
+        return $this->apiResponse(['pending' => $pending, 'active' => $active]);
     }
 
     public function decide(string $waiverId)
@@ -64,7 +64,7 @@ class TenantMediaWaiverController extends BaseController
             return $this->jsonError(422, 'decide_failed', $e->getMessage());
         }
 
-        return $this->response->setJSON(['waiver' => $waiver]);
+        return $this->apiResponse(['waiver' => $waiver]);
     }
 
     public function revoke(string $waiverId)
@@ -78,6 +78,6 @@ class TenantMediaWaiverController extends BaseController
             return $this->jsonError(422, 'revoke_failed', $e->getMessage());
         }
 
-        return $this->response->setJSON(['waiver' => $waiver]);
+        return $this->apiResponse(['waiver' => $waiver]);
     }
 }

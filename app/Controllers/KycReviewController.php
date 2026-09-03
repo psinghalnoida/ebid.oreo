@@ -35,7 +35,7 @@ class KycReviewController extends BaseController
     public function index()
     {
         $submitted = $this->partyModel->where('kyc_status', 'submitted')->orderBy('kyc_submitted_at', 'ASC')->findAll();
-        return $this->response->setJSON(['parties' => $submitted]);
+        return $this->apiResponse(['parties' => $submitted]);
     }
 
     public function detail(string $partyId)
@@ -47,7 +47,7 @@ class KycReviewController extends BaseController
         $documents = (new PartyDocumentModel())->forParty($partyId);
         $addresses = (new PartyAddressModel())->forParty($partyId);
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'party' => $party, 'documents' => $documents, 'addresses' => $addresses,
             'suspensionReasons' => KycService::suspensionReasons(),
         ]);
@@ -60,7 +60,7 @@ class KycReviewController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'verify_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['party' => $this->partyModel->find($partyId), 'message' => 'Compliance flag verified.']);
+        return $this->apiResponse(['party' => $this->partyModel->find($partyId), 'message' => 'Compliance flag verified.']);
     }
 
     public function decide(string $partyId)
@@ -71,13 +71,13 @@ class KycReviewController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'decide_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['party' => $this->partyModel->find($partyId), 'message' => $approve ? 'KYC verified.' : 'KYC suspended.']);
+        return $this->apiResponse(['party' => $this->partyModel->find($partyId), 'message' => $approve ? 'KYC verified.' : 'KYC suspended.']);
     }
 
     public function clearEdd(string $partyId)
     {
         $this->kyc->clearEnhancedDueDiligence($partyId, UserAuthContext::partyId());
-        return $this->response->setJSON(['party' => $this->partyModel->find($partyId), 'message' => 'Enhanced due diligence cleared for this party.']);
+        return $this->apiResponse(['party' => $this->partyModel->find($partyId), 'message' => 'Enhanced due diligence cleared for this party.']);
     }
 
     // Documents are never reachable by a guessed URL — decrypted only

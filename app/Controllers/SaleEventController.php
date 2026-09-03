@@ -179,7 +179,7 @@ class SaleEventController extends BaseController
         // BR-13: listing moves to active once a sale system is attached
         $this->listingModel->transitionStatus($listingId, 'active');
 
-        return $this->response->setStatusCode(201)->setJSON(['saleEvent' => $saleEvent]);
+        return $this->apiResponse(['saleEvent' => $saleEvent], null, 201);
     }
 
     // BR-09: Tenant Admin approval — access enforced by the
@@ -191,7 +191,7 @@ class SaleEventController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'approve_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['saleEvent' => $this->saleEventModel->find($saleEventId)]);
+        return $this->apiResponse(['saleEvent' => $this->saleEventModel->find($saleEventId)]);
     }
 
     // BR-57: mandatory for Express specifically, since no inspection
@@ -216,7 +216,7 @@ class SaleEventController extends BaseController
             'saleEventId' => $saleEventId,
         ]);
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'saleEvent' => $this->saleEventModel->find($saleEventId),
             'message' => 'Defect disclosure completed — the listing can now be approved.',
         ]);
@@ -234,7 +234,7 @@ class SaleEventController extends BaseController
             'grace_period_ends_at' => date('Y-m-d H:i:s', time() - 1),
         ]);
         $this->lifecycle->freezeAfterGrace($saleEventId);
-        return $this->response->setJSON(['saleEvent' => $this->saleEventModel->find($saleEventId)]);
+        return $this->apiResponse(['saleEvent' => $this->saleEventModel->find($saleEventId)]);
     }
 
     // BR-14: withdraws all bids, releases all EMD, mandatory audited
@@ -250,6 +250,6 @@ class SaleEventController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'emergency_stop_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['saleEvent' => $this->saleEventModel->find($saleEventId)]);
+        return $this->apiResponse(['saleEvent' => $this->saleEventModel->find($saleEventId)]);
     }
 }

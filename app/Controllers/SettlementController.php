@@ -44,7 +44,7 @@ class SettlementController extends BaseController
             ->orderBy('sequence_number', 'ASC')
             ->get()->getResultArray();
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'settlement' => $s, 'saleEvent' => $saleEvent,
             'callerId' => UserAuthContext::partyId(), 'invoices' => $invoices,
             'dispute' => $dispute, 'auditEvents' => $auditEvents, 'chronicle' => $chronicle,
@@ -58,7 +58,7 @@ class SettlementController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'confirm_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['settlement' => $this->settlementModel->find($settlementId)]);
+        return $this->apiResponse(['settlement' => $this->settlementModel->find($settlementId)]);
     }
 
     public function confirmBuyerNoc(string $settlementId)
@@ -68,7 +68,7 @@ class SettlementController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'confirm_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['settlement' => $this->settlementModel->find($settlementId)]);
+        return $this->apiResponse(['settlement' => $this->settlementModel->find($settlementId)]);
     }
 
     public function rateAsBuyer(string $settlementId)
@@ -80,7 +80,7 @@ class SettlementController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'rating_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['settlement' => $this->settlementModel->find($settlementId)]);
+        return $this->apiResponse(['settlement' => $this->settlementModel->find($settlementId)]);
     }
 
     public function rateAsSeller(string $settlementId)
@@ -92,7 +92,7 @@ class SettlementController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'rating_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['settlement' => $this->settlementModel->find($settlementId)]);
+        return $this->apiResponse(['settlement' => $this->settlementModel->find($settlementId)]);
     }
 
     // ⚠️ DEV-ONLY: BR-39's real 7-day stall wait can't be tested live —
@@ -101,7 +101,7 @@ class SettlementController extends BaseController
     public function devFlagStalled()
     {
         $flagged = $this->settlement->flagStalledSettlements();
-        return $this->response->setJSON(['flagged' => $flagged]);
+        return $this->apiResponse(['flagged' => $flagged]);
     }
 
     // Real admin action (once flagged), not a time-skip — genuinely
@@ -114,6 +114,6 @@ class SettlementController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'force_resolve_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['settlement' => $this->settlementModel->find($settlementId)]);
+        return $this->apiResponse(['settlement' => $this->settlementModel->find($settlementId)]);
     }
 }

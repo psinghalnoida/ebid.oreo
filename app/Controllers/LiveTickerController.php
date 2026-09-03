@@ -10,7 +10,7 @@ class LiveTickerController extends BaseController
     {
         $partyId = \App\Libraries\UserAuthContext::partyId();
         if (!$partyId) {
-            return $this->response->setJSON(['ownBids' => [], 'interestMatches' => []]);
+            return $this->apiResponse(['ownBids' => [], 'interestMatches' => []]);
         }
 
         $db = \Config\Database::connect();
@@ -55,6 +55,6 @@ class LiveTickerController extends BaseController
 
         $interestMatches = $isShadowBanned ? [] : (new ClvMatchingService())->findMatches($partyId);
 
-        return $this->response->setJSON(['ownBids' => $ownBids, 'interestMatches' => $interestMatches]);
+        return $this->apiResponse(['ownBids' => $ownBids, 'interestMatches' => $interestMatches]);
     }
 }

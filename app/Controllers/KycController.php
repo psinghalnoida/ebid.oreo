@@ -30,7 +30,7 @@ class KycController extends BaseController
             $addressesByType[$a['address_type']] = $a;
         }
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'party' => $party, 'documents' => $documents, 'addressesByType' => $addressesByType,
             'requiredDocuments' => KycService::requiredDocuments($party['entity_type']),
             'allDocumentTypes' => KycService::allDocumentTypes(),
@@ -45,7 +45,7 @@ class KycController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'questionnaire_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['message' => 'Questionnaire saved.']);
+        return $this->apiResponse(['message' => 'Questionnaire saved.']);
     }
 
     public function uploadDocument()
@@ -61,7 +61,7 @@ class KycController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'upload_failed', $e->getMessage());
         }
-        return $this->response->setStatusCode(201)->setJSON(['document' => $document]);
+        return $this->apiResponse(['document' => $document], null, 201);
     }
 
     public function saveAddress()
@@ -72,7 +72,7 @@ class KycController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'address_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['address' => $address]);
+        return $this->apiResponse(['address' => $address]);
     }
 
     public function saveBanking()
@@ -83,7 +83,7 @@ class KycController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'banking_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['message' => 'Banking details saved.']);
+        return $this->apiResponse(['message' => 'Banking details saved.']);
     }
 
     public function submit()
@@ -94,6 +94,6 @@ class KycController extends BaseController
         } catch (\RuntimeException $e) {
             return $this->jsonError(422, 'submit_failed', $e->getMessage());
         }
-        return $this->response->setJSON(['message' => 'Submitted for review.']);
+        return $this->apiResponse(['message' => 'Submitted for review.']);
     }
 }

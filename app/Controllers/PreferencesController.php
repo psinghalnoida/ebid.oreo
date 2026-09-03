@@ -15,7 +15,7 @@ class PreferencesController extends BaseController
         $db = \Config\Database::connect();
         $allCategories = $db->table('listing')->distinct()->select('category')->orderBy('category', 'ASC')->get()->getResultArray();
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'existing' => $existing,
             'allCategories' => array_column($allCategories, 'category'),
             'selectedCategories' => $existing && $existing['preferred_categories'] ? json_decode($existing['preferred_categories'], true) : [],
@@ -34,6 +34,6 @@ class PreferencesController extends BaseController
 
         (new ClvMatchingService())->savePreferences($partyId, $categories, $states, $budgetMin, $budgetMax);
 
-        return $this->response->setJSON(['message' => 'Preferences saved.']);
+        return $this->apiResponse(['message' => 'Preferences saved.']);
     }
 }

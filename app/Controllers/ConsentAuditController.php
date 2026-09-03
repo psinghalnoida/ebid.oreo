@@ -27,7 +27,7 @@ class ConsentAuditController extends BaseController
             $query->where('p.mobile_number', $mobile);
         }
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'entries' => $query->get()->getResultArray(),
             'consentType' => $consentType, 'mobile' => $mobile,
         ]);

@@ -40,7 +40,7 @@ class AccountController extends BaseController
         $partyModel->update($partyId, $update);
         (new AuditLogService())->log('account.edited', $partyId, ['fields' => array_keys($update)]);
 
-        return $this->response->setJSON(['party' => $partyModel->find($partyId), 'message' => 'Account details updated.']);
+        return $this->apiResponse(['party' => $partyModel->find($partyId), 'message' => 'Account details updated.']);
     }
 
     // mPIN change — OTP-gated even though the caller is already
@@ -56,7 +56,7 @@ class AccountController extends BaseController
 
         $pendingTicket = UserAuthApiService::issuePendingTicket(self::MPIN_CHANGE_TICKET_TYP, ['sub' => $partyId]);
 
-        return $this->response->setJSON(['pending_ticket' => $pendingTicket, 'dev_otp' => $otp]);
+        return $this->apiResponse(['pending_ticket' => $pendingTicket, 'dev_otp' => $otp]);
     }
 
     public function changeMpinConfirm()
@@ -83,7 +83,7 @@ class AccountController extends BaseController
 
         (new AuditLogService())->log('account.mpin_changed', $partyId, []);
 
-        return $this->response->setJSON(['message' => 'mPIN changed successfully.']);
+        return $this->apiResponse(['message' => 'mPIN changed successfully.']);
     }
 
     // Account deletion — soft delete via the existing archived_at
@@ -99,7 +99,7 @@ class AccountController extends BaseController
         ]);
         (new AuditLogService())->log('account.deletion_requested', $partyId, ['reason' => $reason]);
 
-        return $this->response->setJSON(['message' => 'Deletion requested — your account will be archived in 30 days unless you cancel before then.']);
+        return $this->apiResponse(['message' => 'Deletion requested — your account will be archived in 30 days unless you cancel before then.']);
     }
 
     public function deleteCancelSubmit()
@@ -108,7 +108,7 @@ class AccountController extends BaseController
         (new PartyModel())->update($partyId, ['deletion_requested_at' => null, 'deletion_reason' => null]);
         (new AuditLogService())->log('account.deletion_cancelled', $partyId, []);
 
-        return $this->response->setJSON(['message' => 'Deletion request cancelled.']);
+        return $this->apiResponse(['message' => 'Deletion request cancelled.']);
     }
 
     // Seller earnings summary — real aggregates from completed
@@ -155,7 +155,7 @@ class AccountController extends BaseController
 
         $party = (new PartyModel())->find($partyId);
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'thisMonth' => $thisMonth, 'ytd' => $ytd, 'pendingCount' => $pendingCount, 'party' => $party,
         ]);
     }

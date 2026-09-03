@@ -13,7 +13,7 @@ class AmlController extends BaseController
     public function index()
     {
         $flagModel = new AmlFlagModel();
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'open' => $flagModel->findOpen(),
             'reviewed' => $flagModel->findReviewed(),
         ]);
@@ -32,6 +32,6 @@ class AmlController extends BaseController
             return $this->jsonError(422, 'review_failed', $e->getMessage());
         }
 
-        return $this->response->setJSON(['flag' => (new AmlFlagModel())->find($flagId)]);
+        return $this->apiResponse(['flag' => (new AmlFlagModel())->find($flagId)]);
     }
 }

@@ -27,7 +27,7 @@ class AuditLogController extends BaseController
             $query->where('p.mobile_number', $actorMobile);
         }
 
-        return $this->response->setJSON([
+        return $this->apiResponse([
             'entries' => $query->get()->getResultArray(),
             'eventType' => $eventType, 'actorMobile' => $actorMobile,
         ]);
@@ -36,7 +36,7 @@ class AuditLogController extends BaseController
     public function verifyIntegrity()
     {
         $brokenAt = (new AuditLogService())->verifyChainIntegrity();
-        return $this->response->setJSON(['brokenAt' => $brokenAt]);
+        return $this->apiResponse(['brokenAt' => $brokenAt]);
     }
 
     // BR-58: "a reporting/export capability layered on the existing

@@ -73,7 +73,7 @@ class BidController extends BaseController
             ], $this->request->getIPAddress(), (string) $this->request->getUserAgent());
         }
 
-        return $this->response->setJSON(['emdHold' => $this->emdHoldModel->findBySaleEventAndParty($saleEventId, $bidderId)]);
+        return $this->apiResponse(['emdHold' => $this->emdHoldModel->findBySaleEventAndParty($saleEventId, $bidderId)]);
     }
 
     // ⚠️ DEV-ONLY: simulates a cleared cascade top-up payment (BR-28),
@@ -106,7 +106,7 @@ class BidController extends BaseController
             return $this->jsonError(422, 'topup_failed', $e->getMessage());
         }
 
-        return $this->response->setJSON(['bid' => $this->bidModel->find($bid['id'])]);
+        return $this->apiResponse(['bid' => $this->bidModel->find($bid['id'])]);
     }
 
     public function placeBid(string $saleEventId)
@@ -122,6 +122,6 @@ class BidController extends BaseController
             return $this->jsonError(422, 'bid_failed', $e->getMessage());
         }
 
-        return $this->response->setJSON(['saleEvent' => $this->saleEventModel->find($saleEventId)]);
+        return $this->apiResponse(['saleEvent' => $this->saleEventModel->find($saleEventId)]);
     }
 }

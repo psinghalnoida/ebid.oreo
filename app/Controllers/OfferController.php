@@ -61,7 +61,7 @@ class OfferController extends BaseController
             ], $this->request->getIPAddress(), (string) $this->request->getUserAgent());
         }
 
-        return $this->response->setJSON(['emdHold' => $this->emdHoldModel->findBySaleEventAndParty($saleEventId, $buyerId)]);
+        return $this->apiResponse(['emdHold' => $this->emdHoldModel->findBySaleEventAndParty($saleEventId, $buyerId)]);
     }
 
     public function submit(string $saleEventId)
@@ -77,7 +77,7 @@ class OfferController extends BaseController
             return $this->jsonError(422, 'offer_failed', $e->getMessage());
         }
 
-        return $this->response->setStatusCode(201)->setJSON(['offer' => $offer]);
+        return $this->apiResponse(['offer' => $offer], null, 201);
     }
 
     public function withdraw(string $offerId)
@@ -90,7 +90,7 @@ class OfferController extends BaseController
             return $this->jsonError(422, 'withdraw_failed', $e->getMessage());
         }
 
-        return $this->response->setJSON(['offer' => $offer]);
+        return $this->apiResponse(['offer' => $offer]);
     }
 
     // BR-09/BR-42: this decision belongs to the SELLER specifically, not
@@ -117,6 +117,6 @@ class OfferController extends BaseController
             return $this->jsonError(422, 'accept_failed', $e->getMessage());
         }
 
-        return $this->response->setJSON(['offer' => $offer]);
+        return $this->apiResponse(['offer' => $offer]);
     }
 }
