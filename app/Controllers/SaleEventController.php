@@ -77,6 +77,17 @@ class SaleEventController extends BaseController
             $data['scheduled_start_at'] = date('Y-m-d H:i:s', strtotime($startAt));
             $data['scheduled_end_at'] = date('Y-m-d H:i:s', strtotime($endAt));
 
+            // Optional buyer inspection window, Easy Auction only.
+            $inspectionStart = $this->input('inspection_window_start');
+            $inspectionEnd = $this->input('inspection_window_end');
+            if ($inspectionStart && $inspectionEnd) {
+                if (strtotime($inspectionEnd) <= strtotime($inspectionStart)) {
+                    return $this->jsonError(422, 'invalid_inspection_window', 'The inspection window end must be after its start.');
+                }
+                $data['inspection_window_start'] = date('Y-m-d H:i:s', strtotime($inspectionStart));
+                $data['inspection_window_end'] = date('Y-m-d H:i:s', strtotime($inspectionEnd));
+            }
+
             // D-34 correction: seller selects 2-5% of Reserve Value as
             // the bid increment.
             $incrementPercent = (float) ($this->input('increment_percent') ?: 2);

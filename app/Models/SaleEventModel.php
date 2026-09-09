@@ -17,6 +17,7 @@ class SaleEventModel extends Model
         'expected_value', 'reserve_value', 'result_mode',
         'current_price', 'current_high_bidder_party_id',
         'grace_period_ends_at', 'scheduled_start_at', 'scheduled_end_at',
+        'inspection_window_start', 'inspection_window_end',
         'dynamic_time_trigger_minutes', 'dynamic_time_extension_minutes',
         'bid_increment_amount', 'increment_halved_at', 'anti_snipe_trigger_minutes',
         'tender_increment', 'tender_increment_halved', 'tender_increment_halving_minutes',
