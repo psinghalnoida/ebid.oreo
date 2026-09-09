@@ -50,8 +50,14 @@ class UserAuthApiService
     // return a clean 401 without a stack trace.
     public function verifyLoginOtp(string $mobileNumber, string $otp): array
     {
-        if (!$this->auth->verifyOtp($mobileNumber, 'api_login', $otp)) {
-            throw new \RuntimeException('Incorrect or expired OTP.');
+        $reason = $this->auth->verifyOtpWithReason($mobileNumber, 'api_login', $otp);
+        if ($reason !== 'ok') {
+            throw new \RuntimeException(match ($reason) {
+                'no_active_otp' => 'No OTP was requested for this mobile number, or a newer OTP request has already replaced it — request a fresh OTP and use the latest one.',
+                'expired' => 'This OTP has expired. Request a new one.',
+                'locked_out' => 'Too many incorrect attempts for this OTP. Request a new one.',
+                default => 'Incorrect OTP.',
+            });
         }
 
         $ticket = JwtService::encode([

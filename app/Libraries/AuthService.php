@@ -69,24 +69,41 @@ class AuthService
     // a clean "incorrect OTP" message without a stack trace.
     public function verifyOtp(string $mobileNumber, string $purpose, string $submittedOtp): bool
     {
+        return $this->verifyOtpWithReason($mobileNumber, $purpose, $submittedOtp) === 'ok';
+    }
+
+    // Same check as verifyOtp(), but tells the CALLER why it failed instead
+    // of collapsing every case into one generic false — the "Incorrect or
+    // expired OTP" message every failure used to share made it impossible
+    // to tell "you typed the wrong code" apart from "you requested a new
+    // OTP after this one, so it's stale" or "this OTP already got used" or
+    // "you've been locked out after 5 wrong tries". Returns one of:
+    //   'ok', 'no_active_otp', 'expired', 'locked_out', 'wrong_code'
+    public function verifyOtpWithReason(string $mobileNumber, string $purpose, string $submittedOtp): string
+    {
         $record = $this->otpModel->findActive($mobileNumber, $purpose);
         if (!$record) {
-            return false;
+            // Either no OTP was ever requested for this mobile+purpose, or
+            // the most recent one for it was already verified (e.g. a
+            // second /otp/request call superseded it, or a duplicate
+            // /otp/verify was retried after the first one already
+            // succeeded).
+            return 'no_active_otp';
         }
         if (new \DateTimeImmutable() > new \DateTimeImmutable($record['expires_at'])) {
-            return false;
+            return 'expired';
         }
         if ((int) $record['attempts'] >= self::OTP_MAX_ATTEMPTS) {
-            return false;
+            return 'locked_out';
         }
 
         if (!password_verify($submittedOtp, $record['otp_hash'])) {
             $this->otpModel->incrementAttempts($record['id']);
-            return false;
+            return 'wrong_code';
         }
 
         $this->otpModel->markVerified($record['id']);
-        return true;
+        return 'ok';
     }
 
     // Dual-channel mPIN reset — email side. Deliberately separate from
