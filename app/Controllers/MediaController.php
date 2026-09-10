@@ -17,13 +17,13 @@ class MediaController extends BaseController
         $this->listingModel = new ListingModel();
     }
 
-    // PR-09: this only validates and STAGES files, then returns — the
-    // actual compression/transcoding happens later, off the request
-    // thread, via the background queue (MediaQueueService, drained by
-    // `php spark process:media-queue` and the scheduler cron sweep).
-    // That's what makes the upload genuinely non-blocking rather than
-    // just fast-looking. Uploaded as multipart/form-data (not JSON) —
-    // React sends this via FormData, same as any other file upload.
+    // Files are validated, staged, AND fully processed (compressed/
+    // transcoded into real listing_media rows) synchronously within this
+    // one request — no background cron dependency. This trades a faster
+    // response for not needing `php spark process:media-queue` / the
+    // scheduler cron sweep to be running on the server for uploads to
+    // ever finish. Uploaded as multipart/form-data (not JSON) — React
+    // sends this via FormData, same as any other file upload.
     public function upload(string $listingId)
     {
         $partyId = UserAuthContext::partyId();
@@ -50,10 +50,32 @@ class MediaController extends BaseController
             return $this->jsonError(422, 'upload_failed', $e->getMessage());
         }
 
+        // Processed synchronously, right here in the request, instead of
+        // waiting on the background cron queue. Each of THIS batch's own
+        // jobs is processed directly by id — not via
+        // MediaQueueService::processNext(), which claims whatever job is
+        // oldest platform-wide and would risk this request processing
+        // (and reporting back) another seller's concurrent upload while
+        // leaving this listing's own jobs stuck pending.
+        $jobModel = new \App\Models\MediaUploadJobModel();
+        $doneMedia = [];
+        $failedFiles = [];
+        foreach ($jobs as $job) {
+            try {
+                $media = $this->media->processJob($job);
+                $jobModel->markDone($job['id'], $media['id']);
+                $doneMedia[] = $media;
+            } catch (\Throwable $e) {
+                $jobModel->markFailed($job['id'], $e->getMessage());
+                $failedFiles[] = ['original_filename' => $job['original_filename'], 'error' => $e->getMessage()];
+            }
+        }
+
         return $this->apiResponse([
-            'jobs' => $jobs,
-            'message' => count($jobs) . ' file(s) queued for processing — they\'ll appear once the background queue finishes compressing them.',
-        ], null, 202);
+            'media' => $doneMedia,
+            'failed' => $failedFiles,
+            'message' => count($doneMedia) . ' file(s) processed' . (count($failedFiles) > 0 ? ', ' . count($failedFiles) . ' failed' : '') . '.',
+        ], null, 200);
     }
 
     public function setPrimary(string $listingId, string $mediaId)
