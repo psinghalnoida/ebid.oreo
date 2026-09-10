@@ -51,23 +51,30 @@ class MediaController extends BaseController
         }
 
         // Processed synchronously, right here in the request, instead of
-        // waiting on the background cron queue (MediaQueueService is
-        // still what does the actual compression/transcoding — this just
-        // drains this batch's jobs immediately rather than leaving them
-        // pending for a scheduled sweep to pick up later).
-        $queue = new \App\Libraries\MediaQueueService();
-        $results = [];
+        // waiting on the background cron queue. Each of THIS batch's own
+        // jobs is processed directly by id — not via
+        // MediaQueueService::processNext(), which claims whatever job is
+        // oldest platform-wide and would risk this request processing
+        // (and reporting back) another seller's concurrent upload while
+        // leaving this listing's own jobs stuck pending.
+        $jobModel = new \App\Models\MediaUploadJobModel();
+        $doneMedia = [];
+        $failedFiles = [];
         foreach ($jobs as $job) {
-            $results[] = $queue->processNext();
+            try {
+                $media = $this->media->processJob($job);
+                $jobModel->markDone($job['id'], $media['id']);
+                $doneMedia[] = $media;
+            } catch (\Throwable $e) {
+                $jobModel->markFailed($job['id'], $e->getMessage());
+                $failedFiles[] = ['original_filename' => $job['original_filename'], 'error' => $e->getMessage()];
+            }
         }
 
-        $done = array_filter($results, fn($r) => $r && $r['outcome'] === 'done');
-        $failed = array_filter($results, fn($r) => $r && $r['outcome'] === 'failed');
-
         return $this->apiResponse([
-            'media' => array_values(array_map(fn($r) => $r['media'], $done)),
-            'failed' => array_values(array_map(fn($r) => ['original_filename' => $r['job']['original_filename'], 'error' => $r['error']], $failed)),
-            'message' => count($done) . ' file(s) processed' . (count($failed) > 0 ? ', ' . count($failed) . ' failed' : '') . '.',
+            'media' => $doneMedia,
+            'failed' => $failedFiles,
+            'message' => count($doneMedia) . ' file(s) processed' . (count($failedFiles) > 0 ? ', ' . count($failedFiles) . ' failed' : '') . '.',
         ], null, 200);
     }
 
