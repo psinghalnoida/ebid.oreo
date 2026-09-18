@@ -117,6 +117,7 @@ class UserAuthApiService
                 'recovery_email' => $email !== '' ? $email : null,
                 'last_login_at' => date('Y-m-d H:i:s'),
             ]);
+            (new \App\Models\PartyRoleModel())->grantRole($party['id'], 'buyer');
         }
         $party = $this->partyModel->find($party['id']);
 
@@ -344,6 +345,11 @@ class UserAuthApiService
 
     private static function toProfile(array $party): array
     {
+        $roles = array_column(
+            (new \App\Models\PartyRoleModel())->findActiveRolesForParty($party['id']),
+            'role'
+        );
+
         return [
             'id' => $party['id'],
             'mobile_number' => $party['mobile_number'],
@@ -351,6 +357,7 @@ class UserAuthApiService
             'email' => $party['recovery_email'] ?? null,
             'entity_type' => $party['entity_type'] ?? null,
             'kyc_status' => $party['kyc_status'] ?? null,
+            'roles' => $roles,
         ];
     }
 }
