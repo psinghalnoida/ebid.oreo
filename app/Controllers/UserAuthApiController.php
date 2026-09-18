@@ -213,6 +213,10 @@ class UserAuthApiController extends BaseController
     public function me()
     {
         $party = UserAuthContext::party();
+        $roles = array_column(
+            (new \App\Models\PartyRoleModel())->findActiveRolesForParty($party['id']),
+            'role'
+        );
 
         return $this->apiResponse([
             'party' => [
@@ -222,6 +226,7 @@ class UserAuthApiController extends BaseController
                 'email' => $party['recovery_email'] ?? null,
                 'entity_type' => $party['entity_type'] ?? null,
                 'kyc_status' => $party['kyc_status'] ?? null,
+                'roles' => $roles,
             ],
         ], null, 200);
     }

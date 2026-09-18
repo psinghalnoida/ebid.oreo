@@ -168,6 +168,7 @@ class AuthService
         }
         $party = $this->partyModel->createParty($mobileNumber, $entityType);
         $this->partyModel->update($party['id'], ['mobile_verified_at' => date('Y-m-d H:i:s')]);
+        (new \App\Models\PartyRoleModel())->grantRole($party['id'], 'buyer');
         return $this->partyModel->find($party['id']);
     }
 
