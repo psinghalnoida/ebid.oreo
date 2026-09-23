@@ -157,6 +157,19 @@
     el.className = 'msg ' + kind;
   }
 
+  // Every API response is wrapped as {status, message, data} (see
+  // App\Libraries\ApiResponse) — the real payload sits under `data`,
+  // and an error's human-readable text is the top-level `message`.
+  function unwrapEnvelope(body, ok) {
+    if (!body || typeof body !== 'object' || !('data' in body) || typeof body.status !== 'boolean') {
+      return body || {};
+    }
+    const data = (body.data && typeof body.data === 'object' && !Array.isArray(body.data)) ? Object.assign({}, body.data) : {};
+    if (!ok && !data.error_description && body.message) data.error_description = body.message;
+    if (!data.message && body.message) data.message = body.message;
+    return data;
+  }
+
   let mobileNumber = null;
   let pendingTicket = null; // admin_totp_setup_pending — scoped to finishing THIS enrollment, nothing else
 
@@ -176,7 +189,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mobile_number: mobileNumber }),
       });
-      const data = await res.json();
+      const data = unwrapEnvelope(await res.json(), res.ok);
       if (!res.ok) {
         showMsg(mobileMsg, data.error_description || 'Could not send a code to that number.', 'error');
         return;
@@ -207,7 +220,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mobile_number: mobileNumber, otp: otp }),
       });
-      const data = await res.json();
+      const data = unwrapEnvelope(await res.json(), res.ok);
       if (!res.ok) {
         showStep('step-otp');
         showMsg(otpMsg, data.error_description || 'Incorrect or expired code.', 'error');
@@ -243,7 +256,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pending_ticket: pendingTicket, code: code }),
       });
-      const data = await res.json();
+      const data = unwrapEnvelope(await res.json(), res.ok);
       if (!res.ok) {
         showMsg(qrMsg, data.error_description || 'Invalid code — check your app and try again.', 'error');
         return;
