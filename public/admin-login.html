@@ -386,9 +386,23 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body || {}),
     });
-    let data = {};
-    try { data = await res.json(); } catch (e) { /* no body */ }
-    return { ok: res.ok, status: res.status, data };
+    let json = {};
+    try { json = await res.json(); } catch (e) { /* no body */ }
+    return { ok: res.ok, status: res.status, data: unwrapEnvelope(json, res.ok) };
+  }
+  // Every API response is wrapped as {status, message, data} (see
+  // App\Libraries\ApiResponse) — the real payload sits under `data`,
+  // and an error's human-readable text is the top-level `message`.
+  // Unwrap it here once so every caller below can keep reading fields
+  // (access_token, pending_ticket, error_description, ...) directly.
+  function unwrapEnvelope(body, ok) {
+    if (!body || typeof body !== 'object' || !('data' in body) || typeof body.status !== 'boolean') {
+      return body || {};
+    }
+    const data = (body.data && typeof body.data === 'object' && !Array.isArray(body.data)) ? Object.assign({}, body.data) : {};
+    if (!ok && !data.error_description && body.message) data.error_description = body.message;
+    if (!data.message && body.message) data.message = body.message;
+    return data;
   }
   function setBusy(btn, busy, busyText, idleText) {
     btn.disabled = busy;
@@ -490,7 +504,7 @@
     setBusy(mpinBtn, true, 'Signing in…', 'Sign in');
     try {
       const { ok, status, data } = await postJson('/login-mpin', { mobile_number: currentMobile, mpin: mpin });
-      if (ok && data.status === 'ok') {
+      if (ok && data.access_token) {
         onSignedIn(data);
         return;
       }
