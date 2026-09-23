@@ -10,6 +10,7 @@ use App\Models\ListingModel;
 use App\Models\SaleEventModel;
 use App\Models\EmdHoldModel;
 use App\Models\PartyRoleModel;
+use App\Models\SuperAdminCredentialModel;
 use App\Libraries\SuperAdminAuthService;
 use App\Libraries\BiddingService;
 use App\Libraries\OfferService;
@@ -34,13 +35,19 @@ class TestTier3 extends BaseCommand
         $superAdminAuth = new SuperAdminAuthService();
 
         CLI::write('=== BR-04: TOTP setup and login ===', 'yellow');
+        // Custodian login no longer uses party.mpin_hash: the legacy
+        // login() path is email + password (super_admin_credential) +
+        // TOTP, and the default path is mobile + an admin mPIN stored on
+        // that same credential row (see SuperAdminAuthService).
+        $credentialModel = new SuperAdminCredentialModel();
+        $adminEmail = 'tier3-custodian@example.test';
         $admin = $partyModel->createParty('+919222801001');
-        $partyModel->setMpinHash($admin['id'], password_hash('1234', PASSWORD_BCRYPT));
         $roleModel->grantRole($admin['id'], 'super_admin', null);
+        $credentialModel->setCredential($admin['id'], $adminEmail, password_hash('Tier3-Passw0rd', PASSWORD_BCRYPT));
 
         $rejected = false;
         try {
-            $superAdminAuth->login('+919222801001', '1234', '000000');
+            $superAdminAuth->login($adminEmail, 'Tier3-Passw0rd', '000000');
         } catch (\RuntimeException $e) {
             $rejected = str_contains($e->getMessage(), 'not been set up');
         }
@@ -60,38 +67,70 @@ class TestTier3 extends BaseCommand
         $confirmed = $superAdminAuth->confirmTotpSetup($admin['id'], $validCode);
         $this->assert(is_array($confirmed) && count($confirmed) === 10, 'Correct code confirms TOTP setup and returns 10 real backup codes');
 
-        $wrongMpin = false;
+        $wrongPassword = false;
         try {
-            $superAdminAuth->login('+919222801001', '9999', $validCode);
+            $superAdminAuth->login($adminEmail, 'not-the-password', $validCode);
         } catch (\RuntimeException $e) {
-            $wrongMpin = str_contains($e->getMessage(), 'Incorrect mPIN');
+            $wrongPassword = str_contains($e->getMessage(), 'Incorrect email or password');
         }
-        $this->assert($wrongMpin, 'Wrong mPIN correctly rejected even with a valid TOTP code');
+        $this->assert($wrongPassword, 'Wrong password correctly rejected even with a valid TOTP code');
 
-        $loggedIn = $superAdminAuth->login('+919222801001', '1234', $validCode);
-        $this->assert($loggedIn['id'] === $admin['id'], 'Full login succeeds with correct mPIN + correct TOTP code');
+        $loggedIn = $superAdminAuth->login($adminEmail, 'Tier3-Passw0rd', $validCode);
+        $this->assert($loggedIn['id'] === $admin['id'], 'Full login succeeds with correct email + password + TOTP code');
 
         // PR-17 fallback: a real backup code stands in for the
         // authenticator when it's unavailable, and is single-use.
-        $backupLogin = $superAdminAuth->login('+919222801001', '1234', $confirmed[0]);
+        $backupLogin = $superAdminAuth->login($adminEmail, 'Tier3-Passw0rd', $confirmed[0]);
         $this->assert($backupLogin['id'] === $admin['id'], 'Login succeeds using a valid backup code in place of the TOTP code');
         $backupReuseBlocked = false;
         try {
-            $superAdminAuth->login('+919222801001', '1234', $confirmed[0]);
+            $superAdminAuth->login($adminEmail, 'Tier3-Passw0rd', $confirmed[0]);
         } catch (\RuntimeException $e) {
             $backupReuseBlocked = str_contains($e->getMessage(), 'Invalid or expired');
         }
         $this->assert($backupReuseBlocked, 'A backup code cannot be reused after being consumed once');
 
         $nonAdmin = $partyModel->createParty('+919222801002');
-        $partyModel->setMpinHash($nonAdmin['id'], password_hash('5555', PASSWORD_BCRYPT));
+        $credentialModel->setCredential($nonAdmin['id'], 'tier3-not-custodian@example.test', password_hash('Other-Passw0rd', PASSWORD_BCRYPT));
         $notSuperAdmin = false;
         try {
-            $superAdminAuth->login('+919222801002', '5555', '123456');
+            $superAdminAuth->login('tier3-not-custodian@example.test', 'Other-Passw0rd', '123456');
         } catch (\RuntimeException $e) {
             $notSuperAdmin = str_contains($e->getMessage(), 'Super Admin access');
         }
         $this->assert($notSuperAdmin, 'A regular party without the super_admin role is correctly blocked, regardless of TOTP');
+
+        CLI::write("\n=== Custodian mobile + mPIN login (default method) ===", 'yellow');
+        $methods = $superAdminAuth->loginMethods('+919222801001');
+        $this->assert($methods['mpin_enabled'] === false && $methods['totp_enabled'] === true, 'login-methods reports TOTP enabled and no admin mPIN yet');
+
+        $mpinNotSetUp = false;
+        try {
+            $superAdminAuth->authenticateWithMpin('+919222801001', '1234');
+        } catch (\RuntimeException $e) {
+            $mpinNotSetUp = str_contains($e->getMessage(), 'not been set up');
+        }
+        $this->assert($mpinNotSetUp, 'mPIN login correctly blocked before an admin mPIN is set');
+
+        $superAdminAuth->setMpin($admin['id'], '1234');
+        $this->assert($superAdminAuth->loginMethods('+919222801001')['mpin_enabled'] === true, 'login-methods reports the admin mPIN once set');
+
+        $wrongMpin = $superAdminAuth->authenticateWithMpin('+919222801001', '9999');
+        $this->assert($wrongMpin['status'] === 'invalid_mpin' && $wrongMpin['attemptsRemaining'] === 2, 'Wrong mPIN correctly rejected with attempts remaining');
+
+        $mpinLogin = $superAdminAuth->authenticateWithMpin('+919222801001', '1234');
+        $this->assert($mpinLogin['status'] === 'ok' && $mpinLogin['party']['id'] === $admin['id'], 'Correct mobile + mPIN logs the Custodian in');
+
+        $nonAdminMpin = false;
+        try {
+            $superAdminAuth->authenticateWithMpin('+919222801002', '1234');
+        } catch (\RuntimeException $e) {
+            $nonAdminMpin = str_contains($e->getMessage(), 'Incorrect mobile number or mPIN');
+        }
+        $this->assert($nonAdminMpin, 'A party without the super_admin role cannot use the Custodian mPIN login');
+
+        $totpLogin = $superAdminAuth->loginWithTotpCode('+919222801001', $this->computeTotpCode($setup['secret']));
+        $this->assert($totpLogin['id'] === $admin['id'], 'Mobile + Google Authenticator code alone logs the Custodian in');
 
         CLI::write("\n=== BR-21: Inspector cannot bid on their own inspected listing ===", 'yellow');
         $tenant = $tenantModel->createTenant(['name' => 'Tier3 Test Tenant', 'tenant_class' => 'general', 'subdomain' => 'tier3test']);
