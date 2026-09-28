@@ -10,6 +10,7 @@ use App\Libraries\UserAuthApiService;
 use App\Libraries\UserAuthContext;
 use App\Libraries\AuditLogService;
 use App\Models\PartyModel;
+use App\Models\PartyRoleModel;
 use App\Models\SuperAdminCredentialModel;
 
 // JWT counterpart of the former SuperAdminAuthController (BR-04's
@@ -396,6 +397,14 @@ class SuperAdminAuthApiController extends BaseController
         }
         $accessToken = $this->tokens->issueAccessToken($party, ['party', 'super_admin']);
 
+        // Same party.roles shape as the regular login/profile responses
+        // (UserAuthApiService::toProfile) — the party's active DB roles,
+        // which for any Custodian reaching this point include super_admin.
+        $roles = array_column(
+            (new PartyRoleModel())->findActiveRolesForParty($party['id']),
+            'role'
+        );
+
         return $this->apiResponse([
             'access_token' => $accessToken,
             'token_type' => 'Bearer',
@@ -405,6 +414,7 @@ class SuperAdminAuthApiController extends BaseController
                 'mobile_number' => $party['mobile_number'],
                 'full_name' => $party['full_name'] ?? null,
                 'email' => $party['recovery_email'] ?? null,
+                'roles' => $roles,
             ],
         ]);
     }
