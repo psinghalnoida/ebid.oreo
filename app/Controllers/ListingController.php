@@ -84,7 +84,7 @@ class ListingController extends BaseController
             return $this->jsonError(403, 'kyc_required', $e->getMessage());
         }
 
-        $tenantId = trim((string) $this->input('tenant_id'));
+        $tenantId = $this->inputText('tenant_id');
         if ($tenantId === '') {
             return $this->jsonError(422, 'tenant_id_required', 'tenant_id is required — choose which tenant to list this item on.');
         }
@@ -128,7 +128,7 @@ class ListingController extends BaseController
         // the SAME seller (a shared label from a different seller is a
         // coincidence, not the same origin lot).
         $relatedGroupId = null;
-        $relatedGroupLabel = trim((string) $this->input('related_group_label'));
+        $relatedGroupLabel = $this->inputText('related_group_label');
         if ($relatedGroupLabel !== '') {
             $existingGroupMember = $this->listingModel
                 ->where('seller_party_id', $sellerId)

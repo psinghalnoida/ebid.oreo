@@ -62,6 +62,15 @@ abstract class BaseController extends Controller
         return $value !== null ? $value : $this->request->getPost($key);
     }
 
+    // Same as input(), but always a trimmed string: a JSON array/object
+    // sent where text is expected becomes '' instead of a PHP
+    // "Array/Object to string conversion" error (HTTP 500).
+    protected function inputText(string $key): string
+    {
+        $value = $this->input($key);
+        return is_scalar($value) ? trim((string) $value) : '';
+    }
+
     // Global API response envelope — EVERY controller response, success
     // or error, goes out shaped {status, message, data}. $status is
     // derived purely from the HTTP status code (< 400 = true), never
