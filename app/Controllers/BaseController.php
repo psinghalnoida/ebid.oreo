@@ -48,10 +48,17 @@ abstract class BaseController extends Controller
     // reads those. Falling back to getPost() lets a converted controller
     // keep accepting classic form-encoded posts too (e.g. from `curl -d`
     // during manual testing) without every call site needing its own
-    // null-coalescing boilerplate.
+    // null-coalescing boilerplate. A non-JSON body (e.g. multipart/
+    // form-data from a mobile app) makes getJsonVar() throw "Failed to
+    // parse JSON string" — treat that as "no JSON value" and fall back to
+    // the form field instead of letting it surface as an HTTP 500.
     protected function input(string $key)
     {
-        $value = $this->request->getJsonVar($key);
+        try {
+            $value = $this->request->getJsonVar($key);
+        } catch (\CodeIgniter\HTTP\Exceptions\HTTPException $e) {
+            $value = null;
+        }
         return $value !== null ? $value : $this->request->getPost($key);
     }
 

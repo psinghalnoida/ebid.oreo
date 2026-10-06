@@ -84,7 +84,10 @@ class ListingController extends BaseController
             return $this->jsonError(403, 'kyc_required', $e->getMessage());
         }
 
-        $tenantId = $this->input('tenant_id');
+        $tenantId = trim((string) $this->input('tenant_id'));
+        if ($tenantId === '') {
+            return $this->jsonError(422, 'tenant_id_required', 'tenant_id is required — choose which tenant to list this item on.');
+        }
 
         // BR-38: a delisted seller (confirmed fraud) cannot list on ANY
         // tenant — checked before the tenant-specific BR-09 gate below,
