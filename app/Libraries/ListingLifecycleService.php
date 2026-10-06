@@ -39,6 +39,25 @@ class ListingLifecycleService
         'Lost-and-Found Inventories',
     ];
 
+    // Maps a client-sent category onto its canonical BR-07 name,
+    // ignoring case and punctuation/spacing (so "antiques" or
+    // "second_hand_used_goods" are accepted), or null if it isn't one of
+    // the permitted categories at all.
+    public static function normalizeCategory($category): ?string
+    {
+        if (!is_scalar($category)) {
+            return null;
+        }
+        $key = static fn (string $s): string => preg_replace('/[^a-z0-9]/', '', strtolower($s));
+        $wanted = $key((string) $category);
+        foreach (self::PERMITTED_CATEGORIES as $permitted) {
+            if ($wanted !== '' && $key($permitted) === $wanted) {
+                return $permitted;
+            }
+        }
+        return null;
+    }
+
     private ListingModel $listingModel;
     private SaleEventModel $saleEventModel;
     private BidModel $bidModel;

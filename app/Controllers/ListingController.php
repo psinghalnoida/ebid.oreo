@@ -149,9 +149,9 @@ class ListingController extends BaseController
         // closed list — new retail-consumer goods are explicitly
         // prohibited by the same rule. Checked server-side, not trusted
         // from the request body.
-        $category = $this->input('category');
-        if (!in_array($category, ListingLifecycleService::PERMITTED_CATEGORIES, true)) {
-            return $this->jsonError(422, 'br07_invalid_category', 'BR-07: category must be one of the platform\'s permitted categories.');
+        $category = ListingLifecycleService::normalizeCategory($this->input('category'));
+        if ($category === null) {
+            return $this->invalidCategoryError($this->input('category'));
         }
 
         // BR-60: representative imagery can only be selected under a
@@ -379,9 +379,10 @@ class ListingController extends BaseController
 
         // BR-07: same closed-list enforcement as creation — an edit can't
         // move a listing into a prohibited category either.
-        $newCategory = $this->input('category') ?: $listing['category'];
-        if (!in_array($newCategory, ListingLifecycleService::PERMITTED_CATEGORIES, true)) {
-            return $this->jsonError(422, 'br07_invalid_category', 'BR-07: category must be one of the platform\'s permitted categories.');
+        $sentCategory = $this->input('category') ?: $listing['category'];
+        $newCategory = ListingLifecycleService::normalizeCategory($sentCategory);
+        if ($newCategory === null) {
+            return $this->invalidCategoryError($sentCategory);
         }
 
         $newData = [
@@ -432,5 +433,19 @@ class ListingController extends BaseController
             'tier' => $result['tier'],
             'message' => "CBS violation logged — offense #{$result['offenseNumber']}, tier: {$result['tier']}.",
         ]);
+    }
+
+    // BR-07 rejection that tells the client what it sent and which
+    // categories are actually accepted, so a frontend dropdown can be
+    // matched to the closed list instead of guessing.
+    private function invalidCategoryError($sent)
+    {
+        $sentText = $sent === null || $sent === '' ? '(empty)' : (is_scalar($sent) ? (string) $sent : json_encode($sent));
+        return $this->apiResponse([
+            'error' => 'br07_invalid_category',
+            'sent_category' => $sentText,
+            'permitted_categories' => ListingLifecycleService::PERMITTED_CATEGORIES,
+        ], "BR-07: category \"{$sentText}\" is not one of the platform's permitted categories: "
+            . implode(', ', ListingLifecycleService::PERMITTED_CATEGORIES) . '.', 422);
     }
 }
